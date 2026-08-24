@@ -1,0 +1,2206 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>Baby Log</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍼</text></svg>" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700;800;900&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: light dark;
+    /* ---- Toss(TDS)-derived light tokens (verified from toss.im / TDS Mobile docs) ----
+       Flat color layering, not borders or shadows, is how Toss separates surfaces —
+       see foundations "no canonical shadow token... use flat color layering." */
+    --bg: #f2f4f6;
+    --surface: #ffffff;
+    --surface-2: #eef1f5;
+    --fg: #191f28;
+    --muted: #4e5968;
+    --muted-2: #8b95a1;
+    --border: #e5e8eb;
+    --primary: #3182f6;
+    --primary-hover: #2272eb;
+    --primary-fg: #ffffff;
+    --primary-weak-bg: #e8f3ff;
+    --primary-weak-fg: #1b64da;
+    --link: #1b64da;
+    --danger: #e42939;
+    --memo-bg: #fff3c4;
+    --memo-fg: #8a6a00;
+    --radius-pill: 999px;
+    --radius-card: 20px;
+    --radius-sm: 14px;
+
+    /* category accents (extension — not part of the TDS doc, chosen to stay legible
+       as both flat icon chips and weak-tint badges alongside the Toss blue) */
+    --c-feed:#ff9f0a; --c-diaper:#ac8058; --c-bath:#1ec8d8; --c-sleep:#8b5cf6;
+    --c-med:#26b876; --c-probiotic:#0aa88f; --c-play:#3182f6; --c-tummy:#ff5673; --c-nose:#3ba9e8;
+    --c-nails:#e8b100; --c-temp:#ff6b5e; --c-custom:#8b95a1;
+
+    /* "Apple SD Gothic Neo" is a system font — it isn't fetched, it's simply named first
+       so it's used natively on the family's iPhones/Macs. Gothic A1 (loaded via Google
+       Fonts, the only external host the Artifact CSP allows) is the fallback for anyone
+       on Android — e.g. the nanny, if she isn't on an iPhone. For Vietnamese we use Be
+       Vietnam Pro instead of a system fallback: a geometric, rounded sans built for
+       Vietnamese (set below via :root[lang="vi"]). */
+    --font: "Apple SD Gothic Neo", "Gothic A1", -apple-system, BlinkMacSystemFont,
+      "Malgun Gothic", "Segoe UI", Roboto, "Noto Sans KR", "Noto Sans", Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0e1116; --surface:#181c23; --surface-2:#232833;
+      --fg:#f5f7fa; --muted:#b7bfca; --muted-2:#7c8591;
+      --border: rgba(255,255,255,0.08);
+      --primary:#4c8dff; --primary-hover:#6ba0ff; --primary-fg:#ffffff;
+      --primary-weak-bg:#16294a; --primary-weak-fg:#7db8ff; --link:#7db8ff;
+      --danger:#ff5b6a;
+      --memo-bg:#3d3111; --memo-fg:#f3cf4d;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0e1116; --surface:#181c23; --surface-2:#232833;
+    --fg:#f5f7fa; --muted:#b7bfca; --muted-2:#7c8591;
+    --border: rgba(255,255,255,0.08);
+    --primary:#4c8dff; --primary-hover:#6ba0ff; --primary-fg:#ffffff;
+    --primary-weak-bg:#16294a; --primary-weak-fg:#7db8ff; --link:#7db8ff;
+    --danger:#ff5b6a;
+    --memo-bg:#3d3111; --memo-fg:#f3cf4d;
+  }
+  :root[lang="vi"]{
+    --font: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Roboto, "Noto Sans", Helvetica, Arial, sans-serif;
+  }
+
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
+    -webkit-font-smoothing:antialiased; overflow-x:hidden;
+  }
+  button, input, textarea, select{ font-family:inherit; color:inherit; }
+  button{ cursor:pointer; outline:none; border:0; background:none; -webkit-appearance:none; appearance:none; }
+  a{ color:var(--link); }
+  [hidden]{ display:none !important; }
+  :focus-visible{ outline:2px solid var(--primary); outline-offset:2px; border-radius:8px; }
+  @media (prefers-reduced-motion: reduce){ *{ animation-duration:.001ms !important; transition-duration:.001ms !important; } }
+
+  #app{ max-width:560px; margin:0 auto; min-height:100%; display:flex; flex-direction:column; padding-bottom:calc(72px + env(safe-area-inset-bottom)); }
+
+  /* ---------- header ---------- */
+  header.top{
+    position:sticky; top:0; z-index:20; background:color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px);
+    padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
+  }
+  .top-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .baby-id{ display:flex; flex-direction:column; line-height:1.2; }
+  .baby-id b{ font-size:21px; font-weight:800; letter-spacing:-.4px; }
+  .baby-id span{ font-size:12px; color:var(--muted-2); font-weight:600; font-variant-numeric:tabular-nums; }
+  .top-actions{ display:flex; align-items:center; gap:6px; }
+  /* header.top sits on a translucent tint of --bg, and --surface-2 is nearly
+     the same lightness as --bg — so on the header specifically these two
+     pills need the stronger --surface contrast (plus a hairline ring) to
+     read as distinct controls rather than blending into the header. */
+  .lang-pill{
+    display:flex; border-radius:var(--radius-pill); background:var(--surface); overflow:hidden;
+    box-shadow:inset 0 0 0 1px var(--border);
+  }
+  .lang-pill button{
+    border:0; background:transparent; padding:7px 12px; font-size:12px; font-weight:800; color:var(--muted);
+  }
+  .lang-pill button[aria-pressed="true"]{ background:var(--primary); color:var(--primary-fg); }
+  .profile-pill{
+    display:flex; align-items:center; height:34px; padding:0 14px; border-radius:var(--radius-pill);
+    background:var(--surface); color:var(--fg); font-size:12.5px; font-weight:800;
+    max-width:104px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:0 0 auto;
+    box-shadow:inset 0 0 0 1px var(--border);
+  }
+
+  /* ---------- active/stopwatch bar — a pastel tint of the category color
+     (same color-mix formula as the icon chips), not a saturated fill.
+     Lives inside today's day-group in the timeline, right under the date. ---------- */
+  .active-bar{
+    margin:0 0 14px; border-radius:16px;
+    background:color-mix(in srgb, var(--active-color, var(--c-feed)) 26%, var(--surface-2));
+    color:var(--fg); padding:14px 16px; display:flex; align-items:center; gap:12px;
+  }
+  .active-bar.paused{ opacity:.7; }
+  .active-bar .aw-emoji{ font-size:26px; line-height:1; flex:0 0 auto; }
+  .active-bar .aw-time{ font-size:24px; font-weight:800; font-variant-numeric:tabular-nums; min-width:78px; }
+  .active-bar .aw-meta{ flex:1; min-width:0; }
+  .active-bar .aw-meta b{ display:block; font-size:14px; }
+  .active-bar .aw-meta span{ font-size:12px; color:var(--muted); }
+  .active-bar .aw-actions{ display:flex; gap:8px; }
+  .aw-round{
+    width:36px; height:36px; border-radius:50%; border:0; background:var(--surface);
+    display:flex; align-items:center; justify-content:center; color:var(--fg); font-size:15px; font-weight:800;
+  }
+  .aw-round.confirm{ background:var(--primary); color:var(--primary-fg); }
+
+  /* ---------- section ---------- */
+  section.panel{ padding:16px 16px 8px; display:flex; flex-direction:column; gap:18px; }
+  /* surfaces are told apart by flat color contrast against --bg, never a border/shadow */
+  .card{ background:var(--surface); border-radius:var(--radius-card); }
+
+  /* dashboard (last-fed / last-diaper / last-sleep) — plain text on the page background */
+  .dashboard{ display:flex; padding:4px 2px 6px; gap:4px; }
+  .dash-item{ flex:1; text-align:center; padding:0 4px; }
+  .dash-item .d-emoji{ font-size:20px; line-height:1; margin-bottom:7px; }
+  .dash-item .d-label{ font-size:11.5px; color:var(--muted-2); margin-bottom:4px; font-weight:700; }
+  .dash-item .d-val{ font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.3px; }
+  .dash-item .d-sub{ font-size:11.5px; color:var(--muted); margin-top:3px; }
+
+  /* memo preview — no box: a full-bleed color band, tap jumps to the memo tab */
+  .announce-row{
+    width:calc(100% + 32px); margin:0 -16px; display:flex; align-items:center; gap:9px;
+    padding:15px 16px; text-align:left; background:var(--memo-bg); border-radius:0;
+  }
+  .announce-row .a-emoji{ font-size:17px; flex:0 0 auto; }
+  .announce-row .a-label{ font-size:12.5px; font-weight:800; color:var(--memo-fg); flex:0 0 auto; }
+  .announce-row .a-preview{ flex:1; min-width:0; font-size:12.5px; color:var(--memo-fg); opacity:.8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .announce-row .a-chev{ flex:0 0 auto; color:var(--memo-fg); opacity:.6; font-size:17px; font-weight:700; }
+
+  /* quick actions — single row, swipeable, icon + label only (no card chrome) */
+  .qa-grid{
+    display:flex; gap:16px; overflow-x:auto; overflow-y:hidden; padding:4px 2px 8px;
+    scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; scrollbar-width:none; overflow-anchor:none;
+  }
+  .qa-grid::-webkit-scrollbar{ display:none; }
+  .qa-btn{
+    flex:0 0 auto; width:64px; scroll-snap-align:start; background:transparent; border:0; padding:0;
+    display:flex; flex-direction:column; align-items:center; gap:8px; user-select:none;
+    -webkit-user-select:none; touch-action:manipulation;
+  }
+  .qa-ico{ width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:24px; line-height:1; transition:transform .15s ease; }
+  .qa-btn:active .qa-ico{ transform:scale(.92); }
+  .qa-btn.holding .qa-ico{ transform:scale(1.1); }
+  .qa-label{ font-size:11.5px; font-weight:700; text-align:center; line-height:1.2; color:var(--muted); }
+  .qa-add .qa-ico{ background:var(--surface-2); color:var(--muted-2); font-size:22px; font-weight:700; }
+
+  /* timeline — a full-bleed white sheet that docks over the page canvas; the color
+     change (and rounded top) is the separation, not a rule line */
+  .timeline-section{
+    background:var(--surface); border-radius:26px 26px 0 0; margin:16px -16px 0;
+    padding:22px 18px calc(96px + env(safe-area-inset-bottom)); min-height:38vh;
+  }
+  .day-group + .day-group{ margin-top:30px; }
+  .day-head{ display:flex; align-items:baseline; justify-content:space-between; padding:2px 2px 12px; gap:8px; }
+  .day-head .d-title{ font-size:12.5px; font-weight:800; color:var(--muted-2); text-transform:uppercase; letter-spacing:.3px; flex:0 0 auto; }
+  .day-totals{ display:flex; gap:11px; font-size:11.5px; color:var(--muted); font-variant-numeric:tabular-nums; flex-wrap:wrap; justify-content:flex-end; }
+  .day-totals b{ color:var(--fg); font-weight:800; }
+  /* swipe-to-delete: .entry-row translates over a red delete layer sitting behind it */
+  .entry-swipe{ position:relative; border-radius:14px; overflow:hidden; }
+  /* opacity:0 at rest — not just "hidden behind the row": on some renderers the
+     rounded corners of this full-bleed red layer and the row sitting on top of
+     it don't clip in perfect lock-step, leaving a faint red antialiasing seam
+     at the corners even when nothing is swiped. Fading it in only once a swipe
+     actually starts (see wireEntrySwipe) removes any chance of that at rest. */
+  .entry-delete-bg{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:flex-end;
+    padding-right:22px; background:var(--danger); border-radius:14px;
+    opacity:0; transition:opacity 120ms ease;
+  }
+  .entry-swipe.revealed .entry-delete-bg{ opacity:1; }
+  .entry-delete-bg span{ color:#fff; font-size:13px; font-weight:800; }
+  .entry-row{
+    position:relative; display:flex; align-items:center; gap:13px; padding:11px 2px; border:0;
+    background:var(--surface); width:100%; text-align:left; border-radius:14px; touch-action:pan-y;
+  }
+  .entry-row:active{ background:var(--surface-2); }
+  .entry-row.flash{ animation: rowFlash 900ms ease; }
+  @keyframes rowFlash{ 0%{ background:var(--primary-weak-bg); } 100%{ background:var(--surface); } }
+  .e-dot{ width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:20px; flex:0 0 auto; }
+  .e-main{ flex:1; min-width:0; }
+  .e-title{ font-size:14.5px; font-weight:700; }
+  .e-sub{ font-size:12px; color:var(--muted); margin-top:1px; }
+  .e-time{ font-size:12px; color:var(--muted); text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .e-author{ display:block; font-size:10.5px; color:var(--muted-2); margin-top:1px; }
+  .empty-note{ padding:50px 16px; text-align:center; color:var(--muted); font-size:13.5px; }
+
+  /* memo tab — one full-width sheet (same shape/tone as .timeline-section),
+     compose area on top separated from the list by a hairline, and memos
+     stacked flat with a hairline between each rather than individual card
+     boxes: an explicit, deliberate exception to the flat/borderless language
+     used everywhere else, per direct request for this section specifically. */
+  .memo-section{
+    background:var(--surface); border-radius:26px 26px 0 0; margin:16px -16px 0;
+    padding:20px 18px calc(96px + env(safe-area-inset-bottom)); min-height:38vh;
+  }
+  .memo-compose{
+    display:flex; flex-direction:column; gap:10px;
+    padding-bottom:20px; margin-bottom:6px; border-bottom:1px solid var(--border);
+  }
+  .memo-row{ padding:14px 2px; display:flex; flex-direction:column; gap:6px; border-bottom:1px solid var(--border); }
+  .memo-row:last-child{ border-bottom:0; }
+  .memo-row .m-text{ font-size:14.5px; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
+  .memo-row .m-translated{ font-size:13.5px; line-height:1.5; color:var(--muted); white-space:pre-wrap; word-break:break-word; padding-top:2px; }
+  .memo-row .m-translated::before{ content:"↳ "; color:var(--muted-2); }
+  .memo-row .m-meta{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:2px; }
+  .memo-row .m-meta span{ font-size:11px; color:var(--muted-2); }
+  .memo-row .m-lang-tag{ font-size:10px; font-weight:800; color:var(--memo-fg); background:var(--memo-bg); border-radius:6px; padding:2px 6px; }
+
+  /* stats */
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat-tile{ padding:16px; }
+  .stat-tile .st-label{ font-size:12px; color:var(--muted); margin-bottom:7px; font-weight:600; }
+  .stat-tile .st-val{ font-size:23px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .stat-tile .st-val small{ font-size:12px; font-weight:500; color:var(--muted); }
+  .bars{ display:flex; align-items:flex-end; justify-content:space-between; gap:8px; height:120px; padding:16px 16px 8px; overflow-x:auto; scrollbar-width:none; }
+  .bars::-webkit-scrollbar{ display:none; }
+  .bar-col{ flex:0 0 26px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:6px; height:100%; }
+  .bar-col .bar{ width:100%; max-width:26px; border-radius:8px 8px 3px 3px; background:var(--primary); min-height:3px; }
+  .bar-col .bar-lbl{ font-size:10px; color:var(--muted); }
+  .bar-col .bar-val{ font-size:10px; color:var(--muted-2); font-variant-numeric:tabular-nums; }
+  .section-title{ font-size:13px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.12px; padding:0 2px; }
+
+  /* poop-interval chart card — line+area chart with a day-scaled Y-axis,
+     modeled on a phone Health-app "record interval" chart per direct request */
+  .poop-chart-card{ padding:16px; display:flex; flex-direction:column; gap:14px; }
+  .poop-chart-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .poop-chart-title{ display:flex; align-items:center; gap:6px; font-size:13px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.12px; }
+  .poop-chart-title .poop-emoji{ font-size:15px; }
+  .poop-recent-badge{ font-size:11px; font-weight:800; color:var(--muted-2); background:var(--surface-2); padding:4px 10px; border-radius:var(--radius-pill); flex:0 0 auto; }
+  .poop-chart-svg{ width:100%; height:auto; display:block; overflow:visible; }
+  .poop-grid-line{ stroke:var(--border); stroke-width:1; stroke-dasharray:2.5 3; }
+  .poop-axis-y{ fill:var(--muted-2); font-size:8.5px; font-weight:700; }
+  .poop-axis-x{ fill:var(--muted-2); font-size:7.5px; font-weight:600; }
+  .poop-line{ stroke:var(--c-diaper); stroke-width:2; fill:none; stroke-linejoin:round; stroke-linecap:round; }
+  .poop-dot{ fill:var(--c-diaper); stroke:var(--surface); stroke-width:1.5; }
+  .poop-value-lbl{ fill:var(--fg); font-size:8.5px; font-weight:800; }
+  .poop-day-list{ display:flex; flex-direction:column; }
+  .poop-day-group + .poop-day-group{ margin-top:16px; }
+  .poop-day-title{ font-size:12px; font-weight:800; color:var(--muted-2); margin-bottom:6px; }
+  .poop-day-row{ display:flex; align-items:baseline; gap:10px; padding:6px 0; font-size:13.5px; }
+  .poop-day-row + .poop-day-row{ border-top:1px solid var(--border); }
+  .poop-day-time{ font-weight:700; color:var(--fg); font-variant-numeric:tabular-nums; flex:0 0 auto; width:58px; }
+  .poop-day-kind{ color:var(--fg); flex:0 0 auto; }
+  .poop-day-note{ color:var(--muted); font-size:12px; }
+
+  /* settings — rows separated by spacing, not rule lines */
+  .row-item{ display:flex; align-items:center; justify-content:space-between; padding:15px 16px; gap:12px; }
+  .row-item .r-label{ font-size:14.5px; }
+  .chip-row{ display:flex; flex-wrap:wrap; gap:8px; padding:12px 16px; }
+  .chip{ padding:9px 15px; border-radius:var(--radius-pill); background:var(--surface-2); border:0; font-size:13px; font-weight:700; color:var(--fg); }
+  .chip[aria-pressed="true"]{ background:var(--primary); color:var(--primary-fg); }
+  .text-btn{ background:transparent; border:0; color:var(--link); font-size:14px; font-weight:700; padding:6px; }
+  .danger-btn{ color:var(--danger); }
+
+  /* tab bar */
+  nav.tabbar{
+    position:fixed; left:0; right:0; bottom:0; z-index:30; max-width:560px; margin:0 auto;
+    background:color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter:saturate(180%) blur(20px);
+    -webkit-backdrop-filter:saturate(180%) blur(20px);
+    display:flex; padding:6px 8px calc(6px + env(safe-area-inset-bottom));
+  }
+  .tab-btn{ flex:1; background:transparent; border:0; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 2px; color:var(--muted-2); }
+  .tab-btn .tb-emoji{ font-size:19px; line-height:1; filter:grayscale(1); opacity:.55; }
+  .tab-btn[aria-current="true"] .tb-emoji{ filter:none; opacity:1; }
+  .tab-btn span{ font-size:10.5px; font-weight:700; }
+  .tab-btn[aria-current="true"]{ color:var(--primary); }
+
+  /* ---------- full pages (announcement / entry detail) ----------
+     header/footer are a solid --surface bar over a --bg canvas — the color
+     change is the separation, no border needed. */
+  .fullpage{
+    position:fixed; inset:0; z-index:45; background:var(--bg); overflow-y:auto;
+    transform:translateX(100%); transition:transform .28s cubic-bezier(.32,.72,0,1);
+  }
+  .fullpage.show{ transform:translateX(0); }
+  .fp-head{
+    position:sticky; top:0; z-index:1; display:flex; align-items:center; gap:10px;
+    padding:calc(12px + env(safe-area-inset-top)) 10px 14px 6px; background:var(--surface);
+  }
+  .fp-back{ width:36px; height:36px; border-radius:50%; border:0; background:var(--surface-2); font-size:19px; font-weight:800; color:var(--fg); flex:0 0 auto; }
+  .fp-head h1{ font-size:16px; font-weight:800; margin:0; flex:1; min-width:0; }
+  .fp-delete{ background:transparent; border:0; color:var(--danger); font-size:14px; font-weight:700; padding:6px 4px; flex:0 0 auto; }
+  /* extra bottom padding clears the floating save button */
+  .fp-body{ padding:20px 16px calc(100px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:20px; }
+  /* floating, not a full-width bar docked to the edge — the shadow is deliberate here,
+     it's the one place something should read as lifted off the page */
+  .fp-foot{
+    position:fixed; left:0; right:0; bottom:0; z-index:2; max-width:560px; margin:0 auto;
+    padding:0 20px calc(20px + env(safe-area-inset-bottom)); pointer-events:none;
+  }
+  .fp-foot .btn{ pointer-events:auto; box-shadow:0 10px 26px rgba(20,30,50,.22); }
+
+  .field label{ display:block; font-size:12px; color:var(--muted); margin-bottom:7px; font-weight:700; text-transform:uppercase; letter-spacing:.1px; }
+  .field input[type="time"], .field input[type="date"], .field input[type="number"], .field input[type="text"]{
+    width:100%; padding:13px 14px; border-radius:14px; border:0; background:var(--surface-2); font-size:16px; color:var(--fg);
+  }
+  /* fp-entry-body sits on the grey page canvas, where surface-2 barely differs from it —
+     use white here specifically so fields read as distinct fields, not a form-shaped page */
+  #fp-entry-body .field input, #fp-entry-body .seg, #fp-entry-body .amount-row .amt-step{
+    background:var(--surface);
+  }
+  .time-row{ display:flex; gap:10px; align-items:flex-end; }
+  .time-row .field{ flex:1; }
+  .time-row .time-sep{ padding-bottom:14px; color:var(--muted); font-size:13px; }
+  .seg{ display:flex; gap:2px; border-radius:14px; background:var(--surface-2); padding:3px; }
+  .seg button{ flex:1; border:0; background:transparent; border-radius:11px; padding:10px 4px; font-size:13.5px; font-weight:700; color:var(--muted); }
+  .seg button[aria-pressed="true"]{ background:var(--primary); color:var(--primary-fg); }
+  .amount-row{ display:flex; align-items:center; gap:10px; }
+  .amount-row .amt-step{ width:42px; height:42px; border-radius:50%; background:var(--surface-2); border:0; font-size:19px; font-weight:800; flex:0 0 auto; }
+  .amount-row input[type="number"]{ text-align:center; font-size:21px; font-weight:800; }
+  input[type="range"]{ width:100%; accent-color:var(--primary); }
+  .btn{ width:100%; padding:16px; border-radius:16px; border:0; font-size:16px; font-weight:800; }
+  .btn.primary{ background:var(--primary); color:var(--primary-fg); }
+  .btn.ghost{ background:var(--surface-2); color:var(--fg); }
+
+  /* bottom sheets (used only for the small quick-pick flows: new custom type, who-am-i) —
+     the scrim behind them supplies the contrast, so no shadow on the sheet itself */
+  .scrim{ position:fixed; inset:0; background:rgba(15,20,28,.5); z-index:40; opacity:0; pointer-events:none; transition:opacity .22s ease; }
+  .scrim.show{ opacity:1; pointer-events:auto; }
+  .sheet{
+    position:fixed; left:0; right:0; bottom:0; z-index:41; max-width:560px; margin:0 auto;
+    background:var(--surface); border-radius:24px 24px 0 0;
+    max-height:88vh; overflow-y:auto; transform:translateY(100%); transition:transform .26s cubic-bezier(.32,.72,0,1);
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  .sheet.show{ transform:translateY(0); }
+  .sheet-head{ position:sticky; top:0; background:var(--surface); display:flex; align-items:center; justify-content:space-between; padding:14px 8px 10px 14px; }
+  .sheet-head h2{ font-size:16px; margin:0; font-weight:800; }
+  .sheet-head .grabber{ position:absolute; top:7px; left:50%; transform:translateX(-50%); width:36px; height:4px; border-radius:2px; background:var(--border); }
+  .icon-btn{
+    width:30px; height:30px; border-radius:50%; background:var(--surface-2); border:0;
+    display:flex; align-items:center; justify-content:center; color:var(--fg); flex:0 0 auto; font-size:14px; font-weight:700;
+  }
+  .sheet-body{ padding:16px; display:flex; flex-direction:column; gap:20px; }
+  .sheet-foot{ display:flex; gap:10px; padding:4px 16px 18px; }
+  .sheet-foot .btn{ flex:1; }
+  .swatches{ display:flex; gap:10px; flex-wrap:wrap; }
+  .swatch{ width:34px; height:34px; border-radius:50%; border:0; }
+  .swatch[aria-pressed="true"]{ box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--fg); }
+  .emoji-pick{ display:flex; gap:8px; flex-wrap:wrap; }
+  .emoji-pick button{ width:44px; height:44px; border-radius:14px; background:var(--surface-2); border:0; font-size:19px; }
+  .emoji-pick button[aria-pressed="true"]{ background:var(--primary-weak-bg); }
+
+  .toast{
+    position:fixed; left:50%; bottom:calc(90px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(10px);
+    background:var(--fg); color:var(--surface); padding:12px 20px; border-radius:var(--radius-pill); font-size:13px; font-weight:700;
+    z-index:60; opacity:0; transition:opacity .2s ease, transform .2s ease; pointer-events:none;
+    white-space:nowrap; max-width:88vw; overflow:hidden; text-overflow:ellipsis;
+  }
+  .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============ HEADER ============ -->
+  <header class="top">
+    <div class="top-row">
+      <div class="baby-id">
+        <b id="hd-name">아기</b>
+        <span id="hd-age">D+0</span>
+      </div>
+      <div class="top-actions">
+        <div class="lang-pill" id="lang-pill">
+          <button type="button" data-lang="ko" aria-pressed="true">KO</button>
+          <button type="button" data-lang="vi" aria-pressed="false">VI</button>
+        </div>
+        <button type="button" class="profile-pill" id="btn-profile" title="profile">
+          <span id="profile-pill-text">-</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ============ TAB: RECORD ============ -->
+  <section class="panel" id="tab-record" data-tab-panel>
+
+    <!-- dashboard: last feed / diaper / sleep, plain text, no card -->
+    <div class="dashboard" id="since-row"></div>
+
+    <!-- memo: most recent memo, one-line preview, tap jumps to the memo tab -->
+    <button type="button" class="announce-row" id="memo-open-btn">
+      <span class="a-emoji">📝</span>
+      <span class="a-label" data-i18n="memoLabel">메모</span>
+      <span class="a-preview" id="memo-preview"></span>
+      <span class="a-chev">›</span>
+    </button>
+
+    <div>
+      <div class="section-title" data-i18n="quickAdd" style="margin-bottom:10px">빠른 기록</div>
+      <div class="qa-grid" id="qa-grid"></div>
+    </div>
+
+    <div class="timeline-section">
+      <div class="section-title" data-i18n="timeline" style="margin-bottom:10px">기록</div>
+      <div id="timeline" style="display:flex;flex-direction:column;gap:14px;"></div>
+    </div>
+  </section>
+
+  <!-- ============ TAB: MEMO ============ -->
+  <section class="panel" id="tab-memo" data-tab-panel hidden>
+    <div class="memo-section">
+      <div class="memo-compose">
+        <textarea id="memo-compose-text" data-i18n-ph="memoComposePh" rows="3" style="width:100%;border:0;background:var(--surface-2);border-radius:14px;padding:12px 13px;font-size:15px;color:var(--fg);resize:none;"></textarea>
+        <div id="memo-compose-translate-wrap" hidden>
+          <label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:6px;font-weight:700;" id="memo-compose-translate-label"></label>
+          <div id="memo-compose-translate-preview" style="width:100%;box-sizing:border-box;background:var(--surface-2);border-radius:14px;padding:12px 13px;font-size:14.5px;color:var(--fg);min-height:1.4em;"></div>
+        </div>
+        <button type="button" class="btn primary" id="memo-compose-submit" data-i18n="memoSubmit" style="padding:12px;">등록</button>
+      </div>
+      <div id="memo-list"></div>
+    </div>
+  </section>
+
+  <!-- ============ TAB: STATS ============ -->
+  <section class="panel" id="tab-stats" data-tab-panel hidden>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
+      <div class="section-title" style="margin:0" data-i18n="statsFeed7">수유 통계</div>
+      <div class="seg" id="stats-feed-range" style="width:180px">
+        <button type="button" data-range="7" aria-pressed="true" data-i18n="range7">7일</button>
+        <button type="button" data-range="14" aria-pressed="false" data-i18n="range14">14일</button>
+        <button type="button" data-range="30" aria-pressed="false" data-i18n="range30">30일</button>
+      </div>
+    </div>
+    <div class="stat-grid" id="stat-tiles"></div>
+    <div class="card">
+      <div class="bars" id="stat-bars"></div>
+    </div>
+
+    <div class="card poop-chart-card">
+      <div class="poop-chart-head">
+        <span class="poop-chart-title"><span class="poop-emoji">💩</span> <span data-i18n="poopStats">배변 통계</span></span>
+        <span class="poop-recent-badge" id="poop-recent-badge"></span>
+      </div>
+      <div id="poop-chart-wrap"></div>
+      <div id="poop-day-list" class="poop-day-list"></div>
+    </div>
+
+    <div class="section-title" data-i18n="statsSleep7">최근 7일 수면 통계</div>
+    <div class="stat-grid" id="stat-sleep-tiles"></div>
+  </section>
+
+  <!-- ============ TAB: SETTINGS ============ -->
+  <section class="panel" id="tab-settings" data-tab-panel hidden>
+    <div>
+      <div class="section-title" style="margin-bottom:8px" data-i18n="babyInfo">아기 정보</div>
+      <div class="card">
+        <div class="row-item">
+          <div><div class="r-label" data-i18n="babyNameKo">이름 (한국어)</div></div>
+          <input type="text" id="set-baby-name-ko" value="지오" style="text-align:right;border:0;background:transparent;font-size:14.5px;color:var(--fg);max-width:55%;" />
+        </div>
+        <div class="row-item">
+          <div><div class="r-label" data-i18n="babyNameVi">이름 (베트남어)</div></div>
+          <input type="text" id="set-baby-name-vi" value="Zio" style="text-align:right;border:0;background:transparent;font-size:14.5px;color:var(--fg);max-width:55%;" />
+        </div>
+        <div class="row-item">
+          <div><div class="r-label" data-i18n="babyBirth">태어난 날</div></div>
+          <input type="date" id="set-baby-birth" value="2026-05-11" style="border:0;background:transparent;font-size:14.5px;color:var(--fg);" />
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title" style="margin-bottom:8px" data-i18n="whoAmI">나는 누구</div>
+      <div class="card">
+        <div class="chip-row" id="author-chip-row"></div>
+        <div class="row-item" style="background:var(--surface-2);border-radius:14px;margin:0 8px 8px;">
+          <input type="text" id="author-custom-input" data-i18n-ph="authorCustomPh" style="border:0;background:transparent;font-size:14.5px;flex:1;color:var(--fg);" />
+          <button type="button" class="text-btn" id="author-save-btn" data-i18n="save">저장</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title" style="margin-bottom:8px" data-i18n="customTypes">커스텀 항목 관리</div>
+      <div class="card" id="custom-type-manage-list"></div>
+    </div>
+
+    <div>
+      <div class="section-title" style="margin-bottom:8px" data-i18n="typeOrder">항목 순서</div>
+      <div class="card" id="type-order-list"></div>
+    </div>
+
+    <div>
+      <div class="section-title" style="margin-bottom:8px" data-i18n="appearance">화면</div>
+      <div class="card">
+        <div class="row-item">
+          <div class="r-label" data-i18n="theme">테마</div>
+          <div class="seg" style="width:190px" id="theme-seg">
+            <button type="button" data-theme-opt="system" aria-pressed="true" data-i18n="themeAuto">자동</button>
+            <button type="button" data-theme-opt="light" data-i18n="themeLight">라이트</button>
+            <button type="button" data-theme-opt="dark" data-i18n="themeDark">다크</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <p style="font-size:11.5px;color:var(--muted-2);text-align:center;line-height:1.5;padding:6px 10px 0" data-i18n="shareHint">
+      가족 모두와 함께 쓰려면 이 페이지를 "편집 가능"으로 공유해 주세요. 기록은 이 페이지를 여는 모든 사람과 실시간으로 공유됩니다.
+    </p>
+  </section>
+
+  <!-- ============ TAB BAR ============ -->
+  <nav class="tabbar">
+    <button type="button" class="tab-btn" data-tab="record" aria-current="true">
+      <span class="tb-emoji">📋</span><span data-i18n="tabRecord">기록</span>
+    </button>
+    <button type="button" class="tab-btn" data-tab="memo" aria-current="false">
+      <span class="tb-emoji">📝</span><span data-i18n="tabMemo">메모</span>
+    </button>
+    <button type="button" class="tab-btn" data-tab="stats" aria-current="false">
+      <span class="tb-emoji">📊</span><span data-i18n="tabStats">통계</span>
+    </button>
+    <button type="button" class="tab-btn" data-tab="settings" aria-current="false">
+      <span class="tb-emoji">⚙️</span><span data-i18n="tabSettings">설정</span>
+    </button>
+  </nav>
+
+  <!-- ============ FULL PAGE: ENTRY DETAIL ============ -->
+  <div class="fullpage" id="fp-entry">
+    <div class="fp-head">
+      <button type="button" class="fp-back" id="fp-entry-back">‹</button>
+      <h1 id="fp-entry-title">-</h1>
+      <button type="button" class="fp-delete" id="fp-entry-delete" data-i18n="delete">삭제</button>
+    </div>
+    <div class="fp-body" id="fp-entry-body"></div>
+    <div class="fp-foot">
+      <button type="button" class="btn primary" id="fp-entry-save" data-i18n="save">저장</button>
+    </div>
+  </div>
+
+  <!-- ============ SHEET: CUSTOM TYPE CREATE ============ -->
+  <div class="scrim" id="scrim2"></div>
+  <div class="sheet" id="type-sheet" role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="grabber"></div>
+      <button type="button" class="icon-btn" id="type-sheet-close">✕</button>
+      <h2 data-i18n="newTypeTitle">새 항목 추가</h2>
+      <span style="width:30px"></span>
+    </div>
+    <div class="sheet-body">
+      <div class="field">
+        <label data-i18n="typeName">항목 이름</label>
+        <input type="text" id="new-type-name" maxlength="12" />
+      </div>
+      <div class="field">
+        <label data-i18n="typeEmoji">아이콘</label>
+        <div class="emoji-pick" id="new-type-emojis"></div>
+      </div>
+      <div class="field">
+        <label data-i18n="typeColor">색상</label>
+        <div class="swatches" id="new-type-swatches"></div>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button type="button" class="btn ghost" id="type-sheet-cancel" data-i18n="cancel">취소</button>
+      <button type="button" class="btn primary" id="type-sheet-save" data-i18n="add">추가</button>
+    </div>
+  </div>
+
+  <!-- ============ SHEET: PROFILE PICKER ============ -->
+  <div class="scrim" id="scrim3"></div>
+  <div class="sheet" id="profile-sheet" role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="grabber"></div>
+      <span style="width:30px"></span>
+      <h2 data-i18n="whoAmITitle">누구신가요?</h2>
+      <span style="width:30px"></span>
+    </div>
+    <div class="sheet-body">
+      <p style="font-size:13px;color:var(--muted);margin:0" data-i18n="whoAmIDesc">기록에 표시할 이름을 골라주세요. 나중에 설정에서 바꿀 수 있어요.</p>
+      <div class="chip-row" id="profile-chip-row" style="padding:0"></div>
+      <div class="field">
+        <label data-i18n="orTypeName">직접 입력</label>
+        <input type="text" id="profile-custom-input" data-i18n-ph="authorCustomPh" />
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button type="button" class="btn primary" id="profile-save-btn" data-i18n="start">시작하기</button>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<!-- Shared data lives on the server now (Render + Neon Postgres) and is
+     fetched/mutated via /api/state and /api/mutate — see appState in the
+     script below. This used to be a hidden DOM "store" synced by the Claude
+     Artifact platform; that's gone now that this is a real hosted site. -->
+
+<script>
+(function(){
+'use strict';
+
+/* ================================================================
+   I18N
+   ================================================================ */
+var I18N = {
+ko: {
+  memoLabel:"메모", memoEmpty:"아직 메모가 없어요", memoComposePh:"메모를 입력하세요",
+  memoSubmit:"등록", memoTranslateToVi:"베트남어 번역 (선택)", memoTranslateToKo:"한국어 번역 (선택)",
+  memoNoMemos:"아직 등록된 메모가 없어요.", tabMemo:"메모", typeOrder:"항목 순서",
+  quickAdd:"빠른 기록", timeline:"기록", statsFeed7:"수유 통계", statsSleep7:"최근 7일 수면 통계",
+  babyInfo:"아기 정보", babyNameKo:"이름 (한국어)", babyNameVi:"이름 (베트남어)", babyBirth:"태어난 날",
+  whoAmI:"나는 누구", customTypes:"커스텀 항목 관리",
+  appearance:"화면", theme:"테마", themeAuto:"자동", themeLight:"라이트", themeDark:"다크",
+  shareHint:'가족 모두와 함께 쓰려면 이 링크를 공유해 주세요. 기록은 이 페이지를 여는 모든 사람과 실시간으로 공유됩니다.',
+  tabRecord:"기록", tabStats:"통계", tabSettings:"설정",
+  save:"저장", cancel:"취소", delete:"삭제", add:"추가", start:"시작하기",
+  newTypeTitle:"새 항목 추가", typeName:"항목 이름", typeColor:"색상", typeEmoji:"아이콘",
+  whoAmITitle:"누구신가요?", whoAmIDesc:"기록에 표시할 이름을 골라주세요. 나중에 설정에서 바꿀 수 있어요.", orTypeName:"직접 입력",
+  babyDefaultName:"아기", dDay:"D+",
+  t_feed:"분유", t_diaper:"기저귀", t_bath:"목욕", t_sleep:"수면", t_med:"투약", t_probiotic:"유산균", t_play:"놀이",
+  t_tummy:"터미타임", t_nose:"콧물제거", t_nails:"손톱정리", t_temp:"체온", t_custom:"기타",
+  addNew:"항목 추가",
+  since_feed:"마지막 수유", since_diaper:"마지막 기저귀", since_sleep:"마지막 잠",
+  noRecordYet:"기록 없음", justNow:"방금", agoSuffix:"전", hrShort:"시간", minShort:"분",
+  wet:"소변", dirty:"대변", both:"소변+대변", diaperKind:"종류",
+  nap:"낮잠", night:"밤잠", auto:"자동판별", sleepKind:"수면 종류",
+  startTime:"시작 시간", endTime:"종료 시간", nowBtn:"지금", dateLabel:"날짜",
+  amount:"먹은 양", ml:"ml", note:"메모", medNote:"약 이름 / 메모",
+  temperature:"체온", celsius:"°C", author:"기록자",
+  savedToast:"저장했어요", deletedToast:"삭제했어요", startedToast:"타이머를 시작했어요", recordedToast:"기록했어요",
+  alreadyActive:"이미 진행 중인 기록이 있어요", canceledToast:"취소했어요",
+  adjustStart:"시작 시간 조정", discardActive:"기록하지 않고 취소",
+  pauseBtn:"일시정지", resumeBtn:"재생", pausedLabel:"일시정지됨",
+  m1:"-60분", m2:"-30분", m3:"-10분", m4:"-5분", p1:"+5분", p2:"+10분", p3:"+30분", p4:"+60분",
+  avgPerFeed:"1회 평균 수유량", avgFeedsPerDay:"하루 평균 수유 횟수",
+  avgNap:"하루 평균 낮잠", avgNight:"하루 평균 밤잠",
+  totalFeedDay:"수유", totalNap:"낮잠", totalNight:"밤잠",
+  emptyTimeline:"아직 기록이 없어요. 위 아이콘을 눌러 첫 기록을 남겨보세요.",
+  noCustomTypes:"아직 커스텀 항목이 없어요",
+  weekday_short:["일","월","화","수","목","금","토"],
+  authorPresets:["엄마","아빠","내니"], authorCustomPh:"예: 지오할머니",
+  entryDetailFor:"상세", deleteSwipeLabel:"삭제",
+  poopStats:"배변 통계", avgPoopInterval:"평균 대변 간격", notEnoughData:"데이터 부족",
+  feedStatsRange:"기간", range7:"7일", range14:"14일", range30:"30일",
+  translating:"번역 중...", dayShort:"일", poopRecentTpl:"최근 {n}개"
+},
+vi: {
+  memoLabel:"Ghi chú", memoEmpty:"Chưa có ghi chú nào", memoComposePh:"Nhập ghi chú",
+  memoSubmit:"Đăng", memoTranslateToVi:"Dịch tiếng Việt (tùy chọn)", memoTranslateToKo:"Dịch tiếng Hàn (tùy chọn)",
+  memoNoMemos:"Chưa có ghi chú nào được đăng.", tabMemo:"Ghi chú", typeOrder:"Thứ tự mục",
+  quickAdd:"Ghi nhanh", timeline:"Nhật ký", statsFeed7:"Thống kê bú", statsSleep7:"Thống kê ngủ 7 ngày qua",
+  babyInfo:"Thông tin bé", babyNameKo:"Tên (Tiếng Hàn)", babyNameVi:"Tên (Tiếng Việt)", babyBirth:"Ngày sinh",
+  whoAmI:"Bạn là ai", customTypes:"Quản lý mục tùy chỉnh",
+  appearance:"Giao diện", theme:"Chủ đề", themeAuto:"Tự động", themeLight:"Sáng", themeDark:"Tối",
+  shareHint:'Để cả nhà cùng dùng, hãy chia sẻ đường link này. Nhật ký sẽ được đồng bộ theo thời gian thực với mọi người mở trang này.',
+  tabRecord:"Nhật ký", tabStats:"Thống kê", tabSettings:"Cài đặt",
+  save:"Lưu", cancel:"Hủy", delete:"Xóa", add:"Thêm", start:"Bắt đầu",
+  newTypeTitle:"Thêm mục mới", typeName:"Tên mục", typeColor:"Màu sắc", typeEmoji:"Biểu tượng",
+  whoAmITitle:"Bạn là ai?", whoAmIDesc:"Chọn tên hiển thị trên nhật ký. Bạn có thể đổi sau trong Cài đặt.", orTypeName:"Nhập tên khác",
+  babyDefaultName:"Em bé", dDay:"D+",
+  t_feed:"Bú sữa", t_diaper:"Tã", t_bath:"Tắm", t_sleep:"Ngủ", t_med:"Uống thuốc", t_probiotic:"Men vi sinh", t_play:"Chơi",
+  t_tummy:"Nằm sấp", t_nose:"Vệ sinh mũi", t_nails:"Cắt móng", t_temp:"Thân nhiệt", t_custom:"Khác",
+  addNew:"Thêm mục",
+  since_feed:"Lần bú gần nhất", since_diaper:"Lần thay tã gần nhất", since_sleep:"Giấc ngủ gần nhất",
+  noRecordYet:"Chưa có dữ liệu", justNow:"Vừa xong", agoSuffix:"trước", hrShort:"giờ", minShort:"phút",
+  wet:"Nước tiểu", dirty:"Phân", both:"Cả hai", diaperKind:"Loại",
+  nap:"Ngủ ngày", night:"Ngủ đêm", auto:"Tự nhận diện", sleepKind:"Loại giấc ngủ",
+  startTime:"Giờ bắt đầu", endTime:"Giờ kết thúc", nowBtn:"Bây giờ", dateLabel:"Ngày",
+  amount:"Lượng bú", ml:"ml", note:"Ghi chú", medNote:"Tên thuốc / Ghi chú",
+  temperature:"Thân nhiệt", celsius:"°C", author:"Người ghi",
+  savedToast:"Đã lưu", deletedToast:"Đã xóa", startedToast:"Đã bắt đầu hẹn giờ", recordedToast:"Đã ghi nhận",
+  alreadyActive:"Đang có một mục hẹn giờ chạy rồi", canceledToast:"Đã hủy",
+  adjustStart:"Chỉnh giờ bắt đầu", discardActive:"Hủy, không lưu",
+  pauseBtn:"Tạm dừng", resumeBtn:"Tiếp tục", pausedLabel:"Đã tạm dừng",
+  m1:"-60p", m2:"-30p", m3:"-10p", m4:"-5p", p1:"+5p", p2:"+10p", p3:"+30p", p4:"+60p",
+  avgPerFeed:"TB mỗi lần bú", avgFeedsPerDay:"TB số lần bú/ngày",
+  avgNap:"TB ngủ ngày/ngày", avgNight:"TB ngủ đêm/ngày",
+  totalFeedDay:"Bú", totalNap:"Ngủ ngày", totalNight:"Ngủ đêm",
+  emptyTimeline:"Chưa có nhật ký nào. Nhấn biểu tượng phía trên để ghi mục đầu tiên.",
+  noCustomTypes:"Chưa có mục tùy chỉnh nào",
+  weekday_short:["CN","T2","T3","T4","T5","T6","T7"],
+  authorPresets:["Mẹ","Bố","Bảo mẫu"], authorCustomPh:"VD: Bà nội Zio",
+  entryDetailFor:"Chi tiết", deleteSwipeLabel:"Xóa",
+  poopStats:"Thống kê đi phân", avgPoopInterval:"Khoảng cách TB giữa các lần đi phân", notEnoughData:"Chưa đủ dữ liệu",
+  feedStatsRange:"Khoảng thời gian", range7:"7 ngày", range14:"14 ngày", range30:"30 ngày",
+  translating:"Đang dịch...", dayShort:"ngày", poopRecentTpl:"{n} lần gần đây"
+}
+};
+
+/* ================================================================
+   CARE TYPE REGISTRY — emoji icons (no custom SVG: reliable on every
+   device/font, and colorful/native on iOS where the family reads it)
+   ================================================================ */
+/* every type now carries a start + end time (see buildEntryFields) — the old
+   singleTime flag is gone, so all of these default end=start and show a
+   duration in the timeline the moment someone edits the end time. */
+var BUILT_IN = [
+  {id:'feed',      emoji:'🍼', color:'var(--c-feed)',      hasAmount:true},
+  {id:'diaper',    emoji:'💩', color:'var(--c-diaper)',    hasDiaperKind:true},
+  {id:'bath',      emoji:'🛁', color:'var(--c-bath)'},
+  {id:'sleep',     emoji:'😴', color:'var(--c-sleep)',     hasSleepKind:true},
+  {id:'med',       emoji:'💊', color:'var(--c-med)',       noteKey:'medNote'},
+  {id:'probiotic', emoji:'🧫', color:'var(--c-probiotic)'},
+  {id:'play',      emoji:'🧸', color:'var(--c-play)'},
+  {id:'tummy',     emoji:'🤸', color:'var(--c-tummy)'},
+  {id:'nose',      emoji:'🤧', color:'var(--c-nose)'},
+  {id:'nails',     emoji:'💅', color:'var(--c-nails)'},
+  {id:'temp',      emoji:'🌡️', color:'var(--c-temp)',      hasTemp:true}
+];
+var SWATCHES = ['#ff9f0a','#30d158','#0a84ff','#bf5af2','#ff375f','#64d2ff','#ffd60a','#8e8e93'];
+var EMOJI_CHOICES = ['⭐','🎵','🚗','🦷','🧴','👀','✏️','❤️'];
+
+/* ================================================================
+   STATE / STORAGE KEYS
+   ================================================================ */
+var LS_LANG='bbl_lang', LS_AUTHOR='bbl_author', LS_THEME='bbl_theme';
+var state = {
+  lang: localStorage.getItem(LS_LANG) || 'ko',
+  author: localStorage.getItem(LS_AUTHOR) || '',
+  theme: localStorage.getItem(LS_THEME) || 'system',
+  tab: 'record',
+  entryId: null,
+  adjustOpen: false,
+  statsFeedDays: 7
+};
+
+function t(k){ var d = I18N[state.lang] || I18N.ko; return (d[k] !== undefined) ? d[k] : (I18N.ko[k] !== undefined ? I18N.ko[k] : k); }
+function locale(){ return state.lang === 'vi' ? 'vi-VN' : 'ko-KR'; }
+
+/* an entry's author is stored as whichever preset chip (엄마/아빠/내니 or Mẹ/Bố/
+   Bảo mẫu) was tapped at creation time, in whatever language was active then.
+   Switching the UI language later must still show it correctly, so match the
+   stored name against BOTH preset lists by position and re-render it in the
+   language currently on screen. A custom/typed name (no index match) passes
+   through unchanged. */
+function localizeAuthorName(name){
+  if (!name) return name;
+  var idx = I18N.ko.authorPresets.indexOf(name);
+  if (idx === -1) idx = I18N.vi.authorPresets.indexOf(name);
+  if (idx === -1) return name;
+  return t('authorPresets')[idx];
+}
+function isPresetAuthorName(name){
+  if (!name) return false;
+  return I18N.ko.authorPresets.indexOf(name) !== -1 || I18N.vi.authorPresets.indexOf(name) !== -1;
+}
+
+/* ================================================================
+   DOM HELPERS
+   ================================================================ */
+function $(sel, el){ return (el||document).querySelector(sel); }
+function $$(sel, el){ return Array.prototype.slice.call((el||document).querySelectorAll(sel)); }
+function uid(p){ return p + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function cssEsc(s){ return String(s).replace(/["\\]/g, '\\$&'); }
+
+/* ================================================================
+   SERVER STATE + API CLIENT
+   This used to be a Claude Artifact with live-doc DOM sync; it is now a
+   real server-backed app (Render + Neon Postgres) so it can actually call
+   a translation API server-side. All shared data lives in `appState`
+   (mirroring the server's single JSON document) and every mutation goes
+   through POST /api/mutate, which applies it via the same reducer on the
+   server and returns the new authoritative state. A short poll picks up
+   edits made by other family members/devices.
+   ================================================================ */
+var appState = { entries: [], active: null, customTypes: [], memos: [], typeOrder: [], profile: {} };
+var appVersion = -1;
+
+function apiGetState(){
+  return fetch('/api/state').then(function(res){
+    if (!res.ok) throw new Error('failed to load');
+    return res.json();
+  }).then(function(json){ appState = json.data; appVersion = json.version; return json; });
+}
+function apiMutate(type, payload){
+  return fetch('/api/mutate', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ type: type, payload: payload || {} })
+  }).then(function(res){
+    return res.json().then(function(json){
+      if (!res.ok) throw new Error(json.error || ('mutate failed: ' + type));
+      return json;
+    });
+  }).then(function(json){ appState = json.data; appVersion = json.version; return json.result; });
+}
+function apiTranslate(text, target){
+  return fetch('/api/translate', {
+    method: 'POST', headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ text: text, target: target })
+  }).then(function(res){
+    return res.json().then(function(json){
+      if (!res.ok) throw new Error(json.error || 'translate failed');
+      return json.translated;
+    });
+  });
+}
+/* poll for edits made by other viewers; skip the tick if a mutation is
+   already in flight from this tab so responses can't land out of order */
+var pollBusy = false;
+function pollState(){
+  if (pollBusy) return;
+  pollBusy = true;
+  fetch('/api/state').then(function(res){ return res.json(); }).then(function(json){
+    pollBusy = false;
+    if (json.version !== appVersion){
+      appState = json.data; appVersion = json.version;
+      renderAll();
+    }
+  }).catch(function(){ pollBusy = false; });
+}
+
+/* ================================================================
+   STORE ACCESS — thin readers over appState, kept as functions so the
+   render code below (written against the old DOM-store shape) barely
+   had to change.
+   ================================================================ */
+function readEntries(){
+  return (appState.entries || []).map(function(e){
+    return {
+      id: e.id, type: e.type, start: e.start, end: e.end || '',
+      amount: e.amount !== undefined && e.amount !== null && e.amount !== '' ? Number(e.amount) : null,
+      diaper: e.diaper || '',
+      temp: e.temp !== undefined && e.temp !== null && e.temp !== '' ? Number(e.temp) : null,
+      note: e.note || '', author: e.author || '', sleepKind: e.sleepKind || ''
+    };
+  });
+}
+function readCustomTypes(){
+  return (appState.customTypes || []).map(function(c){
+    return { id: c.id, name: c.name || '', color: c.color || 'var(--c-custom)', emoji: c.emoji || '🏷️' };
+  });
+}
+function getActive(){ return appState.active; }
+function typeMeta(typeStr){
+  if (!typeStr) return null;
+  if (typeStr.indexOf('custom:') === 0){
+    var cid = typeStr.slice(7);
+    var found = readCustomTypes().filter(function(c){ return c.id===cid; })[0];
+    if (found) return {id:typeStr, emoji: found.emoji, color: found.color, label: found.name, isCustom:true};
+    return {id:typeStr, emoji:'🏷️', color:'var(--c-custom)', label: t('t_custom'), isCustom:true};
+  }
+  var b = BUILT_IN.filter(function(x){ return x.id===typeStr; })[0];
+  if (!b) return null;
+  var out = {}; for (var k in b) out[k]=b[k];
+  out.label = t('t_' + b.id);
+  return out;
+}
+
+/* ================================================================
+   TYPE ORDER — a shared, user-reorderable ordering over every care
+   type (built-in + custom). Stored as an ordered list of type ids in
+   #type-order; anything not yet listed there (a brand-new custom type,
+   or the first run before anyone has reordered) keeps its natural
+   definition order and sorts after everything that IS listed.
+   ================================================================ */
+function readTypeOrderIds(){ return (appState.typeOrder || []).slice(); }
+function allTypesInOrder(){
+  var all = BUILT_IN.map(function(b){ return {id:b.id, emoji:b.emoji, color:b.color, label:t('t_'+b.id), isCustom:false}; })
+    .concat(readCustomTypes().map(function(c){ return {id:'custom:'+c.id, emoji:c.emoji, color:c.color, label:c.name, isCustom:true}; }));
+  var order = readTypeOrderIds();
+  if (!order.length) return all;
+  var pos = {}; order.forEach(function(id,i){ pos[id]=i; });
+  return all.slice().sort(function(x,y){
+    var px = pos[x.id], py = pos[y.id];
+    if (px===undefined && py===undefined) return 0;
+    if (px===undefined) return 1;
+    if (py===undefined) return -1;
+    return px-py;
+  });
+}
+function moveTypeOrder(id, dir){
+  var list = allTypesInOrder().map(function(x){ return x.id; });
+  var i = list.indexOf(id);
+  var j = i + dir;
+  if (i<0 || j<0 || j>=list.length) return;
+  var tmp = list[i]; list[i] = list[j]; list[j] = tmp;
+  apiMutate('setTypeOrder', { order: list }).then(function(){
+    renderQuickActions();
+    renderSettings();
+  }).catch(function(err){ toast(err.message); });
+}
+
+/* ================================================================
+   TIME / FORMAT HELPERS
+   ================================================================ */
+function fmtTime(iso){
+  if (!iso) return '';
+  var d = new Date(iso);
+  return d.toLocaleTimeString(locale(), {hour:'2-digit', minute:'2-digit'});
+}
+function toTimeValue(iso){
+  if (!iso) return '';
+  var d = new Date(iso);
+  var p2 = function(n){ return (n<10?'0':'')+n; };
+  return p2(d.getHours())+':'+p2(d.getMinutes());
+}
+function combineDateTime(dateSourceIso, timeStr){
+  var base = dateSourceIso ? new Date(dateSourceIso) : new Date();
+  var parts = (timeStr || '00:00').split(':');
+  var d = new Date(base.getFullYear(), base.getMonth(), base.getDate(), Number(parts[0]||0), Number(parts[1]||0), 0, 0);
+  return d.toISOString();
+}
+/* local YYYY-MM-DD for an <input type=date> — distinct from combineDateTime's
+   ISO-source approach: parsing "YYYY-MM-DD" with `new Date()` reads it as UTC
+   midnight, which can land on the wrong local day near timezone edges, so
+   the date field is always read/written via these two helpers instead. */
+function toDateValue(iso){
+  if (!iso) iso = new Date().toISOString();
+  var d = new Date(iso);
+  var p2 = function(n){ return (n<10?'0':'')+n; };
+  return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
+}
+function combineDateAndTime(dateStr, timeStr){
+  var dp = (dateStr || toDateValue()).split('-');
+  var tp = (timeStr || '00:00').split(':');
+  var d = new Date(Number(dp[0]), Number(dp[1])-1, Number(dp[2]), Number(tp[0]||0), Number(tp[1]||0), 0, 0);
+  return d.toISOString();
+}
+function fmtDur(ms){
+  if (ms == null || ms < 0) ms = 0;
+  var totalMin = Math.round(ms/60000);
+  var h = Math.floor(totalMin/60), m = totalMin%60;
+  if (h > 0) return h + t('hrShort') + ' ' + m + t('minShort');
+  return m + t('minShort');
+}
+function fmtElapsed(ms){
+  if (ms == null) return t('noRecordYet');
+  if (ms < 60000) return t('justNow');
+  var totalMin = Math.floor(ms/60000);
+  var h = Math.floor(totalMin/60), m = totalMin%60;
+  var out = h>0 ? (h+t('hrShort')+' '+m+t('minShort')) : (m+t('minShort'));
+  return out + ' ' + t('agoSuffix');
+}
+function fmtStopwatch(ms){
+  var s = Math.max(0, Math.floor(ms/1000));
+  var h = Math.floor(s/3600), m = Math.floor((s%3600)/60), sec = s%60;
+  function p2(n){ return (n<10?'0':'')+n; }
+  return h>0 ? (h+':'+p2(m)+':'+p2(sec)) : (p2(m)+':'+p2(sec));
+}
+function dayKey(iso){
+  var d = new Date(iso);
+  return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+}
+function dayHeading(iso){
+  var d = new Date(iso);
+  var wd = t('weekday_short')[d.getDay()];
+  if (state.lang === 'vi'){
+    return d.toLocaleDateString('vi-VN', {day:'2-digit', month:'2-digit', year:'numeric'}) + ' (' + wd + ')';
+  }
+  return (d.getMonth()+1) + '월 ' + d.getDate() + '일 (' + wd + ')';
+}
+
+/* ================================================================
+   TOAST
+   ================================================================ */
+var toastTimer = null;
+function toast(msg){
+  var elx = document.getElementById('toast');
+  elx.textContent = msg;
+  elx.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ elx.classList.remove('show'); }, 1600);
+}
+
+/* ================================================================
+   I18N APPLY (local chrome only — never touches synced elements)
+   ================================================================ */
+function applyI18n(){
+  $$('[data-i18n]').forEach(function(node){
+    var key = node.getAttribute('data-i18n');
+    node.textContent = t(key);
+  });
+  $$('[data-i18n-ph]').forEach(function(node){
+    node.setAttribute('placeholder', t(node.getAttribute('data-i18n-ph')));
+  });
+  document.documentElement.setAttribute('lang', state.lang);
+}
+
+/* ================================================================
+   THEME (local only)
+   ================================================================ */
+function applyTheme(){
+  var r = document.documentElement;
+  if (state.theme === 'light') r.setAttribute('data-theme','light');
+  else if (state.theme === 'dark') r.setAttribute('data-theme','dark');
+  else r.removeAttribute('data-theme');
+  $$('#theme-seg button').forEach(function(b){
+    b.setAttribute('aria-pressed', String(b.dataset.themeOpt === state.theme));
+  });
+}
+
+/* ================================================================
+   RENDER: HEADER (name / D-day) — reads shared inputs, local paint
+   ================================================================ */
+/* baby name/birth used to be plain <input> elements inside the Artifact's
+   live-doc sync region — a keystroke there was the persistence. Now they're
+   ordinary inputs backed by appState.profile: applyProfileToInputs() below
+   seeds their values from server state (skipping any input the user is
+   actively typing in, so a poll can't clobber a live edit), and a 'change'
+   listener (see wireEvents) persists edits via apiMutate('setProfile', ...). */
+function applyProfileToInputs(){
+  var p = appState.profile || {};
+  var koEl = document.getElementById('set-baby-name-ko');
+  var viEl = document.getElementById('set-baby-name-vi');
+  var birthEl = document.getElementById('set-baby-birth');
+  if (koEl && document.activeElement !== koEl) koEl.value = p.nameKo || '';
+  if (viEl && document.activeElement !== viEl) viEl.value = p.nameVi || '';
+  if (birthEl && document.activeElement !== birthEl) birthEl.value = p.birth || '';
+}
+function renderHeader(){
+  applyProfileToInputs();
+  var nameInput = document.getElementById(state.lang === 'vi' ? 'set-baby-name-vi' : 'set-baby-name-ko');
+  var birthInput = document.getElementById('set-baby-birth');
+  var name = (nameInput && nameInput.value.trim()) || t('babyDefaultName');
+  document.getElementById('hd-name').textContent = name;
+  var ageEl = document.getElementById('hd-age');
+  if (birthInput && birthInput.value){
+    var birth = new Date(birthInput.value + 'T00:00:00');
+    var now = new Date();
+    var days = Math.floor((new Date(now.getFullYear(),now.getMonth(),now.getDate()) - new Date(birth.getFullYear(),birth.getMonth(),birth.getDate())) / 86400000);
+    /* birth day itself counts as day 1 (D+1), not day 0 */
+    ageEl.textContent = t('dDay') + Math.max(1,days+1);
+  } else {
+    ageEl.textContent = '';
+  }
+  renderProfilePill();
+}
+function renderProfilePill(){
+  var pill = document.getElementById('profile-pill-text');
+  if (!pill) return;
+  pill.textContent = state.author ? localizeAuthorName(state.author) : t('whoAmI');
+}
+
+/* ================================================================
+   RENDER: ACTIVE / STOPWATCH BAR (local)
+   ================================================================ */
+function renderActiveBar(){
+  var slot = document.getElementById('active-bar-slot');
+  var a = getActive();
+  var type = a ? a.type : '';
+  /* the slot only exists in the DOM (inside today's day-group) while something
+     is running — renderTimeline() is what creates/removes it. */
+  if (!slot) return;
+  if (!type){ if (slot.innerHTML) slot.innerHTML=''; return; }
+  var meta = typeMeta(type);
+  if (!meta){ slot.innerHTML=''; return; }
+  var start = new Date(a.start);
+  var paused = !!a.paused;
+  var elapsed = paused ? (new Date(a.pausedAt) - start) : (Date.now() - start.getTime());
+  var name = a.name || meta.label;
+  var author = a.author || '';
+
+  var bar = slot.querySelector('.active-bar');
+  if (!bar){
+    slot.innerHTML =
+      '<div class="active-bar" style="--active-color:'+meta.color+'">' +
+        '<div class="aw-emoji">'+meta.emoji+'</div>' +
+        '<div class="aw-time" id="aw-time"></div>' +
+        '<div class="aw-meta"><b id="aw-name"></b><span id="aw-sub"></span></div>' +
+        '<div class="aw-actions">' +
+          '<button type="button" class="aw-round" id="aw-pause" title="'+esc(t('pauseBtn'))+'"></button>' +
+          '<button type="button" class="aw-round" id="aw-adjust" title="'+esc(t('adjustStart'))+'">✎</button>' +
+          '<button type="button" class="aw-round confirm" id="aw-finish" title="'+esc(t('save'))+'">✓</button>' +
+        '</div>' +
+      '</div>' +
+      '<div id="aw-adjust-panel" hidden style="margin:8px 16px 0;padding:10px 12px;border-radius:14px;background:var(--surface);"></div>';
+    bar = slot.querySelector('.active-bar');
+    document.getElementById('aw-pause').addEventListener('click', togglePauseActive);
+    document.getElementById('aw-adjust').addEventListener('click', toggleAdjustPanel);
+    document.getElementById('aw-finish').addEventListener('click', finishActive);
+  }
+  bar.style.setProperty('--active-color', meta.color);
+  bar.classList.toggle('paused', paused);
+  document.getElementById('aw-time').textContent = fmtStopwatch(elapsed);
+  document.getElementById('aw-pause').textContent = paused ? '▶' : '⏸';
+  document.getElementById('aw-pause').title = paused ? t('resumeBtn') : t('pauseBtn');
+  document.getElementById('aw-name').textContent = name;
+  var subParts = [fmtTime(a.start)];
+  if (paused) subParts.push(t('pausedLabel'));
+  if (author) subParts.push(localizeAuthorName(author));
+  document.getElementById('aw-sub').textContent = subParts.join(' · ');
+}
+
+/* pausing freezes the visible timer without losing the start time: on resume the
+   server shifts start forward by however long the pause lasted, so elapsed =
+   now - start keeps excluding the paused span without a separate accumulator. */
+function togglePauseActive(){
+  var a = getActive();
+  if (!a || !a.type) return;
+  apiMutate('togglePauseActive', {}).then(function(){
+    renderActiveBar();
+  }).catch(function(err){ toast(err.message); });
+}
+
+function toggleAdjustPanel(){
+  var panel = document.getElementById('aw-adjust-panel');
+  if (!panel) return;
+  state.adjustOpen = !state.adjustOpen;
+  panel.hidden = !state.adjustOpen;
+  if (state.adjustOpen) renderAdjustPanel();
+}
+function renderAdjustPanel(){
+  var panel = document.getElementById('aw-adjust-panel');
+  if (!panel) return;
+  var a = getActive();
+  if (!a) return;
+  var html = '<div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:8px;">'+esc(t('adjustStart'))+'</div>';
+  html += '<div class="time-row" style="align-items:center;">';
+  html += '<div class="field" style="flex:1;margin-bottom:0;"><input type="time" id="aw-start-input" value="'+toTimeValue(a.start)+'" /></div>';
+  html += '<button type="button" class="chip" id="aw-now-btn" style="background:var(--primary-weak-bg);color:var(--primary-weak-fg);">'+esc(t('nowBtn'))+'</button>';
+  html += '</div>';
+  html += '<button type="button" class="text-btn" style="color:var(--danger);padding-left:0;margin-top:10px;" id="aw-discard">'+esc(t('discardActive'))+'</button>';
+  panel.innerHTML = html;
+  document.getElementById('aw-start-input').addEventListener('change', function(ev){
+    var a2 = getActive();
+    if (!a2) return;
+    apiMutate('adjustActiveStart', { start: combineDateTime(a2.start, ev.target.value) }).then(function(){
+      renderActiveBar();
+    }).catch(function(err){ toast(err.message); });
+  });
+  document.getElementById('aw-now-btn').addEventListener('click', function(){
+    apiMutate('adjustActiveStart', { start: new Date().toISOString() }).then(function(){
+      renderActiveBar();
+      renderAdjustPanel();
+    }).catch(function(err){ toast(err.message); });
+  });
+  document.getElementById('aw-discard').addEventListener('click', function(){
+    apiMutate('cancelActive', {}).then(function(){
+      state.adjustOpen = false;
+      toast(t('canceledToast'));
+      renderTimeline();
+      renderActiveBar();
+    }).catch(function(err){ toast(err.message); });
+  });
+}
+
+function finishActive(){
+  var a = getActive();
+  if (!a) return;
+  var meta = typeMeta(a.type);
+  if (!meta) return;
+  state.adjustOpen = false;
+  apiMutate('finishActive', { author: state.author }).then(function(result){
+    renderAll();
+    openEntryDetail(result.entry.id);
+  }).catch(function(err){ toast(err.message); });
+}
+
+/* ================================================================
+   DAILY AGGREGATES (shared logic used by timeline + stats)
+   sleep classification: explicit sleepKind wins; otherwise a sleep
+   entry starting between 19:00–06:59 counts as night, else nap.
+   ================================================================ */
+function classifySleep(e){
+  if (e.sleepKind === 'nap' || e.sleepKind === 'night') return e.sleepKind;
+  var h = new Date(e.start).getHours();
+  return (h >= 19 || h < 7) ? 'night' : 'nap';
+}
+function entryDurationMs(e){
+  if (!e.end) return 0;
+  return Math.max(0, new Date(e.end) - new Date(e.start));
+}
+function dailyAggregate(entries){
+  var byDay = {};
+  entries.forEach(function(e){
+    var k = dayKey(e.start);
+    if (!byDay[k]) byDay[k] = {key:k, date:e.start, feedMl:0, feedCount:0, nap:0, night:0, entries:[]};
+    var day = byDay[k];
+    day.entries.push(e);
+    if (e.type==='feed' && e.amount) { day.feedMl += e.amount; day.feedCount++; }
+    if (e.type==='sleep'){
+      var kind = classifySleep(e);
+      var dur = entryDurationMs(e);
+      if (kind==='night') day.night += dur; else day.nap += dur;
+    }
+  });
+  return byDay;
+}
+
+/* ================================================================
+   RENDER: DASHBOARD (since-last, local)
+   ================================================================ */
+function lastOfType(entries, matcher){
+  var best = null;
+  entries.forEach(function(e){
+    if (!matcher(e)) return;
+    var ref = e.end || e.start;
+    if (!best || new Date(ref) > new Date(best.end || best.start)) best = e;
+  });
+  return best;
+}
+function renderSinceLast(){
+  var entries = readEntries();
+  var feed = lastOfType(entries, function(e){ return e.type==='feed'; });
+  var diaper = lastOfType(entries, function(e){ return e.type==='diaper'; });
+  var sleep = lastOfType(entries, function(e){ return e.type==='sleep'; });
+  var now = Date.now();
+  var cards = [
+    {key:'since_feed', emoji:'🍼', e:feed, sub: feed ? (feed.amount!=null ? feed.amount+t('ml') : '') : ''},
+    {key:'since_diaper', emoji:'🧷', e:diaper, sub: diaper ? (t(diaper.diaper==='dirty'?'dirty':(diaper.diaper==='both'?'both':'wet'))) : ''},
+    {key:'since_sleep', emoji:'😴', e:sleep, sub: sleep ? (sleep.sleepKind ? t(sleep.sleepKind==='night'?'night':'nap') : '') : ''}
+  ];
+  var row = document.getElementById('since-row');
+  row.innerHTML = cards.map(function(c){
+    var ms = c.e ? (now - new Date(c.e.end || c.e.start).getTime()) : null;
+    return '<div class="dash-item">' +
+      '<div class="d-emoji">'+c.emoji+'</div>' +
+      '<div class="d-label">'+esc(t(c.key))+'</div>' +
+      '<div class="d-val">'+esc(fmtElapsed(ms))+'</div>' +
+      (c.sub ? '<div class="d-sub">'+esc(c.sub)+'</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
+/* ================================================================
+   RENDER: QUICK ACTIONS (local) — tap = instant record, hold = stopwatch
+   ================================================================ */
+function renderQuickActions(){
+  var grid = document.getElementById('qa-grid');
+  var prevScroll = grid.scrollLeft; // preserve swipe position across re-renders
+  var html = '';
+  allTypesInOrder().forEach(function(b){
+    html += quickBtnHtml(b.id, b.label, b.color, b.emoji);
+  });
+  html += '<button type="button" class="qa-btn qa-add" id="qa-add-type">' +
+    '<div class="qa-ico">+</div>' +
+    '<div class="qa-label">'+esc(t('addNew'))+'</div>' +
+  '</button>';
+  grid.innerHTML = html;
+  grid.scrollLeft = prevScroll;
+  $$('.qa-btn[data-type]', grid).forEach(wireQuickButton);
+  var addBtn = document.getElementById('qa-add-type');
+  if (addBtn) addBtn.addEventListener('click', openTypeSheet);
+}
+function quickBtnHtml(typeId, label, color, emoji){
+  return '<button type="button" class="qa-btn" data-type="'+esc(typeId)+'">' +
+    '<div class="qa-ico" style="background:color-mix(in srgb, '+color+' 18%, var(--surface))">'+emoji+'</div>' +
+    '<div class="qa-label">'+esc(label)+'</div>' +
+  '</button>';
+}
+function wireQuickButton(btn){
+  var typeId = btn.dataset.type;
+  var meta = typeMeta(typeId);
+  var pressTimer = null, fired = false, pressStarted = false, startX=0, startY=0;
+  function cancelPress(){ clearTimeout(pressTimer); pressTimer=null; btn.classList.remove('holding'); }
+  btn.addEventListener('pointerdown', function(ev){
+    fired = false; pressStarted = true;
+    startX = ev.clientX; startY = ev.clientY;
+    btn.classList.add('holding');
+    pressTimer = setTimeout(function(){
+      fired = true;
+      btn.classList.remove('holding');
+      startStopwatch(typeId);
+      if (navigator.vibrate) try{ navigator.vibrate(12); }catch(e){}
+    }, 480);
+  });
+  btn.addEventListener('pointermove', function(ev){
+    if (!pressTimer) return;
+    if (Math.abs(ev.clientX-startX) > 12 || Math.abs(ev.clientY-startY) > 12) cancelPress();
+  });
+  ['pointerup','pointerleave','pointercancel'].forEach(function(evt){
+    btn.addEventListener(evt, function(){
+      var wasStarted = pressStarted;
+      pressStarted = false;
+      cancelPress();
+      if (evt==='pointerup' && wasStarted && !fired){
+        quickCreate(typeId);
+      }
+    });
+  });
+}
+
+/* Tap on a quick-action icon: create the entry immediately with sensible
+   defaults, no dialog. Tap the resulting row later to fill in details. */
+function quickCreate(typeId){
+  var meta = typeMeta(typeId);
+  if (!meta) return;
+  var now = new Date().toISOString();
+  apiMutate('addEntry', { type: typeId, start: now, end: now, author: state.author }).then(function(result){
+    renderAll();
+    toast(t('recordedToast'));
+    if (navigator.vibrate) try{ navigator.vibrate(8); }catch(e){}
+    var row = document.querySelector('.entry-row[data-id="'+cssEsc(result.entry.id)+'"]');
+    if (row){ row.classList.add('flash'); setTimeout(function(){ row.classList.remove('flash'); }, 900); }
+  }).catch(function(err){ toast(err.message); });
+}
+function startStopwatch(typeId){
+  var a = getActive();
+  if (a && a.type){ toast(t('alreadyActive')); return; }
+  var meta = typeMeta(typeId);
+  var name = meta ? meta.label : '';
+  apiMutate('startActive', { type: typeId, name: name, author: state.author }).then(function(){
+    renderTimeline(); renderActiveBar(); toast(t('startedToast'));
+  }).catch(function(err){ toast(err.message); });
+}
+
+/* ================================================================
+   RENDER: TIMELINE (local)
+   ================================================================ */
+function renderTimeline(){
+  var container = document.getElementById('timeline');
+  var entries = readEntries().slice().sort(function(a,b){ return new Date(b.start) - new Date(a.start); });
+  var a = getActive();
+  var activeRunning = !!(a && a.type);
+  var nowIso = new Date().toISOString();
+  var todayK = dayKey(nowIso);
+
+  if (!entries.length && !activeRunning){
+    container.innerHTML = '<div class="empty-note">'+esc(t('emptyTimeline'))+'</div>';
+    return;
+  }
+  var agg = dailyAggregate(entries);
+  /* the running stopwatch lives inside today's group, right under the date —
+     synthesize an (otherwise empty) today group so it has somewhere to sit */
+  if (activeRunning && !agg[todayK]){
+    agg[todayK] = {key:todayK, date:nowIso, feedMl:0, feedCount:0, nap:0, night:0, entries:[]};
+  }
+  var order = Object.keys(agg).sort(function(x,y){ return new Date(agg[y].date) - new Date(agg[x].date); });
+  var html = '';
+  order.forEach(function(k){
+    var day = agg[k];
+    var dayEntries = day.entries.slice().sort(function(x,y){ return new Date(y.start)-new Date(x.start); });
+    html += '<div class="day-group">';
+    html += '<div class="day-head"><div class="d-title">'+esc(dayHeading(day.date))+'</div><div class="day-totals">';
+    html += '<span>'+esc(t('totalFeedDay'))+' <b>'+day.feedMl+t('ml')+'</b></span>';
+    html += '<span>'+esc(t('totalNap'))+' <b>'+fmtDur(day.nap)+'</b></span>';
+    html += '<span>'+esc(t('totalNight'))+' <b>'+fmtDur(day.night)+'</b></span>';
+    html += '</div></div>';
+    if (activeRunning && k === todayK){ html += '<div id="active-bar-slot"></div>'; }
+    dayEntries.forEach(function(e){ html += entryRowHtml(e); });
+    html += '</div>';
+  });
+  container.innerHTML = html;
+  $$('.entry-swipe', container).forEach(function(wrap){ wireEntrySwipe(wrap); });
+}
+function entryRowHtml(e){
+  var meta = typeMeta(e.type);
+  if (!meta) return '';
+  var title = meta.label;
+  var subParts = [];
+  if (e.type==='feed'){
+    if (e.amount!=null) subParts.push(e.amount+t('ml'));
+  } else if (e.type==='diaper'){
+    subParts.push(t(e.diaper==='dirty'?'dirty':(e.diaper==='both'?'both':'wet')));
+  } else if (e.type==='sleep'){
+    subParts.push(t(classifySleep(e)==='night'?'night':'nap'));
+  } else if (e.type==='temp'){
+    if (e.temp!=null) subParts.push(e.temp+t('celsius'));
+  }
+  /* every type shows how long it ran the moment the end time moves past the start */
+  if (e.end && e.end !== e.start) subParts.push(fmtDur(entryDurationMs(e)));
+  if (e.note) subParts.push(e.note);
+  var timeStr = fmtTime(e.start) + ((e.end && e.end !== e.start) ? ('~'+fmtTime(e.end)) : '');
+  return '<div class="entry-swipe" data-id="'+esc(e.id)+'">' +
+    '<div class="entry-delete-bg" data-swipe-del="'+esc(e.id)+'"><span>'+esc(t('deleteSwipeLabel'))+'</span></div>' +
+    '<button type="button" class="entry-row" data-id="'+esc(e.id)+'">' +
+      '<div class="e-dot" style="background:color-mix(in srgb, '+meta.color+' 18%, var(--surface-2))">'+meta.emoji+'</div>' +
+      '<div class="e-main"><div class="e-title">'+esc(title)+'</div>' +
+      (subParts.length ? '<div class="e-sub">'+esc(subParts.join(' · '))+'</div>' : '') + '</div>' +
+      '<div class="e-time">'+esc(timeStr)+(e.author?('<span class="e-author">'+esc(localizeAuthorName(e.author))+'</span>'):'')+'</div>' +
+    '</button>' +
+  '</div>';
+}
+
+/* ---- swipe-to-delete: pointer-based drag on .entry-row, revealing the
+   .entry-delete-bg layer behind it. No external gesture library (CSP). ---- */
+function wireEntrySwipe(wrap){
+  var row = $('.entry-row', wrap);
+  if (!row) return;
+  var THRESH = 56;      /* px dragged left before the delete bg is considered "open" */
+  var TAPMAX = 6;       /* px of movement still counted as a tap */
+  var dragging = false, startX = 0, startY = 0, dx = 0, axis = null, opened = false;
+
+  row.addEventListener('pointerdown', function(ev){
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    dragging = true; axis = null; dx = 0;
+    startX = ev.clientX; startY = ev.clientY;
+    row.style.transition = 'none';
+  });
+  row.addEventListener('pointermove', function(ev){
+    if (!dragging) return;
+    var mx = ev.clientX - startX, my = ev.clientY - startY;
+    if (axis === null){
+      if (Math.abs(mx) < TAPMAX && Math.abs(my) < TAPMAX) return;
+      axis = Math.abs(mx) > Math.abs(my) ? 'x' : 'y';
+      if (axis === 'x' && row.setPointerCapture){ try{ row.setPointerCapture(ev.pointerId); }catch(e){} }
+      if (axis === 'x') wrap.classList.add('revealed');
+    }
+    if (axis !== 'x') return;
+    ev.preventDefault();
+    dx = Math.min(0, Math.max(-88, mx + (opened ? -72 : 0)));
+    row.style.transform = 'translateX('+dx+'px)';
+  });
+  function finish(ev){
+    if (!dragging) return;
+    dragging = false;
+    row.style.transition = '';
+    if (axis === 'x'){
+      if (dx <= -THRESH){ row.style.transform = 'translateX(-72px)'; opened = true; }
+      else { row.style.transform = ''; opened = false; wrap.classList.remove('revealed'); }
+    } else if (axis === null){
+      /* a genuine tap: no meaningful movement on either axis */
+      if (opened){ row.style.transform = ''; opened = false; wrap.classList.remove('revealed'); }
+      else { openEntryDetail(row.dataset.id); }
+    }
+    axis = null;
+  }
+  row.addEventListener('pointerup', finish);
+  row.addEventListener('pointercancel', finish);
+
+  var delBg = $('.entry-delete-bg', wrap);
+  if (delBg){
+    delBg.addEventListener('click', function(){
+      deleteEntryDirect(delBg.dataset.swipeDel);
+    });
+  }
+}
+function deleteEntryDirect(id){
+  apiMutate('deleteEntry', { id: id }).then(function(){
+    renderAll();
+    toast(t('deletedToast'));
+  }).catch(function(err){ toast(err.message); });
+}
+
+/* ================================================================
+   RENDER: STATS (local)
+   ================================================================ */
+function renderStats(){
+  var entries = readEntries();
+  var now = new Date();
+  var feedDays = state.statsFeedDays || 7;
+
+  /* -------- feed stats: range-toggleable (7/14/30 days) -------- */
+  var days = [];
+  for (var i=feedDays-1;i>=0;i--){
+    var d = new Date(now.getFullYear(), now.getMonth(), now.getDate()-i);
+    days.push(d);
+  }
+  var agg = dailyAggregate(entries);
+  var feedTotals = [], feedCounts=[];
+  days.forEach(function(d){
+    var k = d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+    var a = agg[k];
+    feedTotals.push(a ? a.feedMl : 0);
+    feedCounts.push(a ? a.feedCount : 0);
+  });
+  var totalMl = feedTotals.reduce(function(a,b){return a+b;},0);
+  var totalCount = feedCounts.reduce(function(a,b){return a+b;},0);
+  var avgPerFeed = totalCount ? Math.round(totalMl/totalCount) : 0;
+  var avgFeedsPerDay = (totalCount/feedDays).toFixed(1);
+
+  document.getElementById('stat-tiles').innerHTML =
+    statTile(t('avgPerFeed'), avgPerFeed+' <small>'+t('ml')+'</small>') +
+    statTile(t('avgFeedsPerDay'), avgFeedsPerDay+' <small>'+ (state.lang==='vi'?'lần/ngày':'회/일') +'</small>');
+
+  /* -------- sleep stats: fixed at 7 days -------- */
+  var sleepDays = [];
+  for (var j=6;j>=0;j--){
+    sleepDays.push(new Date(now.getFullYear(), now.getMonth(), now.getDate()-j));
+  }
+  var napTotals=[], nightTotals=[];
+  sleepDays.forEach(function(d){
+    var k = d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+    var a = agg[k];
+    napTotals.push(a ? a.nap : 0);
+    nightTotals.push(a ? a.night : 0);
+  });
+  var avgNap = napTotals.reduce(function(a,b){return a+b;},0)/7;
+  var avgNight = nightTotals.reduce(function(a,b){return a+b;},0)/7;
+
+  document.getElementById('stat-sleep-tiles').innerHTML =
+    statTile(t('avgNap'), '<span style="font-size:17px">'+fmtDur(avgNap)+'</span>') +
+    statTile(t('avgNight'), '<span style="font-size:17px">'+fmtDur(avgNight)+'</span>');
+
+  /* -------- feed bar chart: thin labels + date-vs-weekday format for longer ranges -------- */
+  var maxMl = Math.max(1, feedTotals.reduce(function(a,b){return Math.max(a,b);},0));
+  var labelEvery = feedDays > 20 ? 5 : (feedDays > 9 ? 2 : 1);
+  document.getElementById('stat-bars').innerHTML = days.map(function(d,i){
+    var h = Math.round((feedTotals[i]/maxMl)*94)+4;
+    var showLabel = (i === days.length-1) || (i % labelEvery === 0);
+    var lbl = '';
+    if (showLabel){
+      lbl = feedDays > 9 ? (d.getMonth()+1)+'/'+d.getDate() : t('weekday_short')[d.getDay()];
+    }
+    return '<div class="bar-col"><div class="bar-val">'+(feedTotals[i]||'')+'</div><div class="bar" style="height:'+h+'px"></div><div class="bar-lbl">'+esc(lbl)+'</div></div>';
+  }).join('');
+
+  renderPoopChart(entries);
+}
+
+/* ================================================================
+   POOP-INTERVAL CHART — a line+area chart of the gap between each
+   dirty/both diaper change (in day units) plus a "지금/Bây giờ" point
+   for the gap since the last one, with a day-grouped raw list below.
+   Modeled directly on a phone Health app's record-interval screen.
+   ================================================================ */
+function renderPoopChart(entries){
+  var wrap = document.getElementById('poop-chart-wrap');
+  var listBox = document.getElementById('poop-day-list');
+  var badge = document.getElementById('poop-recent-badge');
+  if (!wrap || !listBox) return;
+
+  var poopEntries = entries
+    .filter(function(e){ return e.type==='diaper' && (e.diaper==='dirty' || e.diaper==='both'); })
+    .sort(function(a,b){ return new Date(a.start) - new Date(b.start); });
+  var RECENT_N = 7;
+  var recent = poopEntries.slice(-RECENT_N);
+
+  if (badge) badge.textContent = recent.length ? t('poopRecentTpl').replace('{n}', recent.length) : '';
+
+  if (recent.length < 2){
+    wrap.innerHTML = '<div class="empty-note" style="padding:30px 16px;">'+esc(t('notEnoughData'))+'</div>';
+    listBox.innerHTML = '';
+    return;
+  }
+
+  var now = new Date();
+  var points = [];
+  for (var i=1;i<recent.length;i++){
+    points.push({ t: new Date(recent[i].start), gapMs: new Date(recent[i].start) - new Date(recent[i-1].start), isNow:false });
+  }
+  points.push({ t: now, gapMs: now - new Date(recent[recent.length-1].start), isNow:true });
+
+  wrap.innerHTML = buildPoopChartSvg(points);
+
+  var byDay = {}, order = [];
+  recent.slice().sort(function(a,b){ return new Date(b.start) - new Date(a.start); }).forEach(function(e){
+    var k = dayKey(e.start);
+    if (!byDay[k]){ byDay[k] = []; order.push(k); }
+    byDay[k].push(e);
+  });
+  listBox.innerHTML = order.map(function(k){
+    var dayEntries = byDay[k];
+    return '<div class="poop-day-group">' +
+      '<div class="poop-day-title">'+esc(dayHeading(dayEntries[0].start))+'</div>' +
+      dayEntries.map(function(e){
+        return '<div class="poop-day-row">' +
+          '<span class="poop-day-time">'+esc(fmtTime(e.start))+'</span>' +
+          '<span class="poop-day-kind">'+esc(t(e.diaper==='dirty'?'dirty':'both'))+'</span>' +
+          (e.note ? '<span class="poop-day-note">'+esc(e.note)+'</span>' : '') +
+        '</div>';
+      }).join('') +
+    '</div>';
+  }).join('');
+}
+function fmtDurDayHour(ms){
+  if (ms == null || ms < 0) ms = 0;
+  var totalMin = Math.round(ms/60000);
+  var d = Math.floor(totalMin/1440);
+  var h = Math.floor((totalMin%1440)/60);
+  var m = totalMin%60;
+  if (d > 0) return d+t('dayShort')+' '+h+t('hrShort');
+  if (h > 0) return h+t('hrShort')+' '+m+t('minShort');
+  return m+t('minShort');
+}
+function fmtMonthDay(d){ return (d.getMonth()+1)+'/'+(d.getDate()<10?'0':'')+d.getDate(); }
+function buildPoopChartSvg(points){
+  var maxGapDays = Math.max.apply(null, points.map(function(p){ return p.gapMs/86400000; }));
+  var yMaxDays = Math.max(2, Math.ceil(maxGapDays) + 1);
+  var W = 340, H = 190, padL = 26, padR = 8, padT = 26, padB = 32;
+  var plotW = W - padL - padR, plotH = H - padT - padB;
+  var n = points.length;
+  var xAt = function(i){ return n > 1 ? padL + (plotW * i/(n-1)) : padL + plotW/2; };
+  var yAt = function(days){ return padT + plotH - (Math.min(days, yMaxDays)/yMaxDays) * plotH; };
+  var coords = points.map(function(p,i){ return { x: xAt(i), y: yAt(p.gapMs/86400000) }; });
+
+  var linePath = coords.map(function(c,i){ return (i===0?'M':'L')+c.x.toFixed(1)+','+c.y.toFixed(1); }).join(' ');
+  var areaPath = linePath +
+    ' L'+coords[coords.length-1].x.toFixed(1)+','+(padT+plotH) +
+    ' L'+coords[0].x.toFixed(1)+','+(padT+plotH)+' Z';
+
+  var gridLines = '';
+  for (var lvl=0; lvl<=yMaxDays; lvl++){
+    var gy = yAt(lvl);
+    var lbl = lvl===0 ? ('0'+t('minShort')) : (lvl+t('dayShort'));
+    gridLines += '<line x1="'+padL+'" y1="'+gy.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+gy.toFixed(1)+'" class="poop-grid-line" />';
+    gridLines += '<text x="'+(padL-6)+'" y="'+(gy+3).toFixed(1)+'" class="poop-axis-y" text-anchor="end">'+esc(lbl)+'</text>';
+  }
+
+  /* the first/last points sit right at the plot's left/right edge — centering
+     their labels there would run them into the y-axis text (left) or off the
+     canvas (right), so those two ends anchor outward instead of centering */
+  var dots = '', valueLabels = '', xLabels = '';
+  points.forEach(function(p,i){
+    var c = coords[i];
+    var anchor = i===0 ? 'start' : (i===n-1 ? 'end' : 'middle');
+    var lblX = i===0 ? c.x+3 : (i===n-1 ? c.x-3 : c.x);
+    dots += '<circle cx="'+c.x.toFixed(1)+'" cy="'+c.y.toFixed(1)+'" r="3.5" class="poop-dot" />';
+    valueLabels += '<text x="'+lblX.toFixed(1)+'" y="'+(c.y-9).toFixed(1)+'" class="poop-value-lbl" text-anchor="'+anchor+'">'+esc(fmtDurDayHour(p.gapMs))+'</text>';
+    var lines = p.isNow ? [t('nowBtn')] : [fmtMonthDay(p.t), toTimeValue(p.t.toISOString())];
+    xLabels += '<text x="'+lblX.toFixed(1)+'" y="'+(H-padB+13)+'" class="poop-axis-x" text-anchor="'+anchor+'">' +
+      lines.map(function(ln,li){ return '<tspan x="'+lblX.toFixed(1)+'" dy="'+(li===0?0:10)+'">'+esc(ln)+'</tspan>'; }).join('') +
+    '</text>';
+  });
+
+  return '<svg viewBox="0 0 '+W+' '+H+'" class="poop-chart-svg" role="img" aria-label="'+esc(t('poopStats'))+'">' +
+    '<defs><linearGradient id="poopFill" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="var(--c-diaper)" stop-opacity="0.35" />' +
+      '<stop offset="100%" stop-color="var(--c-diaper)" stop-opacity="0" />' +
+    '</linearGradient></defs>' +
+    gridLines +
+    '<path d="'+areaPath+'" fill="url(#poopFill)" stroke="none" />' +
+    '<path d="'+linePath+'" class="poop-line" />' +
+    dots + valueLabels + xLabels +
+  '</svg>';
+}
+function statTile(label, valHtml){
+  return '<div class="card stat-tile"><div class="st-label">'+esc(label)+'</div><div class="st-val">'+valHtml+'</div></div>';
+}
+
+/* ================================================================
+   RENDER: SETTINGS (local)
+   ================================================================ */
+function renderSettings(){
+  renderAuthorChips('author-chip-row', state.author, function(name){ setAuthor(name); });
+  var customBox = document.getElementById('custom-type-manage-list');
+  var types = readCustomTypes();
+  if (!types.length){
+    customBox.innerHTML = '<div class="row-item"><span class="r-sub" style="color:var(--muted)">'+esc(t('noCustomTypes'))+'</span></div>';
+  } else {
+    customBox.innerHTML = types.map(function(c){
+      return '<div class="row-item"><div style="display:flex;align-items:center;gap:10px;">' +
+        '<span style="width:30px;height:30px;border-radius:10px;background:color-mix(in srgb, '+esc(c.color)+' 18%, var(--surface-2));display:flex;align-items:center;justify-content:center;font-size:14px;">'+c.emoji+'</span>' +
+        '<span class="r-label">'+esc(c.name)+'</span></div>' +
+        '<button type="button" class="text-btn danger-btn" data-del-type="'+esc(c.id)+'">'+esc(t('delete'))+'</button>' +
+      '</div>';
+    }).join('');
+    $$('[data-del-type]', customBox).forEach(function(btn){
+      btn.addEventListener('click', function(){
+        apiMutate('deleteCustomType', { id: btn.dataset.delType }).then(function(){
+          renderQuickActions(); renderSettings();
+          toast(t('deletedToast'));
+        }).catch(function(err){ toast(err.message); });
+      });
+    });
+  }
+  renderTypeOrderList();
+}
+function renderTypeOrderList(){
+  var box = document.getElementById('type-order-list');
+  if (!box) return;
+  var list = allTypesInOrder();
+  box.innerHTML = list.map(function(x, i){
+    return '<div class="row-item">' +
+      '<div style="display:flex;align-items:center;gap:10px;min-width:0;">' +
+        '<span style="width:30px;height:30px;border-radius:10px;background:color-mix(in srgb, '+x.color+' 18%, var(--surface-2));display:flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 auto;">'+x.emoji+'</span>' +
+        '<span class="r-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(x.label)+'</span>' +
+      '</div>' +
+      '<div style="display:flex;gap:6px;flex:0 0 auto;">' +
+        '<button type="button" class="icon-btn" data-order-move="'+esc(x.id)+'" data-dir="-1" '+(i===0?'disabled style="opacity:.35"':'')+'>▲</button>' +
+        '<button type="button" class="icon-btn" data-order-move="'+esc(x.id)+'" data-dir="1" '+(i===list.length-1?'disabled style="opacity:.35"':'')+'>▼</button>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  $$('[data-order-move]', box).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      moveTypeOrder(btn.dataset.orderMove, Number(btn.dataset.dir));
+    });
+  });
+}
+function renderAuthorChips(containerId, selected, onPick){
+  var box = document.getElementById(containerId);
+  var presets = t('authorPresets');
+  box.innerHTML = presets.map(function(name){
+    return '<button type="button" class="chip" data-name="'+esc(name)+'" aria-pressed="'+(localizeAuthorName(selected)===name)+'">'+esc(name)+'</button>';
+  }).join('');
+  $$('.chip', box).forEach(function(chip){
+    chip.addEventListener('click', function(){ onPick(chip.dataset.name); });
+  });
+}
+function setAuthor(name){
+  state.author = name;
+  localStorage.setItem(LS_AUTHOR, name);
+  renderSettings();
+  renderProfilePill();
+  toast(t('savedToast'));
+}
+
+/* ================================================================
+   FULL PAGE: ENTRY DETAIL — tap a timeline row (or finish a stopwatch)
+   to open this. All fields save back to the entry's <li> in #store.
+   ================================================================ */
+function openEntryDetail(entryId){
+  var raw = (appState.entries || []).filter(function(x){ return x.id === entryId; })[0];
+  if (!raw) return;
+  state.entryId = entryId;
+  var e = {
+    type: raw.type, start: raw.start, end: raw.end || '',
+    amount: raw.amount != null ? raw.amount : '0', diaper: raw.diaper || 'wet',
+    temp: raw.temp != null ? raw.temp : '', note: raw.note || '',
+    author: raw.author || state.author, sleepKind: raw.sleepKind || ''
+  };
+  var meta = typeMeta(e.type);
+  if (!meta) return;
+  document.getElementById('fp-entry-title').textContent = meta.emoji + ' ' + meta.label;
+  document.getElementById('fp-entry-body').innerHTML = buildEntryFields(meta, e);
+  wireEntryFields(meta);
+  openFullpage('fp-entry');
+}
+function closeEntryDetail(){ closeFullpage('fp-entry'); state.entryId = null; }
+
+function buildEntryFields(meta, e){
+  var html = '';
+
+  /* every type gets both start + end now; end defaults equal to start
+     (see quickCreate/finishActive) and the user can move it independently.
+     the date is edited separately from the time-of-day fields. */
+  html += '<div class="field"><label>'+esc(t('dateLabel'))+'</label><input type="date" id="f-date" value="'+toDateValue(e.start)+'" /></div>';
+  html += '<div class="time-row">' +
+    '<div class="field"><label>'+esc(t('startTime'))+'</label><input type="time" id="f-start" value="'+toTimeValue(e.start)+'" /></div>' +
+    '<div class="time-sep">–</div>' +
+    '<div class="field"><label>'+esc(t('endTime'))+'</label><input type="time" id="f-end" value="'+toTimeValue(e.end||e.start)+'" /></div>' +
+  '</div>';
+
+  if (meta.hasAmount){
+    html += '<div class="field"><label>'+esc(t('amount'))+'</label>' +
+      '<div class="amount-row">' +
+        '<button type="button" class="amt-step" data-amt-step="-10">−</button>' +
+        '<input type="number" id="f-amount" value="'+esc(e.amount)+'" min="0" max="500" step="5" />' +
+        '<button type="button" class="amt-step" data-amt-step="10">+</button>' +
+      '</div>' +
+      '<input type="range" id="f-amount-range" min="0" max="300" step="5" value="'+esc(e.amount||0)+'" style="margin-top:10px" /></div>';
+  }
+  if (meta.hasDiaperKind){
+    html += '<div class="field"><label>'+esc(t('diaperKind'))+'</label><div class="seg" id="f-diaper">' +
+      ['wet','dirty','both'].map(function(k){ return '<button type="button" data-val="'+k+'" aria-pressed="'+(e.diaper===k)+'">'+esc(t(k))+'</button>'; }).join('') +
+      '</div></div>';
+  }
+  if (meta.hasSleepKind){
+    html += '<div class="field"><label>'+esc(t('sleepKind'))+'</label><div class="seg" id="f-sleep">' +
+      ['auto','nap','night'].map(function(k){ return '<button type="button" data-val="'+k+'" aria-pressed="'+((e.sleepKind||'auto')===k)+'">'+esc(t(k))+'</button>'; }).join('') +
+      '</div></div>';
+  }
+  if (meta.hasTemp){
+    html += '<div class="field"><label>'+esc(t('temperature'))+'</label>' +
+      '<input type="number" id="f-temp" value="'+esc(e.temp)+'" min="30" max="43" step="0.1" /></div>';
+  }
+  var noteLabel = meta.noteKey ? t(meta.noteKey) : t('note');
+  html += '<div class="field"><label>'+esc(noteLabel)+'</label>' +
+    '<input type="text" id="f-note" value="'+esc(e.note)+'" maxlength="80" /></div>';
+
+  html += '<div class="field"><label>'+esc(t('author'))+'</label><div class="chip-row" id="f-author" style="padding:0">' +
+    t('authorPresets').map(function(n){ return '<button type="button" class="chip" data-author="'+esc(n)+'" aria-pressed="'+(localizeAuthorName(e.author)===n)+'">'+esc(n)+'</button>'; }).join('') +
+  '</div><input type="text" id="f-author-custom" value="'+ (isPresetAuthorName(e.author) ? '' : esc(e.author)) +'" placeholder="'+esc(t('authorCustomPh'))+'" style="margin-top:8px" /></div>';
+
+  return html;
+}
+
+function wireEntryFields(meta){
+  var range = document.getElementById('f-amount-range'), num = document.getElementById('f-amount');
+  if (range && num){
+    range.addEventListener('input', function(){ num.value = range.value; });
+    num.addEventListener('input', function(){ range.value = num.value; });
+    $$('.amt-step').forEach(function(b){
+      b.addEventListener('click', function(){
+        num.value = Math.max(0, (Number(num.value)||0) + Number(b.dataset.amtStep));
+        range.value = num.value;
+      });
+    });
+  }
+  ['f-diaper','f-sleep'].forEach(function(segId){
+    var seg = document.getElementById(segId);
+    if (!seg) return;
+    $$('button', seg).forEach(function(b){
+      b.addEventListener('click', function(){
+        $$('button', seg).forEach(function(x){ x.setAttribute('aria-pressed','false'); });
+        b.setAttribute('aria-pressed','true');
+      });
+    });
+  });
+  var authorBox = document.getElementById('f-author');
+  $$('.chip', authorBox).forEach(function(chip){
+    chip.addEventListener('click', function(){
+      $$('.chip', authorBox).forEach(function(x){ x.setAttribute('aria-pressed','false'); });
+      chip.setAttribute('aria-pressed','true');
+      document.getElementById('f-author-custom').value = '';
+    });
+  });
+}
+
+function saveEntryDetail(){
+  var raw = (appState.entries || []).filter(function(x){ return x.id === state.entryId; })[0];
+  if (!raw) return;
+  var meta = typeMeta(raw.type);
+  if (!meta) return;
+
+  var dateVal = document.getElementById('f-date') ? document.getElementById('f-date').value : toDateValue(raw.start);
+  var startTimeVal = document.getElementById('f-start').value;
+  var newStart = combineDateAndTime(dateVal, startTimeVal);
+  var endTimeVal = document.getElementById('f-end') ? document.getElementById('f-end').value : startTimeVal;
+  var newEnd = combineDateAndTime(dateVal, endTimeVal || startTimeVal);
+
+  var payload = { id: state.entryId, start: newStart, end: newEnd };
+  var amountEl = document.getElementById('f-amount');
+  if (amountEl) payload.amount = Number(amountEl.value);
+  var diaperSeg = document.getElementById('f-diaper');
+  if (diaperSeg){ var dp = diaperSeg.querySelector('[aria-pressed="true"]'); payload.diaper = dp?dp.dataset.val:'wet'; }
+  var sleepSeg = document.getElementById('f-sleep');
+  if (sleepSeg){ var sp = sleepSeg.querySelector('[aria-pressed="true"]'); var sk=(sp?sp.dataset.val:'auto'); payload.sleepKind = (sk==='auto')?'':sk; }
+  var tempEl = document.getElementById('f-temp');
+  if (tempEl) payload.temp = Number(tempEl.value);
+  payload.note = document.getElementById('f-note').value.trim();
+  var authorCustom = document.getElementById('f-author-custom').value.trim();
+  var authorChip = $('.chip[aria-pressed="true"]', document.getElementById('f-author'));
+  var authorVal = authorCustom || (authorChip ? authorChip.dataset.author : '') || state.author;
+  payload.author = authorVal;
+  if (authorVal && authorVal !== state.author){ state.author = authorVal; localStorage.setItem(LS_AUTHOR, authorVal); }
+
+  apiMutate('updateEntry', payload).then(function(){
+    closeEntryDetail();
+    renderAll();
+    toast(t('savedToast'));
+  }).catch(function(err){ toast(err.message); });
+}
+function deleteEntryDetail(){
+  apiMutate('deleteEntry', { id: state.entryId }).then(function(){
+    closeEntryDetail();
+    renderAll();
+    toast(t('deletedToast'));
+  }).catch(function(err){ toast(err.message); });
+}
+
+/* ================================================================
+   FULL PAGE: ANNOUNCEMENT
+   ================================================================ */
+function openFullpage(id){ document.getElementById(id).classList.add('show'); document.body.style.overflow='hidden'; }
+function closeFullpage(id){ document.getElementById(id).classList.remove('show'); document.body.style.overflow=''; }
+
+/* ================================================================
+   MEMO — a shared list. Language detection is a plain Unicode-range check
+   (Hangul vs Vietnamese diacritics). Translation is REAL now: the server
+   calls a translation API (see server/translate.js) — this is the whole
+   reason this app moved off the Claude Artifact platform, whose CSP only
+   allowed outbound requests to Google Fonts and could never reach a
+   translation API from client-side code.
+   ================================================================ */
+function readMemos(){
+  return (appState.memos || []).map(function(m){
+    return {
+      id: m.id, text: m.text || '', lang: m.lang || 'other',
+      translated: m.translation || '', author: m.author || '', time: m.ts || ''
+    };
+  }).sort(function(a,b){ return new Date(b.time) - new Date(a.time); });
+}
+var HANGUL_RE = /[가-힣]/;
+var VI_DIACRITIC_RE = /[àáâãèéêìíòóôõùúăđĩũơưạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/i;
+function detectLang(text){
+  if (HANGUL_RE.test(text)) return 'ko';
+  if (VI_DIACRITIC_RE.test(text)) return 'vi';
+  return 'other';
+}
+function updateMemoPreview(){
+  var preview = document.getElementById('memo-preview');
+  if (!preview) return;
+  var latest = readMemos()[0];
+  preview.textContent = latest ? latest.text.split('\n')[0] : t('memoEmpty');
+}
+function renderMemoList(){
+  var box = document.getElementById('memo-list');
+  if (!box) return;
+  var memos = readMemos();
+  if (!memos.length){
+    box.innerHTML = '<div class="empty-note">'+esc(t('memoNoMemos'))+'</div>';
+    return;
+  }
+  box.innerHTML = memos.map(function(m){
+    var tag = m.lang === 'ko' ? 'KO' : (m.lang === 'vi' ? 'VI' : '');
+    return '<div class="memo-row">' +
+      '<div class="m-text">'+esc(m.text)+'</div>' +
+      (m.translated ? '<div class="m-translated">'+esc(m.translated)+'</div>' : '') +
+      '<div class="m-meta">' +
+        '<span>'+esc([localizeAuthorName(m.author), fmtTime(m.time)].filter(Boolean).join(' · '))+'</span>' +
+        '<span style="display:flex;align-items:center;gap:8px;">' +
+          (tag ? '<span class="m-lang-tag">'+tag+'</span>' : '') +
+          '<button type="button" class="text-btn danger-btn" data-del-memo="'+esc(m.id)+'" style="padding:0;">'+esc(t('delete'))+'</button>' +
+        '</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+  $$('[data-del-memo]', box).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      apiMutate('deleteMemo', { id: btn.dataset.delMemo }).then(function(){
+        renderMemoList(); updateMemoPreview();
+        toast(t('deletedToast'));
+      }).catch(function(err){ toast(err.message); });
+    });
+  });
+}
+/* live preview of the auto-translation while composing, debounced so every
+   keystroke doesn't fire a request — the same translation is reused at
+   submit time if the text hasn't changed since. */
+var memoTranslateDebounce = null;
+var memoTranslateCache = { text: '', lang: '', translation: '' };
+function updateMemoComposeTranslateField(){
+  var textEl = document.getElementById('memo-compose-text');
+  var wrap = document.getElementById('memo-compose-translate-wrap');
+  var label = document.getElementById('memo-compose-translate-label');
+  var preview = document.getElementById('memo-compose-translate-preview');
+  if (!textEl || !wrap || !label || !preview) return;
+  var text = textEl.value.trim();
+  var lang = detectLang(text);
+  clearTimeout(memoTranslateDebounce);
+  if (lang !== 'ko' && lang !== 'vi'){ wrap.hidden = true; return; }
+  wrap.hidden = false;
+  label.textContent = lang === 'ko' ? t('memoTranslateToVi') : t('memoTranslateToKo');
+  if (!text){ preview.textContent = ''; return; }
+  preview.textContent = t('translating');
+  memoTranslateDebounce = setTimeout(function(){
+    var target = lang === 'ko' ? 'vi' : 'ko';
+    apiTranslate(text, target).then(function(translated){
+      memoTranslateCache = { text: text, lang: lang, translation: translated };
+      if (document.getElementById('memo-compose-text').value.trim() === text){
+        preview.textContent = translated;
+      }
+    }).catch(function(){ preview.textContent = ''; });
+  }, 500);
+}
+function submitMemo(){
+  var textEl = document.getElementById('memo-compose-text');
+  var text = textEl.value.trim();
+  if (!text) return;
+  var lang = detectLang(text);
+  var submitBtn = document.getElementById('memo-compose-submit');
+  submitBtn.disabled = true;
+
+  var translationPromise;
+  if (lang === 'ko' || lang === 'vi'){
+    if (memoTranslateCache.text === text && memoTranslateCache.lang === lang){
+      translationPromise = Promise.resolve(memoTranslateCache.translation);
+    } else {
+      translationPromise = apiTranslate(text, lang === 'ko' ? 'vi' : 'ko').catch(function(){ return ''; });
+    }
+  } else {
+    translationPromise = Promise.resolve('');
+  }
+
+  translationPromise
+    .then(function(translation){
+      return apiMutate('addMemo', { text: text, lang: lang, translation: translation, author: state.author });
+    })
+    .then(function(){
+      textEl.value = '';
+      document.getElementById('memo-compose-translate-preview').textContent = '';
+      document.getElementById('memo-compose-translate-wrap').hidden = true;
+      memoTranslateCache = { text: '', lang: '', translation: '' };
+      renderMemoList();
+      updateMemoPreview();
+      toast(t('savedToast'));
+      submitBtn.disabled = false;
+    })
+    .catch(function(err){
+      toast(err.message || 'error');
+      submitBtn.disabled = false;
+    });
+}
+
+/* ================================================================
+   SHEET: open/close plumbing (small quick-pick flows only)
+   ================================================================ */
+function openSheet(id){
+  document.getElementById(id==='type-sheet'?'scrim2':'scrim3').classList.add('show');
+  document.getElementById(id).classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeSheet(id){
+  document.getElementById(id==='type-sheet'?'scrim2':'scrim3').classList.remove('show');
+  document.getElementById(id).classList.remove('show');
+  document.body.style.overflow = '';
+  // a focused control inside the sheet stays focused while translated off-screen, which can
+  // otherwise drag other scroll containers (e.g. the quick-actions row) into view — release it.
+  if (document.activeElement && document.getElementById(id).contains(document.activeElement)){
+    document.activeElement.blur();
+  }
+}
+
+/* ================================================================
+   TYPE SHEET — create a reusable custom care type
+   ================================================================ */
+var pickedSwatch = SWATCHES[0], pickedEmoji = EMOJI_CHOICES[0];
+function openTypeSheet(){
+  document.getElementById('new-type-name').value = '';
+  pickedSwatch = SWATCHES[Math.floor(Math.random()*SWATCHES.length)];
+  pickedEmoji = EMOJI_CHOICES[Math.floor(Math.random()*EMOJI_CHOICES.length)];
+  document.getElementById('new-type-swatches').innerHTML = SWATCHES.map(function(c){
+    return '<button type="button" class="swatch" style="background:'+c+'" data-swatch="'+c+'" aria-pressed="'+(c===pickedSwatch)+'"></button>';
+  }).join('');
+  document.getElementById('new-type-emojis').innerHTML = EMOJI_CHOICES.map(function(em){
+    return '<button type="button" data-emoji="'+em+'" aria-pressed="'+(em===pickedEmoji)+'">'+em+'</button>';
+  }).join('');
+  $$('.swatch', document.getElementById('new-type-swatches')).forEach(function(b){
+    b.addEventListener('click', function(){
+      pickedSwatch = b.dataset.swatch;
+      $$('.swatch', document.getElementById('new-type-swatches')).forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); });
+    });
+  });
+  $$('button', document.getElementById('new-type-emojis')).forEach(function(b){
+    b.addEventListener('click', function(){
+      pickedEmoji = b.dataset.emoji;
+      $$('button', document.getElementById('new-type-emojis')).forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); });
+    });
+  });
+  openSheet('type-sheet');
+}
+function saveTypeSheet(){
+  var name = document.getElementById('new-type-name').value.trim();
+  if (!name){ toast(state.lang==='vi'?'Vui lòng nhập tên':'이름을 입력해 주세요'); return; }
+  apiMutate('addCustomType', { name: name, color: pickedSwatch, emoji: pickedEmoji }).then(function(){
+    closeSheet('type-sheet');
+    renderQuickActions();
+    renderSettings();
+    toast(t('savedToast'));
+  }).catch(function(err){ toast(err.message); });
+}
+
+/* ================================================================
+   PROFILE SHEET — first-run "who am I" (local only)
+   ================================================================ */
+function openProfilePicker(){
+  renderAuthorChips('profile-chip-row', state.author, function(name){
+    document.getElementById('profile-custom-input').value = '';
+    state.author = name;
+    $$('.chip', document.getElementById('profile-chip-row')).forEach(function(c){
+      c.setAttribute('aria-pressed', String(c.dataset.name===name));
+    });
+  });
+  document.getElementById('profile-custom-input').value = '';
+  openSheet('profile-sheet');
+}
+function saveProfilePicker(){
+  var custom = document.getElementById('profile-custom-input').value.trim();
+  var picked = custom || state.author;
+  if (!picked){ toast(state.lang==='vi'?'Vui lòng chọn hoặc nhập tên':'이름을 선택하거나 입력해 주세요'); return; }
+  state.author = picked;
+  localStorage.setItem(LS_AUTHOR, picked);
+  closeSheet('profile-sheet');
+  renderSettings();
+  renderProfilePill();
+  toast(t('savedToast'));
+}
+
+/* ================================================================
+   GLOBAL RENDER
+   ================================================================ */
+function renderAll(){
+  applyI18n();
+  applyTheme();
+  renderHeader();
+  renderSinceLast();
+  renderQuickActions();
+  renderTimeline();   /* builds #active-bar-slot inside today's group */
+  renderActiveBar();  /* ...then fills/updates it */
+  renderStats();
+  renderSettings();
+  updateMemoPreview();
+  renderMemoList();
+}
+
+/* ================================================================
+   EVENT WIRING
+   ================================================================ */
+function switchTab(name){
+  state.tab = name;
+  $$('.tab-btn').forEach(function(x){ x.setAttribute('aria-current', String(x.dataset.tab===name)); });
+  $$('[data-tab-panel]').forEach(function(p){ p.hidden = (p.id !== 'tab-'+name); });
+  window.scrollTo(0,0);
+  if (name === 'stats') renderStats();
+  if (name === 'memo') renderMemoList();
+  if (state.adjustOpen){ state.adjustOpen = false; var panel = document.getElementById('aw-adjust-panel'); if (panel) panel.hidden = true; }
+}
+
+function wireEvents(){
+  $$('#lang-pill button').forEach(function(b){
+    b.addEventListener('click', function(){
+      state.lang = b.dataset.lang;
+      localStorage.setItem(LS_LANG, state.lang);
+      $$('#lang-pill button').forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); });
+      renderAll();
+    });
+  });
+
+  $$('.tab-btn').forEach(function(b){
+    b.addEventListener('click', function(){ switchTab(b.dataset.tab); });
+  });
+
+  $$('#theme-seg button').forEach(function(b){
+    b.addEventListener('click', function(){
+      state.theme = b.dataset.themeOpt;
+      localStorage.setItem(LS_THEME, state.theme);
+      applyTheme();
+    });
+  });
+
+  document.getElementById('btn-profile').addEventListener('click', openProfilePicker);
+
+  // stats: feed range toggle (7/14/30 days)
+  $$('#stats-feed-range button').forEach(function(b){
+    b.addEventListener('click', function(){
+      state.statsFeedDays = Number(b.dataset.range);
+      $$('#stats-feed-range button').forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); });
+      renderStats();
+    });
+  });
+
+  // memo tab
+  document.getElementById('memo-open-btn').addEventListener('click', function(){ switchTab('memo'); });
+  document.getElementById('memo-compose-text').addEventListener('input', updateMemoComposeTranslateField);
+  document.getElementById('memo-compose-submit').addEventListener('click', submitMemo);
+
+  // entry detail full page
+  document.getElementById('fp-entry-back').addEventListener('click', closeEntryDetail);
+  document.getElementById('fp-entry-save').addEventListener('click', saveEntryDetail);
+  document.getElementById('fp-entry-delete').addEventListener('click', deleteEntryDetail);
+
+  // baby name/birth: live local preview on every keystroke (renderHeader reads
+  // the focused input's live value — applyProfileToInputs skips it while
+  // focused), persisted to the server on change/blur via setProfile.
+  document.getElementById('set-baby-name-ko').addEventListener('input', renderHeader);
+  document.getElementById('set-baby-name-vi').addEventListener('input', renderHeader);
+  document.getElementById('set-baby-name-ko').addEventListener('change', function(){
+    apiMutate('setProfile', { nameKo: this.value.trim() }).catch(function(err){ toast(err.message); });
+  });
+  document.getElementById('set-baby-name-vi').addEventListener('change', function(){
+    apiMutate('setProfile', { nameVi: this.value.trim() }).catch(function(err){ toast(err.message); });
+  });
+  document.getElementById('set-baby-birth').addEventListener('change', function(){
+    renderHeader();
+    apiMutate('setProfile', { birth: this.value }).catch(function(err){ toast(err.message); });
+  });
+
+  document.getElementById('author-save-btn').addEventListener('click', function(){
+    var v = document.getElementById('author-custom-input').value.trim();
+    if (!v){ toast(state.lang==='vi'?'Vui lòng nhập tên':'이름을 입력해 주세요'); return; }
+    document.getElementById('author-custom-input').value = '';
+    setAuthor(v);
+  });
+
+  // type sheet
+  document.getElementById('type-sheet-close').addEventListener('click', function(){ closeSheet('type-sheet'); });
+  document.getElementById('type-sheet-cancel').addEventListener('click', function(){ closeSheet('type-sheet'); });
+  document.getElementById('type-sheet-save').addEventListener('click', saveTypeSheet);
+  document.getElementById('scrim2').addEventListener('click', function(){ closeSheet('type-sheet'); });
+
+  // profile sheet
+  document.getElementById('profile-save-btn').addEventListener('click', saveProfilePicker);
+  document.getElementById('scrim3').addEventListener('click', function(){ closeSheet('profile-sheet'); });
+
+}
+
+/* ================================================================
+   INIT
+   ================================================================ */
+function init(){
+  $$('#lang-pill button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.lang===state.lang)); });
+  wireEvents();
+  apiGetState().then(function(){
+    renderAll();
+    if (!state.author){ openProfilePicker(); }
+  }).catch(function(err){
+    toast(err.message || 'failed to load');
+    renderAll();
+  });
+  setInterval(function(){ renderActiveBar(); renderSinceLast(); }, 1000);
+  setInterval(pollState, 4000);
+}
+
+if (document.readyState === 'loading'){
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+})();
+</script>
+</body>
+</html>
