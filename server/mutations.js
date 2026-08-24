@@ -10,7 +10,12 @@ function uid(prefix) {
 
 function clone(x) { return JSON.parse(JSON.stringify(x)); }
 
-const ALLOWED_ENTRY_FIELDS = ['type', 'start', 'end', 'amount', 'diaper', 'temp', 'note', 'author', 'sleepKind'];
+// noteTranslated/noteLang: an entry's note gets the same auto-translation the
+// memo tab does, so the Korean-speaking and Vietnamese-speaking members of the
+// household both read every note. Stored alongside the note rather than
+// re-translated on each render (translation is a network call, and the stored
+// text is what every other viewer's poll picks up).
+const ALLOWED_ENTRY_FIELDS = ['type', 'start', 'end', 'amount', 'diaper', 'temp', 'note', 'noteLang', 'noteTranslated', 'author', 'sleepKind'];
 
 function applyMutation(prevState, type, payload) {
   const state = clone(prevState);
@@ -154,6 +159,50 @@ function applyMutation(prevState, type, payload) {
       state.profile = state.profile || {};
       ['nameKo', 'nameVi', 'birth'].forEach((f) => { if (payload[f] !== undefined) state.profile[f] = payload[f]; });
       return { state, result: { profile: state.profile } };
+    }
+
+    // ---- custom author names ----
+    // The three presets (엄마/아빠/내니) are built into the UI; these are the
+    // extra names a household adds (a grandparent, a second sitter). Shared
+    // state rather than per-device so a name added on one phone shows up in
+    // everyone's author picker.
+    case 'addCustomAuthor': {
+      const name = (payload.name || '').trim();
+      if (!name) throw httpError(400, 'author name required');
+      state.customAuthors = state.customAuthors || [];
+      if (state.customAuthors.some((a) => a.name === name)) {
+        return { state, result: { duplicate: true } };
+      }
+      const author = { id: uid('a_'), name };
+      state.customAuthors.push(author);
+      return { state, result: { author } };
+    }
+
+    case 'deleteCustomAuthor': {
+      state.customAuthors = (state.customAuthors || []).filter((a) => a.id !== payload.id);
+      return { state, result: {} };
+    }
+
+    // ---- quick words ----
+    // Short reusable note snippets per care type (a medicine name, a play
+    // activity), tapped as chips in the entry-detail note field instead of
+    // being retyped. Keyed by type id so 투약/놀이/터미타임 each keep their own set.
+    case 'addQuickWord': {
+      const text = (payload.text || '').trim();
+      const typeId = payload.typeId;
+      if (!text || !typeId) throw httpError(400, 'quick word requires typeId and text');
+      state.quickWords = state.quickWords || [];
+      if (state.quickWords.some((w) => w.typeId === typeId && w.text === text)) {
+        return { state, result: { duplicate: true } };
+      }
+      const word = { id: uid('q_'), typeId, text };
+      state.quickWords.push(word);
+      return { state, result: { quickWord: word } };
+    }
+
+    case 'deleteQuickWord': {
+      state.quickWords = (state.quickWords || []).filter((w) => w.id !== payload.id);
+      return { state, result: {} };
     }
 
     default:

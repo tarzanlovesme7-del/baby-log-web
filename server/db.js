@@ -18,6 +18,8 @@ const EMPTY_STATE = {
   customTypes: [],    // [{id,name,color,emoji}]
   memos: [],          // [{id,text,lang,translation,author,ts}]
   typeOrder: [],       // [typeId, ...]
+  customAuthors: [],   // [{id,name}] — extra author names beyond the 3 presets
+  quickWords: [],      // [{id,typeId,text}] — reusable note snippets per type
   profile: { nameKo: '지오', nameVi: 'Zio', birth: '2026-05-11' },
 };
 
