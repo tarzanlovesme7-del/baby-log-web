@@ -2,8 +2,14 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8" />
-<title>Baby Log</title>
+<title>Zio Log</title>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="application-name" content="Zio Log" />
+<meta name="apple-mobile-web-app-title" content="Zio Log" />
+<meta property="og:title" content="Zio Log" />
+<meta property="og:site_name" content="Zio Log" />
+<meta property="og:description" content="지오의 하루 기록 · 가족이 함께 쓰는 육아 기록장" />
+<meta property="og:type" content="website" />
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍼</text></svg>" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -247,11 +253,13 @@
     display:flex; flex-direction:column; gap:10px;
     padding-bottom:20px; margin-bottom:6px; border-bottom:1px solid var(--border);
   }
-  .memo-row{ padding:14px 2px; display:flex; flex-direction:column; gap:6px; border-bottom:1px solid var(--border); }
+  .memo-row{ padding:14px 2px; display:flex; flex-direction:column; gap:8px; border-bottom:1px solid var(--border); }
   .memo-row:last-child{ border-bottom:0; }
-  .memo-row .m-text{ font-size:14.5px; line-height:1.5; white-space:pre-wrap; word-break:break-word; }
-  .memo-row .m-translated{ font-size:13.5px; line-height:1.5; color:var(--muted); white-space:pre-wrap; word-break:break-word; padding-top:2px; }
-  .memo-row .m-translated::before{ content:"↳ "; color:var(--muted-2); }
+  .memo-row .m-row-head{ display:flex; align-items:center; justify-content:flex-end; gap:7px; }
+  .memo-row .m-author{ font-size:11px; color:var(--muted-2); font-weight:800; }
+  .memo-row .m-bilingual{ display:flex; flex-direction:column; gap:5px; }
+  .memo-row .m-orig{ font-size:14.5px; font-weight:500; line-height:1.5; color:var(--fg); white-space:pre-wrap; word-break:break-word; }
+  .memo-row .m-trans{ font-size:14.5px; font-weight:500; line-height:1.5; color:var(--primary); white-space:pre-wrap; word-break:break-word; }
   .memo-row .m-meta{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:2px; }
   .memo-row .m-meta span{ font-size:11px; color:var(--muted-2); }
   .memo-row .m-lang-tag{ font-size:10px; font-weight:800; border-radius:6px; padding:2px 6px; }
@@ -2143,14 +2151,17 @@ function renderMemoList(){
     var tag = m.lang === 'ko' ? '🇰🇷 KO' : (m.lang === 'vi' ? '🇻🇳 VI' : '');
     var tagClass = m.lang === 'ko' ? 'lang-ko' : (m.lang === 'vi' ? 'lang-vi' : '');
     return '<div class="memo-row">' +
-      '<div class="m-text">'+esc(m.text)+'</div>' +
-      (m.translated ? '<div class="m-translated">'+esc(m.translated)+'</div>' : '') +
+      '<div class="m-row-head">' +
+        (tag ? '<span class="m-lang-tag '+tagClass+'">'+tag+'</span>' : '') +
+        '<span class="m-author">'+esc(localizeAuthorName(m.author))+'</span>' +
+      '</div>' +
+      '<div class="m-bilingual">' +
+        '<div class="m-orig">'+esc(m.text)+'</div>' +
+        (m.translated ? '<div class="m-trans">'+esc(m.translated)+'</div>' : '') +
+      '</div>' +
       '<div class="m-meta">' +
-        '<span>'+esc([localizeAuthorName(m.author), fmtDateTime(m.time)].filter(Boolean).join(' · '))+'</span>' +
-        '<span style="display:flex;align-items:center;gap:8px;">' +
-          (tag ? '<span class="m-lang-tag '+tagClass+'">'+tag+'</span>' : '') +
-          '<button type="button" class="text-btn danger-btn" data-del-memo="'+esc(m.id)+'" style="padding:0;">'+esc(t('delete'))+'</button>' +
-        '</span>' +
+        '<span>'+esc(fmtDateTime(m.time))+'</span>' +
+        '<button type="button" class="text-btn danger-btn" data-del-memo="'+esc(m.id)+'" style="padding:0;">'+esc(t('delete'))+'</button>' +
       '</div>' +
     '</div>';
   }).join('');
