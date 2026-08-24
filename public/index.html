@@ -30,6 +30,8 @@
     --danger: #e42939;
     --memo-bg: #fff3c4;
     --memo-fg: #8a6a00;
+    --nf-bg: #ffe7c2;
+    --nf-fg: #8a5300;
     --radius-pill: 999px;
     --radius-card: 20px;
     --radius-sm: 14px;
@@ -38,7 +40,7 @@
        as both flat icon chips and weak-tint badges alongside the Toss blue) */
     --c-feed:#ff9f0a; --c-diaper:#ac8058; --c-bath:#1ec8d8; --c-sleep:#8b5cf6;
     --c-med:#26b876; --c-probiotic:#0aa88f; --c-play:#3182f6; --c-tummy:#ff5673; --c-nose:#3ba9e8;
-    --c-nails:#e8b100; --c-temp:#ff6b5e; --c-custom:#8b95a1;
+    --c-nails:#e8b100; --c-temp:#ff6b5e; --c-massage:#f472b6; --c-custom:#8b95a1;
 
     /* "Apple SD Gothic Neo" is a system font — it isn't fetched, it's simply named first
        so it's used natively on the family's iPhones/Macs. Gothic A1 (loaded via Google
@@ -58,6 +60,7 @@
       --primary-weak-bg:#16294a; --primary-weak-fg:#7db8ff; --link:#7db8ff;
       --danger:#ff5b6a;
       --memo-bg:#3d3111; --memo-fg:#f3cf4d;
+      --nf-bg:#40290f; --nf-fg:#ffb768;
     }
   }
   :root[data-theme="dark"]{
@@ -68,6 +71,7 @@
     --primary-weak-bg:#16294a; --primary-weak-fg:#7db8ff; --link:#7db8ff;
     --danger:#ff5b6a;
     --memo-bg:#3d3111; --memo-fg:#f3cf4d;
+    --nf-bg:#40290f; --nf-fg:#ffb768;
   }
   :root[lang="vi"]{
     --font: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -153,6 +157,10 @@
   .dash-item .d-val{ font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.3px; }
   .dash-item .d-sub{ font-size:11.5px; color:var(--muted); margin-top:3px; }
 
+  /* wraps memo + next-feed bands into one flex child of .panel so its
+     gap:18px doesn't insert space between the two stacked full-bleed bands */
+  .announce-stack{ display:flex; flex-direction:column; }
+
   /* memo preview — no box: a full-bleed color band, tap jumps to the memo tab */
   .announce-row{
     width:calc(100% + 32px); margin:0 -16px; display:flex; align-items:center; gap:9px;
@@ -162,6 +170,12 @@
   .announce-row .a-label{ font-size:12.5px; font-weight:800; color:var(--memo-fg); flex:0 0 auto; }
   .announce-row .a-preview{ flex:1; min-width:0; font-size:12.5px; color:var(--memo-fg); opacity:.8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .announce-row .a-chev{ flex:0 0 auto; color:var(--memo-fg); opacity:.6; font-size:17px; font-weight:700; }
+  /* next-feed estimate — same flat band language as the memo preview above,
+     stacked directly under it with its own peach tint instead of the memo's amber */
+  .announce-row.next-feed-row{ background:var(--nf-bg); }
+  .announce-row.next-feed-row .a-label,
+  .announce-row.next-feed-row .a-preview{ color:var(--nf-fg); }
+  .announce-row.next-feed-row .a-preview{ opacity:1; font-variant-numeric:tabular-nums; }
 
   /* quick actions — single row, swipeable, icon + label only (no card chrome) */
   .qa-grid{
@@ -240,7 +254,9 @@
   .memo-row .m-translated::before{ content:"↳ "; color:var(--muted-2); }
   .memo-row .m-meta{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:2px; }
   .memo-row .m-meta span{ font-size:11px; color:var(--muted-2); }
-  .memo-row .m-lang-tag{ font-size:10px; font-weight:800; color:var(--memo-fg); background:var(--memo-bg); border-radius:6px; padding:2px 6px; }
+  .memo-row .m-lang-tag{ font-size:10px; font-weight:800; border-radius:6px; padding:2px 6px; }
+  .memo-row .m-lang-tag.lang-ko{ color:var(--primary); background:var(--primary-weak-bg); }
+  .memo-row .m-lang-tag.lang-vi{ color:var(--danger); background:color-mix(in srgb, var(--danger) 16%, var(--surface)); }
 
   /* stats */
   .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
@@ -279,6 +295,43 @@
   .poop-day-kind{ color:var(--fg); flex:0 0 auto; }
   .poop-day-note{ color:var(--muted); font-size:12px; }
 
+  /* weekly pattern chart — flat stacked color bands per day, painted-on-top
+     emoji marks for anything that isn't feed/sleep (color-only). horizontally
+     swipeable so 7 days don't all have to fit on one screen at once. */
+  .pattern-caption{ font-size:12px; color:var(--muted-2); padding:0 2px; margin-bottom:2px; }
+  .pattern-chart-card{ padding:16px 14px 14px; display:flex; flex-direction:column; gap:12px; }
+  .pattern-chart-inner{ display:flex; gap:10px; }
+  .pattern-axis-v{
+    flex:0 0 22px; display:flex; flex-direction:column; justify-content:space-between;
+    height:456px; padding:1px 0; text-align:right;
+  }
+  .pattern-axis-v span{ font-size:10px; color:var(--muted-2); font-variant-numeric:tabular-nums; }
+  .pattern-cols{
+    display:flex; overflow-x:auto; scroll-snap-type:x proximity;
+    -webkit-overflow-scrolling:touch; scrollbar-width:none; overflow-anchor:none; padding-bottom:1px;
+  }
+  .pattern-cols::-webkit-scrollbar{ display:none; }
+  .pattern-col{
+    flex:0 0 50px; scroll-snap-align:start; display:flex; flex-direction:column; align-items:center; gap:7px;
+    border-left:1px solid var(--bg);
+  }
+  .pattern-col:first-child{ border-left:0; }
+  .pattern-col-track{ position:relative; width:100%; height:456px; background:var(--surface-2); }
+  .pattern-grid-line-h{ position:absolute; left:0; right:0; height:1px; background:var(--border); }
+  .pattern-mark-band{ position:absolute; left:0; right:0; }
+  .pattern-mark-band.is-point{ height:6px; margin-top:-3px; }
+  .pattern-mark-emoji{
+    position:absolute; left:50%; top:0; transform:translate(-50%,-50%); font-size:14px; line-height:1;
+    text-shadow:0 1px 3px rgba(0,0,0,.35);
+  }
+  .pattern-col-label{ font-size:10px; font-weight:600; color:var(--muted); text-align:center; line-height:1.3; }
+  .pattern-col-label .pattern-col-date{ display:block; color:var(--muted-2); }
+  .pattern-col.today .pattern-col-label{ color:var(--primary); font-weight:800; }
+  .pattern-legend{ display:flex; flex-wrap:wrap; gap:10px 16px; padding:2px 4px 0; }
+  .pattern-legend-item{ display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); }
+  .pattern-legend-swatch{ width:20px; height:10px; flex:0 0 auto; }
+  .pattern-legend-emoji-only{ font-size:14px; line-height:1; flex:0 0 auto; }
+
   /* settings — rows separated by spacing, not rule lines */
   .row-item{ display:flex; align-items:center; justify-content:space-between; padding:15px 16px; gap:12px; }
   .row-item .r-label{ font-size:14.5px; }
@@ -313,9 +366,13 @@
     position:sticky; top:0; z-index:1; display:flex; align-items:center; gap:10px;
     padding:calc(12px + env(safe-area-inset-top)) 10px 14px 6px; background:var(--surface);
   }
-  .fp-back{ width:36px; height:36px; border-radius:50%; border:0; background:var(--surface-2); font-size:19px; font-weight:800; color:var(--fg); flex:0 0 auto; }
-  .fp-head h1{ font-size:16px; font-weight:800; margin:0; flex:1; min-width:0; }
-  .fp-delete{ background:transparent; border:0; color:var(--danger); font-size:14px; font-weight:700; padding:6px 4px; flex:0 0 auto; }
+  .fp-back{ width:32px; height:32px; border:0; background:transparent; font-size:22px; font-weight:800; color:var(--fg); flex:0 0 auto; display:flex; align-items:center; justify-content:center; padding:0; }
+  .fp-head h1{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); margin:0;
+    font-size:16px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    max-width:calc(100% - 116px); pointer-events:none;
+  }
+  .fp-delete{ background:transparent; border:0; color:var(--danger); font-size:14px; font-weight:700; padding:6px 4px; flex:0 0 auto; margin-left:auto; }
   /* extra bottom padding clears the floating save button */
   .fp-body{ padding:20px 16px calc(100px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:20px; }
   /* floating, not a full-width bar docked to the edge — the shadow is deliberate here,
@@ -415,13 +472,24 @@
     <!-- dashboard: last feed / diaper / sleep, plain text, no card -->
     <div class="dashboard" id="since-row"></div>
 
-    <!-- memo: most recent memo, one-line preview, tap jumps to the memo tab -->
-    <button type="button" class="announce-row" id="memo-open-btn">
-      <span class="a-emoji">📝</span>
-      <span class="a-label" data-i18n="memoLabel">메모</span>
-      <span class="a-preview" id="memo-preview"></span>
-      <span class="a-chev">›</span>
-    </button>
+    <!-- memo + next-feed estimate: wrapped together so the two full-bleed
+         bands sit flush with no gap (panel uses flex gap between children) -->
+    <div class="announce-stack">
+      <!-- memo: most recent memo, one-line preview, tap jumps to the memo tab -->
+      <button type="button" class="announce-row" id="memo-open-btn">
+        <span class="a-emoji">📝</span>
+        <span class="a-label" data-i18n="memoLabel">메모</span>
+        <span class="a-preview" id="memo-preview"></span>
+        <span class="a-chev">›</span>
+      </button>
+
+      <!-- next recommended feed time, estimated from the last feed's amount -->
+      <div class="announce-row next-feed-row" id="next-feed-row" hidden>
+        <span class="a-emoji">🍼</span>
+        <span class="a-label" data-i18n="nextFeedLabel">다음 추천 수유</span>
+        <span class="a-preview" id="nf-text"></span>
+      </div>
+    </div>
 
     <div>
       <div class="section-title" data-i18n="quickAdd" style="margin-bottom:10px">빠른 기록</div>
@@ -447,6 +515,22 @@
       </div>
       <div id="memo-list"></div>
     </div>
+  </section>
+
+  <!-- ============ TAB: PATTERN ============ -->
+  <section class="panel" id="tab-pattern" data-tab-panel hidden>
+    <div>
+      <div class="section-title" style="margin-bottom:2px" data-i18n="patternTitle">주간 패턴</div>
+      <div class="pattern-caption" data-i18n="patternCaption">최근 7일, 시간대별 기록</div>
+    </div>
+    <div class="card pattern-chart-card" id="pattern-chart-card">
+      <div class="pattern-chart-inner">
+        <div class="pattern-axis-v"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+        <div class="pattern-cols" id="pattern-cols"></div>
+      </div>
+    </div>
+    <div class="pattern-legend" id="pattern-legend"></div>
+    <div class="empty-note" id="pattern-empty" hidden data-i18n="patternEmpty">최근 7일간 기록이 없어요</div>
   </section>
 
   <!-- ============ TAB: STATS ============ -->
@@ -544,6 +628,9 @@
     </button>
     <button type="button" class="tab-btn" data-tab="memo" aria-current="false">
       <span class="tb-emoji">📝</span><span data-i18n="tabMemo">메모</span>
+    </button>
+    <button type="button" class="tab-btn" data-tab="pattern" aria-current="false">
+      <span class="tb-emoji">🗓️</span><span data-i18n="tabPattern">패턴</span>
     </button>
     <button type="button" class="tab-btn" data-tab="stats" aria-current="false">
       <span class="tb-emoji">📊</span><span data-i18n="tabStats">통계</span>
@@ -648,9 +735,11 @@ ko: {
   whoAmITitle:"누구신가요?", whoAmIDesc:"기록에 표시할 이름을 골라주세요. 나중에 설정에서 바꿀 수 있어요.", orTypeName:"직접 입력",
   babyDefaultName:"아기", dDay:"D+",
   t_feed:"분유", t_diaper:"기저귀", t_bath:"목욕", t_sleep:"수면", t_med:"투약", t_probiotic:"유산균", t_play:"놀이",
-  t_tummy:"터미타임", t_nose:"콧물제거", t_nails:"손톱정리", t_temp:"체온", t_custom:"기타",
+  t_tummy:"터미타임", t_nose:"콧물제거", t_nails:"손톱정리", t_temp:"체온", t_massage:"마사지", t_custom:"기타",
   addNew:"항목 추가",
   since_feed:"마지막 수유", since_diaper:"마지막 기저귀", since_sleep:"마지막 잠",
+  nextFeedLabel:"다음 추천 수유", nextFeedValueTpl:"{time} · {remain} 후", nextFeedDueValueTpl:"시간이 지났어요 · {time}",
+  tabPattern:"패턴", patternTitle:"주간 패턴", patternCaption:"최근 7일, 시간대별 기록", patternEmpty:"최근 7일간 기록이 없어요",
   noRecordYet:"기록 없음", justNow:"방금", agoSuffix:"전", hrShort:"시간", minShort:"분",
   wet:"소변", dirty:"대변", both:"소변+대변", diaperKind:"종류",
   nap:"낮잠", night:"밤잠", auto:"자동판별", sleepKind:"수면 종류",
@@ -689,9 +778,11 @@ vi: {
   whoAmITitle:"Bạn là ai?", whoAmIDesc:"Chọn tên hiển thị trên nhật ký. Bạn có thể đổi sau trong Cài đặt.", orTypeName:"Nhập tên khác",
   babyDefaultName:"Em bé", dDay:"D+",
   t_feed:"Bú sữa", t_diaper:"Tã", t_bath:"Tắm", t_sleep:"Ngủ", t_med:"Uống thuốc", t_probiotic:"Men vi sinh", t_play:"Chơi",
-  t_tummy:"Nằm sấp", t_nose:"Vệ sinh mũi", t_nails:"Cắt móng", t_temp:"Thân nhiệt", t_custom:"Khác",
+  t_tummy:"Nằm sấp", t_nose:"Vệ sinh mũi", t_nails:"Cắt móng", t_temp:"Thân nhiệt", t_massage:"Mát-xa", t_custom:"Khác",
   addNew:"Thêm mục",
   since_feed:"Lần bú gần nhất", since_diaper:"Lần thay tã gần nhất", since_sleep:"Giấc ngủ gần nhất",
+  nextFeedLabel:"Dự kiến bú tiếp theo", nextFeedValueTpl:"{time} · còn {remain}", nextFeedDueValueTpl:"Đã quá giờ · {time}",
+  tabPattern:"Mẫu hình", patternTitle:"Mẫu hình tuần", patternCaption:"7 ngày qua, theo khung giờ trong ngày", patternEmpty:"Chưa có nhật ký trong 7 ngày qua",
   noRecordYet:"Chưa có dữ liệu", justNow:"Vừa xong", agoSuffix:"trước", hrShort:"giờ", minShort:"phút",
   wet:"Nước tiểu", dirty:"Phân", both:"Cả hai", diaperKind:"Loại",
   nap:"Ngủ ngày", night:"Ngủ đêm", auto:"Tự nhận diện", sleepKind:"Loại giấc ngủ",
@@ -727,15 +818,16 @@ vi: {
 var BUILT_IN = [
   {id:'feed',      emoji:'🍼', color:'var(--c-feed)',      hasAmount:true},
   {id:'diaper',    emoji:'💩', color:'var(--c-diaper)',    hasDiaperKind:true},
-  {id:'bath',      emoji:'🛁', color:'var(--c-bath)'},
   {id:'sleep',     emoji:'😴', color:'var(--c-sleep)',     hasSleepKind:true},
-  {id:'med',       emoji:'💊', color:'var(--c-med)',       noteKey:'medNote'},
-  {id:'probiotic', emoji:'🧫', color:'var(--c-probiotic)'},
   {id:'play',      emoji:'🧸', color:'var(--c-play)'},
   {id:'tummy',     emoji:'🤸', color:'var(--c-tummy)'},
+  {id:'massage',   emoji:'💆', color:'var(--c-massage)'},
+  {id:'bath',      emoji:'🛁', color:'var(--c-bath)'},
+  {id:'probiotic', emoji:'🧫', color:'var(--c-probiotic)'},
   {id:'nose',      emoji:'🤧', color:'var(--c-nose)'},
   {id:'nails',     emoji:'💅', color:'var(--c-nails)'},
-  {id:'temp',      emoji:'🌡️', color:'var(--c-temp)',      hasTemp:true}
+  {id:'temp',      emoji:'🌡️', color:'var(--c-temp)',      hasTemp:true},
+  {id:'med',       emoji:'💊', color:'var(--c-med)',       noteKey:'medNote'}
 ];
 var SWATCHES = ['#ff9f0a','#30d158','#0a84ff','#bf5af2','#ff375f','#64d2ff','#ffd60a','#8e8e93'];
 var EMOJI_CHOICES = ['⭐','🎵','🚗','🦷','🧴','👀','✏️','❤️'];
@@ -918,6 +1010,14 @@ function fmtTime(iso){
   if (!iso) return '';
   var d = new Date(iso);
   return d.toLocaleTimeString(locale(), {hour:'2-digit', minute:'2-digit'});
+}
+/* numeric M/D + time — used wherever a list can mix entries from more than
+   one calendar day (the memo list has no day-group headers of its own),
+   so a bare time alone would be ambiguous about which day it happened */
+function fmtDateTime(iso){
+  if (!iso) return '';
+  var d = new Date(iso);
+  return (d.getMonth()+1)+'/'+d.getDate()+' '+fmtTime(iso);
 }
 function toTimeValue(iso){
   if (!iso) return '';
@@ -1173,7 +1273,7 @@ function finishActive(){
   state.adjustOpen = false;
   apiMutate('finishActive', { author: state.author }).then(function(result){
     renderAll();
-    openEntryDetail(result.entry.id);
+    toast(t('recordedToast'));
   }).catch(function(err){ toast(err.message); });
 }
 
@@ -1185,7 +1285,7 @@ function finishActive(){
 function classifySleep(e){
   if (e.sleepKind === 'nap' || e.sleepKind === 'night') return e.sleepKind;
   var h = new Date(e.start).getHours();
-  return (h >= 19 || h < 7) ? 'night' : 'nap';
+  return (h >= 20 || h < 7) ? 'night' : 'nap';
 }
 function entryDurationMs(e){
   if (!e.end) return 0;
@@ -1241,6 +1341,38 @@ function renderSinceLast(){
       (c.sub ? '<div class="d-sub">'+esc(c.sub)+'</div>' : '') +
     '</div>';
   }).join('');
+}
+
+/* ================================================================
+   RENDER: NEXT RECOMMENDED FEED — estimated from the last feed's
+   amount using a simple rule-of-thumb (40ml ≈ 1hr, 80ml ≈ 2hr, i.e.
+   amount(ml) * 1.5 minutes after the last feed's start time).
+   ================================================================ */
+function estimateNextFeedMs(entries){
+  var lastFeed = lastOfType(entries, function(e){ return e.type==='feed'; });
+  if (!lastFeed || !lastFeed.start) return null;
+  var amt = Number(lastFeed.amount);
+  if (!amt || amt <= 0) return null;
+  var gapMin = amt * 1.5; // 40ml/hr rule of thumb
+  return new Date(lastFeed.start).getTime() + gapMin * 60000;
+}
+function renderNextFeed(){
+  var box = document.getElementById('next-feed-row');
+  if (!box) return;
+  var nextMs = estimateNextFeedMs(readEntries());
+  if (nextMs == null){ box.hidden = true; return; }
+  box.hidden = false;
+  var diffMin = Math.round((nextMs - Date.now()) / 60000);
+  var timeStr = fmtTime(new Date(nextMs).toISOString());
+  var text;
+  if (diffMin > 0){
+    var h = Math.floor(diffMin/60), m = diffMin%60;
+    var remain = h>0 ? (h+t('hrShort')+' '+m+t('minShort')) : (m+t('minShort'));
+    text = t('nextFeedValueTpl').replace('{time}', timeStr).replace('{remain}', remain);
+  } else {
+    text = t('nextFeedDueValueTpl').replace('{time}', timeStr);
+  }
+  document.getElementById('nf-text').textContent = text;
 }
 
 /* ================================================================
@@ -1640,6 +1772,119 @@ function statTile(label, valHtml){
 }
 
 /* ================================================================
+   RENDER: PATTERN (weekly, local) — last 7 days, one column per day,
+   time-of-day (0-24h) on the vertical axis. Sleep draws as a flat
+   start~end stripe (clipped/split across the midnight boundary so an
+   overnight sleep shows on both columns); feed draws as a plain-color
+   stripe with no icon (it repeats too often to stay legible); every
+   other type draws its bare emoji floating on top of its own stripe —
+   no pill/circle shapes anywhere, all muted/pastel tints of the type
+   color rather than the saturated brand hue.
+   ================================================================ */
+/* a muted/pastel tint of the type's brand color — blended toward the
+   track background rather than white, so it stays correct in dark mode
+   too — for the flat stacked-bar-style marks. */
+function patternTint(color){ return 'color-mix(in srgb, '+color+' 46%, var(--surface-2))'; }
+
+/* diaper is the one type with a mixed rule: a plain wet change is common
+   enough that an icon on every one would be noise (same reasoning as
+   feed), but a dirty/both change is exactly the kind of thing worth
+   spotting at a glance, so only THOSE get the icon. Every other
+   non-feed/sleep type always gets its icon. */
+function markHasEmoji(e){
+  if (e.type === 'feed' || e.type === 'sleep') return false;
+  if (e.type === 'diaper') return e.diaper === 'dirty' || e.diaper === 'both';
+  return true;
+}
+
+function renderPattern(){
+  var colsBox = document.getElementById('pattern-cols');
+  var legendBox = document.getElementById('pattern-legend');
+  var cardEl = document.getElementById('pattern-chart-card');
+  var emptyEl = document.getElementById('pattern-empty');
+  if (!colsBox) return;
+
+  var entries = readEntries();
+  var now = new Date();
+  var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  var DAY_MS = 86400000;
+  var typeOrder = allTypesInOrder().map(function(x){ return x.id; });
+  var usedTypes = {};
+  var anyMark = false;
+  var colsHtml = '';
+
+  for (var i = 6; i >= 0; i--){
+    var dStart = new Date(todayStart.getTime() - i*DAY_MS);
+    var dStartMs = dStart.getTime(), dEndMs = dStartMs + DAY_MS;
+    // collected with a priority rank, then painted lowest-priority-first so
+    // that when two entries land at (nearly) the same time, the one
+    // earlier in the default item order ends up on top
+    var dayMarks = [];
+
+    entries.forEach(function(e){
+      var meta = typeMeta(e.type);
+      if (!meta) return;
+      var s = new Date(e.start).getTime();
+      if (isNaN(s)) return;
+      var tint = patternTint(meta.color);
+      var rank = typeOrder.indexOf(e.type);
+      if (rank < 0) rank = typeOrder.length;
+      if (e.type === 'sleep'){
+        var en = e.end ? new Date(e.end).getTime() : s;
+        if (en < s) en = s;
+        var os = Math.max(s, dStartMs), oe = Math.min(en, dEndMs);
+        if (oe <= os) return;
+        var topPct = (os - dStartMs)/DAY_MS*100;
+        var hPct = Math.max((oe-os)/DAY_MS*100, 0.6);
+        usedTypes[e.type] = meta; anyMark = true;
+        dayMarks.push({ rank: rank, html: '<span class="pattern-mark-band" style="top:'+topPct.toFixed(2)+'%;height:'+hPct.toFixed(2)+'%;background:'+tint+'" title="'+esc(meta.label)+'"></span>' });
+      } else {
+        if (s < dStartMs || s >= dEndMs) return;
+        var pct = (s - dStartMs)/DAY_MS*100;
+        usedTypes[e.type] = meta; anyMark = true;
+        var titleAttr = ' title="'+esc(meta.label)+' '+esc(fmtTime(e.start))+'"';
+        var html = '<span class="pattern-mark-band is-point" style="top:'+pct.toFixed(2)+'%;background:'+tint+'"'+titleAttr+'></span>';
+        if (markHasEmoji(e)){
+          html += '<span class="pattern-mark-emoji" style="top:'+pct.toFixed(2)+'%"'+titleAttr+'>'+meta.emoji+'</span>';
+        }
+        dayMarks.push({ rank: rank, html: html });
+      }
+    });
+
+    dayMarks.sort(function(a, b){ return b.rank - a.rank; }); // lowest priority (highest rank number) painted first
+    var marks = ['<span class="pattern-grid-line-h" style="top:25%"></span>',
+                 '<span class="pattern-grid-line-h" style="top:50%"></span>',
+                 '<span class="pattern-grid-line-h" style="top:75%"></span>']
+      .concat(dayMarks.map(function(m){ return m.html; }));
+
+    colsHtml += '<div class="pattern-col'+(i===0 ? ' today' : '')+'">' +
+      '<div class="pattern-col-track">'+marks.join('')+'</div>' +
+      '<div class="pattern-col-label">'+esc(t('weekday_short')[dStart.getDay()])+
+        '<span class="pattern-col-date">'+(dStart.getMonth()+1)+'/'+dStart.getDate()+'</span></div>' +
+    '</div>';
+  }
+  colsBox.innerHTML = colsHtml;
+  colsBox.scrollLeft = colsBox.scrollWidth; // open already scrolled to today, at the right edge
+
+  var typeIds = Object.keys(usedTypes).sort(function(a,b){ return typeOrder.indexOf(a)-typeOrder.indexOf(b); });
+  legendBox.innerHTML = typeIds.map(function(id){
+    var m = usedTypes[id];
+    /* legend mirrors the chart's own split: feed/sleep are color-only there,
+       so they get a plain swatch here too; every other type shows its icon
+       ALONE (no color swatch behind it) so color and icon never sit on top
+       of one another in the key. */
+    if (id === 'feed' || id === 'sleep'){
+      return '<span class="pattern-legend-item"><span class="pattern-legend-swatch" style="background:'+patternTint(m.color)+'"></span>'+esc(m.label)+'</span>';
+    }
+    return '<span class="pattern-legend-item"><span class="pattern-legend-emoji-only">'+m.emoji+'</span>'+esc(m.label)+'</span>';
+  }).join('');
+
+  if (cardEl) cardEl.hidden = !anyMark;
+  legendBox.hidden = !anyMark;
+  if (emptyEl) emptyEl.hidden = anyMark;
+}
+
+/* ================================================================
    RENDER: SETTINGS (local)
    ================================================================ */
 function renderSettings(){
@@ -1895,14 +2140,15 @@ function renderMemoList(){
     return;
   }
   box.innerHTML = memos.map(function(m){
-    var tag = m.lang === 'ko' ? 'KO' : (m.lang === 'vi' ? 'VI' : '');
+    var tag = m.lang === 'ko' ? '🇰🇷 KO' : (m.lang === 'vi' ? '🇻🇳 VI' : '');
+    var tagClass = m.lang === 'ko' ? 'lang-ko' : (m.lang === 'vi' ? 'lang-vi' : '');
     return '<div class="memo-row">' +
       '<div class="m-text">'+esc(m.text)+'</div>' +
       (m.translated ? '<div class="m-translated">'+esc(m.translated)+'</div>' : '') +
       '<div class="m-meta">' +
-        '<span>'+esc([localizeAuthorName(m.author), fmtTime(m.time)].filter(Boolean).join(' · '))+'</span>' +
+        '<span>'+esc([localizeAuthorName(m.author), fmtDateTime(m.time)].filter(Boolean).join(' · '))+'</span>' +
         '<span style="display:flex;align-items:center;gap:8px;">' +
-          (tag ? '<span class="m-lang-tag">'+tag+'</span>' : '') +
+          (tag ? '<span class="m-lang-tag '+tagClass+'">'+tag+'</span>' : '') +
           '<button type="button" class="text-btn danger-btn" data-del-memo="'+esc(m.id)+'" style="padding:0;">'+esc(t('delete'))+'</button>' +
         '</span>' +
       '</div>' +
@@ -2077,10 +2323,12 @@ function renderAll(){
   applyTheme();
   renderHeader();
   renderSinceLast();
+  renderNextFeed();
   renderQuickActions();
   renderTimeline();   /* builds #active-bar-slot inside today's group */
   renderActiveBar();  /* ...then fills/updates it */
   renderStats();
+  renderPattern();
   renderSettings();
   updateMemoPreview();
   renderMemoList();
@@ -2096,6 +2344,7 @@ function switchTab(name){
   window.scrollTo(0,0);
   if (name === 'stats') renderStats();
   if (name === 'memo') renderMemoList();
+  if (name === 'pattern') renderPattern();
   if (state.adjustOpen){ state.adjustOpen = false; var panel = document.getElementById('aw-adjust-panel'); if (panel) panel.hidden = true; }
 }
 
@@ -2190,7 +2439,7 @@ function init(){
     toast(err.message || 'failed to load');
     renderAll();
   });
-  setInterval(function(){ renderActiveBar(); renderSinceLast(); }, 1000);
+  setInterval(function(){ renderActiveBar(); renderSinceLast(); renderNextFeed(); }, 1000);
   setInterval(pollState, 4000);
 }
 
