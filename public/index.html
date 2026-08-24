@@ -42,6 +42,36 @@
     --radius-card: 20px;
     --radius-sm: 14px;
 
+    /* ---- type weight foundation — 4 roles, used everywhere instead of ad hoc
+       numbers per element. Pick by ROLE (what the text IS), not by how big it
+       looks, so the same kind of text always carries the same weight. ----
+       display : hero numbers/CTAs — the one or two loudest things on a screen
+       strong  : section headings, card/entry titles, important small labels
+       medium  : secondary chips/pills/badges, sub-headings, small emphasis
+       body    : ordinary reading text — descriptions, memo content, values */
+    --fw-display: 800;
+    --fw-strong: 700;
+    --fw-medium: 600;
+    --fw-body: 500;
+
+    /* ---- type SIZE foundation — 6 steps, same idea as the weight scale above.
+       Icon/emoji glyphs, the SVG chart's own internal labels, and live
+       <input>/<textarea> fields are intentionally NOT on this scale — inputs
+       in particular are held at their own sizes on purpose (iOS Safari
+       auto-zooms any focused field under 16px, so those stay untouched). ----
+       display : the 1-2 biggest glance-and-go numbers on a screen
+       title   : page/sheet headings, primary buttons
+       body    : ordinary reading text — titles, memo content, field values
+       label   : pills/badges/chips/eyebrow captions — small but load-bearing
+       caption : muted secondary/meta text
+       micro   : the smallest supporting text — inline tags, author bylines */
+    --fs-display: 20px;
+    --fs-title: 16px;
+    --fs-body: 14px;
+    --fs-label: 13px;
+    --fs-caption: 12px;
+    --fs-micro: 10px;
+
     /* category accents (extension — not part of the TDS doc, chosen to stay legible
        as both flat icon chips and weak-tint badges alongside the Toss blue) */
     --c-feed:#ff9f0a; --c-diaper:#ac8058; --c-bath:#1ec8d8; --c-sleep:#8b5cf6;
@@ -101,14 +131,14 @@
 
   /* ---------- header ---------- */
   header.top{
-    position:sticky; top:0; z-index:20; background:color-mix(in srgb, var(--bg) 88%, transparent);
-    backdrop-filter:saturate(180%) blur(20px); -webkit-backdrop-filter:saturate(180%) blur(20px);
+    position:sticky; top:0; z-index:20; background:var(--surface);
+    border-bottom:1px solid var(--border);
     padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
   }
   .top-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .baby-id{ display:flex; flex-direction:column; line-height:1.2; }
-  .baby-id b{ font-size:21px; font-weight:800; letter-spacing:-.4px; }
-  .baby-id span{ font-size:12px; color:var(--muted-2); font-weight:600; font-variant-numeric:tabular-nums; }
+  .baby-id b{ font-size:var(--fs-display); font-weight:var(--fw-display); letter-spacing:-.4px; }
+  .baby-id span{ font-size:var(--fs-caption); color:var(--muted-2); font-weight:var(--fw-medium); font-variant-numeric:tabular-nums; }
   .top-actions{ display:flex; align-items:center; gap:6px; }
   /* header.top sits on a translucent tint of --bg, and --surface-2 is nearly
      the same lightness as --bg — so on the header specifically these two
@@ -119,14 +149,15 @@
     box-shadow:inset 0 0 0 1px var(--border);
   }
   .lang-pill button{
-    border:0; background:transparent; padding:7px 12px; font-size:12px; font-weight:800; color:var(--muted);
+    border:0; background:transparent; padding:7px 12px; font-size:var(--fs-label); font-weight:var(--fw-medium); color:var(--muted);
   }
   .lang-pill button[aria-pressed="true"]{ background:var(--primary); color:var(--primary-fg); }
-  .profile-pill{
-    display:flex; align-items:center; height:34px; padding:0 14px; border-radius:var(--radius-pill);
-    background:var(--surface); color:var(--fg); font-size:12.5px; font-weight:800;
-    max-width:104px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:0 0 auto;
-    box-shadow:inset 0 0 0 1px var(--border);
+  /* identity marker, not a control — a small colored initial instead of a
+     pill/chip, so it doesn't read as a second toggle sitting next to KO/VI */
+  .profile-avatar{
+    display:flex; align-items:center; justify-content:center; width:34px; height:34px;
+    border-radius:50%; flex:0 0 auto; font-size:var(--fs-caption); font-weight:var(--fw-display);
+    background:var(--muted-2); box-shadow:inset 0 0 0 1px var(--border);
   }
 
   /* ---------- active/stopwatch bar — a pastel tint of the category color
@@ -139,53 +170,69 @@
   }
   .active-bar.paused{ opacity:.7; }
   .active-bar .aw-emoji{ font-size:26px; line-height:1; flex:0 0 auto; }
-  .active-bar .aw-time{ font-size:24px; font-weight:800; font-variant-numeric:tabular-nums; min-width:78px; }
+  .active-bar .aw-time{ font-size:var(--fs-display); font-weight:var(--fw-display); font-variant-numeric:tabular-nums; min-width:78px; }
   .active-bar .aw-meta{ flex:1; min-width:0; }
-  .active-bar .aw-meta b{ display:block; font-size:14px; }
-  .active-bar .aw-meta span{ font-size:12px; color:var(--muted); }
+  .active-bar .aw-meta b{ display:block; font-size:var(--fs-body); }
+  .active-bar .aw-meta span{ font-size:var(--fs-caption); color:var(--muted); }
   .active-bar .aw-actions{ display:flex; gap:8px; }
   .aw-round{
     width:36px; height:36px; border-radius:50%; border:0; background:var(--surface);
-    display:flex; align-items:center; justify-content:center; color:var(--fg); font-size:15px; font-weight:800;
+    display:flex; align-items:center; justify-content:center; color:var(--fg); font-size:15px; font-weight:var(--fw-strong);
   }
   .aw-round.confirm{ background:var(--primary); color:var(--primary-fg); }
 
   /* ---------- section ---------- */
-  section.panel{ padding:16px 16px 8px; display:flex; flex-direction:column; gap:18px; }
-  /* surfaces are told apart by flat color contrast against --bg, never a border/shadow */
-  .card{ background:var(--surface); border-radius:var(--radius-card); }
+  section.panel{ padding:16px 16px 8px; display:flex; flex-direction:column; gap:18px; flex:1; }
+  /* surfaces are told apart by flat color contrast against --bg, never a border/shadow —
+     same full-bleed white-sheet language as .timeline-section/.memo-section: cancel the
+     panel's own 16px side padding, then restore it as the card's own content padding,
+     so stats/settings sit flush edge-to-edge instead of floating as rounded boxes. */
+  .card{ background:var(--surface); margin:0 -16px; padding:0 16px; }
+  .row-item + .row-item{ border-top:1px solid var(--border); }
 
   /* dashboard (last-fed / last-diaper / last-sleep) — plain text on the page background */
   .dashboard{ display:flex; padding:4px 2px 6px; gap:4px; }
   .dash-item{ flex:1; text-align:center; padding:0 4px; }
   .dash-item .d-emoji{ font-size:20px; line-height:1; margin-bottom:7px; }
-  .dash-item .d-label{ font-size:11.5px; color:var(--muted-2); margin-bottom:4px; font-weight:700; }
-  .dash-item .d-val{ font-size:20px; font-weight:800; font-variant-numeric:tabular-nums; letter-spacing:-.3px; }
-  .dash-item .d-sub{ font-size:11.5px; color:var(--muted); margin-top:3px; }
+  .dash-item .d-label{ font-size:var(--fs-caption); color:var(--muted-2); margin-bottom:4px; font-weight:var(--fw-medium); }
+  .dash-item .d-val{ font-size:var(--fs-display); font-weight:var(--fw-display); font-variant-numeric:tabular-nums; letter-spacing:-.3px; }
+  .dash-item .d-sub{ font-size:var(--fs-caption); color:var(--muted); margin-top:3px; }
 
-  /* wraps memo + next-feed bands into one flex child of .panel so its
-     gap:18px doesn't insert space between the two stacked full-bleed bands */
+  /* wraps the memo band + next-feed band as one flex child of .panel, so the
+     panel's own `gap` doesn't insert a sliver between the two stacked bands */
   .announce-stack{ display:flex; flex-direction:column; }
 
   /* memo preview — no box: a full-bleed color band, tap jumps to the memo tab */
   .announce-row{
-    width:calc(100% + 32px); margin:0 -16px; display:flex; align-items:center; gap:9px;
-    padding:15px 16px; text-align:left; background:var(--memo-bg); border-radius:0;
+    /* negative top margin cancels the panel's own top padding so this sits flush
+       against the header, with no gray sliver between them */
+    width:calc(100% + 32px); margin:-16px -16px 0; display:flex; align-items:flex-start; gap:10px;
+    padding:13px 16px; text-align:left; background:var(--memo-bg); border-radius:0;
   }
-  .announce-row .a-emoji{ font-size:17px; flex:0 0 auto; }
-  .announce-row .a-label{ font-size:12.5px; font-weight:800; color:var(--memo-fg); flex:0 0 auto; }
-  .announce-row .a-preview{ flex:1; min-width:0; font-size:12.5px; color:var(--memo-fg); opacity:.8; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .announce-row .a-chev{ flex:0 0 auto; color:var(--memo-fg); opacity:.6; font-size:17px; font-weight:700; }
-  /* next-feed estimate — same flat band language as the memo preview above,
-     stacked directly under it with its own peach tint instead of the memo's amber */
-  .announce-row.next-feed-row{ background:var(--nf-bg); }
+  .announce-row .a-emoji{ font-size:17px; flex:0 0 auto; margin-top:1px; }
+  .announce-row .a-body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .announce-row .a-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .announce-row .a-label{ font-size:var(--fs-caption); font-weight:var(--fw-strong); color:var(--memo-fg); }
+  .announce-row .a-chev{ flex:0 0 auto; color:var(--memo-fg); opacity:.6; font-size:17px; font-weight:var(--fw-strong); }
+  /* original line at full emphasis, translated line a touch quieter (opacity, not
+     a hue swap — the banner's own warm amber tone would clash with the blue used
+     for translations inside the white memo cards, so the two lines are told apart
+     by weight/opacity here instead) */
+  .announce-row .a-orig{ font-size:var(--fs-caption); font-weight:var(--fw-medium); color:var(--memo-fg); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .announce-row .a-trans{ font-size:var(--fs-caption); color:var(--memo-fg); opacity:.65; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+
+  /* next-feed estimate — the same flat announce-row band language as the memo
+     preview above, stacked directly under it (margin-top:0 instead of the
+     -16px header-flush pull, so the two bands read as one continuous strip)
+     with its own peach tint instead of the memo's amber */
+  .announce-row.next-feed-row{ margin-top:0; background:var(--nf-bg); }
   .announce-row.next-feed-row .a-label,
-  .announce-row.next-feed-row .a-preview{ color:var(--nf-fg); }
-  .announce-row.next-feed-row .a-preview{ opacity:1; font-variant-numeric:tabular-nums; }
+  .announce-row.next-feed-row .a-orig{ color:var(--nf-fg); }
+  .announce-row.next-feed-row .a-orig{ font-variant-numeric:tabular-nums; white-space:normal; }
 
   /* quick actions — single row, swipeable, icon + label only (no card chrome) */
   .qa-grid{
-    display:flex; gap:16px; overflow-x:auto; overflow-y:hidden; padding:4px 2px 8px;
+    display:flex; gap:16px; overflow-x:auto; overflow-y:hidden; padding:4px 2px 2px;
     scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; scrollbar-width:none; overflow-anchor:none;
   }
   .qa-grid::-webkit-scrollbar{ display:none; }
@@ -197,20 +244,25 @@
   .qa-ico{ width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:24px; line-height:1; transition:transform .15s ease; }
   .qa-btn:active .qa-ico{ transform:scale(.92); }
   .qa-btn.holding .qa-ico{ transform:scale(1.1); }
-  .qa-label{ font-size:11.5px; font-weight:700; text-align:center; line-height:1.2; color:var(--muted); }
-  .qa-add .qa-ico{ background:var(--surface-2); color:var(--muted-2); font-size:22px; font-weight:700; }
+  .qa-label{ font-size:var(--fs-label); font-weight:var(--fw-medium); text-align:center; line-height:1.2; color:var(--muted); }
+  .qa-add .qa-ico{ background:var(--surface-2); color:var(--muted-2); font-size:22px; font-weight:var(--fw-strong); }
 
-  /* timeline — a full-bleed white sheet that docks over the page canvas; the color
-     change (and rounded top) is the separation, not a rule line */
+  /* timeline — a full-bleed white sheet that docks over the page canvas; the flat
+     color change alone is the separation, no rounded corner or rule line needed */
   .timeline-section{
-    background:var(--surface); border-radius:26px 26px 0 0; margin:16px -16px 0;
+    background:var(--surface); margin:16px -16px 0; flex:1;
     padding:22px 18px calc(96px + env(safe-area-inset-bottom)); min-height:38vh;
   }
-  .day-group + .day-group{ margin-top:30px; }
-  .day-head{ display:flex; align-items:baseline; justify-content:space-between; padding:2px 2px 12px; gap:8px; }
-  .day-head .d-title{ font-size:12.5px; font-weight:800; color:var(--muted-2); text-transform:uppercase; letter-spacing:.3px; flex:0 0 auto; }
-  .day-totals{ display:flex; gap:11px; font-size:11.5px; color:var(--muted); font-variant-numeric:tabular-nums; flex-wrap:wrap; justify-content:flex-end; }
-  .day-totals b{ color:var(--fg); font-weight:800; }
+  /* full-bleed divider: a pseudo-element ignores the section's own side padding
+     (unlike a plain border-top, which would stop short at the day-group's edge)
+     so the line runs the full width of the white sheet, same as the memo list's
+     row dividers. */
+  .day-group + .day-group{ position:relative; margin-top:20px; padding-top:20px; }
+  .day-group + .day-group::before{ content:''; position:absolute; top:0; left:-18px; right:-18px; height:1px; background:var(--border); }
+  .day-head{ display:flex; align-items:baseline; justify-content:space-between; padding:2px 2px 10px; gap:8px; }
+  .day-head .d-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted-2); text-transform:uppercase; letter-spacing:.3px; flex:0 0 auto; }
+  .day-totals{ display:flex; gap:11px; font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; flex-wrap:wrap; justify-content:flex-end; }
+  .day-totals b{ color:var(--fg); font-weight:var(--fw-strong); }
   /* swipe-to-delete: .entry-row translates over a red delete layer sitting behind it */
   .entry-swipe{ position:relative; border-radius:14px; overflow:hidden; }
   /* opacity:0 at rest — not just "hidden behind the row": on some renderers the
@@ -224,96 +276,142 @@
     opacity:0; transition:opacity 120ms ease;
   }
   .entry-swipe.revealed .entry-delete-bg{ opacity:1; }
-  .entry-delete-bg span{ color:#fff; font-size:13px; font-weight:800; }
+  .entry-delete-bg span{ color:#fff; font-size:var(--fs-label); font-weight:var(--fw-strong); }
   .entry-row{
-    position:relative; display:flex; align-items:center; gap:13px; padding:11px 2px; border:0;
+    position:relative; display:flex; align-items:flex-start; gap:10px; padding:11px 2px; border:0;
     background:var(--surface); width:100%; text-align:left; border-radius:14px; touch-action:pan-y;
   }
   .entry-row:active{ background:var(--surface-2); }
   .entry-row.flash{ animation: rowFlash 900ms ease; }
   @keyframes rowFlash{ 0%{ background:var(--primary-weak-bg); } 100%{ background:var(--surface); } }
-  .e-dot{ width:44px; height:44px; border-radius:14px; display:flex; align-items:center; justify-content:center; font-size:20px; flex:0 0 auto; }
+  /* time now leads the row (left column) — a fixed width, wide enough for the
+     longest single time string ("오전 08:37"), so times line up in a column
+     down the list regardless of entry type. Start and end render as their
+     OWN stacked lines rather than one "start~end" string: concatenating them
+     made range rows measure wider than single-time rows and knock the icon
+     out of alignment — stacking keeps every row's time column the same width. */
+  .e-time{ flex:0 0 66px; width:66px; padding-top:2px; display:flex; flex-direction:column; font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; }
+  .e-time-main, .e-time-end{ white-space:nowrap; }
+  .e-author{ display:block; font-size:var(--fs-micro); color:var(--muted-2); margin-top:2px; }
+  /* plain icon glyph, no color-chip background — "아이콘 + 텍스트만" */
+  .e-icon{ flex:0 0 auto; padding-top:1px; font-size:18px; line-height:1.3; }
   .e-main{ flex:1; min-width:0; }
-  .e-title{ font-size:14.5px; font-weight:700; }
-  .e-sub{ font-size:12px; color:var(--muted); margin-top:1px; }
-  .e-time{ font-size:12px; color:var(--muted); text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
-  .e-author{ display:block; font-size:10.5px; color:var(--muted-2); margin-top:1px; }
-  .empty-note{ padding:50px 16px; text-align:center; color:var(--muted); font-size:13.5px; }
+  .e-title-line{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:6px; row-gap:0; }
+  .e-title{ font-size:var(--fs-body); font-weight:var(--fw-strong); }
+  .e-sub{ font-size:var(--fs-caption); color:var(--muted); font-weight:var(--fw-body); }
+  /* per-entry note — same detect+mock-translate treatment as the memo tab */
+  .e-note{ font-size:var(--fs-caption); color:var(--fg); margin-top:2px; white-space:pre-wrap; word-break:break-word; }
+  .e-note-trans{ font-size:var(--fs-caption); color:var(--primary); margin-top:1px; white-space:pre-wrap; word-break:break-word; }
+  .empty-note{ padding:50px 16px; text-align:center; color:var(--muted); font-size:var(--fs-label); }
 
-  /* memo tab — one full-width sheet (same shape/tone as .timeline-section),
-     compose area on top separated from the list by a hairline, and memos
-     stacked flat with a hairline between each rather than individual card
-     boxes: an explicit, deliberate exception to the flat/borderless language
-     used everywhere else, per direct request for this section specifically. */
+  /* memo tab — list-only now: composing moved to its own bottom sheet
+     (triggered by the floating + button) instead of sharing the tab with an
+     always-visible textarea. The list is its own full-bleed white sheet
+     (same shape as .timeline-section), with memos stacked flat and
+     hairline-divided — a deliberate exception to the flat/borderless
+     language used everywhere else, per direct request for this section. */
   .memo-section{
-    background:var(--surface); border-radius:26px 26px 0 0; margin:16px -16px 0;
-    padding:20px 18px calc(96px + env(safe-area-inset-bottom)); min-height:38vh;
+    /* negative top margin cancels the panel's own top padding, same trick as
+       .announce-row/.timeline-section, so this white sheet sits flush against
+       the header instead of leaving a gray gap above it */
+    background:var(--surface); margin:-16px -16px 0; flex:1;
+    padding:0 18px calc(96px + env(safe-area-inset-bottom)); min-height:30vh;
   }
-  .memo-compose{
-    display:flex; flex-direction:column; gap:10px;
-    padding-bottom:20px; margin-bottom:6px; border-bottom:1px solid var(--border);
+  /* floating compose trigger — wrapped the same way .fp-foot centers a
+     full-width bar (max-width + margin:auto), just right-aligned inside
+     that centered column instead of stretched, so it stays lined up with
+     the rest of the app's content on a wide viewport instead of drifting
+     to the true screen edge. */
+  .memo-fab-wrap{
+    position:fixed; left:0; right:0; bottom:calc(78px + env(safe-area-inset-bottom)); z-index:32;
+    max-width:560px; margin:0 auto; padding:0 20px; pointer-events:none;
+    display:flex; justify-content:flex-end;
   }
-  .memo-row{ padding:14px 2px; display:flex; flex-direction:column; gap:8px; border-bottom:1px solid var(--border); }
+  .fab{
+    pointer-events:auto; width:56px; height:56px; border-radius:50%; border:0;
+    background:var(--primary); color:var(--primary-fg); font-size:28px; font-weight:var(--fw-body);
+    display:flex; align-items:center; justify-content:center; box-shadow:0 10px 26px rgba(20,30,50,.28);
+  }
+  .fab:active{ transform:scale(.94); }
+  #memo-compose-sheet textarea{
+    width:100%; box-sizing:border-box; border:0; resize:none;
+    background:var(--surface-2); border-radius:14px; padding:13px 14px; font-size:16px; color:var(--fg);
+  }
+  /* full-bleed divider: cancel the section's own side padding so the rule
+     line runs edge-to-edge instead of stopping short within the card */
+  .memo-row{ margin:0 -18px; padding:16px 18px; display:flex; flex-direction:column; gap:8px; border-bottom:1px solid var(--border); }
   .memo-row:last-child{ border-bottom:0; }
   .memo-row .m-row-head{ display:flex; align-items:center; justify-content:flex-end; gap:7px; }
-  .memo-row .m-author{ font-size:11px; color:var(--muted-2); font-weight:800; }
+  .memo-row .m-author{ font-size:var(--fs-micro); color:var(--muted-2); font-weight:var(--fw-strong); }
   .memo-row .m-bilingual{ display:flex; flex-direction:column; gap:5px; }
-  .memo-row .m-orig{ font-size:14.5px; font-weight:500; line-height:1.5; color:var(--fg); white-space:pre-wrap; word-break:break-word; }
-  .memo-row .m-trans{ font-size:14.5px; font-weight:500; line-height:1.5; color:var(--primary); white-space:pre-wrap; word-break:break-word; }
-  .memo-row .m-meta{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:2px; }
-  .memo-row .m-meta span{ font-size:11px; color:var(--muted-2); }
-  .memo-row .m-lang-tag{ font-size:10px; font-weight:800; border-radius:6px; padding:2px 6px; }
+  .memo-row .m-orig{ font-size:var(--fs-body); font-weight:var(--fw-body); line-height:1.5; color:var(--fg); white-space:pre-wrap; word-break:break-word; }
+  .memo-row .m-trans{ font-size:var(--fs-body); font-weight:var(--fw-body); line-height:1.5; color:var(--primary); white-space:pre-wrap; word-break:break-word; }
+  .memo-row .m-meta{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .memo-row .m-meta span{ font-size:var(--fs-caption); color:var(--muted-2); }
+  .memo-row .m-lang-tag{ font-size:var(--fs-micro); font-weight:var(--fw-strong); border-radius:6px; padding:2px 6px; }
   .memo-row .m-lang-tag.lang-ko{ color:var(--primary); background:var(--primary-weak-bg); }
   .memo-row .m-lang-tag.lang-vi{ color:var(--danger); background:color-mix(in srgb, var(--danger) 16%, var(--surface)); }
 
-  /* stats */
-  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  /* stats — same flat full-bleed sheet as .card, with a hairline divider between
+     the two tiles instead of a gap, since they're one shared section now, not two
+     separate rounded boxes. */
+  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; background:var(--surface); margin:0 -16px; }
   .stat-tile{ padding:16px; }
-  .stat-tile .st-label{ font-size:12px; color:var(--muted); margin-bottom:7px; font-weight:600; }
-  .stat-tile .st-val{ font-size:23px; font-weight:800; font-variant-numeric:tabular-nums; }
-  .stat-tile .st-val small{ font-size:12px; font-weight:500; color:var(--muted); }
+  .stat-tile + .stat-tile{ border-left:1px solid var(--border); }
+  .stat-tile .st-label{ font-size:var(--fs-caption); color:var(--muted); margin-bottom:7px; font-weight:var(--fw-medium); }
+  .stat-tile .st-val{ font-size:var(--fs-display); font-weight:var(--fw-display); font-variant-numeric:tabular-nums; }
+  .stat-tile .st-val small{ font-size:var(--fs-caption); font-weight:var(--fw-body); color:var(--muted); }
   .bars{ display:flex; align-items:flex-end; justify-content:space-between; gap:8px; height:120px; padding:16px 16px 8px; overflow-x:auto; scrollbar-width:none; }
   .bars::-webkit-scrollbar{ display:none; }
   .bar-col{ flex:0 0 26px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:6px; height:100%; }
   .bar-col .bar{ width:100%; max-width:26px; border-radius:8px 8px 3px 3px; background:var(--primary); min-height:3px; }
-  .bar-col .bar-lbl{ font-size:10px; color:var(--muted); }
-  .bar-col .bar-val{ font-size:10px; color:var(--muted-2); font-variant-numeric:tabular-nums; }
-  .section-title{ font-size:13px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.12px; padding:0 2px; }
+  .bar-col .bar-lbl{ font-size:var(--fs-micro); color:var(--muted); }
+  .bar-col .bar-val{ font-size:var(--fs-micro); color:var(--muted-2); font-variant-numeric:tabular-nums; }
+  /* one caption-to-content gap everywhere a section-title sits above its own
+     content — was 10px in some spots, 8px in others, and 0 (accidentally
+     inheriting the panel's inter-section gap instead) in the stats tab. */
+  .section-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted); text-transform:uppercase; letter-spacing:.12px; padding:0 2px; margin-bottom:10px; }
 
   /* poop-interval chart card — line+area chart with a day-scaled Y-axis,
      modeled on a phone Health-app "record interval" chart per direct request */
   .poop-chart-card{ padding:16px; display:flex; flex-direction:column; gap:14px; }
   .poop-chart-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .poop-chart-title{ display:flex; align-items:center; gap:6px; font-size:13px; font-weight:800; color:var(--muted); text-transform:uppercase; letter-spacing:.12px; }
+  .poop-chart-title{ display:flex; align-items:center; gap:6px; font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted); text-transform:uppercase; letter-spacing:.12px; }
   .poop-chart-title .poop-emoji{ font-size:15px; }
-  .poop-recent-badge{ font-size:11px; font-weight:800; color:var(--muted-2); background:var(--surface-2); padding:4px 10px; border-radius:var(--radius-pill); flex:0 0 auto; }
+  .poop-recent-badge{ font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted-2); background:var(--surface-2); padding:4px 10px; border-radius:var(--radius-pill); flex:0 0 auto; }
   .poop-chart-svg{ width:100%; height:auto; display:block; overflow:visible; }
   .poop-grid-line{ stroke:var(--border); stroke-width:1; stroke-dasharray:2.5 3; }
-  .poop-axis-y{ fill:var(--muted-2); font-size:8.5px; font-weight:700; }
-  .poop-axis-x{ fill:var(--muted-2); font-size:7.5px; font-weight:600; }
+  .poop-axis-y{ fill:var(--muted-2); font-size:8.5px; font-weight:var(--fw-strong); }
+  .poop-axis-x{ fill:var(--muted-2); font-size:7.5px; font-weight:var(--fw-medium); }
   .poop-line{ stroke:var(--c-diaper); stroke-width:2; fill:none; stroke-linejoin:round; stroke-linecap:round; }
   .poop-dot{ fill:var(--c-diaper); stroke:var(--surface); stroke-width:1.5; }
-  .poop-value-lbl{ fill:var(--fg); font-size:8.5px; font-weight:800; }
+  .poop-value-lbl{ fill:var(--fg); font-size:8.5px; font-weight:var(--fw-strong); }
   .poop-day-list{ display:flex; flex-direction:column; }
   .poop-day-group + .poop-day-group{ margin-top:16px; }
-  .poop-day-title{ font-size:12px; font-weight:800; color:var(--muted-2); margin-bottom:6px; }
-  .poop-day-row{ display:flex; align-items:baseline; gap:10px; padding:6px 0; font-size:13.5px; }
+  .poop-day-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted-2); margin-bottom:6px; }
+  .poop-day-row{ display:flex; align-items:baseline; gap:10px; padding:6px 0; font-size:var(--fs-label); }
   .poop-day-row + .poop-day-row{ border-top:1px solid var(--border); }
-  .poop-day-time{ font-weight:700; color:var(--fg); font-variant-numeric:tabular-nums; flex:0 0 auto; width:58px; }
-  .poop-day-kind{ color:var(--fg); flex:0 0 auto; }
-  .poop-day-note{ color:var(--muted); font-size:12px; }
+  .poop-day-time{ font-weight:var(--fw-strong); color:var(--fg); font-variant-numeric:tabular-nums; flex:0 0 auto; }
+  .poop-day-note{ color:var(--muted); font-size:var(--fs-caption); }
 
-  /* weekly pattern chart — flat stacked color bands per day, painted-on-top
-     emoji marks for anything that isn't feed/sleep (color-only). horizontally
-     swipeable so 7 days don't all have to fit on one screen at once. */
-  .pattern-caption{ font-size:12px; color:var(--muted-2); padding:0 2px; margin-bottom:2px; }
+  /* weekly pattern — a fixed hour axis (0~24, top to bottom) on the left,
+     with one vertical day-column per day scrolling underneath it, oldest on
+     the left and today pinned at the right edge (the view opens scrolled
+     there) — nothing forces all 7 days on screen at once, swiping is the
+     whole point. Per direct design feedback: marks are flat, full-width
+     "stacked bar" stripes (no pill/circle shapes, no rounded corners) in a
+     muted/pastel tint of the type color (color-mix toward the track
+     background, not the saturated brand hue); feed/sleep are color-only,
+     every other type gets its bare emoji floating on top of its stripe
+     (no icon badge/circle around it). */
+  .pattern-caption{ font-size:var(--fs-caption); color:var(--muted-2); padding:0 2px; margin-bottom:2px; }
   .pattern-chart-card{ padding:16px 14px 14px; display:flex; flex-direction:column; gap:12px; }
   .pattern-chart-inner{ display:flex; gap:10px; }
   .pattern-axis-v{
     flex:0 0 22px; display:flex; flex-direction:column; justify-content:space-between;
     height:456px; padding:1px 0; text-align:right;
   }
-  .pattern-axis-v span{ font-size:10px; color:var(--muted-2); font-variant-numeric:tabular-nums; }
+  .pattern-axis-v span{ font-size:var(--fs-micro); color:var(--muted-2); font-variant-numeric:tabular-nums; }
   .pattern-cols{
     display:flex; overflow-x:auto; scroll-snap-type:x proximity;
     -webkit-overflow-scrolling:touch; scrollbar-width:none; overflow-anchor:none; padding-bottom:1px;
@@ -326,40 +424,48 @@
   .pattern-col:first-child{ border-left:0; }
   .pattern-col-track{ position:relative; width:100%; height:456px; background:var(--surface-2); }
   .pattern-grid-line-h{ position:absolute; left:0; right:0; height:1px; background:var(--border); }
+  /* flat full-bleed stripes — edge to edge in the column, square corners,
+     stacked like segments of a bar chart rather than floating pills */
   .pattern-mark-band{ position:absolute; left:0; right:0; }
   .pattern-mark-band.is-point{ height:6px; margin-top:-3px; }
   .pattern-mark-emoji{
     position:absolute; left:50%; top:0; transform:translate(-50%,-50%); font-size:14px; line-height:1;
     text-shadow:0 1px 3px rgba(0,0,0,.35);
   }
-  .pattern-col-label{ font-size:10px; font-weight:600; color:var(--muted); text-align:center; line-height:1.3; }
+  .pattern-col-label{
+    font-size:var(--fs-micro); font-weight:var(--fw-medium); color:var(--muted); text-align:center; line-height:1.3;
+  }
   .pattern-col-label .pattern-col-date{ display:block; color:var(--muted-2); }
-  .pattern-col.today .pattern-col-label{ color:var(--primary); font-weight:800; }
+  .pattern-col.today .pattern-col-label{ color:var(--primary); font-weight:var(--fw-strong); }
   .pattern-legend{ display:flex; flex-wrap:wrap; gap:10px 16px; padding:2px 4px 0; }
-  .pattern-legend-item{ display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--muted); }
+  .pattern-legend-item{ display:inline-flex; align-items:center; gap:6px; font-size:var(--fs-caption); color:var(--muted); }
+  /* feed/sleep: a plain color swatch (no icon) — everything else: the bare
+     icon alone (no swatch behind it), so color and icon never both appear
+     on the same legend key */
   .pattern-legend-swatch{ width:20px; height:10px; flex:0 0 auto; }
   .pattern-legend-emoji-only{ font-size:14px; line-height:1; flex:0 0 auto; }
 
   /* settings — rows separated by spacing, not rule lines */
   .row-item{ display:flex; align-items:center; justify-content:space-between; padding:15px 16px; gap:12px; }
-  .row-item .r-label{ font-size:14.5px; }
+  .row-item .r-label{ font-size:var(--fs-body); }
   .chip-row{ display:flex; flex-wrap:wrap; gap:8px; padding:12px 16px; }
-  .chip{ padding:9px 15px; border-radius:var(--radius-pill); background:var(--surface-2); border:0; font-size:13px; font-weight:700; color:var(--fg); }
+  .chip{ padding:9px 15px; border-radius:var(--radius-pill); background:var(--surface-2); border:0; font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--fg); }
   .chip[aria-pressed="true"]{ background:var(--primary); color:var(--primary-fg); }
-  .text-btn{ background:transparent; border:0; color:var(--link); font-size:14px; font-weight:700; padding:6px; }
-  .danger-btn{ color:var(--danger); }
+  .text-btn{ background:transparent; border:0; color:var(--link); font-size:var(--fs-body); font-weight:var(--fw-strong); padding:6px; }
+  .danger-btn{ color:color-mix(in srgb, var(--danger) 62%, var(--muted)); font-weight:var(--fw-body); }
 
-  /* tab bar */
+  /* tab bar — solid --surface, not a translucent blur: a short/empty panel
+     doesn't reach the bottom of the screen, and a translucent bar over the
+     gray page canvas behind it was reading as a gray bar instead of white */
   nav.tabbar{
     position:fixed; left:0; right:0; bottom:0; z-index:30; max-width:560px; margin:0 auto;
-    background:color-mix(in srgb, var(--surface) 92%, transparent); backdrop-filter:saturate(180%) blur(20px);
-    -webkit-backdrop-filter:saturate(180%) blur(20px);
+    background:var(--surface); border-top:1px solid var(--border);
     display:flex; padding:6px 8px calc(6px + env(safe-area-inset-bottom));
   }
-  .tab-btn{ flex:1; background:transparent; border:0; display:flex; flex-direction:column; align-items:center; gap:3px; padding:6px 2px; color:var(--muted-2); }
-  .tab-btn .tb-emoji{ font-size:19px; line-height:1; filter:grayscale(1); opacity:.55; }
+  .tab-btn{ flex:1; background:transparent; border:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 2px; color:var(--muted-2); }
+  .tab-btn .tb-emoji{ font-size:23px; line-height:1; filter:grayscale(1); opacity:.55; }
   .tab-btn[aria-current="true"] .tb-emoji{ filter:none; opacity:1; }
-  .tab-btn span{ font-size:10.5px; font-weight:700; }
+  .tab-btn span:not(.tb-emoji){ display:none; }
   .tab-btn[aria-current="true"]{ color:var(--primary); }
 
   /* ---------- full pages (announcement / entry detail) ----------
@@ -374,13 +480,17 @@
     position:sticky; top:0; z-index:1; display:flex; align-items:center; gap:10px;
     padding:calc(12px + env(safe-area-inset-top)) 10px 14px 6px; background:var(--surface);
   }
-  .fp-back{ width:32px; height:32px; border:0; background:transparent; font-size:22px; font-weight:800; color:var(--fg); flex:0 0 auto; display:flex; align-items:center; justify-content:center; padding:0; }
+  /* plain arrow, no circle chip behind it */
+  .fp-back{ width:32px; height:32px; border:0; background:transparent; font-size:22px; font-weight:var(--fw-strong); color:var(--fg); flex:0 0 auto; display:flex; align-items:center; justify-content:center; padding:0; }
+  /* centered on the header itself (not just the space between the back/delete
+     buttons), so it stays put regardless of how wide either side button is —
+     the classic "absolute title over a relatively-positioned bar" nav pattern */
   .fp-head h1{
     position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); margin:0;
-    font-size:16px; font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    max-width:calc(100% - 116px); pointer-events:none;
+    font-size:var(--fs-title); font-weight:var(--fw-strong); white-space:nowrap;
+    overflow:hidden; text-overflow:ellipsis; max-width:calc(100% - 116px); pointer-events:none;
   }
-  .fp-delete{ background:transparent; border:0; color:var(--danger); font-size:14px; font-weight:700; padding:6px 4px; flex:0 0 auto; margin-left:auto; }
+  .fp-delete{ background:transparent; border:0; color:var(--danger); font-size:var(--fs-body); font-weight:var(--fw-strong); padding:6px 4px; flex:0 0 auto; margin-left:auto; }
   /* extra bottom padding clears the floating save button */
   .fp-body{ padding:20px 16px calc(100px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:20px; }
   /* floating, not a full-width bar docked to the edge — the shadow is deliberate here,
@@ -391,7 +501,7 @@
   }
   .fp-foot .btn{ pointer-events:auto; box-shadow:0 10px 26px rgba(20,30,50,.22); }
 
-  .field label{ display:block; font-size:12px; color:var(--muted); margin-bottom:7px; font-weight:700; text-transform:uppercase; letter-spacing:.1px; }
+  .field label{ display:block; font-size:var(--fs-label); color:var(--muted); margin-bottom:7px; font-weight:var(--fw-strong); text-transform:uppercase; letter-spacing:.1px; }
   .field input[type="time"], .field input[type="date"], .field input[type="number"], .field input[type="text"]{
     width:100%; padding:13px 14px; border-radius:14px; border:0; background:var(--surface-2); font-size:16px; color:var(--fg);
   }
@@ -402,15 +512,35 @@
   }
   .time-row{ display:flex; gap:10px; align-items:flex-end; }
   .time-row .field{ flex:1; }
-  .time-row .time-sep{ padding-bottom:14px; color:var(--muted); font-size:13px; }
+  .time-row .time-sep{ padding-bottom:14px; color:var(--muted); font-size:var(--fs-label); }
   .seg{ display:flex; gap:2px; border-radius:14px; background:var(--surface-2); padding:3px; }
-  .seg button{ flex:1; border:0; background:transparent; border-radius:11px; padding:10px 4px; font-size:13.5px; font-weight:700; color:var(--muted); }
+  .seg button{ flex:1; border:0; background:transparent; border-radius:11px; padding:10px 4px; font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted); }
   .seg button[aria-pressed="true"]{ background:var(--primary); color:var(--primary-fg); }
+  /* quick-insert words below a note field — visually lighter than the pill
+     chips used for selection (author/type/diaper-kind) since tapping one
+     doesn't set a value, it appends into the text field next to it */
+  .quick-word-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:9px; }
+  .qw-chip{ padding:6px 12px; border-radius:var(--radius-pill); background:transparent; box-shadow:inset 0 0 0 1px var(--border); border:0; font-size:var(--fs-caption); font-weight:var(--fw-medium); color:var(--muted); }
+  .qw-chip:active{ background:var(--primary-weak-bg); color:var(--primary); box-shadow:inset 0 0 0 1px var(--primary); }
+  /* quick-word MANAGEMENT chips (Settings) — same pill family as the author
+     chips (.chip-row), but each carries its own small round delete button
+     instead of relying on a separate text "삭제" button/row */
+  .chip-removable{
+    display:inline-flex; align-items:center; gap:6px; padding:7px 7px 7px 15px;
+    border-radius:var(--radius-pill); background:var(--surface-2); border:0;
+    font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--fg);
+  }
+  .chip-x{
+    width:18px; height:18px; border-radius:50%; border:0; background:var(--border);
+    color:var(--muted-2); font-size:11px; font-weight:var(--fw-strong); line-height:1;
+    display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+  }
+  .chip-x:active{ background:var(--danger); color:#fff; }
   .amount-row{ display:flex; align-items:center; gap:10px; }
-  .amount-row .amt-step{ width:42px; height:42px; border-radius:50%; background:var(--surface-2); border:0; font-size:19px; font-weight:800; flex:0 0 auto; }
-  .amount-row input[type="number"]{ text-align:center; font-size:21px; font-weight:800; }
+  .amount-row .amt-step{ width:42px; height:42px; border-radius:50%; background:var(--surface-2); border:0; font-size:19px; font-weight:var(--fw-strong); flex:0 0 auto; }
+  .amount-row input[type="number"]{ text-align:center; font-size:var(--fs-display); font-weight:var(--fw-display); }
   input[type="range"]{ width:100%; accent-color:var(--primary); }
-  .btn{ width:100%; padding:16px; border-radius:16px; border:0; font-size:16px; font-weight:800; }
+  .btn{ width:100%; padding:16px; border-radius:16px; border:0; font-size:var(--fs-title); font-weight:var(--fw-display); }
   .btn.primary{ background:var(--primary); color:var(--primary-fg); }
   .btn.ghost{ background:var(--surface-2); color:var(--fg); }
 
@@ -426,11 +556,11 @@
   }
   .sheet.show{ transform:translateY(0); }
   .sheet-head{ position:sticky; top:0; background:var(--surface); display:flex; align-items:center; justify-content:space-between; padding:14px 8px 10px 14px; }
-  .sheet-head h2{ font-size:16px; margin:0; font-weight:800; }
+  .sheet-head h2{ font-size:var(--fs-title); margin:0; font-weight:var(--fw-strong); }
   .sheet-head .grabber{ position:absolute; top:7px; left:50%; transform:translateX(-50%); width:36px; height:4px; border-radius:2px; background:var(--border); }
   .icon-btn{
     width:30px; height:30px; border-radius:50%; background:var(--surface-2); border:0;
-    display:flex; align-items:center; justify-content:center; color:var(--fg); flex:0 0 auto; font-size:14px; font-weight:700;
+    display:flex; align-items:center; justify-content:center; color:var(--fg); flex:0 0 auto; font-size:14px; font-weight:var(--fw-strong);
   }
   .sheet-body{ padding:16px; display:flex; flex-direction:column; gap:20px; }
   .sheet-foot{ display:flex; gap:10px; padding:4px 16px 18px; }
@@ -444,7 +574,7 @@
 
   .toast{
     position:fixed; left:50%; bottom:calc(90px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(10px);
-    background:var(--fg); color:var(--surface); padding:12px 20px; border-radius:var(--radius-pill); font-size:13px; font-weight:700;
+    background:var(--fg); color:var(--surface); padding:12px 20px; border-radius:var(--radius-pill); font-size:var(--fs-label); font-weight:var(--fw-strong);
     z-index:60; opacity:0; transition:opacity .2s ease, transform .2s ease; pointer-events:none;
     white-space:nowrap; max-width:88vw; overflow:hidden; text-overflow:ellipsis;
   }
@@ -464,10 +594,10 @@
       </div>
       <div class="top-actions">
         <div class="lang-pill" id="lang-pill">
-          <button type="button" data-lang="ko" aria-pressed="true">KO</button>
-          <button type="button" data-lang="vi" aria-pressed="false">VI</button>
+          <button type="button" data-lang="ko" aria-pressed="true">🇰🇷 KO</button>
+          <button type="button" data-lang="vi" aria-pressed="false">🇻🇳 VI</button>
         </div>
-        <button type="button" class="profile-pill" id="btn-profile" title="profile">
+        <button type="button" class="profile-avatar" id="btn-profile" title="profile">
           <span id="profile-pill-text">-</span>
         </button>
       </div>
@@ -477,35 +607,46 @@
   <!-- ============ TAB: RECORD ============ -->
   <section class="panel" id="tab-record" data-tab-panel>
 
-    <!-- dashboard: last feed / diaper / sleep, plain text, no card -->
-    <div class="dashboard" id="since-row"></div>
-
-    <!-- memo + next-feed estimate: wrapped together so the two full-bleed
-         bands sit flush with no gap (panel uses flex gap between children) -->
+    <!-- memo + next-feed estimate: stacked full-bleed bands, one wrapper so the
+         panel's own flex `gap` doesn't open a sliver between them — the two
+         read as one continuous strip. memo sits first (right under the header,
+         the first thing seen on open), next-feed estimate directly beneath it. -->
     <div class="announce-stack">
-      <!-- memo: most recent memo, one-line preview, tap jumps to the memo tab -->
       <button type="button" class="announce-row" id="memo-open-btn">
         <span class="a-emoji">📝</span>
-        <span class="a-label" data-i18n="memoLabel">메모</span>
-        <span class="a-preview" id="memo-preview"></span>
-        <span class="a-chev">›</span>
+        <div class="a-body">
+          <div class="a-top">
+            <span class="a-label" data-i18n="memoLabel">메모</span>
+            <span class="a-chev">›</span>
+          </div>
+          <div class="a-orig" id="memo-preview-orig"></div>
+          <div class="a-trans" id="memo-preview-trans" hidden></div>
+        </div>
       </button>
 
-      <!-- next recommended feed time, estimated from the last feed's amount -->
+      <!-- last feed amount * 1.5min/ml from the last feed's own start time
+           (rule of thumb: 40ml holds ~1hr) -->
       <div class="announce-row next-feed-row" id="next-feed-row" hidden>
         <span class="a-emoji">🍼</span>
-        <span class="a-label" data-i18n="nextFeedLabel">다음 추천 수유</span>
-        <span class="a-preview" id="nf-text"></span>
+        <div class="a-body">
+          <div class="a-top">
+            <span class="a-label" data-i18n="nextFeedLabel">다음 추천 수유</span>
+          </div>
+          <div class="a-orig" id="nf-text"></div>
+        </div>
       </div>
     </div>
 
+    <!-- dashboard: last feed / diaper / sleep, plain text, no card -->
+    <div class="dashboard" id="since-row"></div>
+
     <div>
-      <div class="section-title" data-i18n="quickAdd" style="margin-bottom:10px">빠른 기록</div>
+      <div class="section-title" data-i18n="quickAdd">빠른 기록</div>
       <div class="qa-grid" id="qa-grid"></div>
     </div>
 
     <div class="timeline-section">
-      <div class="section-title" data-i18n="timeline" style="margin-bottom:10px">기록</div>
+      <div class="section-title" data-i18n="timeline">기록</div>
       <div id="timeline" style="display:flex;flex-direction:column;gap:14px;"></div>
     </div>
   </section>
@@ -513,15 +654,10 @@
   <!-- ============ TAB: MEMO ============ -->
   <section class="panel" id="tab-memo" data-tab-panel hidden>
     <div class="memo-section">
-      <div class="memo-compose">
-        <textarea id="memo-compose-text" data-i18n-ph="memoComposePh" rows="3" style="width:100%;border:0;background:var(--surface-2);border-radius:14px;padding:12px 13px;font-size:15px;color:var(--fg);resize:none;"></textarea>
-        <div id="memo-compose-translate-wrap" hidden>
-          <label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:6px;font-weight:700;" id="memo-compose-translate-label"></label>
-          <div id="memo-compose-translate-preview" style="width:100%;box-sizing:border-box;background:var(--surface-2);border-radius:14px;padding:12px 13px;font-size:14.5px;color:var(--fg);min-height:1.4em;"></div>
-        </div>
-        <button type="button" class="btn primary" id="memo-compose-submit" data-i18n="memoSubmit" style="padding:12px;">등록</button>
-      </div>
       <div id="memo-list"></div>
+    </div>
+    <div class="memo-fab-wrap">
+      <button type="button" class="fab" id="memo-fab" aria-label="memo add">+</button>
     </div>
   </section>
 
@@ -543,15 +679,17 @@
 
   <!-- ============ TAB: STATS ============ -->
   <section class="panel" id="tab-stats" data-tab-panel hidden>
-    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;">
-      <div class="section-title" style="margin:0" data-i18n="statsFeed7">수유 통계</div>
-      <div class="seg" id="stats-feed-range" style="width:180px">
-        <button type="button" data-range="7" aria-pressed="true" data-i18n="range7">7일</button>
-        <button type="button" data-range="14" aria-pressed="false" data-i18n="range14">14일</button>
-        <button type="button" data-range="30" aria-pressed="false" data-i18n="range30">30일</button>
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+        <div class="section-title" style="margin:0" data-i18n="statsFeed7">수유 통계</div>
+        <div class="seg" id="stats-feed-range" style="width:180px">
+          <button type="button" data-range="7" aria-pressed="true" data-i18n="range7">7일</button>
+          <button type="button" data-range="14" aria-pressed="false" data-i18n="range14">14일</button>
+          <button type="button" data-range="30" aria-pressed="false" data-i18n="range30">30일</button>
+        </div>
       </div>
+      <div class="stat-grid" id="stat-tiles"></div>
     </div>
-    <div class="stat-grid" id="stat-tiles"></div>
     <div class="card">
       <div class="bars" id="stat-bars"></div>
     </div>
@@ -565,14 +703,16 @@
       <div id="poop-day-list" class="poop-day-list"></div>
     </div>
 
-    <div class="section-title" data-i18n="statsSleep7">최근 7일 수면 통계</div>
-    <div class="stat-grid" id="stat-sleep-tiles"></div>
+    <div>
+      <div class="section-title" data-i18n="statsSleep7">최근 7일 수면 통계</div>
+      <div class="stat-grid" id="stat-sleep-tiles"></div>
+    </div>
   </section>
 
   <!-- ============ TAB: SETTINGS ============ -->
   <section class="panel" id="tab-settings" data-tab-panel hidden>
     <div>
-      <div class="section-title" style="margin-bottom:8px" data-i18n="babyInfo">아기 정보</div>
+      <div class="section-title" data-i18n="babyInfo">아기 정보</div>
       <div class="card">
         <div class="row-item">
           <div><div class="r-label" data-i18n="babyNameKo">이름 (한국어)</div></div>
@@ -590,28 +730,62 @@
     </div>
 
     <div>
-      <div class="section-title" style="margin-bottom:8px" data-i18n="whoAmI">나는 누구</div>
+      <div class="section-title" data-i18n="whoAmI">나는 누구</div>
       <div class="card">
         <div class="chip-row" id="author-chip-row"></div>
-        <div class="row-item" style="background:var(--surface-2);border-radius:14px;margin:0 8px 8px;">
+        <div class="row-item">
           <input type="text" id="author-custom-input" data-i18n-ph="authorCustomPh" style="border:0;background:transparent;font-size:14.5px;flex:1;color:var(--fg);" />
-          <button type="button" class="text-btn" id="author-save-btn" data-i18n="save">저장</button>
+          <button type="button" class="text-btn" id="author-add-btn" data-i18n="add">추가</button>
         </div>
+        <div id="author-manage-list"></div>
       </div>
     </div>
 
     <div>
-      <div class="section-title" style="margin-bottom:8px" data-i18n="customTypes">커스텀 항목 관리</div>
-      <div class="card" id="custom-type-manage-list"></div>
+      <div class="section-title" data-i18n="customTypes">커스텀 항목 관리</div>
+      <div class="card">
+        <button type="button" class="row-item" id="settings-add-type-btn" style="width:100%;border:0;background:transparent;text-align:left;">
+          <span class="r-label" style="color:var(--link);font-weight:var(--fw-strong)">+ <span data-i18n="addNew">항목 추가</span></span>
+        </button>
+        <div id="custom-type-manage-list"></div>
+      </div>
     </div>
 
     <div>
-      <div class="section-title" style="margin-bottom:8px" data-i18n="typeOrder">항목 순서</div>
+      <div class="section-title" data-i18n="quickWordsTitle">메모 퀵버튼 관리</div>
+      <div style="font-size:var(--fs-caption);color:var(--muted);font-weight:var(--fw-strong);margin:2px 2px 6px" data-i18n="t_med">투약</div>
+      <div class="card">
+        <div class="row-item">
+          <input type="text" id="qw-med-input" data-i18n-ph="qwAddPh" style="border:0;background:transparent;font-size:14.5px;flex:1;color:var(--fg);" />
+          <button type="button" class="text-btn" id="qw-med-add" data-i18n="add">추가</button>
+        </div>
+        <div id="qw-med-list"></div>
+      </div>
+      <div style="font-size:var(--fs-caption);color:var(--muted);font-weight:var(--fw-strong);margin:14px 2px 6px" data-i18n="t_play">놀이</div>
+      <div class="card">
+        <div class="row-item">
+          <input type="text" id="qw-play-input" data-i18n-ph="qwAddPh" style="border:0;background:transparent;font-size:14.5px;flex:1;color:var(--fg);" />
+          <button type="button" class="text-btn" id="qw-play-add" data-i18n="add">추가</button>
+        </div>
+        <div id="qw-play-list"></div>
+      </div>
+      <div style="font-size:var(--fs-caption);color:var(--muted);font-weight:var(--fw-strong);margin:14px 2px 6px" data-i18n="t_tummy">터미타임</div>
+      <div class="card">
+        <div class="row-item">
+          <input type="text" id="qw-tummy-input" data-i18n-ph="qwAddPh" style="border:0;background:transparent;font-size:14.5px;flex:1;color:var(--fg);" />
+          <button type="button" class="text-btn" id="qw-tummy-add" data-i18n="add">추가</button>
+        </div>
+        <div id="qw-tummy-list"></div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section-title" data-i18n="typeOrder">항목 순서</div>
       <div class="card" id="type-order-list"></div>
     </div>
 
     <div>
-      <div class="section-title" style="margin-bottom:8px" data-i18n="appearance">화면</div>
+      <div class="section-title" data-i18n="appearance">화면</div>
       <div class="card">
         <div class="row-item">
           <div class="r-label" data-i18n="theme">테마</div>
@@ -624,7 +798,7 @@
       </div>
     </div>
 
-    <p style="font-size:11.5px;color:var(--muted-2);text-align:center;line-height:1.5;padding:6px 10px 0" data-i18n="shareHint">
+    <p style="font-size:var(--fs-caption);color:var(--muted-2);text-align:center;line-height:1.5;padding:6px 10px 0" data-i18n="shareHint">
       가족 모두와 함께 쓰려면 이 페이지를 "편집 가능"으로 공유해 주세요. 기록은 이 페이지를 여는 모든 사람과 실시간으로 공유됩니다.
     </p>
   </section>
@@ -663,7 +837,7 @@
 
   <!-- ============ SHEET: CUSTOM TYPE CREATE ============ -->
   <div class="scrim" id="scrim2"></div>
-  <div class="sheet" id="type-sheet" role="dialog" aria-modal="true">
+  <div class="sheet" id="type-sheet" data-scrim="scrim2" role="dialog" aria-modal="true">
     <div class="sheet-head">
       <div class="grabber"></div>
       <button type="button" class="icon-btn" id="type-sheet-close">✕</button>
@@ -692,7 +866,7 @@
 
   <!-- ============ SHEET: PROFILE PICKER ============ -->
   <div class="scrim" id="scrim3"></div>
-  <div class="sheet" id="profile-sheet" role="dialog" aria-modal="true">
+  <div class="sheet" id="profile-sheet" data-scrim="scrim3" role="dialog" aria-modal="true">
     <div class="sheet-head">
       <div class="grabber"></div>
       <span style="width:30px"></span>
@@ -700,7 +874,7 @@
       <span style="width:30px"></span>
     </div>
     <div class="sheet-body">
-      <p style="font-size:13px;color:var(--muted);margin:0" data-i18n="whoAmIDesc">기록에 표시할 이름을 골라주세요. 나중에 설정에서 바꿀 수 있어요.</p>
+      <p style="font-size:var(--fs-caption);color:var(--muted);margin:0" data-i18n="whoAmIDesc">기록에 표시할 이름을 골라주세요. 나중에 설정에서 바꿀 수 있어요.</p>
       <div class="chip-row" id="profile-chip-row" style="padding:0"></div>
       <div class="field">
         <label data-i18n="orTypeName">직접 입력</label>
@@ -709,6 +883,27 @@
     </div>
     <div class="sheet-foot">
       <button type="button" class="btn primary" id="profile-save-btn" data-i18n="start">시작하기</button>
+    </div>
+  </div>
+
+  <!-- ============ SHEET: MEMO COMPOSE ============ -->
+  <div class="scrim" id="scrim4"></div>
+  <div class="sheet" id="memo-compose-sheet" data-scrim="scrim4" role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="grabber"></div>
+      <button type="button" class="icon-btn" id="memo-compose-sheet-close">✕</button>
+      <h2 data-i18n="memoComposeTitle">메모 추가</h2>
+      <span style="width:30px"></span>
+    </div>
+    <div class="sheet-body">
+      <textarea id="memo-compose-text" data-i18n-ph="memoComposePh" rows="4"></textarea>
+      <div id="memo-compose-translate-wrap" hidden>
+        <label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:6px;font-weight:700;" id="memo-compose-translate-label"></label>
+        <div id="memo-compose-translate-preview" style="width:100%;box-sizing:border-box;background:var(--surface-2);border-radius:14px;padding:12px 13px;font-size:14.5px;color:var(--fg);min-height:1.4em;"></div>
+      </div>
+    </div>
+    <div class="sheet-foot">
+      <button type="button" class="btn primary" id="memo-compose-submit" data-i18n="memoSubmit">등록</button>
     </div>
   </div>
 
@@ -729,7 +924,7 @@
    ================================================================ */
 var I18N = {
 ko: {
-  memoLabel:"메모", memoEmpty:"아직 메모가 없어요", memoComposePh:"메모를 입력하세요",
+  memoLabel:"메모", memoEmpty:"아직 메모가 없어요", memoComposeTitle:"메모 추가", memoComposePh:"메모를 입력하세요",
   memoSubmit:"등록", memoTranslateToVi:"베트남어 번역 (선택)", memoTranslateToKo:"한국어 번역 (선택)",
   memoNoMemos:"아직 등록된 메모가 없어요.", tabMemo:"메모", typeOrder:"항목 순서",
   quickAdd:"빠른 기록", timeline:"기록", statsFeed7:"수유 통계", statsSleep7:"최근 7일 수면 통계",
@@ -764,6 +959,7 @@ ko: {
   totalFeedDay:"수유", totalNap:"낮잠", totalNight:"밤잠",
   emptyTimeline:"아직 기록이 없어요. 위 아이콘을 눌러 첫 기록을 남겨보세요.",
   noCustomTypes:"아직 커스텀 항목이 없어요",
+  quickWordsTitle:"메모 퀵버튼 관리", qwAddPh:"자주 쓰는 문구 입력", noQuickWords:"등록된 문구가 없어요",
   weekday_short:["일","월","화","수","목","금","토"],
   authorPresets:["엄마","아빠","내니"], authorCustomPh:"예: 지오할머니",
   entryDetailFor:"상세", deleteSwipeLabel:"삭제",
@@ -772,7 +968,7 @@ ko: {
   translating:"번역 중...", dayShort:"일", poopRecentTpl:"최근 {n}개"
 },
 vi: {
-  memoLabel:"Ghi chú", memoEmpty:"Chưa có ghi chú nào", memoComposePh:"Nhập ghi chú",
+  memoLabel:"Ghi chú", memoEmpty:"Chưa có ghi chú nào", memoComposeTitle:"Thêm ghi chú", memoComposePh:"Nhập ghi chú",
   memoSubmit:"Đăng", memoTranslateToVi:"Dịch tiếng Việt (tùy chọn)", memoTranslateToKo:"Dịch tiếng Hàn (tùy chọn)",
   memoNoMemos:"Chưa có ghi chú nào được đăng.", tabMemo:"Ghi chú", typeOrder:"Thứ tự mục",
   quickAdd:"Ghi nhanh", timeline:"Nhật ký", statsFeed7:"Thống kê bú", statsSleep7:"Thống kê ngủ 7 ngày qua",
@@ -807,6 +1003,7 @@ vi: {
   totalFeedDay:"Bú", totalNap:"Ngủ ngày", totalNight:"Ngủ đêm",
   emptyTimeline:"Chưa có nhật ký nào. Nhấn biểu tượng phía trên để ghi mục đầu tiên.",
   noCustomTypes:"Chưa có mục tùy chỉnh nào",
+  quickWordsTitle:"Quản lý nút nhanh ghi chú", qwAddPh:"Nhập cụm từ hay dùng", noQuickWords:"Chưa có cụm từ nào",
   weekday_short:["CN","T2","T3","T4","T5","T6","T7"],
   authorPresets:["Mẹ","Bố","Bảo mẫu"], authorCustomPh:"VD: Bà nội Zio",
   entryDetailFor:"Chi tiết", deleteSwipeLabel:"Xóa",
@@ -952,7 +1149,8 @@ function readEntries(){
       amount: e.amount !== undefined && e.amount !== null && e.amount !== '' ? Number(e.amount) : null,
       diaper: e.diaper || '',
       temp: e.temp !== undefined && e.temp !== null && e.temp !== '' ? Number(e.temp) : null,
-      note: e.note || '', author: e.author || '', sleepKind: e.sleepKind || ''
+      note: e.note || '', noteLang: e.noteLang || '', noteTranslated: e.noteTranslated || '',
+      author: e.author || '', sleepKind: e.sleepKind || ''
     };
   });
 }
@@ -960,6 +1158,22 @@ function readCustomTypes(){
   return (appState.customTypes || []).map(function(c){
     return { id: c.id, name: c.name || '', color: c.color || 'var(--c-custom)', emoji: c.emoji || '🏷️' };
   });
+}
+/* custom author names — the three presets are built into the UI; these are the
+   extra names the household added (a grandparent, a second sitter). Shared
+   server state, so a name added on one phone shows up in everyone's picker. */
+function readCustomAuthors(){
+  return (appState.customAuthors || []).map(function(a){ return { id: a.id, name: a.name || '' }; });
+}
+function allAuthorNames(){
+  return t('authorPresets').concat(readCustomAuthors().map(function(c){ return c.name; }));
+}
+/* reusable note snippets per care type, managed in Settings and tapped as
+   chips in the entry-detail note field instead of being retyped */
+function readQuickWords(typeId){
+  return (appState.quickWords || [])
+    .filter(function(w){ return w.typeId === typeId; })
+    .map(function(w){ return { id: w.id, typeId: w.typeId, text: w.text || '' }; });
 }
 function getActive(){ return appState.active; }
 function typeMeta(typeStr){
@@ -1164,10 +1378,29 @@ function renderHeader(){
   }
   renderProfilePill();
 }
+/* identity marker in the header — a small colored initial rather than a
+   name pill, so it doesn't read as a second toggle sitting next to KO/VI */
+var AVATAR_PALETTE = ['#f2555a', '#f6a723', '#22b573', '#8b5cf6', '#ec4899', '#0aa88f'];
+var AVATAR_SKY_BLUE = '#38bdf8';
+function avatarColor(name){
+  /* 엄마/Mẹ (author preset index 0) always gets sky blue, by request — everyone
+     else keeps their hash-picked color from the palette above */
+  var ko0 = I18N.ko.authorPresets[0], vi0 = I18N.vi.authorPresets[0];
+  if (name === ko0 || name === vi0) return AVATAR_SKY_BLUE;
+  var hash = 0;
+  for (var i = 0; i < name.length; i++){ hash = (hash * 31 + name.charCodeAt(i)) >>> 0; }
+  return AVATAR_PALETTE[hash % AVATAR_PALETTE.length];
+}
 function renderProfilePill(){
+  var btn = document.getElementById('btn-profile');
   var pill = document.getElementById('profile-pill-text');
-  if (!pill) return;
-  pill.textContent = state.author ? localizeAuthorName(state.author) : t('whoAmI');
+  if (!pill || !btn) return;
+  var name = state.author ? localizeAuthorName(state.author) : t('whoAmI');
+  pill.textContent = (name.trim().charAt(0) || '?').toUpperCase();
+  btn.title = name;
+  var hue = state.author ? avatarColor(name) : 'var(--muted-2)';
+  btn.style.background = 'color-mix(in srgb, '+hue+' 35%, var(--surface))';
+  btn.style.color = hue;
 }
 
 /* ================================================================
@@ -1336,7 +1569,7 @@ function renderSinceLast(){
   var now = Date.now();
   var cards = [
     {key:'since_feed', emoji:'🍼', e:feed, sub: feed ? (feed.amount!=null ? feed.amount+t('ml') : '') : ''},
-    {key:'since_diaper', emoji:'🧷', e:diaper, sub: diaper ? (t(diaper.diaper==='dirty'?'dirty':(diaper.diaper==='both'?'both':'wet'))) : ''},
+    {key:'since_diaper', emoji:'💩', e:diaper, sub: diaper ? (t(diaper.diaper==='dirty'?'dirty':(diaper.diaper==='both'?'both':'wet'))) : ''},
     {key:'since_sleep', emoji:'😴', e:sleep, sub: sleep ? (sleep.sleepKind ? t(sleep.sleepKind==='night'?'night':'nap') : '') : ''}
   ];
   var row = document.getElementById('since-row');
@@ -1520,15 +1753,29 @@ function entryRowHtml(e){
   }
   /* every type shows how long it ran the moment the end time moves past the start */
   if (e.end && e.end !== e.start) subParts.push(fmtDur(entryDurationMs(e)));
-  if (e.note) subParts.push(e.note);
-  var timeStr = fmtTime(e.start) + ((e.end && e.end !== e.start) ? ('~'+fmtTime(e.end)) : '');
+  /* start/end kept as two SEPARATE lines (rather than one concatenated
+     "start~end" string) so the time column has one predictable width whether
+     an entry has just a start time or a start+end range — concatenating them
+     made range rows measure wider than single-time rows and knock the icon
+     out of alignment with the row above/below it. */
+  var timeMain = fmtTime(e.start);
+  var timeEnd = (e.end && e.end !== e.start) ? fmtTime(e.end) : null;
+  /* the note gets the same detect+mock-translate treatment as the memo tab —
+     original and translated on their own lines, same size, told apart by color */
+  var noteHtml = '';
+  if (e.note){
+    noteHtml = '<div class="e-note">'+esc(e.note)+'</div>' +
+      (e.noteTranslated ? '<div class="e-note-trans">'+esc(e.noteTranslated)+'</div>' : '');
+  }
   return '<div class="entry-swipe" data-id="'+esc(e.id)+'">' +
     '<div class="entry-delete-bg" data-swipe-del="'+esc(e.id)+'"><span>'+esc(t('deleteSwipeLabel'))+'</span></div>' +
     '<button type="button" class="entry-row" data-id="'+esc(e.id)+'">' +
-      '<div class="e-dot" style="background:color-mix(in srgb, '+meta.color+' 18%, var(--surface-2))">'+meta.emoji+'</div>' +
-      '<div class="e-main"><div class="e-title">'+esc(title)+'</div>' +
-      (subParts.length ? '<div class="e-sub">'+esc(subParts.join(' · '))+'</div>' : '') + '</div>' +
-      '<div class="e-time">'+esc(timeStr)+(e.author?('<span class="e-author">'+esc(localizeAuthorName(e.author))+'</span>'):'')+'</div>' +
+      '<div class="e-time"><span class="e-time-main">'+esc(timeMain)+'</span>' +
+      (timeEnd ? '<span class="e-time-end">~'+esc(timeEnd)+'</span>' : '') +
+      (e.author?('<span class="e-author">'+esc(localizeAuthorName(e.author))+'</span>'):'') + '</div>' +
+      '<div class="e-icon">'+meta.emoji+'</div>' +
+      '<div class="e-main"><div class="e-title-line"><span class="e-title">'+esc(title)+'</span>' +
+      (subParts.length ? '<span class="e-sub">'+esc(subParts.join(' · '))+'</span>' : '') + '</div>' + noteHtml + '</div>' +
     '</button>' +
   '</div>';
 }
@@ -1707,7 +1954,6 @@ function renderPoopChart(entries){
       dayEntries.map(function(e){
         return '<div class="poop-day-row">' +
           '<span class="poop-day-time">'+esc(fmtTime(e.start))+'</span>' +
-          '<span class="poop-day-kind">'+esc(t(e.diaper==='dirty'?'dirty':'both'))+'</span>' +
           (e.note ? '<span class="poop-day-note">'+esc(e.note)+'</span>' : '') +
         '</div>';
       }).join('') +
@@ -1776,7 +2022,9 @@ function buildPoopChartSvg(points){
   '</svg>';
 }
 function statTile(label, valHtml){
-  return '<div class="card stat-tile"><div class="st-label">'+esc(label)+'</div><div class="st-val">'+valHtml+'</div></div>';
+  /* no .card here — .stat-grid itself is the full-bleed surface now, and
+     .card's own -16px side margin would shove each tile out of the grid */
+  return '<div class="stat-tile"><div class="st-label">'+esc(label)+'</div><div class="st-val">'+valHtml+'</div></div>';
 }
 
 /* ================================================================
@@ -1918,7 +2166,54 @@ function renderSettings(){
       });
     });
   }
+  renderAuthorManageList();
+  renderQuickWordManage('med', 'qw-med-list');
+  renderQuickWordManage('play', 'qw-play-list');
+  renderQuickWordManage('tummy', 'qw-tummy-list');
   renderTypeOrderList();
+}
+/* only CUSTOM-added names get a delete row here — the three built-in presets
+   (엄마/아빠/내니) aren't removable. Mirrors the custom-type-manage-list
+   pattern above so the whole settings tab reads as one consistent idiom for
+   "shared, growable, admin-managed list". */
+function renderAuthorManageList(){
+  var box = document.getElementById('author-manage-list');
+  if (!box) return;
+  var customs = readCustomAuthors();
+  if (!customs.length){ box.innerHTML = ''; return; }
+  box.innerHTML = customs.map(function(c){
+    return '<div class="row-item"><span class="r-label">'+esc(c.name)+'</span>' +
+      '<button type="button" class="text-btn danger-btn" data-del-author="'+esc(c.id)+'">'+esc(t('delete'))+'</button></div>';
+  }).join('');
+  $$('[data-del-author]', box).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      apiMutate('deleteCustomAuthor', { id: btn.dataset.delAuthor }).then(function(){
+        renderSettings();
+        toast(t('deletedToast'));
+      }).catch(function(err){ toast(err.message); });
+    });
+  });
+}
+function renderQuickWordManage(typeId, listId){
+  var box = document.getElementById(listId);
+  if (!box) return;
+  var words = readQuickWords(typeId);
+  if (!words.length){
+    box.innerHTML = '<div class="row-item"><span class="r-sub" style="color:var(--muted)">'+esc(t('noQuickWords'))+'</span></div>';
+    return;
+  }
+  box.innerHTML = '<div class="chip-row">' + words.map(function(w){
+    return '<span class="chip-removable">'+esc(w.text)+
+      '<button type="button" class="chip-x" data-del-qw="'+esc(w.id)+'" aria-label="'+esc(t('delete'))+'">✕</button></span>';
+  }).join('') + '</div>';
+  $$('[data-del-qw]', box).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      apiMutate('deleteQuickWord', { id: btn.dataset.delQw }).then(function(){
+        renderSettings();
+        toast(t('deletedToast'));
+      }).catch(function(err){ toast(err.message); });
+    });
+  });
 }
 function renderTypeOrderList(){
   var box = document.getElementById('type-order-list');
@@ -1944,7 +2239,7 @@ function renderTypeOrderList(){
 }
 function renderAuthorChips(containerId, selected, onPick){
   var box = document.getElementById(containerId);
-  var presets = t('authorPresets');
+  var presets = allAuthorNames();
   box.innerHTML = presets.map(function(name){
     return '<button type="button" class="chip" data-name="'+esc(name)+'" aria-pressed="'+(localizeAuthorName(selected)===name)+'">'+esc(name)+'</button>';
   }).join('');
@@ -2020,12 +2315,22 @@ function buildEntryFields(meta, e){
       '<input type="number" id="f-temp" value="'+esc(e.temp)+'" min="30" max="43" step="0.1" /></div>';
   }
   var noteLabel = meta.noteKey ? t(meta.noteKey) : t('note');
+  /* quick-insert words registered for this care type (managed in Settings) —
+     a tap appends the phrase into the note field instead of retyping it. */
+  var quickWords = meta.isCustom ? [] : readQuickWords(meta.id);
   html += '<div class="field"><label>'+esc(noteLabel)+'</label>' +
-    '<input type="text" id="f-note" value="'+esc(e.note)+'" maxlength="80" /></div>';
+    '<input type="text" id="f-note" value="'+esc(e.note)+'" maxlength="80" />' +
+    (quickWords.length ? '<div class="quick-word-row" id="f-note-quick">' +
+      quickWords.map(function(w){ return '<button type="button" class="qw-chip" data-quick-word="'+esc(w.text)+'">'+esc(w.text)+'</button>'; }).join('') +
+    '</div>' : '') +
+  '</div>';
 
+  /* chip-select only — no free-text entry here. New names get added to the
+     shared list from Settings, never typed one-off on a single entry, so
+     the same handful of names stays consistent across every record. */
   html += '<div class="field"><label>'+esc(t('author'))+'</label><div class="chip-row" id="f-author" style="padding:0">' +
-    t('authorPresets').map(function(n){ return '<button type="button" class="chip" data-author="'+esc(n)+'" aria-pressed="'+(localizeAuthorName(e.author)===n)+'">'+esc(n)+'</button>'; }).join('') +
-  '</div><input type="text" id="f-author-custom" value="'+ (isPresetAuthorName(e.author) ? '' : esc(e.author)) +'" placeholder="'+esc(t('authorCustomPh'))+'" style="margin-top:8px" /></div>';
+    allAuthorNames().map(function(n){ return '<button type="button" class="chip" data-author="'+esc(n)+'" aria-pressed="'+(localizeAuthorName(e.author)===n)+'">'+esc(n)+'</button>'; }).join('') +
+  '</div></div>';
 
   return html;
 }
@@ -2057,9 +2362,22 @@ function wireEntryFields(meta){
     chip.addEventListener('click', function(){
       $$('.chip', authorBox).forEach(function(x){ x.setAttribute('aria-pressed','false'); });
       chip.setAttribute('aria-pressed','true');
-      document.getElementById('f-author-custom').value = '';
     });
   });
+  var quickWordBox = document.getElementById('f-note-quick');
+  if (quickWordBox){
+    var noteEl = document.getElementById('f-note');
+    $$('.qw-chip', quickWordBox).forEach(function(chip){
+      chip.addEventListener('click', function(){
+        /* joining two+ quick words reads as a list ("아기체육관, 집안산책"),
+           so the separator is ", " rather than a bare space — trim any
+           trailing space/comma first so repeated taps don't double up. */
+        var cur = noteEl.value.replace(/[\s,]+$/,'');
+        noteEl.value = cur ? (cur + ', ' + chip.dataset.quickWord) : chip.dataset.quickWord;
+        noteEl.focus();
+      });
+    });
+  }
 }
 
 function saveEntryDetail(){
@@ -2083,14 +2401,31 @@ function saveEntryDetail(){
   if (sleepSeg){ var sp = sleepSeg.querySelector('[aria-pressed="true"]'); var sk=(sp?sp.dataset.val:'auto'); payload.sleepKind = (sk==='auto')?'':sk; }
   var tempEl = document.getElementById('f-temp');
   if (tempEl) payload.temp = Number(tempEl.value);
-  payload.note = document.getElementById('f-note').value.trim();
-  var authorCustom = document.getElementById('f-author-custom').value.trim();
+  var noteVal = document.getElementById('f-note').value.trim();
+  payload.note = noteVal;
   var authorChip = $('.chip[aria-pressed="true"]', document.getElementById('f-author'));
-  var authorVal = authorCustom || (authorChip ? authorChip.dataset.author : '') || state.author;
+  var authorVal = (authorChip ? authorChip.dataset.author : '') || state.author;
   payload.author = authorVal;
   if (authorVal && authorVal !== state.author){ state.author = authorVal; localStorage.setItem(LS_AUTHOR, authorVal); }
 
-  apiMutate('updateEntry', payload).then(function(){
+  /* a note in Korean or Vietnamese gets translated for the other reader, the
+     same way memos do. Unlike the memo flow this happens on save (there's no
+     live preview field here), and a failed translation just saves the note
+     untranslated rather than blocking the save. */
+  var noteLang = noteVal ? detectLang(noteVal) : 'other';
+  var notePromise;
+  if (noteLang === 'ko' || noteLang === 'vi'){
+    payload.noteLang = noteLang;
+    notePromise = apiTranslate(noteVal, noteLang === 'ko' ? 'vi' : 'ko').catch(function(){ return ''; });
+  } else {
+    payload.noteLang = '';
+    notePromise = Promise.resolve('');
+  }
+
+  notePromise.then(function(translated){
+    payload.noteTranslated = translated;
+    return apiMutate('updateEntry', payload);
+  }).then(function(){
     closeEntryDetail();
     renderAll();
     toast(t('savedToast'));
@@ -2134,10 +2469,24 @@ function detectLang(text){
   return 'other';
 }
 function updateMemoPreview(){
-  var preview = document.getElementById('memo-preview');
-  if (!preview) return;
+  var origEl = document.getElementById('memo-preview-orig');
+  var transEl = document.getElementById('memo-preview-trans');
+  if (!origEl || !transEl) return;
   var latest = readMemos()[0];
-  preview.textContent = latest ? latest.text.split('\n')[0] : t('memoEmpty');
+  if (!latest){
+    origEl.textContent = t('memoEmpty');
+    transEl.hidden = true;
+    transEl.textContent = '';
+    return;
+  }
+  origEl.textContent = latest.text.split('\n')[0];
+  if (latest.translated){
+    transEl.textContent = latest.translated.split('\n')[0];
+    transEl.hidden = false;
+  } else {
+    transEl.hidden = true;
+    transEl.textContent = '';
+  }
 }
 function renderMemoList(){
   var box = document.getElementById('memo-list');
@@ -2231,6 +2580,7 @@ function submitMemo(){
       document.getElementById('memo-compose-translate-preview').textContent = '';
       document.getElementById('memo-compose-translate-wrap').hidden = true;
       memoTranslateCache = { text: '', lang: '', translation: '' };
+      closeSheet('memo-compose-sheet');
       renderMemoList();
       updateMemoPreview();
       toast(t('savedToast'));
@@ -2246,17 +2596,19 @@ function submitMemo(){
    SHEET: open/close plumbing (small quick-pick flows only)
    ================================================================ */
 function openSheet(id){
-  document.getElementById(id==='type-sheet'?'scrim2':'scrim3').classList.add('show');
-  document.getElementById(id).classList.add('show');
+  var el = document.getElementById(id);
+  document.getElementById(el.dataset.scrim).classList.add('show');
+  el.classList.add('show');
   document.body.style.overflow = 'hidden';
 }
 function closeSheet(id){
-  document.getElementById(id==='type-sheet'?'scrim2':'scrim3').classList.remove('show');
-  document.getElementById(id).classList.remove('show');
+  var el = document.getElementById(id);
+  document.getElementById(el.dataset.scrim).classList.remove('show');
+  el.classList.remove('show');
   document.body.style.overflow = '';
   // a focused control inside the sheet stays focused while translated off-screen, which can
   // otherwise drag other scroll containers (e.g. the quick-actions row) into view — release it.
-  if (document.activeElement && document.getElementById(id).contains(document.activeElement)){
+  if (document.activeElement && el.contains(document.activeElement)){
     document.activeElement.blur();
   }
 }
@@ -2321,9 +2673,19 @@ function saveProfilePicker(){
   state.author = picked;
   localStorage.setItem(LS_AUTHOR, picked);
   closeSheet('profile-sheet');
-  renderSettings();
-  renderProfilePill();
-  toast(t('savedToast'));
+  /* typing a brand-new name here (first-run, before anyone could have added it
+     in Settings) still goes through the same shared list as the Settings "추가"
+     flow — it becomes a normal chip from here on, rather than a one-off string
+     that only this device remembers. */
+  var register = (custom && !isPresetAuthorName(custom) &&
+      !readCustomAuthors().some(function(a){ return a.name === custom; }))
+    ? apiMutate('addCustomAuthor', { name: custom }).catch(function(){})
+    : Promise.resolve();
+  register.then(function(){
+    renderSettings();
+    renderProfilePill();
+    toast(t('savedToast'));
+  });
 }
 
 /* ================================================================
@@ -2339,7 +2701,10 @@ function renderAll(){
   renderTimeline();   /* builds #active-bar-slot inside today's group */
   renderActiveBar();  /* ...then fills/updates it */
   renderStats();
-  renderPattern();
+  /* renderPattern() is deliberately NOT here: it re-pins the day-column
+     scroll to today, and renderAll() runs on every 4s poll — that would yank
+     the chart back while someone is swiping through earlier days. The pattern
+     tab renders on entry instead (see switchTab). */
   renderSettings();
   updateMemoPreview();
   renderMemoList();
@@ -2394,6 +2759,15 @@ function wireEvents(){
 
   // memo tab
   document.getElementById('memo-open-btn').addEventListener('click', function(){ switchTab('memo'); });
+  document.getElementById('memo-fab').addEventListener('click', function(){
+    document.getElementById('memo-compose-text').value = '';
+    document.getElementById('memo-compose-translate-preview').textContent = '';
+    document.getElementById('memo-compose-translate-wrap').hidden = true;
+    memoTranslateCache = { text: '', lang: '', translation: '' };
+    openSheet('memo-compose-sheet');
+  });
+  document.getElementById('memo-compose-sheet-close').addEventListener('click', function(){ closeSheet('memo-compose-sheet'); });
+  document.getElementById('scrim4').addEventListener('click', function(){ closeSheet('memo-compose-sheet'); });
   document.getElementById('memo-compose-text').addEventListener('input', updateMemoComposeTranslateField);
   document.getElementById('memo-compose-submit').addEventListener('click', submitMemo);
 
@@ -2418,12 +2792,37 @@ function wireEvents(){
     apiMutate('setProfile', { birth: this.value }).catch(function(err){ toast(err.message); });
   });
 
-  document.getElementById('author-save-btn').addEventListener('click', function(){
-    var v = document.getElementById('author-custom-input').value.trim();
+  /* adding a name registers it in the SHARED list (so it appears in everyone's
+     author picker) and also selects it as this device's current author */
+  document.getElementById('author-add-btn').addEventListener('click', function(){
+    var input = document.getElementById('author-custom-input');
+    var v = input.value.trim();
     if (!v){ toast(state.lang==='vi'?'Vui lòng nhập tên':'이름을 입력해 주세요'); return; }
-    document.getElementById('author-custom-input').value = '';
-    setAuthor(v);
+    if (isPresetAuthorName(v)){ input.value = ''; setAuthor(v); return; }
+    apiMutate('addCustomAuthor', { name: v }).then(function(){
+      input.value = '';
+      setAuthor(v);
+      renderSettings();
+    }).catch(function(err){ toast(err.message); });
   });
+
+  // quick-word management — one add button per care type
+  [['med','qw-med-add','qw-med-input'],
+   ['play','qw-play-add','qw-play-input'],
+   ['tummy','qw-tummy-add','qw-tummy-input']].forEach(function(row){
+    var typeId = row[0], btn = document.getElementById(row[1]), input = document.getElementById(row[2]);
+    if (!btn || !input) return;
+    btn.addEventListener('click', function(){
+      var v = input.value.trim();
+      if (!v) return;
+      apiMutate('addQuickWord', { typeId: typeId, text: v }).then(function(){
+        input.value = '';
+        renderSettings();
+      }).catch(function(err){ toast(err.message); });
+    });
+  });
+
+  document.getElementById('settings-add-type-btn').addEventListener('click', openTypeSheet);
 
   // type sheet
   document.getElementById('type-sheet-close').addEventListener('click', function(){ closeSheet('type-sheet'); });
