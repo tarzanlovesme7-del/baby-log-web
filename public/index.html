@@ -285,6 +285,14 @@
     opacity:0; transition:opacity 120ms ease;
   }
   .entry-swipe.revealed .entry-delete-bg{ opacity:1; }
+  /* manipulation: no double-tap-zoom arbitration on a button whose whole job
+     is to answer one tap. And a pressed state, so a finger gets an answer the
+     same frame it lands rather than wondering whether the tap registered. */
+  .entry-delete-bg{ touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+  .entry-delete-bg.pressing{ filter:brightness(.85); }
+  /* dragged far enough that letting go deletes: the label moves to the leading
+     edge so the row reads as being pushed off the screen rather than opening */
+  .entry-swipe.will-delete .entry-delete-bg{ justify-content:flex-start; padding-left:22px; }
   .entry-delete-bg span{ color:#fff; font-size:var(--fs-label); font-weight:var(--fw-strong); }
   .entry-row{
     position:relative; display:flex; align-items:flex-start; gap:10px; padding:11px 20px; border:0;
@@ -493,6 +501,10 @@
     transform:translateX(100%); transition:transform .28s cubic-bezier(.32,.72,0,1);
   }
   .fullpage.show{ transform:translateX(0); }
+  /* while it slides away it is still a full-screen layer sitting over the list,
+     so for a third of a second after closing a record every touch underneath
+     was landing on nothing. The closed panel takes no input at all. */
+  .fullpage:not(.show){ pointer-events:none; }
   /* position:relative is load-bearing — the h1 inside is absolutely centred,
      and without a positioned ancestor here it centres itself against the whole
      panel and lands in the middle of the form */
@@ -581,7 +593,11 @@
   .scrub-exact{ padding:10px 14px 2px; }
   .scrub-exact input{ width:100%; }
 
-  .scrub-rail{ position:relative; height:44px; margin-top:6px; touch-action:none; }
+  /* pan-x, NOT none: the ruler inside is scrolled by the finger, and
+     touch-action:none on the container tells the browser to do no panning at
+     all — which on a real touchscreen means the ruler cannot be dragged. */
+  .scrub-rail{ position:relative; height:44px; margin-top:6px; touch-action:pan-x; }
+  .scrub-strip{ touch-action:pan-x; }
   .scrub-line{ position:absolute; left:14px; right:14px; top:9px; height:1px; background:var(--border); pointer-events:none; }
   .scrub-dot{
     position:absolute; top:3px; width:13px; height:13px; margin-left:-6.5px; border-radius:50%;
@@ -1235,7 +1251,10 @@ function apiMutate(type, payload){
    network that won't allow it — does it fall back to the server it used to
    depend on. Whichever answers, the result is stored the same way, so the
    other phones read it from the shared record without translating again. */
-var TRANSLATE_TIMEOUT_MS = 8000;
+/* Per provider. Three providers are tried in turn, so this is also what caps
+   the worst case: nothing that waits on a translation may hang for longer than
+   a person is willing to stare at a screen. */
+var TRANSLATE_TIMEOUT_MS = 4000;
 function withTimeout(promise, ms){
   return new Promise(function(resolve, reject){
     var done = false;
@@ -1288,10 +1307,16 @@ function serverTranslate(text, target){
     });
   }), TRANSLATE_TIMEOUT_MS + 4000);
 }
+/* Three providers in a chain could otherwise add up to a wait nobody would
+   sit through, so the CHAIN has its own deadline on top of the per-provider
+   ones. Whatever is still trying when this expires is abandoned. */
+var TRANSLATE_TOTAL_MS = 10000;
 function apiTranslate(text, target){
-  return clientTranslate(text, target)
-    .catch(function(){ return clientMyMemory(text, target); })
-    .catch(function(){ return serverTranslate(text, target); });
+  return withTimeout(
+    clientTranslate(text, target)
+      .catch(function(){ return clientMyMemory(text, target); })
+      .catch(function(){ return serverTranslate(text, target); }),
+    TRANSLATE_TOTAL_MS);
 }
 /* poll for edits made by other viewers; skip the tick if a mutation is
    already in flight from this tab so responses can't land out of order */
@@ -1992,6 +2017,7 @@ function wireEntrySwipe(wrap){
   var row = $('.entry-row', wrap);
   if (!row) return;
   var THRESH = 56;      /* px dragged left before the delete bg is considered "open" */
+  var FULL   = 150;     /* px dragged left that means "just delete it" */
   var TAPMAX = 6;       /* px of movement still counted as a tap */
   var dragging = false, startX = 0, startY = 0, dx = 0, axis = null, opened = false;
 
@@ -2012,14 +2038,29 @@ function wireEntrySwipe(wrap){
     }
     if (axis !== 'x') return;
     ev.preventDefault();
-    dx = Math.min(0, Math.max(-88, mx + (opened ? -72 : 0)));
+    /* the row used to stop dead at -88px, which capped the gesture at "reveal
+       the button". It now keeps following the finger so a long swipe can mean
+       delete, with a little resistance past the button so the two intents
+       stay distinguishable by feel. */
+    var travel = mx + (opened ? -72 : 0);
+    if (travel < -88) travel = -88 + (travel + 88) * 0.75;
+    dx = Math.min(0, Math.max(-(row.offsetWidth || 300), travel));
     row.style.transform = 'translateX('+dx+'px)';
+    wrap.classList.toggle('will-delete', dx <= -FULL);
   });
   function finish(ev){
     if (!dragging) return;
     dragging = false;
     row.style.transition = '';
     if (axis === 'x'){
+      /* dragged most of the way across: that IS the delete. Stopping at a
+         button and making the user find and hit it a second time is what made
+         deleting feel slow — one gesture, done. */
+      if (dx <= -FULL){
+        row.style.transform = 'translateX(-100%)';
+        deleteEntryDirect(wrap.dataset.id);
+        return;
+      }
       if (dx <= -THRESH){ row.style.transform = 'translateX(-72px)'; opened = true; }
       else { row.style.transform = ''; opened = false; wrap.classList.remove('revealed'); }
     } else if (axis === null){
@@ -2032,10 +2073,30 @@ function wireEntrySwipe(wrap){
   row.addEventListener('pointerup', finish);
   row.addEventListener('pointercancel', finish);
 
+  /* The button acts on pointerup, not click. A click is synthesised by the
+     browser after the touch sequence finishes and can be delayed or dropped
+     entirely — which is what left a finger tapping a red button that appeared
+     to ignore it. pointerup is the finger lifting, and nothing sits between. */
   var delBg = $('.entry-delete-bg', wrap);
   if (delBg){
-    delBg.addEventListener('click', function(){
+    var pressX = 0, pressY = 0, pressing = false;
+    delBg.addEventListener('pointerdown', function(ev){
+      pressing = true; pressX = ev.clientX; pressY = ev.clientY;
+      delBg.classList.add('pressing');
+    });
+    var release = function(){ pressing = false; delBg.classList.remove('pressing'); };
+    delBg.addEventListener('pointercancel', release);
+    delBg.addEventListener('pointerleave', release);
+    delBg.addEventListener('pointerup', function(ev){
+      if (!pressing) return;
+      release();
+      // a scroll that happened to start here is not a tap
+      if (Math.abs(ev.clientX - pressX) > 10 || Math.abs(ev.clientY - pressY) > 10) return;
       deleteEntryDirect(delBg.dataset.swipeDel);
+    });
+    // mouse/keyboard fallback for anyone on a desktop browser
+    delBg.addEventListener('click', function(ev){
+      if (ev.pointerType === undefined && ev.detail === 0) deleteEntryDirect(delBg.dataset.swipeDel);
     });
   }
 }
@@ -2872,35 +2933,64 @@ function saveEntryDetail(){
   payload.author = authorVal;
   if (authorVal && authorVal !== state.author){ state.author = authorVal; localStorage.setItem(LS_AUTHOR, authorVal); }
 
-  /* a note in Korean or Vietnamese gets translated for the other reader, the
-     same way memos do. Unlike the memo flow this happens on save (there's no
-     live preview field here), and a failed translation just saves the note
-     untranslated rather than blocking the save. */
+  /* A note in Korean or Vietnamese gets translated for the other reader — but
+     the SAVE MUST NEVER WAIT FOR IT. This used to sit on the translation
+     before writing anything, so with the translation services unreachable the
+     save button did nothing at all for up to half a minute: no spinner, no
+     error, just a dead button. The entry is saved first and the translation is
+     filled in afterwards, whenever (or if ever) it arrives. */
   var noteLang = noteVal ? detectLang(noteVal) : 'other';
-  var notePromise;
-  if (noteLang === 'ko' || noteLang === 'vi'){
-    payload.noteLang = noteLang;
-    notePromise = apiTranslate(noteVal, noteLang === 'ko' ? 'vi' : 'ko').catch(function(){ return ''; });
-  } else {
-    payload.noteLang = '';
-    notePromise = Promise.resolve('');
-  }
+  var translatable = (noteLang === 'ko' || noteLang === 'vi');
+  payload.noteLang = translatable ? noteLang : '';
+  // keep an existing translation if the note text didn't change; otherwise the
+  // old translation belongs to text that no longer exists
+  payload.noteTranslated = (noteVal && noteVal === (raw.note || '')) ? (raw.noteTranslated || '') : '';
 
-  notePromise.then(function(translated){
-    payload.noteTranslated = translated;
-    return apiMutate('updateEntry', payload);
-  }).then(function(){
-    closeEntryDetail();
-    renderAll();
-    toast(t('savedToast'));
-  }).catch(function(err){ toast(err.message); });
+  var prevEntry = {}; for (var k in raw) prevEntry[k] = raw[k];
+  var entryId = state.entryId;
+
+  // show it as done straight away — the write goes out behind the screen
+  for (var f in payload) if (f !== 'id') raw[f] = payload[f];
+  closeEntryDetail();
+  renderAll();
+  toast(t('savedToast'));
+
+  apiMutate('updateEntry', payload)
+    .then(function(){ renderAll(); })
+    .catch(function(err){
+      var cur = (appState.entries || []).filter(function(x){ return x.id === entryId; })[0];
+      if (cur) for (var f2 in prevEntry) cur[f2] = prevEntry[f2];
+      renderAll();
+      toast(err.message);
+    });
+
+  /* the translation, out of the way of everything. If it never comes back the
+     note is simply stored untranslated, which is what happened before anyway. */
+  if (translatable && !payload.noteTranslated){
+    apiTranslate(noteVal, noteLang === 'ko' ? 'vi' : 'ko').then(function(translated){
+      if (!translated) return;
+      var cur = (appState.entries || []).filter(function(x){ return x.id === entryId; })[0];
+      // the note may have been edited again while this was in flight
+      if (!cur || cur.note !== noteVal) return;
+      cur.noteTranslated = translated;
+      renderAll();
+      return apiMutate('updateEntry', { id: entryId, noteTranslated: translated, noteLang: noteLang });
+    }).catch(function(){ /* untranslated is an acceptable outcome */ });
+  }
 }
 function deleteEntryDetail(){
-  apiMutate('deleteEntry', { id: state.entryId }).then(function(){
-    closeEntryDetail();
-    renderAll();
-    toast(t('deletedToast'));
-  }).catch(function(err){ toast(err.message); });
+  /* same rule as everywhere else: the screen answers the finger, the write
+     goes out behind it. A 삭제 that waits on a sleeping server is a 삭제 that
+     looks broken. */
+  var id = state.entryId;
+  var prev = (appState.entries || []).slice();
+  appState.entries = prev.filter(function(e){ return e.id !== id; });
+  closeEntryDetail();
+  renderAll();
+  toast(t('deletedToast'));
+  apiMutate('deleteEntry', { id: id })
+    .then(function(){ renderAll(); })
+    .catch(function(err){ appState.entries = prev; renderAll(); toast(err.message); });
 }
 
 /* ================================================================
@@ -3039,39 +3129,52 @@ function submitMemo(){
   var text = textEl.value.trim();
   if (!text) return;
   var lang = detectLang(text);
-  var submitBtn = document.getElementById('memo-compose-submit');
-  submitBtn.disabled = true;
+  var translatable = (lang === 'ko' || lang === 'vi');
+  /* the live preview has almost always already translated this exact text by
+     the time 등록 is pressed, so use it. If it hasn't, the memo is posted now
+     and the translation is filled in when it arrives — posting must never sit
+     behind a translation service, or behind a server that is still waking. */
+  var cached = (translatable && memoTranslateCache.text === text && memoTranslateCache.lang === lang)
+    ? (memoTranslateCache.translation || '') : '';
 
-  var translationPromise;
-  if (lang === 'ko' || lang === 'vi'){
-    if (memoTranslateCache.text === text && memoTranslateCache.lang === lang){
-      translationPromise = Promise.resolve(memoTranslateCache.translation);
-    } else {
-      translationPromise = apiTranslate(text, lang === 'ko' ? 'vi' : 'ko').catch(function(){ return ''; });
-    }
-  } else {
-    translationPromise = Promise.resolve('');
-  }
+  var tempId = 'tmp_' + Date.now();
+  appState.memos = [{ id: tempId, text: text, lang: lang, translation: cached,
+                      author: state.author, ts: new Date().toISOString() }]
+                   .concat(appState.memos || []);
 
-  translationPromise
-    .then(function(translation){
-      return apiMutate('addMemo', { text: text, lang: lang, translation: translation, author: state.author });
-    })
-    .then(function(){
-      textEl.value = '';
-      document.getElementById('memo-compose-translate-preview').textContent = '';
-      document.getElementById('memo-compose-translate-wrap').hidden = true;
-      memoTranslateCache = { text: '', lang: '', translation: '' };
-      closeSheet('memo-compose-sheet');
-      renderMemoList();
-      updateMemoPreview();
-      toast(t('savedToast'));
-      submitBtn.disabled = false;
+  textEl.value = '';
+  document.getElementById('memo-compose-translate-preview').textContent = '';
+  document.getElementById('memo-compose-translate-wrap').hidden = true;
+  memoTranslateCache = { text: '', lang: '', translation: '' };
+  closeSheet('memo-compose-sheet');
+  renderMemoList();
+  updateMemoPreview();
+  toast(t('savedToast'));
+
+  apiMutate('addMemo', { text: text, lang: lang, translation: cached, author: state.author })
+    .then(function(res){
+      renderMemoList(); updateMemoPreview();
+      var newId = res && res.memo && res.memo.id;
+      if (translatable && !cached && newId) fillInMemoTranslation(newId, text, lang);
     })
     .catch(function(err){
+      appState.memos = (appState.memos || []).filter(function(m){ return m.id !== tempId; });
+      renderMemoList(); updateMemoPreview();
       toast(err.message || 'error');
-      submitBtn.disabled = false;
     });
+}
+
+/* translate a memo after it is already posted, and store the result so every
+   other phone reads it without translating again */
+function fillInMemoTranslation(memoId, text, lang){
+  apiTranslate(text, lang === 'ko' ? 'vi' : 'ko').then(function(translation){
+    if (!translation) return;
+    var m = (appState.memos || []).filter(function(x){ return x.id === memoId; })[0];
+    if (!m) return;
+    m.translation = translation;
+    renderMemoList(); updateMemoPreview();
+    return apiMutate('updateMemo', { id: memoId, translation: translation });
+  }).catch(function(){ /* an untranslated memo is better than no memo */ });
 }
 
 /* ================================================================
