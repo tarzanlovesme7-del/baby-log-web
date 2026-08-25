@@ -170,10 +170,15 @@
   }
   .active-bar.paused{ opacity:.7; }
   .active-bar .aw-emoji{ font-size:26px; line-height:1; flex:0 0 auto; }
-  .active-bar .aw-time{ font-size:var(--fs-display); font-weight:var(--fw-display); font-variant-numeric:tabular-nums; min-width:78px; }
+  /* the running timer is the widest fixed thing in this bar; tabular digits
+     mean it never actually needs more than its own text, so no min-width */
+  .active-bar .aw-time{ font-size:var(--fs-display); font-weight:var(--fw-display); font-variant-numeric:tabular-nums; flex:0 0 auto; }
   .active-bar .aw-meta{ flex:1; min-width:0; }
-  .active-bar .aw-meta b{ display:block; font-size:var(--fs-body); }
-  .active-bar .aw-meta span{ font-size:var(--fs-caption); color:var(--muted); }
+  /* three 36px buttons + the timer leave ~90px for this on a 390px phone, so
+     the "오후 05:38 · 엄마" line has to truncate rather than stack into three
+     wrapped lines and blow the bar's height out */
+  .active-bar .aw-meta b{ display:block; font-size:var(--fs-body); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .active-bar .aw-meta span{ display:block; font-size:var(--fs-caption); color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .active-bar .aw-actions{ display:flex; gap:8px; }
   .aw-round{
     width:36px; height:36px; border-radius:50%; border:0; background:var(--surface);
@@ -263,23 +268,24 @@
   .day-head .d-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted-2); text-transform:uppercase; letter-spacing:.3px; flex:0 0 auto; }
   .day-totals{ display:flex; gap:11px; font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; flex-wrap:wrap; justify-content:flex-end; }
   .day-totals b{ color:var(--fg); font-weight:var(--fw-strong); }
-  /* swipe-to-delete: .entry-row translates over a red delete layer sitting behind it */
-  .entry-swipe{ position:relative; border-radius:14px; overflow:hidden; }
-  /* opacity:0 at rest — not just "hidden behind the row": on some renderers the
-     rounded corners of this full-bleed red layer and the row sitting on top of
-     it don't clip in perfect lock-step, leaving a faint red antialiasing seam
-     at the corners even when nothing is swiped. Fading it in only once a swipe
-     actually starts (see wireEntrySwipe) removes any chance of that at rest. */
+  /* swipe-to-delete: .entry-row translates over a red delete layer sitting behind it.
+     Square, edge-to-edge: rounding it made the red read as a floating pill with a
+     crescent of page showing around it, which fought the flat full-bleed language
+     the rest of the app uses. The wrapper is pulled out to the white sheet's own
+     edges (-18px, same as the day dividers) and the row puts that padding back,
+     so the red spans the full sheet width while the row's text stays put. */
+  .entry-swipe{ position:relative; margin:0 -18px; overflow:hidden; }
+  /* opacity:0 at rest so no red seam can peek out from behind the row */
   .entry-delete-bg{
     position:absolute; inset:0; display:flex; align-items:center; justify-content:flex-end;
-    padding-right:22px; background:var(--danger); border-radius:14px;
+    padding-right:22px; background:var(--danger);
     opacity:0; transition:opacity 120ms ease;
   }
   .entry-swipe.revealed .entry-delete-bg{ opacity:1; }
   .entry-delete-bg span{ color:#fff; font-size:var(--fs-label); font-weight:var(--fw-strong); }
   .entry-row{
-    position:relative; display:flex; align-items:flex-start; gap:10px; padding:11px 2px; border:0;
-    background:var(--surface); width:100%; text-align:left; border-radius:14px; touch-action:pan-y;
+    position:relative; display:flex; align-items:flex-start; gap:10px; padding:11px 20px; border:0;
+    background:var(--surface); width:100%; text-align:left; touch-action:pan-y;
   }
   .entry-row:active{ background:var(--surface-2); }
   .entry-row.flash{ animation: rowFlash 900ms ease; }
@@ -507,12 +513,84 @@
   }
   /* fp-entry-body sits on the grey page canvas, where surface-2 barely differs from it —
      use white here specifically so fields read as distinct fields, not a form-shaped page */
-  #fp-entry-body .field input, #fp-entry-body .seg, #fp-entry-body .amount-row .amt-step{
+  #fp-entry-body .field input, #fp-entry-body .seg{
     background:var(--surface);
   }
-  .time-row{ display:flex; gap:10px; align-items:flex-end; }
-  .time-row .field{ flex:1; }
-  .time-row .time-sep{ padding-bottom:14px; color:var(--muted); font-size:var(--fs-label); }
+
+  /* ---------- scrub controls ----------
+     Replaces the native time input and the +/- amount stepper. Both render as
+     the same object — a big current value, a hairline rail with a dot, and a
+     number scale underneath — but they're driven differently, because the two
+     quantities are bounded differently:
+       TIME   is a bounded nudge (±4h around the entry's own time), so the whole
+              range fits on screen and a dragged dot is the right control.
+       AMOUNT is open-ended (0–500ml), so the scale scrolls under a dot that
+              stays pinned to the middle, showing a window around the value.
+     A hidden native input stays the source of truth for both, so saving reads
+     the same #f-start / #f-end / #f-amount fields it always did. */
+  .scrub{ background:var(--surface); border-radius:14px; padding:14px 0 12px; }
+  .scrub-top{ position:relative; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 14px; min-height:32px; }
+  .scrub-chip{
+    border:0; background:var(--surface-2); color:var(--muted); border-radius:var(--radius-pill);
+    padding:6px 11px; font-size:var(--fs-caption); font-weight:var(--fw-strong); flex:0 0 auto;
+  }
+  .scrub-chip:active{ background:var(--primary-weak-bg); color:var(--primary); }
+  .scrub-chip.ghost{ background:transparent; color:var(--link); }
+  /* absolutely centred rather than flex-centred: the chips flanking it aren't
+     the same width, so a flex-centred value drifts off the rail's midpoint —
+     and the dot underneath it is what the eye lines it up against.
+     Doubles as the button that reveals the exact-entry input. */
+  .scrub-val{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    border:0; background:transparent; padding:0; white-space:nowrap;
+    display:flex; align-items:baseline; gap:5px; color:var(--fg);
+  }
+  .scrub-val b{ font-size:26px; font-weight:var(--fw-display); font-variant-numeric:tabular-nums; letter-spacing:-.4px; }
+  .scrub-val small{ font-size:var(--fs-label); font-weight:var(--fw-medium); color:var(--muted); }
+  .scrub-exact{ padding:10px 14px 2px; }
+  .scrub-exact input{ width:100%; }
+
+  .scrub-rail{ position:relative; height:44px; margin-top:6px; }
+  .scrub-line{ position:absolute; left:14px; right:14px; top:9px; height:1px; background:var(--border); pointer-events:none; }
+  .scrub-dot{
+    position:absolute; top:3px; width:13px; height:13px; margin-left:-6.5px; border-radius:50%;
+    background:var(--primary); pointer-events:none; box-shadow:0 0 0 3px var(--surface);
+  }
+  .scrub-scale{ position:absolute; left:0; right:0; top:24px; display:flex; pointer-events:none; }
+  .scrub-scale span{
+    flex:1; text-align:center; font-size:var(--fs-micro); color:var(--muted-2);
+    font-variant-numeric:tabular-nums;
+  }
+  .scrub-scale span.on{ color:var(--primary); font-weight:var(--fw-display); }
+  /* the range input itself is invisible; the line/dot/scale above are the
+     visible control. Kept as a real <input type=range> so touch dragging,
+     keyboard arrows and accessibility all come for free. */
+  .scrub-range{
+    position:absolute; left:14px; right:14px; top:0; width:calc(100% - 28px); height:22px;
+    margin:0; opacity:0; -webkit-appearance:none; appearance:none; background:transparent;
+  }
+  .scrub-range::-webkit-slider-thumb{ -webkit-appearance:none; width:34px; height:34px; }
+
+  /* scrolling variant (amount): the scale itself scrolls, dot stays centred */
+  .scrub.is-ruler .scrub-dot{ left:50%; }
+  .scrub-strip{
+    position:absolute; left:0; right:0; top:20px; height:24px; display:flex;
+    overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
+    scrollbar-width:none; overscroll-behavior-x:contain;
+  }
+  .scrub-strip::-webkit-scrollbar{ display:none; }
+  /* fade the ends instead of slicing a number in half at the clip edge —
+     a partially-scrolled ruler always has a cell straddling the boundary */
+  .scrub-strip{
+    -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%);
+            mask-image:linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%);
+  }
+  .scrub-strip .sv{
+    flex:0 0 44px; width:44px; scroll-snap-align:center; text-align:center;
+    font-size:var(--fs-micro); color:var(--muted-2); font-variant-numeric:tabular-nums; line-height:20px;
+  }
+  .scrub-strip .sv.on{ color:var(--primary); font-weight:var(--fw-display); }
+  .scrub-strip .sv.pad{ flex:0 0 auto; }
   .seg{ display:flex; gap:2px; border-radius:14px; background:var(--surface-2); padding:3px; }
   .seg button{ flex:1; border:0; background:transparent; border-radius:11px; padding:10px 4px; font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted); }
   .seg button[aria-pressed="true"]{ background:var(--primary); color:var(--primary-fg); }
@@ -536,9 +614,6 @@
     display:flex; align-items:center; justify-content:center; flex:0 0 auto;
   }
   .chip-x:active{ background:var(--danger); color:#fff; }
-  .amount-row{ display:flex; align-items:center; gap:10px; }
-  .amount-row .amt-step{ width:42px; height:42px; border-radius:50%; background:var(--surface-2); border:0; font-size:19px; font-weight:var(--fw-strong); flex:0 0 auto; }
-  .amount-row input[type="number"]{ text-align:center; font-size:var(--fs-display); font-weight:var(--fw-display); }
   input[type="range"]{ width:100%; accent-color:var(--primary); }
   .btn{ width:100%; padding:16px; border-radius:16px; border:0; font-size:var(--fs-title); font-weight:var(--fw-display); }
   .btn.primary{ background:var(--primary); color:var(--primary-fg); }
@@ -874,6 +949,13 @@
       <span style="width:30px"></span>
     </div>
     <div class="sheet-body">
+      <!-- first run happens BEHIND the scrim, which covers the header's own
+           KO/VI switch — so this sheet carries its own. Without it the
+           Vietnamese-speaking nanny's very first screen is untranslatable. -->
+      <div class="lang-pill" id="profile-lang-pill" style="align-self:center">
+        <button type="button" data-lang="ko" aria-pressed="true">🇰🇷 KO</button>
+        <button type="button" data-lang="vi" aria-pressed="false">🇻🇳 VI</button>
+      </div>
       <p style="font-size:var(--fs-caption);color:var(--muted);margin:0" data-i18n="whoAmIDesc">기록에 표시할 이름을 골라주세요. 나중에 설정에서 바꿀 수 있어요.</p>
       <div class="chip-row" id="profile-chip-row" style="padding:0"></div>
       <div class="field">
@@ -947,6 +1029,7 @@ ko: {
   wet:"소변", dirty:"대변", both:"소변+대변", diaperKind:"종류",
   nap:"낮잠", night:"밤잠", auto:"자동판별", sleepKind:"수면 종류",
   startTime:"시작 시간", endTime:"종료 시간", nowBtn:"지금", dateLabel:"날짜",
+  addEndTime:"+ 종료 시간", exactTime:"직접 입력", minusHour:"-1시간",
   amount:"먹은 양", ml:"ml", note:"메모", medNote:"약 이름 / 메모",
   temperature:"체온", celsius:"°C", author:"기록자",
   savedToast:"저장했어요", deletedToast:"삭제했어요", startedToast:"타이머를 시작했어요", recordedToast:"기록했어요",
@@ -991,6 +1074,7 @@ vi: {
   wet:"Nước tiểu", dirty:"Phân", both:"Cả hai", diaperKind:"Loại",
   nap:"Ngủ ngày", night:"Ngủ đêm", auto:"Tự nhận diện", sleepKind:"Loại giấc ngủ",
   startTime:"Giờ bắt đầu", endTime:"Giờ kết thúc", nowBtn:"Bây giờ", dateLabel:"Ngày",
+  addEndTime:"+ Giờ kết thúc", exactTime:"Nhập trực tiếp", minusHour:"-1 giờ",
   amount:"Lượng bú", ml:"ml", note:"Ghi chú", medNote:"Tên thuốc / Ghi chú",
   temperature:"Thân nhiệt", celsius:"°C", author:"Người ghi",
   savedToast:"Đã lưu", deletedToast:"Đã xóa", startedToast:"Đã bắt đầu hẹn giờ", recordedToast:"Đã ghi nhận",
@@ -1477,23 +1561,21 @@ function renderAdjustPanel(){
   var a = getActive();
   if (!a) return;
   var html = '<div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:8px;">'+esc(t('adjustStart'))+'</div>';
-  html += '<div class="time-row" style="align-items:center;">';
-  html += '<div class="field" style="flex:1;margin-bottom:0;"><input type="time" id="aw-start-input" value="'+toTimeValue(a.start)+'" /></div>';
-  html += '<button type="button" class="chip" id="aw-now-btn" style="background:var(--primary-weak-bg);color:var(--primary-weak-fg);">'+esc(t('nowBtn'))+'</button>';
-  html += '</div>';
+  /* the same scrub the entry-detail screen uses, so "picking a time" is one
+     gesture everywhere in the app rather than a scrub here and a native
+     spinner there. Its own 지금 chip replaces the separate button this
+     panel used to carry. */
+  html += timeScrubHtml('aw-start-input', toTimeValue(a.start), true);
   html += '<button type="button" class="text-btn" style="color:var(--danger);padding-left:0;margin-top:10px;" id="aw-discard">'+esc(t('discardActive'))+'</button>';
   panel.innerHTML = html;
-  document.getElementById('aw-start-input').addEventListener('change', function(ev){
+  wireScrubs(panel);
+  /* persist on every user-driven move; 'scrubchange' rather than 'change' so
+     the scrub's own re-anchor listener doesn't fight this one */
+  document.getElementById('aw-start-input').addEventListener('scrubchange', function(ev){
     var a2 = getActive();
     if (!a2) return;
     apiMutate('adjustActiveStart', { start: combineDateTime(a2.start, ev.target.value) }).then(function(){
       renderActiveBar();
-    }).catch(function(err){ toast(err.message); });
-  });
-  document.getElementById('aw-now-btn').addEventListener('click', function(){
-    apiMutate('adjustActiveStart', { start: new Date().toISOString() }).then(function(){
-      renderActiveBar();
-      renderAdjustPanel();
     }).catch(function(err){ toast(err.message); });
   });
   document.getElementById('aw-discard').addEventListener('click', function(){
@@ -2278,6 +2360,187 @@ function openEntryDetail(entryId){
 }
 function closeEntryDetail(){ closeFullpage('fp-entry'); state.entryId = null; }
 
+/* ================================================================
+   SCRUB CONTROLS — the entry-detail time and amount inputs.
+   Both render the same way (big value, hairline rail with a dot, number
+   scale) and both keep a hidden native input as the value's source of
+   truth, so saveEntryDetail still just reads #f-start / #f-end / #f-amount.
+   ================================================================ */
+var SCRUB_TIME_SPAN_MIN = 240;  /* ±4h, matching the reference app's scale */
+var SCRUB_TIME_STEP_MIN = 5;
+
+function timeScrubHtml(id, timeValue, withMinusHour){
+  /* the visible scale is static (-4 … +4); the dot's position is what moves */
+  var scale = '';
+  for (var h = -4; h <= 4; h++){
+    scale += '<span data-h="'+h+'">'+(h>0?'+':'')+h+'</span>';
+  }
+  return '<div class="scrub" data-scrub="time" data-for="'+id+'">' +
+    '<div class="scrub-top">' +
+      (withMinusHour
+        ? '<button type="button" class="scrub-chip" data-scrub-nudge="-60">'+esc(t('minusHour'))+'</button>'
+        : '<span style="width:1px"></span>') +
+      '<button type="button" class="scrub-val" data-scrub-exact><b></b></button>' +
+      '<button type="button" class="scrub-chip" data-scrub-now>'+esc(t('nowBtn'))+'</button>' +
+    '</div>' +
+    '<div class="scrub-exact" hidden>' +
+      '<input type="time" id="'+id+'" value="'+esc(timeValue)+'" />' +
+    '</div>' +
+    '<div class="scrub-rail">' +
+      '<div class="scrub-line"></div>' +
+      '<div class="scrub-dot"></div>' +
+      '<input type="range" class="scrub-range" min="'+(-SCRUB_TIME_SPAN_MIN)+'" max="'+SCRUB_TIME_SPAN_MIN+'" step="'+SCRUB_TIME_STEP_MIN+'" value="0" />' +
+      '<div class="scrub-scale">'+scale+'</div>' +
+    '</div>' +
+  '</div>';
+}
+
+function rulerScrubHtml(id, value, min, max, step, unit){
+  /* open-ended quantity: the scale scrolls under a dot pinned to the middle,
+     so the current value is always the centred number */
+  var cells = '';
+  for (var v = min; v <= max; v += step){
+    cells += '<span class="sv" data-v="'+v+'">'+v+'</span>';
+  }
+  return '<div class="scrub is-ruler" data-scrub="ruler" data-for="'+id+'" data-min="'+min+'" data-max="'+max+'" data-step="'+step+'">' +
+    '<div class="scrub-top">' +
+      '<button type="button" class="scrub-chip" data-scrub-nudge="'+(-step*2)+'">−</button>' +
+      '<span class="scrub-val"><b></b><small>'+esc(unit)+'</small></span>' +
+      '<button type="button" class="scrub-chip" data-scrub-nudge="'+(step*2)+'">+</button>' +
+    '</div>' +
+    '<input type="number" id="'+id+'" value="'+esc(value)+'" min="'+min+'" max="'+max+'" step="'+step+'" hidden />' +
+    '<div class="scrub-rail">' +
+      '<div class="scrub-line"></div>' +
+      '<div class="scrub-dot"></div>' +
+      '<div class="scrub-strip"><span class="sv pad"></span>'+cells+'<span class="sv pad"></span></div>' +
+    '</div>' +
+  '</div>';
+}
+
+function wireScrubs(root){
+  $$('[data-scrub]', root).forEach(function(box){
+    if (box.dataset.scrub === 'time') wireTimeScrub(box); else wireRulerScrub(box);
+  });
+}
+
+function wireTimeScrub(box){
+  var input = document.getElementById(box.dataset.for);
+  var range = box.querySelector('.scrub-range');
+  var dot   = box.querySelector('.scrub-dot');
+  var valEl = box.querySelector('.scrub-val b');
+  var scale = $$('.scrub-scale span', box);
+  var exact = box.querySelector('.scrub-exact');
+  /* the anchor is the time the field opened with; the slider is an offset from
+     it, so dragging back to 0 always restores exactly what was there before */
+  var anchor = parseTimeValue(input.value);
+
+  /* notify=true marks a change the USER made, so callers that persist
+     immediately (the stopwatch's start-time panel) can react. A plain
+     'change' event would be caught by this function's own listener below
+     and re-anchor the slider mid-drag, so it gets its own event name. */
+  function paint(notify){
+    var mins = anchor + Number(range.value);
+    valEl.textContent = fmtClock(mins);
+    var pct = (Number(range.value) + SCRUB_TIME_SPAN_MIN) / (SCRUB_TIME_SPAN_MIN * 2);
+    dot.style.left = 'calc(14px + '+(pct*100)+'% - '+(pct*28)+'px)';
+    var nearest = Math.round(Number(range.value) / 60);
+    scale.forEach(function(sp){ sp.classList.toggle('on', Number(sp.dataset.h) === nearest); });
+    input.value = timeValueFromMins(mins);
+    if (notify) input.dispatchEvent(new CustomEvent('scrubchange', { bubbles: true }));
+  }
+  range.addEventListener('input', function(){ paint(true); });
+  box.querySelectorAll('[data-scrub-nudge]').forEach(function(b){
+    b.addEventListener('click', function(){
+      range.value = clampNum(Number(range.value) + Number(b.dataset.scrubNudge), -SCRUB_TIME_SPAN_MIN, SCRUB_TIME_SPAN_MIN);
+      paint(true);
+    });
+  });
+  var nowBtn = box.querySelector('[data-scrub-now]');
+  if (nowBtn) nowBtn.addEventListener('click', function(){
+    var d = new Date();
+    anchor = d.getHours()*60 + d.getMinutes();
+    range.value = 0;
+    paint(true);
+  });
+  var exactBtn = box.querySelector('[data-scrub-exact]');
+  if (exactBtn) exactBtn.addEventListener('click', function(){
+    exact.hidden = !exact.hidden;
+    if (!exact.hidden) input.focus();
+  });
+  /* typing an absolute time re-anchors, so the slider is again a nudge
+     around the new value rather than around the original one */
+  input.addEventListener('change', function(){
+    anchor = parseTimeValue(input.value);
+    range.value = 0;
+    paint(true);
+  });
+  paint(false);
+}
+
+function wireRulerScrub(box){
+  var input = document.getElementById(box.dataset.for);
+  var strip = box.querySelector('.scrub-strip');
+  var valEl = box.querySelector('.scrub-val b');
+  var min = Number(box.dataset.min), step = Number(box.dataset.step), max = Number(box.dataset.max);
+  var cells = $$('.sv[data-v]', strip);
+  var CELL = 44;
+  var settle = null, silent = false;
+
+  function paintValue(v){
+    valEl.textContent = v;
+    input.value = v;
+    cells.forEach(function(c){ c.classList.toggle('on', Number(c.dataset.v) === v); });
+  }
+  function scrollToValue(v){
+    silent = true;
+    strip.scrollLeft = ((v - min) / step) * CELL;
+    /* the scroll handler still fires async; let it run, then clear the flag */
+    setTimeout(function(){ silent = false; }, 60);
+  }
+  strip.addEventListener('scroll', function(){
+    if (silent) return;
+    clearTimeout(settle);
+    settle = setTimeout(function(){
+      var idx = Math.round(strip.scrollLeft / CELL);
+      paintValue(clampNum(min + idx * step, min, max));
+    }, 60);
+  });
+  box.querySelectorAll('[data-scrub-nudge]').forEach(function(b){
+    b.addEventListener('click', function(){
+      var v = clampNum((Number(input.value) || 0) + Number(b.dataset.scrubNudge), min, max);
+      paintValue(v); scrollToValue(v);
+    });
+  });
+
+  var start = clampNum(Number(input.value) || 0, min, max);
+  paintValue(start);
+  /* the strip has no width until it's on screen; pad it and position the
+     initial value once layout exists (openEntryDetail shows the page first) */
+  requestAnimationFrame(function(){
+    var pad = Math.max(0, (strip.clientWidth - CELL) / 2);
+    $$('.sv.pad', strip).forEach(function(p){ p.style.width = pad + 'px'; });
+    scrollToValue(start);
+  });
+}
+
+/* minutes-since-midnight <-> "HH:MM", wrapping across midnight so a -1h nudge
+   at 00:20 lands on 23:20 rather than a negative time */
+function parseTimeValue(v){
+  var p = String(v || '00:00').split(':');
+  return (Number(p[0]) || 0) * 60 + (Number(p[1]) || 0);
+}
+function timeValueFromMins(mins){
+  mins = ((mins % 1440) + 1440) % 1440;
+  var h = Math.floor(mins / 60), m = mins % 60;
+  return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
+}
+function fmtClock(mins){
+  mins = ((mins % 1440) + 1440) % 1440;
+  var d = new Date(); d.setHours(Math.floor(mins / 60), mins % 60, 0, 0);
+  return d.toLocaleTimeString(locale(), {hour:'2-digit', minute:'2-digit'});
+}
+function clampNum(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
 function buildEntryFields(meta, e){
   var html = '';
 
@@ -2285,20 +2548,27 @@ function buildEntryFields(meta, e){
      (see quickCreate/finishActive) and the user can move it independently.
      the date is edited separately from the time-of-day fields. */
   html += '<div class="field"><label>'+esc(t('dateLabel'))+'</label><input type="date" id="f-date" value="'+toDateValue(e.start)+'" /></div>';
-  html += '<div class="time-row">' +
-    '<div class="field"><label>'+esc(t('startTime'))+'</label><input type="time" id="f-start" value="'+toTimeValue(e.start)+'" /></div>' +
-    '<div class="time-sep">–</div>' +
-    '<div class="field"><label>'+esc(t('endTime'))+'</label><input type="time" id="f-end" value="'+toTimeValue(e.end||e.start)+'" /></div>' +
-  '</div>';
+
+  /* start time: a ±4h nudge around whatever the entry already says, which is
+     what almost every correction actually is ("this was about an hour ago").
+     The exact-entry input is one tap away for the rare absolute edit. */
+  html += '<div class="field"><label>'+esc(t('startTime'))+'</label>' +
+    timeScrubHtml('f-start', toTimeValue(e.start), true) + '</div>';
+
+  /* end time is optional-feeling: instant records have end === start, so it
+     starts collapsed behind a "+ 종료 시간" button and only becomes a second
+     scrub once there's actually a range to edit. */
+  var hasEnd = !!(e.end && e.end !== e.start);
+  if (!hasEnd){
+    html += '<button type="button" class="scrub-chip ghost" id="f-add-end" style="align-self:flex-start">' +
+      esc(t('addEndTime')) + '</button>';
+  }
+  html += '<div class="field" id="f-end-field"'+(hasEnd?'':' hidden')+'><label>'+esc(t('endTime'))+'</label>' +
+    timeScrubHtml('f-end', toTimeValue(e.end||e.start), false) + '</div>';
 
   if (meta.hasAmount){
     html += '<div class="field"><label>'+esc(t('amount'))+'</label>' +
-      '<div class="amount-row">' +
-        '<button type="button" class="amt-step" data-amt-step="-10">−</button>' +
-        '<input type="number" id="f-amount" value="'+esc(e.amount)+'" min="0" max="500" step="5" />' +
-        '<button type="button" class="amt-step" data-amt-step="10">+</button>' +
-      '</div>' +
-      '<input type="range" id="f-amount-range" min="0" max="300" step="5" value="'+esc(e.amount||0)+'" style="margin-top:10px" /></div>';
+      rulerScrubHtml('f-amount', Number(e.amount) || 0, 0, 500, 5, t('ml')) + '</div>';
   }
   if (meta.hasDiaperKind){
     html += '<div class="field"><label>'+esc(t('diaperKind'))+'</label><div class="seg" id="f-diaper">' +
@@ -2336,17 +2606,19 @@ function buildEntryFields(meta, e){
 }
 
 function wireEntryFields(meta){
-  var range = document.getElementById('f-amount-range'), num = document.getElementById('f-amount');
-  if (range && num){
-    range.addEventListener('input', function(){ num.value = range.value; });
-    num.addEventListener('input', function(){ range.value = num.value; });
-    $$('.amt-step').forEach(function(b){
-      b.addEventListener('click', function(){
-        num.value = Math.max(0, (Number(num.value)||0) + Number(b.dataset.amtStep));
-        range.value = num.value;
-      });
+  wireScrubs(document.getElementById('fp-entry-body'));
+
+  /* "+ 종료 시간": instant records have end === start, so the end scrub stays
+     out of the way until there's actually a range worth editing */
+  var endField = document.getElementById('f-end-field');
+  var addEndBtn = document.getElementById('f-add-end');
+  if (endField && addEndBtn){
+    addEndBtn.addEventListener('click', function(){
+      endField.hidden = false;
+      addEndBtn.hidden = true;
     });
   }
+
   ['f-diaper','f-sleep'].forEach(function(segId){
     var seg = document.getElementById(segId);
     if (!seg) return;
@@ -2389,7 +2661,14 @@ function saveEntryDetail(){
   var dateVal = document.getElementById('f-date') ? document.getElementById('f-date').value : toDateValue(raw.start);
   var startTimeVal = document.getElementById('f-start').value;
   var newStart = combineDateAndTime(dateVal, startTimeVal);
-  var endTimeVal = document.getElementById('f-end') ? document.getElementById('f-end').value : startTimeVal;
+  /* an end scrub that was never revealed means "no range" — the entry keeps
+     end === start. Without this, nudging the START would leave the untouched
+     end input holding the OLD start and silently invent a duration. */
+  var endField = document.getElementById('f-end-field');
+  var endHidden = !endField || endField.hidden;
+  var endTimeVal = (!endHidden && document.getElementById('f-end'))
+    ? document.getElementById('f-end').value
+    : startTimeVal;
   var newEnd = combineDateAndTime(dateVal, endTimeVal || startTimeVal);
 
   var payload = { id: state.entryId, start: newStart, end: newEnd };
@@ -2655,7 +2934,15 @@ function saveTypeSheet(){
 /* ================================================================
    PROFILE SHEET — first-run "who am I" (local only)
    ================================================================ */
-function openProfilePicker(){
+function syncLangPills(){
+  $$('.lang-pill button').forEach(function(b){
+    b.setAttribute('aria-pressed', String(b.dataset.lang === state.lang));
+  });
+}
+/* pulled out of openProfilePicker so a language switch made INSIDE the sheet
+   can redraw the name chips — they're built from t('authorPresets'), which
+   applyI18n() can't reach because they're generated, not data-i18n markup. */
+function renderProfilePickerChips(){
   renderAuthorChips('profile-chip-row', state.author, function(name){
     document.getElementById('profile-custom-input').value = '';
     state.author = name;
@@ -2663,6 +2950,9 @@ function openProfilePicker(){
       c.setAttribute('aria-pressed', String(c.dataset.name===name));
     });
   });
+}
+function openProfilePicker(){
+  renderProfilePickerChips();
   document.getElementById('profile-custom-input').value = '';
   openSheet('profile-sheet');
 }
@@ -2708,6 +2998,10 @@ function renderAll(){
   renderSettings();
   updateMemoPreview();
   renderMemoList();
+  /* the first-run picker sits above everything and builds its chips itself,
+     so it needs redrawing too when the language changes underneath it */
+  var picker = document.getElementById('profile-sheet');
+  if (picker && picker.classList.contains('show')) renderProfilePickerChips();
 }
 
 /* ================================================================
@@ -2725,11 +3019,13 @@ function switchTab(name){
 }
 
 function wireEvents(){
-  $$('#lang-pill button').forEach(function(b){
+  /* every .lang-pill on the page drives the same setting — the header's and
+     the profile sheet's — and they all restate the current choice together */
+  $$('.lang-pill button').forEach(function(b){
     b.addEventListener('click', function(){
       state.lang = b.dataset.lang;
       localStorage.setItem(LS_LANG, state.lang);
-      $$('#lang-pill button').forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); });
+      syncLangPills();
       renderAll();
     });
   });
@@ -2840,7 +3136,7 @@ function wireEvents(){
    INIT
    ================================================================ */
 function init(){
-  $$('#lang-pill button').forEach(function(b){ b.setAttribute('aria-pressed', String(b.dataset.lang===state.lang)); });
+  syncLangPills();
   wireEvents();
   apiGetState().then(function(){
     renderAll();
