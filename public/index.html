@@ -115,6 +115,9 @@
   }
 
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  /* without this a mobile browser may hold a tap for ~300ms waiting to see
+     whether it becomes a double-tap-to-zoom; every control here is one tap */
+  button, .chip, .tab-btn, .qa-btn, .announce-row, .row-item, label{ touch-action:manipulation; }
   html,body{height:100%;}
   body{
     margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
@@ -1029,7 +1032,7 @@ ko: {
   wet:"소변", dirty:"대변", both:"소변+대변", diaperKind:"종류",
   nap:"낮잠", night:"밤잠", auto:"자동판별", sleepKind:"수면 종류",
   startTime:"시작 시간", endTime:"종료 시간", nowBtn:"지금", dateLabel:"날짜",
-  addEndTime:"+ 종료 시간", exactTime:"직접 입력", minusHour:"-1시간",
+  addEndTime:"+ 종료 시간", exactTime:"직접 입력", minusHour:"-1시간", minusTen:"-10분",
   amount:"먹은 양", ml:"ml", note:"메모", medNote:"약 이름 / 메모",
   temperature:"체온", celsius:"°C", author:"기록자",
   savedToast:"저장했어요", deletedToast:"삭제했어요", startedToast:"타이머를 시작했어요", recordedToast:"기록했어요",
@@ -1074,7 +1077,7 @@ vi: {
   wet:"Nước tiểu", dirty:"Phân", both:"Cả hai", diaperKind:"Loại",
   nap:"Ngủ ngày", night:"Ngủ đêm", auto:"Tự nhận diện", sleepKind:"Loại giấc ngủ",
   startTime:"Giờ bắt đầu", endTime:"Giờ kết thúc", nowBtn:"Bây giờ", dateLabel:"Ngày",
-  addEndTime:"+ Giờ kết thúc", exactTime:"Nhập trực tiếp", minusHour:"-1 giờ",
+  addEndTime:"+ Giờ kết thúc", exactTime:"Nhập trực tiếp", minusHour:"-1 giờ", minusTen:"-10 phút",
   amount:"Lượng bú", ml:"ml", note:"Ghi chú", medNote:"Tên thuốc / Ghi chú",
   temperature:"Thân nhiệt", celsius:"°C", author:"Người ghi",
   savedToast:"Đã lưu", deletedToast:"Đã xóa", startedToast:"Đã bắt đầu hẹn giờ", recordedToast:"Đã ghi nhận",
@@ -1184,7 +1187,9 @@ function apiGetState(){
     return res.json();
   }).then(function(json){ appState = json.data; appVersion = json.version; return json; });
 }
+var mutationsInFlight = 0;
 function apiMutate(type, payload){
+  mutationsInFlight++;
   return fetch('/api/mutate', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ type: type, payload: payload || {} })
@@ -1193,7 +1198,9 @@ function apiMutate(type, payload){
       if (!res.ok) throw new Error(json.error || ('mutate failed: ' + type));
       return json;
     });
-  }).then(function(json){ appState = json.data; appVersion = json.version; return json.result; });
+  }).then(function(json){
+    appState = json.data; appVersion = json.version; return json.result;
+  }).finally(function(){ mutationsInFlight--; });
 }
 function apiTranslate(text, target){
   return fetch('/api/translate', {
@@ -1210,7 +1217,9 @@ function apiTranslate(text, target){
    already in flight from this tab so responses can't land out of order */
 var pollBusy = false;
 function pollState(){
-  if (pollBusy) return;
+  /* a poll landing mid-write would replace appState with a version that
+     predates the optimistic row and make it flicker away */
+  if (pollBusy || mutationsInFlight > 0) return;
   pollBusy = true;
   fetch('/api/state').then(function(res){ return res.json(); }).then(function(json){
     pollBusy = false;
@@ -1655,15 +1664,27 @@ function renderSinceLast(){
     {key:'since_sleep', emoji:'😴', e:sleep, sub: sleep ? (sleep.sleepKind ? t(sleep.sleepKind==='night'?'night':'nap') : '') : ''}
   ];
   var row = document.getElementById('since-row');
-  row.innerHTML = cards.map(function(c){
+  /* This runs once a SECOND. Rebuilding innerHTML each tick threw away and
+     recreated three cards 86,400 times a day, forcing a layout on every tick —
+     which is exactly what made taps near the top of the screen feel sticky.
+     Build the shell once, then only write the values that actually changed. */
+  if (row.childElementCount !== cards.length){
+    row.innerHTML = cards.map(function(){
+      return '<div class="dash-item"><div class="d-emoji"></div><div class="d-label"></div>' +
+             '<div class="d-val"></div><div class="d-sub"></div></div>';
+    }).join('');
+  }
+  var items = row.children;
+  cards.forEach(function(c, i){
+    var el = items[i];
     var ms = c.e ? (now - new Date(c.e.end || c.e.start).getTime()) : null;
-    return '<div class="dash-item">' +
-      '<div class="d-emoji">'+c.emoji+'</div>' +
-      '<div class="d-label">'+esc(t(c.key))+'</div>' +
-      '<div class="d-val">'+esc(fmtElapsed(ms))+'</div>' +
-      (c.sub ? '<div class="d-sub">'+esc(c.sub)+'</div>' : '') +
-    '</div>';
-  }).join('');
+    var vals = [c.emoji, t(c.key), fmtElapsed(ms), c.sub || ''];
+    var nodes = el.children;
+    for (var k = 0; k < 4; k++){
+      if (nodes[k].textContent !== vals[k]) nodes[k].textContent = vals[k];
+    }
+    nodes[3].hidden = !c.sub;
+  });
 }
 
 /* ================================================================
@@ -1762,13 +1783,36 @@ function quickCreate(typeId){
   var meta = typeMeta(typeId);
   if (!meta) return;
   var now = new Date().toISOString();
-  apiMutate('addEntry', { type: typeId, start: now, end: now, author: state.author }).then(function(result){
-    renderAll();
-    toast(t('recordedToast'));
-    if (navigator.vibrate) try{ navigator.vibrate(8); }catch(e){}
-    var row = document.querySelector('.entry-row[data-id="'+cssEsc(result.entry.id)+'"]');
-    if (row){ row.classList.add('flash'); setTimeout(function(){ row.classList.remove('flash'); }, 900); }
-  }).catch(function(err){ toast(err.message); });
+
+  /* Show the entry BEFORE the server has heard about it. The round trip to
+     the server is what a tap used to wait on, so on a phone the app felt
+     dead for as long as the network took — which on a sleeping free-tier
+     instance is a very long time. The write still goes through the same
+     reducer; this only moves the feedback to where the finger is. */
+  var tempId = 'tmp_' + Date.now() + '_' + Math.round(Math.random()*1e6);
+  appState.entries = [{ id: tempId, type: typeId, start: now, end: now, author: state.author }]
+    .concat(appState.entries || []);
+  renderAll();
+  toast(t('recordedToast'));
+  if (navigator.vibrate) try{ navigator.vibrate(8); }catch(e){}
+  flashRow(tempId);
+
+  apiMutate('addEntry', { type: typeId, start: now, end: now, author: state.author })
+    .then(function(result){
+      renderAll();               /* server state replaced the temp row */
+      flashRow(result.entry.id);
+    })
+    .catch(function(err){
+      /* the write never landed — take the row back rather than leaving a
+         record that only exists on this phone */
+      appState.entries = (appState.entries || []).filter(function(e){ return e.id !== tempId; });
+      renderAll();
+      toast(err.message);
+    });
+}
+function flashRow(id){
+  var row = document.querySelector('.entry-row[data-id="'+cssEsc(id)+'"]');
+  if (row){ row.classList.add('flash'); setTimeout(function(){ row.classList.remove('flash'); }, 900); }
 }
 function startStopwatch(typeId){
   var a = getActive();
@@ -2366,19 +2410,26 @@ function closeEntryDetail(){ closeFullpage('fp-entry'); state.entryId = null; }
    scale) and both keep a hidden native input as the value's source of
    truth, so saveEntryDetail still just reads #f-start / #f-end / #f-amount.
    ================================================================ */
-var SCRUB_TIME_SPAN_MIN = 240;  /* ±4h, matching the reference app's scale */
-var SCRUB_TIME_STEP_MIN = 5;
+/* ±2h at 1-minute resolution. The first cut used ±4h in 5-minute steps, which
+   moved in jumps too big to land on an actual time — and a correction is
+   almost always "a bit earlier", not four hours earlier. Halving the span also
+   makes each pixel of travel worth ~40 seconds instead of ~3 minutes, so the
+   same drag is far more precise. Anything beyond ±2h is what the exact-entry
+   field is for, one tap away on the time itself. */
+var SCRUB_TIME_SPAN_MIN = 120;
+var SCRUB_TIME_STEP_MIN = 1;
 
 function timeScrubHtml(id, timeValue, withMinusHour){
   /* the visible scale is static (-4 … +4); the dot's position is what moves */
   var scale = '';
-  for (var h = -4; h <= 4; h++){
-    scale += '<span data-h="'+h+'">'+(h>0?'+':'')+h+'</span>';
+  for (var m = -SCRUB_TIME_SPAN_MIN; m <= SCRUB_TIME_SPAN_MIN; m += 30){
+    var lbl = m === 0 ? '0' : (m % 60 === 0 ? (m>0?'+':'')+(m/60)+'h' : (m>0?'+':'')+m);
+    scale += '<span data-m="'+m+'">'+lbl+'</span>';
   }
   return '<div class="scrub" data-scrub="time" data-for="'+id+'">' +
     '<div class="scrub-top">' +
       (withMinusHour
-        ? '<button type="button" class="scrub-chip" data-scrub-nudge="-60">'+esc(t('minusHour'))+'</button>'
+        ? '<button type="button" class="scrub-chip" data-scrub-nudge="-10">'+esc(t('minusTen'))+'</button>'
         : '<span style="width:1px"></span>') +
       '<button type="button" class="scrub-val" data-scrub-exact><b></b></button>' +
       '<button type="button" class="scrub-chip" data-scrub-now>'+esc(t('nowBtn'))+'</button>' +
@@ -2443,8 +2494,8 @@ function wireTimeScrub(box){
     valEl.textContent = fmtClock(mins);
     var pct = (Number(range.value) + SCRUB_TIME_SPAN_MIN) / (SCRUB_TIME_SPAN_MIN * 2);
     dot.style.left = 'calc(14px + '+(pct*100)+'% - '+(pct*28)+'px)';
-    var nearest = Math.round(Number(range.value) / 60);
-    scale.forEach(function(sp){ sp.classList.toggle('on', Number(sp.dataset.h) === nearest); });
+    var nearest = Math.round(Number(range.value) / 30) * 30;
+    scale.forEach(function(sp){ sp.classList.toggle('on', Number(sp.dataset.m) === nearest); });
     input.value = timeValueFromMins(mins);
     if (notify) input.dispatchEvent(new CustomEvent('scrubchange', { bubbles: true }));
   }
@@ -3008,14 +3059,19 @@ function renderAll(){
   renderQuickActions();
   renderTimeline();   /* builds #active-bar-slot inside today's group */
   renderActiveBar();  /* ...then fills/updates it */
-  renderStats();
+  /* only the visible tab gets rebuilt. renderAll() runs after every write and
+     on every poll that sees a change, and rebuilding the stats SVG plus the
+     whole settings tab each time was work nobody could see — it just made the
+     phone stutter while a finger was on the screen. switchTab() renders a tab
+     on the way in, so a hidden one is never stale when it appears. */
+  if (state.tab === 'stats') renderStats();
   /* renderPattern() is deliberately NOT here: it re-pins the day-column
      scroll to today, and renderAll() runs on every 4s poll — that would yank
      the chart back while someone is swiping through earlier days. The pattern
      tab renders on entry instead (see switchTab). */
-  renderSettings();
+  if (state.tab === 'settings') renderSettings();
   updateMemoPreview();
-  renderMemoList();
+  if (state.tab === 'memo') renderMemoList();
   /* the first-run picker sits above everything and builds its chips itself,
      so it needs redrawing too when the language changes underneath it */
   var picker = document.getElementById('profile-sheet');
@@ -3033,6 +3089,7 @@ function switchTab(name){
   if (name === 'stats') renderStats();
   if (name === 'memo') renderMemoList();
   if (name === 'pattern') renderPattern();
+  if (name === 'settings') renderSettings();
   if (state.adjustOpen){ state.adjustOpen = false; var panel = document.getElementById('aw-adjust-panel'); if (panel) panel.hidden = true; }
 }
 
