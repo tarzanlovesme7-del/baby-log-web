@@ -290,9 +290,10 @@
      same frame it lands rather than wondering whether the tap registered. */
   .entry-delete-bg{ touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
   .entry-delete-bg.pressing{ filter:brightness(.85); }
-  /* dragged far enough that letting go deletes: the label moves to the leading
-     edge so the row reads as being pushed off the screen rather than opening */
-  .entry-swipe.will-delete .entry-delete-bg{ justify-content:flex-start; padding-left:22px; }
+  /* dragged far enough that letting go deletes: the red deepens as a warning.
+     The label stays on the RIGHT — the row slides left, so the right side is
+     the part actually showing, and moving the label left hid it under the row. */
+  .entry-swipe.will-delete .entry-delete-bg{ filter:brightness(.82); }
   .entry-delete-bg span{ color:#fff; font-size:var(--fs-label); font-weight:var(--fw-strong); }
   .entry-row{
     position:relative; display:flex; align-items:flex-start; gap:10px; padding:11px 20px; border:0;
