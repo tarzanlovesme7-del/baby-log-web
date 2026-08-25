@@ -480,13 +480,24 @@
   /* ---------- full pages (announcement / entry detail) ----------
      header/footer are a solid --surface bar over a --bg canvas — the color
      change is the separation, no border needed. */
+  /* Column layout, with the BODY doing the scrolling — not the panel.
+     This panel carries a transform for its slide-in, and a transformed
+     ancestor turns position:fixed into position:absolute for everything
+     inside it. That is why the save bar drifted up over the fields as you
+     scrolled instead of staying docked: it was never fixed to the screen at
+     all. Making the footer a plain flex row at the end of a column removes
+     the problem rather than working around it. */
   .fullpage{
-    position:fixed; inset:0; z-index:45; background:var(--bg); overflow-y:auto;
+    position:fixed; inset:0; z-index:45; background:var(--bg); overflow:hidden;
+    display:flex; flex-direction:column;
     transform:translateX(100%); transition:transform .28s cubic-bezier(.32,.72,0,1);
   }
   .fullpage.show{ transform:translateX(0); }
+  /* position:relative is load-bearing — the h1 inside is absolutely centred,
+     and without a positioned ancestor here it centres itself against the whole
+     panel and lands in the middle of the form */
   .fp-head{
-    position:sticky; top:0; z-index:1; display:flex; align-items:center; gap:10px;
+    position:relative; flex:0 0 auto; z-index:1; display:flex; align-items:center; gap:10px;
     padding:calc(12px + env(safe-area-inset-top)) 10px 14px 6px; background:var(--surface);
   }
   /* plain arrow, no circle chip behind it */
@@ -501,19 +512,36 @@
   }
   .fp-delete{ background:transparent; border:0; color:var(--danger); font-size:var(--fs-body); font-weight:var(--fw-strong); padding:6px 4px; flex:0 0 auto; margin-left:auto; }
   /* extra bottom padding clears the floating save button */
-  .fp-body{ padding:20px 16px calc(100px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; gap:20px; }
-  /* floating, not a full-width bar docked to the edge — the shadow is deliberate here,
-     it's the one place something should read as lifted off the page */
-  .fp-foot{
-    position:fixed; left:0; right:0; bottom:0; z-index:2; max-width:560px; margin:0 auto;
-    padding:0 20px calc(20px + env(safe-area-inset-bottom)); pointer-events:none;
+  /* bottom padding has to clear the docked save bar (~73px) with room to
+     spare, or the last field — the 기록자 chips — sits behind it at the end
+     of the scroll with no way to reach it */
+  .fp-body{
+    flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    padding:20px 16px 24px; display:flex; flex-direction:column; gap:20px;
   }
-  .fp-foot .btn{ pointer-events:auto; box-shadow:0 10px 26px rgba(20,30,50,.22); }
+  /* a docked bar, not a pill hovering over the form. Floating it meant the
+     button sat on top of whatever field happened to be underneath, which read
+     as a rendering bug rather than a deliberate control. */
+  .fp-foot{
+    flex:0 0 auto;
+    padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+    background:var(--surface); border-top:1px solid var(--border);
+  }
+  .fp-foot .btn{ width:100%; max-width:560px; margin:0 auto; display:block; }
 
   .field label{ display:block; font-size:var(--fs-label); color:var(--muted); margin-bottom:7px; font-weight:var(--fw-strong); text-transform:uppercase; letter-spacing:.1px; }
   .field input[type="time"], .field input[type="date"], .field input[type="number"], .field input[type="text"]{
     width:100%; padding:13px 14px; border-radius:14px; border:0; background:var(--surface-2); font-size:16px; color:var(--fg);
   }
+  /* iOS draws date/time inputs as its own control and gives them a much taller
+     intrinsic height than the padding implies — the date field came out roughly
+     twice the height of every other field, with its text centred. Turning the
+     native appearance off and pinning the height makes them match. */
+  .field input[type="date"], .field input[type="time"]{
+    -webkit-appearance:none; appearance:none;
+    height:44px; min-height:44px; line-height:18px; text-align:left;
+  }
+  .field input[type="date"]::-webkit-date-and-time-value{ text-align:left; }
   /* fp-entry-body sits on the grey page canvas, where surface-2 barely differs from it —
      use white here specifically so fields read as distinct fields, not a form-shaped page */
   #fp-entry-body .field input, #fp-entry-body .seg{
@@ -553,13 +581,13 @@
   .scrub-exact{ padding:10px 14px 2px; }
   .scrub-exact input{ width:100%; }
 
-  .scrub-rail{ position:relative; height:44px; margin-top:6px; }
+  .scrub-rail{ position:relative; height:44px; margin-top:6px; touch-action:none; }
   .scrub-line{ position:absolute; left:14px; right:14px; top:9px; height:1px; background:var(--border); pointer-events:none; }
   .scrub-dot{
     position:absolute; top:3px; width:13px; height:13px; margin-left:-6.5px; border-radius:50%;
     background:var(--primary); pointer-events:none; box-shadow:0 0 0 3px var(--surface);
   }
-  .scrub-scale{ position:absolute; left:0; right:0; top:24px; display:flex; pointer-events:none; }
+  .scrub-scale{ position:absolute; left:0; right:0; top:24px; display:flex; pointer-events:none; z-index:1; }
   .scrub-scale span{
     flex:1; text-align:center; font-size:var(--fs-micro); color:var(--muted-2);
     font-variant-numeric:tabular-nums;
@@ -568,9 +596,13 @@
   /* the range input itself is invisible; the line/dot/scale above are the
      visible control. Kept as a real <input type=range> so touch dragging,
      keyboard arrows and accessibility all come for free. */
+  /* covers the FULL rail — line, dot and the number scale underneath — so a
+     thumb can grab anywhere in the block. It used to be a 22px strip at the
+     top, which meant only the dot itself was draggable. */
   .scrub-range{
-    position:absolute; left:14px; right:14px; top:0; width:calc(100% - 28px); height:22px;
+    position:absolute; left:14px; right:14px; top:0; width:calc(100% - 28px); height:100%;
     margin:0; opacity:0; -webkit-appearance:none; appearance:none; background:transparent;
+    z-index:2; cursor:pointer;
   }
   .scrub-range::-webkit-slider-thumb{ -webkit-appearance:none; width:34px; height:34px; }
 
@@ -1960,10 +1992,20 @@ function wireEntrySwipe(wrap){
   }
 }
 function deleteEntryDirect(id){
-  apiMutate('deleteEntry', { id: id }).then(function(){
-    renderAll();
-    toast(t('deletedToast'));
-  }).catch(function(err){ toast(err.message); });
+  /* take the row out immediately. Waiting for the round trip made a swipe-
+     delete feel like the slowest thing in the app — the red button stayed put
+     with the row still under it until the server answered. */
+  var prev = (appState.entries || []).slice();
+  appState.entries = prev.filter(function(e){ return e.id !== id; });
+  renderAll();
+  toast(t('deletedToast'));
+  apiMutate('deleteEntry', { id: id })
+    .then(function(){ renderAll(); })
+    .catch(function(err){
+      appState.entries = prev;   /* the delete never landed — put it back */
+      renderAll();
+      toast(err.message);
+    });
 }
 
 /* ================================================================
@@ -2456,10 +2498,12 @@ function rulerScrubHtml(id, value, min, max, step, unit){
   return '<div class="scrub is-ruler" data-scrub="ruler" data-for="'+id+'" data-min="'+min+'" data-max="'+max+'" data-step="'+step+'">' +
     '<div class="scrub-top">' +
       '<button type="button" class="scrub-chip" data-scrub-nudge="'+(-step*2)+'">−</button>' +
-      '<span class="scrub-val"><b></b><small>'+esc(unit)+'</small></span>' +
+      '<button type="button" class="scrub-val" data-scrub-exact><b></b><small>'+esc(unit)+'</small></button>' +
       '<button type="button" class="scrub-chip" data-scrub-nudge="'+(step*2)+'">+</button>' +
     '</div>' +
-    '<input type="number" id="'+id+'" value="'+esc(value)+'" min="'+min+'" max="'+max+'" step="'+step+'" hidden />' +
+    '<div class="scrub-exact" hidden>' +
+      '<input type="number" id="'+id+'" value="'+esc(value)+'" min="'+min+'" max="'+max+'" step="'+step+'" inputmode="numeric" />' +
+    '</div>' +
     '<div class="scrub-rail">' +
       '<div class="scrub-line"></div>' +
       '<div class="scrub-dot"></div>' +
@@ -2561,6 +2605,19 @@ function wireRulerScrub(box){
       var v = clampNum((Number(input.value) || 0) + Number(b.dataset.scrubNudge), min, max);
       paintValue(v); scrollToValue(v);
     });
+  });
+
+  /* tapping the number opens a plain field — scrubbing is for nudging, typing
+     is for "it was 140, full stop" */
+  var exact = box.querySelector('.scrub-exact');
+  var exactBtn = box.querySelector('[data-scrub-exact]');
+  if (exactBtn) exactBtn.addEventListener('click', function(){
+    exact.hidden = !exact.hidden;
+    if (!exact.hidden){ input.focus(); input.select && input.select(); }
+  });
+  input.addEventListener('change', function(){
+    var v = clampNum(Math.round((Number(input.value)||0)/step)*step, min, max);
+    paintValue(v); scrollToValue(v);
   });
 
   var start = clampNum(Number(input.value) || 0, min, max);
