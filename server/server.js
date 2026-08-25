@@ -42,14 +42,25 @@ app.post('/api/mutate', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
-app.post('/api/translate', async (req, res, next) => {
+// Translation is a pure read — it touches no stored data — so it answers to
+// GET as well as POST. That makes it checkable from a browser or any plain
+// HTTP client, which is the only way to confirm the upstream providers are
+// actually returning Korean<->Vietnamese rather than trusting a local stub.
+async function handleTranslate(req, res, next) {
   try {
-    const { text, target } = req.body || {};
+    const src = req.method === 'GET' ? req.query : (req.body || {});
+    const text = src.text || src.q;
+    const target = src.target || src.tl;
     if (!text || !target) return res.status(400).json({ error: 'text and target are required' });
-    const translated = await translateText(text, target);
+    if (target !== 'ko' && target !== 'vi') {
+      return res.status(400).json({ error: 'target must be ko or vi' });
+    }
+    const translated = await translateText(String(text), String(target));
     res.json({ translated });
   } catch (err) { next(err); }
-});
+}
+app.post('/api/translate', handleTranslate);
+app.get('/api/translate', handleTranslate);
 
 // fall through to the SPA for any non-API route
 app.get('*', (req, res, next) => {

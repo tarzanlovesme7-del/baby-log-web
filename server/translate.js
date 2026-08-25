@@ -67,10 +67,15 @@ async function fetchWithTimeout(url) {
   return res;
 }
 
+/* MyMemory needs a REAL source language in langpair — 'auto' comes back as
+   "'AUTO' IS AN INVALID SOURCE LANGUAGE". This app only ever translates
+   between Korean and Vietnamese, so the source is simply the other one. */
+function sourceFor(targetLang) { return targetLang === 'ko' ? 'vi' : 'ko'; }
+
 async function myMemoryOnce(text, targetLang) {
   const url = 'https://api.mymemory.translated.net/get' +
     '?q=' + encodeURIComponent(text) +
-    '&langpair=' + encodeURIComponent('auto|' + targetLang);
+    '&langpair=' + encodeURIComponent(sourceFor(targetLang) + '|' + targetLang);
   const res = await fetchWithTimeout(url);
   if (!res.ok) throw new Error('mymemory upstream error: ' + res.status);
   const json = await res.json();
@@ -78,7 +83,7 @@ async function myMemoryOnce(text, targetLang) {
   // MyMemory answers 200 even for quota/'too long' errors, putting the
   // complaint where the translation should be — treat those as failures so
   // the caller falls through to the backup provider.
-  if (!out || /^(QUERY LENGTH LIMIT|INVALID|NO QUERY|MYMEMORY WARNING|YOU USED ALL)/i.test(out)) {
+  if (!out || /^(QUERY LENGTH LIMIT|INVALID|NO QUERY|MYMEMORY WARNING|YOU USED ALL|'[A-Z-]+' IS AN INVALID)/i.test(out)) {
     throw new Error('mymemory returned no usable translation');
   }
   return out;
