@@ -1048,7 +1048,7 @@ ko: {
   entryDetailFor:"상세", deleteSwipeLabel:"삭제",
   poopStats:"배변 통계", avgPoopInterval:"평균 대변 간격", notEnoughData:"데이터 부족",
   feedStatsRange:"기간", range7:"7일", range14:"14일", range30:"30일",
-  translating:"번역 중...", dayShort:"일", poopRecentTpl:"최근 {n}개"
+  translating:"번역 중...", translateFailed:"번역을 못 가져왔어요", dayShort:"일", poopRecentTpl:"최근 {n}개"
 },
 vi: {
   memoLabel:"Ghi chú", memoEmpty:"Chưa có ghi chú nào", memoComposeTitle:"Thêm ghi chú", memoComposePh:"Nhập ghi chú",
@@ -1070,7 +1070,7 @@ vi: {
   since_feed:"Lần bú gần nhất", since_diaper:"Lần thay tã gần nhất", since_sleep:"Giấc ngủ gần nhất",
   nextFeedLabel:"Dự kiến bú tiếp theo", nextFeedValueTpl:"{time} · còn {remain}", nextFeedDueValueTpl:"Đã quá giờ · {time}",
   tabPattern:"Mẫu hình", patternTitle:"Mẫu hình tuần", patternCaption:"7 ngày qua, theo khung giờ trong ngày", patternEmpty:"Chưa có nhật ký trong 7 ngày qua",
-  noRecordYet:"Chưa có dữ liệu", justNow:"Vừa xong", agoSuffix:"trước", hrShort:"giờ", minShort:"phút",
+  noRecordYet:"Chưa có dữ liệu", justNow:"Vừa xong", agoSuffix:"trước", hrShort:" giờ", minShort:" phút",
   wet:"Nước tiểu", dirty:"Phân", both:"Cả hai", diaperKind:"Loại",
   nap:"Ngủ ngày", night:"Ngủ đêm", auto:"Tự nhận diện", sleepKind:"Loại giấc ngủ",
   startTime:"Giờ bắt đầu", endTime:"Giờ kết thúc", nowBtn:"Bây giờ", dateLabel:"Ngày",
@@ -1093,7 +1093,7 @@ vi: {
   entryDetailFor:"Chi tiết", deleteSwipeLabel:"Xóa",
   poopStats:"Thống kê đi phân", avgPoopInterval:"Khoảng cách TB giữa các lần đi phân", notEnoughData:"Chưa đủ dữ liệu",
   feedStatsRange:"Khoảng thời gian", range7:"7 ngày", range14:"14 ngày", range30:"30 ngày",
-  translating:"Đang dịch...", dayShort:"ngày", poopRecentTpl:"{n} lần gần đây"
+  translating:"Đang dịch...", translateFailed:"Không lấy được bản dịch", dayShort:" ngày", poopRecentTpl:"{n} lần gần đây"
 }
 };
 
@@ -2823,12 +2823,30 @@ function updateMemoComposeTranslateField(){
   preview.textContent = t('translating');
   memoTranslateDebounce = setTimeout(function(){
     var target = lang === 'ko' ? 'vi' : 'ko';
+    /* a still-current check on every exit path: the field must never be left
+       reading "번역 중…" forever, which is exactly what happened when a slow
+       provider left the request hanging with nothing to catch */
+    var stillCurrent = function(){
+      var el = document.getElementById('memo-compose-text');
+      return el && el.value.trim() === text;
+    };
+    var settled = false;
+    var giveUp = setTimeout(function(){
+      if (settled || !stillCurrent()) return;
+      settled = true;
+      preview.textContent = t('translateFailed');
+    }, 15000);
+
     apiTranslate(text, target).then(function(translated){
+      if (settled) return;
+      settled = true; clearTimeout(giveUp);
       memoTranslateCache = { text: text, lang: lang, translation: translated };
-      if (document.getElementById('memo-compose-text').value.trim() === text){
-        preview.textContent = translated;
-      }
-    }).catch(function(){ preview.textContent = ''; });
+      if (stillCurrent()) preview.textContent = translated;
+    }).catch(function(){
+      if (settled) return;
+      settled = true; clearTimeout(giveUp);
+      if (stillCurrent()) preview.textContent = t('translateFailed');
+    });
   }, 500);
 }
 function submitMemo(){
