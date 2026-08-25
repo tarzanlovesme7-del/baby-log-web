@@ -16,6 +16,17 @@
 //      default timeout, so a slow provider left the request hanging with no
 //      error to show the user. Every request now has its own deadline.
 
+// Render's free tier gives every service a SHARED outbound IP, and both free
+// providers meter anonymous use by IP — so the daily quota is already spent by
+// strangers before this app asks for anything, and both answer 429. Two ways
+// out, in order of preference:
+//   DEEPL_API_KEY      a real key, metered to the account, not the IP
+//   MYMEMORY_EMAIL     free and signup-free: MyMemory meters by EMAIL when the
+//                      `de` parameter is present, which sidesteps the shared IP
+// With neither set the app still tries anonymously, which is what fails today.
+const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
+const MYMEMORY_EMAIL = process.env.MYMEMORY_EMAIL || '';
+
 const MYMEMORY_MAX_BYTES = 450;   // under the documented 500, leaving headroom
 const REQUEST_TIMEOUT_MS = 6000;  // per provider request; 2 providers => ~12s worst case,
                                   // which the browser's own 15s give-up sits just outside
@@ -75,7 +86,8 @@ function sourceFor(targetLang) { return targetLang === 'ko' ? 'vi' : 'ko'; }
 async function myMemoryOnce(text, targetLang) {
   const url = 'https://api.mymemory.translated.net/get' +
     '?q=' + encodeURIComponent(text) +
-    '&langpair=' + encodeURIComponent(sourceFor(targetLang) + '|' + targetLang);
+    '&langpair=' + encodeURIComponent(sourceFor(targetLang) + '|' + targetLang) +
+    (MYMEMORY_EMAIL ? '&de=' + encodeURIComponent(MYMEMORY_EMAIL) : '');
   const res = await fetchWithTimeout(url);
   if (!res.ok) throw new Error('mymemory upstream error: ' + res.status);
   const json = await res.json();
@@ -103,20 +115,48 @@ async function googleOnce(text, targetLang) {
   return out;
 }
 
-/* one piece, primary then fallback */
+/* DeepL, when a key is configured. Metered to the key, so a shared server IP
+   doesn't matter — this is the only option that stays reliable. */
+async function deeplOnce(text, targetLang) {
+  const host = DEEPL_API_KEY.endsWith(':fx')
+    ? 'https://api-free.deepl.com' : 'https://api.deepl.com';
+  const res = await fetch(host + '/v2/translate', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'DeepL-Auth-Key ' + DEEPL_API_KEY,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: new URLSearchParams({
+      text, target_lang: targetLang.toUpperCase(),
+      source_lang: sourceFor(targetLang).toUpperCase(),
+    }).toString(),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+  });
+  if (!res.ok) throw new Error('deepl upstream error: ' + res.status);
+  const json = await res.json();
+  const out = json && json.translations && json.translations[0] && json.translations[0].text;
+  if (!out) throw new Error('deepl returned no usable translation');
+  return out;
+}
+
+/* one piece, best available provider first */
 async function translatePiece(text, targetLang) {
-  try {
-    return await myMemoryOnce(text, targetLang);
-  } catch (primaryErr) {
+  const errs = [];
+  const chain = [];
+  if (DEEPL_API_KEY) chain.push(['deepl', deeplOnce]);
+  chain.push(['mymemory', myMemoryOnce], ['google', googleOnce]);
+
+  for (const [name, fn] of chain) {
     try {
-      return await googleOnce(text, targetLang);
-    } catch (fallbackErr) {
-      const e = new Error('translate upstream error: both providers failed');
-      e.status = 502;
-      e.detail = primaryErr.message + ' / ' + fallbackErr.message;
-      throw e;
+      return await fn(text, targetLang);
+    } catch (err) {
+      errs.push(name + ': ' + err.message);
     }
   }
+  const e = new Error('translate upstream error: all providers failed');
+  e.status = 502;
+  e.detail = errs.join(' / ');
+  throw e;
 }
 
 async function translateText(text, targetLang) {
@@ -126,9 +166,11 @@ async function translateText(text, targetLang) {
   // single request — one call beats eight, and only if it fails do we fall
   // back to chunking through MyMemory.
   if (byteLen(text) > MYMEMORY_MAX_BYTES) {
-    try {
-      return await googleOnce(text, targetLang);
-    } catch (e) { /* fall through to chunked MyMemory below */ }
+    // neither of these has MyMemory's length limit, so try them whole first
+    if (DEEPL_API_KEY) {
+      try { return await deeplOnce(text, targetLang); } catch (e) { /* keep going */ }
+    }
+    try { return await googleOnce(text, targetLang); } catch (e) { /* chunk below */ }
   }
 
   const pieces = chunkByBytes(text, MYMEMORY_MAX_BYTES);
