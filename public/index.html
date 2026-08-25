@@ -587,24 +587,17 @@
     position:absolute; top:3px; width:13px; height:13px; margin-left:-6.5px; border-radius:50%;
     background:var(--primary); pointer-events:none; box-shadow:0 0 0 3px var(--surface);
   }
-  .scrub-scale{ position:absolute; left:0; right:0; top:24px; display:flex; pointer-events:none; z-index:1; }
-  .scrub-scale span{
-    flex:1; text-align:center; font-size:var(--fs-micro); color:var(--muted-2);
-    font-variant-numeric:tabular-nums;
+  /* TIME RULER — exactly the amount ruler's mechanic: the dot stays pinned to
+     the middle of the line and the MINUTES scroll underneath it, one label per
+     minute. The earlier version moved the dot along a fixed scale, which meant
+     aiming a thumb at a 13px target for a one-minute correction. */
+  .scrub-strip.is-time .tv{
+    flex:0 0 44px; width:44px; scroll-snap-align:center; text-align:center;
+    font-size:var(--fs-micro); color:var(--muted-2);
+    font-variant-numeric:tabular-nums; line-height:20px;
   }
-  .scrub-scale span.on{ color:var(--primary); font-weight:var(--fw-display); }
-  /* the range input itself is invisible; the line/dot/scale above are the
-     visible control. Kept as a real <input type=range> so touch dragging,
-     keyboard arrows and accessibility all come for free. */
-  /* covers the FULL rail — line, dot and the number scale underneath — so a
-     thumb can grab anywhere in the block. It used to be a 22px strip at the
-     top, which meant only the dot itself was draggable. */
-  .scrub-range{
-    position:absolute; left:14px; right:14px; top:0; width:calc(100% - 28px); height:100%;
-    margin:0; opacity:0; -webkit-appearance:none; appearance:none; background:transparent;
-    z-index:2; cursor:pointer;
-  }
-  .scrub-range::-webkit-slider-thumb{ -webkit-appearance:none; width:34px; height:34px; }
+  .scrub-strip.is-time .tv.on{ color:var(--primary); font-weight:var(--fw-display); }
+  .scrub-strip.is-time .tv.pad{ flex:0 0 auto; }
 
   /* scrolling variant (amount): the scale itself scrolls, dot stays centred */
   .scrub.is-ruler .scrub-dot{ left:50%; }
@@ -1234,8 +1227,58 @@ function apiMutate(type, payload){
     appState = json.data; appVersion = json.version; return json.result;
   }).finally(function(){ mutationsInFlight--; });
 }
-function apiTranslate(text, target){
-  return fetch('/api/translate', {
+/* TRANSLATION — tried on the PHONE first, server second.
+   The server runs on a shared host IP that the free translation services
+   rate-limit to nothing (both answered 429 for every request), while each
+   family member's phone has its own ordinary connection and no such problem.
+   So the phone asks directly, and only if that is blocked — old browser, a
+   network that won't allow it — does it fall back to the server it used to
+   depend on. Whichever answers, the result is stored the same way, so the
+   other phones read it from the shared record without translating again. */
+var TRANSLATE_TIMEOUT_MS = 8000;
+function withTimeout(promise, ms){
+  return new Promise(function(resolve, reject){
+    var done = false;
+    var timer = setTimeout(function(){ if (!done){ done = true; reject(new Error('timeout')); } }, ms);
+    promise.then(function(v){ if (!done){ done = true; clearTimeout(timer); resolve(v); } },
+                 function(e){ if (!done){ done = true; clearTimeout(timer); reject(e); } });
+  });
+}
+function clientTranslate(text, target){
+  var source = (target === 'ko') ? 'vi' : 'ko';
+  var url = 'https://translate.googleapis.com/translate_a/single?client=gtx' +
+    '&sl=' + source + '&tl=' + target + '&dt=t&q=' + encodeURIComponent(text);
+  return withTimeout(fetch(url).then(function(res){
+    if (!res.ok) throw new Error('client translate ' + res.status);
+    return res.json();
+  }).then(function(json){
+    // [ [ [translatedChunk, originalChunk, …], … ], … ]
+    var out = ((json && json[0]) || []).map(function(c){ return c[0]; }).join('');
+    if (!out) throw new Error('client translate empty');
+    return out;
+  }), TRANSLATE_TIMEOUT_MS);
+}
+function clientMyMemory(text, target){
+  var source = (target === 'ko') ? 'vi' : 'ko';
+  // MyMemory rejects a query over ~500 bytes, and Korean is 3 bytes a letter,
+  // so only short notes are worth sending here at all.
+  if (new Blob([text]).size > 450) return Promise.reject(new Error('too long for mymemory'));
+  var url = 'https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) +
+    '&langpair=' + encodeURIComponent(source + '|' + target);
+  return withTimeout(fetch(url).then(function(res){
+    if (!res.ok) throw new Error('mymemory ' + res.status);
+    return res.json();
+  }).then(function(json){
+    var out = json && json.responseData && json.responseData.translatedText;
+    // it answers 200 with the complaint text where the translation should be
+    if (!out || /^(QUERY LENGTH LIMIT|INVALID|NO QUERY|MYMEMORY WARNING|YOU USED ALL|'[A-Z-]+' IS AN INVALID)/i.test(out)) {
+      throw new Error('mymemory unusable');
+    }
+    return out;
+  }), TRANSLATE_TIMEOUT_MS);
+}
+function serverTranslate(text, target){
+  return withTimeout(fetch('/api/translate', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     body: JSON.stringify({ text: text, target: target })
   }).then(function(res){
@@ -1243,7 +1286,12 @@ function apiTranslate(text, target){
       if (!res.ok) throw new Error(json.error || 'translate failed');
       return json.translated;
     });
-  });
+  }), TRANSLATE_TIMEOUT_MS + 4000);
+}
+function apiTranslate(text, target){
+  return clientTranslate(text, target)
+    .catch(function(){ return clientMyMemory(text, target); })
+    .catch(function(){ return serverTranslate(text, target); });
 }
 /* poll for edits made by other viewers; skip the tick if a mutation is
    already in flight from this tab so responses can't land out of order */
@@ -2461,14 +2509,19 @@ function closeEntryDetail(){ closeFullpage('fp-entry'); state.entryId = null; }
 var SCRUB_TIME_SPAN_MIN = 120;
 var SCRUB_TIME_STEP_MIN = 1;
 
+/* One minute per cell, 44px wide — the same cell size the amount ruler uses,
+   so both controls travel at the same speed under the same thumb. */
+var SCRUB_TIME_CELL_PX = 44;
+
 function timeScrubHtml(id, timeValue, withMinusHour){
-  /* the visible scale is static (-4 … +4); the dot's position is what moves */
+  /* the needle is fixed at the centre and the SCALE moves — one cell per
+     minute, a tick every 5, a label every 30. Every cell is a snap point, so
+     the ruler stops on a real minute wherever the finger lets go. */
   var scale = '';
-  for (var m = -SCRUB_TIME_SPAN_MIN; m <= SCRUB_TIME_SPAN_MIN; m += 30){
-    var lbl = m === 0 ? '0' : (m % 60 === 0 ? (m>0?'+':'')+(m/60)+'h' : (m>0?'+':'')+m);
-    scale += '<span data-m="'+m+'">'+lbl+'</span>';
+  for (var m = -SCRUB_TIME_SPAN_MIN; m <= SCRUB_TIME_SPAN_MIN; m += SCRUB_TIME_STEP_MIN){
+    scale += '<span class="tv" data-m="'+m+'">' + (m === 0 ? '0' : (m > 0 ? '+' : '') + m) + '</span>';
   }
-  return '<div class="scrub" data-scrub="time" data-for="'+id+'">' +
+  return '<div class="scrub is-ruler" data-scrub="time" data-for="'+id+'">' +
     '<div class="scrub-top">' +
       (withMinusHour
         ? '<button type="button" class="scrub-chip" data-scrub-nudge="-10">'+esc(t('minusTen'))+'</button>'
@@ -2482,8 +2535,7 @@ function timeScrubHtml(id, timeValue, withMinusHour){
     '<div class="scrub-rail">' +
       '<div class="scrub-line"></div>' +
       '<div class="scrub-dot"></div>' +
-      '<input type="range" class="scrub-range" min="'+(-SCRUB_TIME_SPAN_MIN)+'" max="'+SCRUB_TIME_SPAN_MIN+'" step="'+SCRUB_TIME_STEP_MIN+'" value="0" />' +
-      '<div class="scrub-scale">'+scale+'</div>' +
+      '<div class="scrub-strip is-time"><span class="tv pad"></span>'+scale+'<span class="tv pad"></span></div>' +
     '</div>' +
   '</div>';
 }
@@ -2520,56 +2572,81 @@ function wireScrubs(root){
 
 function wireTimeScrub(box){
   var input = document.getElementById(box.dataset.for);
-  var range = box.querySelector('.scrub-range');
-  var dot   = box.querySelector('.scrub-dot');
+  var strip = box.querySelector('.scrub-strip.is-time');
   var valEl = box.querySelector('.scrub-val b');
-  var scale = $$('.scrub-scale span', box);
+  var cells = $$('.tv[data-m]', strip);
   var exact = box.querySelector('.scrub-exact');
-  /* the anchor is the time the field opened with; the slider is an offset from
-     it, so dragging back to 0 always restores exactly what was there before */
+  var CELL  = SCRUB_TIME_CELL_PX;
+  var MIN   = -SCRUB_TIME_SPAN_MIN;
+  var settle = null, silent = false;
+  /* the anchor is the time the field opened with; the ruler is an offset from
+     it, so scrolling back to 0 always restores exactly what was there before */
   var anchor = parseTimeValue(input.value);
+  var offset = 0;
 
   /* notify=true marks a change the USER made, so callers that persist
      immediately (the stopwatch's start-time panel) can react. A plain
      'change' event would be caught by this function's own listener below
-     and re-anchor the slider mid-drag, so it gets its own event name. */
-  function paint(notify){
-    var mins = anchor + Number(range.value);
+     and re-anchor the ruler mid-scroll, so it gets its own event name. */
+  function paint(off, notify){
+    offset = clampNum(off, -SCRUB_TIME_SPAN_MIN, SCRUB_TIME_SPAN_MIN);
+    var mins = anchor + offset;
     valEl.textContent = fmtClock(mins);
-    var pct = (Number(range.value) + SCRUB_TIME_SPAN_MIN) / (SCRUB_TIME_SPAN_MIN * 2);
-    dot.style.left = 'calc(14px + '+(pct*100)+'% - '+(pct*28)+'px)';
-    var nearest = Math.round(Number(range.value) / 30) * 30;
-    scale.forEach(function(sp){ sp.classList.toggle('on', Number(sp.dataset.m) === nearest); });
+    /* only the cell actually UNDER the needle lights up. Highlighting the
+       nearest labelled tick instead would put the emphasis a few pixels off
+       centre and read as "this is the value" when it isn't — the big readout
+       above is what states the value. */
+    cells.forEach(function(c){ c.classList.toggle('on', Number(c.dataset.m) === offset); });
     input.value = timeValueFromMins(mins);
     if (notify) input.dispatchEvent(new CustomEvent('scrubchange', { bubbles: true }));
   }
-  range.addEventListener('input', function(){ paint(true); });
+  /* moving the strip programmatically fires 'scroll' too; the flag keeps that
+     from being read back as a user gesture and re-painting mid-animation */
+  function scrollToOffset(off){
+    silent = true;
+    strip.scrollLeft = (off - MIN) * CELL;
+    setTimeout(function(){ silent = false; }, 60);
+  }
+  strip.addEventListener('scroll', function(){
+    if (silent) return;
+    clearTimeout(settle);
+    settle = setTimeout(function(){
+      paint(MIN + Math.round(strip.scrollLeft / CELL), true);
+    }, 60);
+  });
   box.querySelectorAll('[data-scrub-nudge]').forEach(function(b){
     b.addEventListener('click', function(){
-      range.value = clampNum(Number(range.value) + Number(b.dataset.scrubNudge), -SCRUB_TIME_SPAN_MIN, SCRUB_TIME_SPAN_MIN);
-      paint(true);
+      paint(offset + Number(b.dataset.scrubNudge), true);
+      scrollToOffset(offset);
     });
   });
   var nowBtn = box.querySelector('[data-scrub-now]');
   if (nowBtn) nowBtn.addEventListener('click', function(){
     var d = new Date();
     anchor = d.getHours()*60 + d.getMinutes();
-    range.value = 0;
-    paint(true);
+    paint(0, true);
+    scrollToOffset(0);
   });
   var exactBtn = box.querySelector('[data-scrub-exact]');
   if (exactBtn) exactBtn.addEventListener('click', function(){
     exact.hidden = !exact.hidden;
     if (!exact.hidden) input.focus();
   });
-  /* typing an absolute time re-anchors, so the slider is again a nudge
+  /* typing an absolute time re-anchors, so the ruler is again a nudge
      around the new value rather than around the original one */
   input.addEventListener('change', function(){
     anchor = parseTimeValue(input.value);
-    range.value = 0;
-    paint(true);
+    paint(0, true);
+    scrollToOffset(0);
   });
-  paint(false);
+  paint(0, false);
+  /* the strip has no width until the panel is on screen; size the end pads and
+     centre the needle once layout exists */
+  requestAnimationFrame(function(){
+    var pad = Math.max(0, (strip.clientWidth - CELL) / 2);
+    $$('.tv.pad', strip).forEach(function(p){ p.style.width = pad + 'px'; });
+    scrollToOffset(0);
+  });
 }
 
 function wireRulerScrub(box){
