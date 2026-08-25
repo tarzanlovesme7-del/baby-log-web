@@ -1,4 +1,7 @@
 const path = require('path');
+const fs = require('fs');
+const zlib = require('zlib');
+const crypto = require('crypto');
 const express = require('express');
 const db = require('./db');
 const { applyMutation } = require('./mutations');
@@ -7,8 +10,54 @@ const { translateText } = require('./translate');
 const app = express();
 app.use(express.json({ limit: '256kb' }));
 
+/* ---- gzip, without pulling in a dependency ----
+   The whole app is one ~170KB HTML file, and Express sends static files
+   uncompressed by default — which on a phone over mobile data is most of the
+   wait before anything appears. It never changes between deploys, so it is
+   compressed ONCE at boot and served from memory with an ETag, making a
+   repeat visit a 304 with no body at all. */
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const INDEX_PATH = path.join(PUBLIC_DIR, 'index.html');
+const indexRaw = fs.readFileSync(INDEX_PATH);
+const indexGz = zlib.gzipSync(indexRaw, { level: 9 });
+const indexTag = '"' + crypto.createHash('sha1').update(indexRaw).digest('hex').slice(0, 16) + '"';
+
+function sendIndex(req, res) {
+  res.set('Content-Type', 'text/html; charset=utf-8');
+  res.set('ETag', indexTag);
+  // revalidate every load: a deploy must reach the phones immediately, and
+  // revalidation costs one 304 rather than the whole file
+  res.set('Cache-Control', 'no-cache');
+  if (req.headers['if-none-match'] === indexTag) return res.status(304).end();
+  if (/\bgzip\b/.test(req.headers['accept-encoding'] || '')) {
+    res.set('Content-Encoding', 'gzip');
+    res.set('Vary', 'Accept-Encoding');
+    return res.end(indexGz);
+  }
+  res.end(indexRaw);
+}
+
+/* API responses grow with the log, so they get the same treatment — done by
+   wrapping res.json rather than per-route, so nothing can be forgotten. */
+app.use((req, res, next) => {
+  const json = res.json.bind(res);
+  res.json = (body) => {
+    const text = JSON.stringify(body);
+    if (text.length < 1024 || !/\bgzip\b/.test(req.headers['accept-encoding'] || '')) {
+      return json(body);
+    }
+    const buf = zlib.gzipSync(Buffer.from(text, 'utf8'));
+    res.set('Content-Type', 'application/json; charset=utf-8');
+    res.set('Content-Encoding', 'gzip');
+    res.set('Vary', 'Accept-Encoding');
+    return res.end(buf);
+  };
+  next();
+});
+
 // ---- static frontend ----
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.get('/', sendIndex);
+app.use(express.static(PUBLIC_DIR, { index: false }));
 
 // ---- API ----
 app.get('/healthz', (req, res) => res.json({ ok: true }));
@@ -65,7 +114,7 @@ app.get('/api/translate', handleTranslate);
 // fall through to the SPA for any non-API route
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api/')) return next();
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+  sendIndex(req, res);
 });
 
 app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars

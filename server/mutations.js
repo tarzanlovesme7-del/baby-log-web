@@ -116,6 +116,17 @@ function applyMutation(prevState, type, payload) {
       return { state, result: { memo } };
     }
 
+    /* A memo is posted immediately and its translation filled in afterwards,
+       so the translation arrives as its own write rather than as part of the
+       memo. Only the translation may be set this way — the text a person
+       typed is never rewritten by a background job. */
+    case 'updateMemo': {
+      const memo = state.memos.find((m) => m.id === payload.id);
+      if (!memo) throw httpError(404, 'memo not found');
+      if (payload.translation !== undefined) memo.translation = payload.translation;
+      return { state, result: { memo } };
+    }
+
     case 'deleteMemo': {
       const before = state.memos.length;
       state.memos = state.memos.filter((m) => m.id !== payload.id);
