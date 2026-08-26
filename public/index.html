@@ -20,20 +20,20 @@
     /* ---- Toss(TDS)-derived light tokens (verified from toss.im / TDS Mobile docs) ----
        Flat color layering, not borders or shadows, is how Toss separates surfaces —
        see foundations "no canonical shadow token... use flat color layering." */
-    --bg: #f2f4f6;
+    --bg: #eff1f4;
     --surface: #ffffff;
-    --surface-2: #eef1f5;
-    --fg: #191f28;
-    --muted: #4e5968;
-    --muted-2: #8b95a1;
+    --surface-2: #e7ebf0;
+    --fg: #131820;
+    --muted: #48525f;
+    --muted-2: #5f6975;
     --border: #e5e8eb;
-    --primary: #3182f6;
+    --primary: #1f6feb;
     --primary-hover: #2272eb;
     --primary-fg: #ffffff;
     --primary-weak-bg: #e8f3ff;
     --primary-weak-fg: #1b64da;
     --link: #1b64da;
-    --danger: #e42939;
+    --danger: #d81f2f; --danger-text: #c4162a;
     --memo-bg: #fff3c4;
     --memo-fg: #8a6a00;
     --nf-bg: #ffe7c2;
@@ -93,25 +93,25 @@
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
-      --bg:#0e1116; --surface:#181c23; --surface-2:#232833;
-      --fg:#f5f7fa; --muted:#b7bfca; --muted-2:#7c8591;
-      --border: rgba(255,255,255,0.08);
-      --primary:#4c8dff; --primary-hover:#6ba0ff; --primary-fg:#ffffff;
-      --primary-weak-bg:#16294a; --primary-weak-fg:#7db8ff; --link:#7db8ff;
-      --danger:#ff5b6a;
-      --memo-bg:#3d3111; --memo-fg:#f3cf4d;
-      --nf-bg:#40290f; --nf-fg:#ffb768;
+      --bg:#0b0e13; --surface:#1a1f28; --surface-2:#272d38;
+      --fg:#f7f9fc; --muted:#c6cedb; --muted-2:#9aa4b2;
+      --border: rgba(255,255,255,0.16);
+      --primary:#5b98ff; --primary-hover:#7cadff; --primary-fg:#0b0e13;
+      --primary-weak-bg:#17294a; --primary-weak-fg:#9cc4ff; --link:#9cc4ff;
+      --danger:#d42535; --danger-text:#ff8b95;
+      --memo-bg:#40330f; --memo-fg:#ffd84d;
+      --nf-bg:#452b0d; --nf-fg:#ffc078;
     }
   }
   :root[data-theme="dark"]{
-    --bg:#0e1116; --surface:#181c23; --surface-2:#232833;
-    --fg:#f5f7fa; --muted:#b7bfca; --muted-2:#7c8591;
-    --border: rgba(255,255,255,0.08);
-    --primary:#4c8dff; --primary-hover:#6ba0ff; --primary-fg:#ffffff;
-    --primary-weak-bg:#16294a; --primary-weak-fg:#7db8ff; --link:#7db8ff;
-    --danger:#ff5b6a;
-    --memo-bg:#3d3111; --memo-fg:#f3cf4d;
-    --nf-bg:#40290f; --nf-fg:#ffb768;
+    --bg:#0b0e13; --surface:#1a1f28; --surface-2:#272d38;
+    --fg:#f7f9fc; --muted:#c6cedb; --muted-2:#9aa4b2;
+    --border: rgba(255,255,255,0.16);
+    --primary:#5b98ff; --primary-hover:#7cadff; --primary-fg:#0b0e13;
+    --primary-weak-bg:#17294a; --primary-weak-fg:#9cc4ff; --link:#9cc4ff;
+    --danger:#d42535; --danger-text:#ff8b95;
+    --memo-bg:#40330f; --memo-fg:#ffd84d;
+    --nf-bg:#452b0d; --nf-fg:#ffc078;
   }
   :root[lang="vi"]{
     --font: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -126,6 +126,32 @@
   body{
     margin:0; background:var(--bg); color:var(--fg); font-family:var(--font);
     -webkit-font-smoothing:antialiased; overflow-x:hidden;
+    /* the app does its own pull-to-refresh; without this the browser's
+       own one fires first and reloads the whole page instead */
+    overscroll-behavior-y:contain;
+  }
+
+  /* PULL TO REFRESH — three people write into this log at once, and the
+     4-second poll can be a lot slower than that when the free-tier server is
+     waking up. This is the "no, now" gesture. The indicator lives under the
+     header and is dragged into view by the finger itself. */
+  .ptr{
+    position:fixed; left:0; right:0; top:var(--header-h, 64px); z-index:29;
+    display:flex; align-items:center; justify-content:center;
+    height:44px; pointer-events:none;
+    opacity:0; transform:translateY(-44px);
+  }
+  .ptr.animate{ transition:transform .22s ease, opacity .22s ease; }
+  .ptr-dot{
+    width:26px; height:26px; border-radius:50%;
+    border:2.5px solid var(--border); border-top-color:var(--primary);
+    background:var(--surface); box-shadow:0 2px 10px rgba(0,0,0,.16);
+  }
+  .ptr.ready .ptr-dot{ border-top-color:var(--primary); border-right-color:var(--primary); }
+  .ptr.spinning .ptr-dot{ animation:ptrSpin .7s linear infinite; }
+  @keyframes ptrSpin{ to{ transform:rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce){
+    .ptr.spinning .ptr-dot{ animation-duration:2s; }
   }
   button, input, textarea, select{ font-family:inherit; color:inherit; }
   button{ cursor:pointer; outline:none; border:0; background:none; -webkit-appearance:none; appearance:none; }
@@ -143,7 +169,12 @@
     padding:calc(12px + env(safe-area-inset-top)) 16px 12px;
   }
   .top-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .baby-id{ display:flex; flex-direction:column; line-height:1.2; }
+  .baby-id{
+    display:flex; flex-direction:column; line-height:1.2;
+    background:transparent; border:0; padding:0; text-align:left; color:inherit;
+    touch-action:manipulation;
+  }
+  .baby-id:active{ opacity:.65; }
   .baby-id b{ font-size:var(--fs-display); font-weight:var(--fw-display); letter-spacing:-.4px; }
   .baby-id span{ font-size:var(--fs-caption); color:var(--muted-2); font-weight:var(--fw-medium); font-variant-numeric:tabular-nums; }
   .top-actions{ display:flex; align-items:center; gap:6px; }
@@ -170,25 +201,35 @@
   /* ---------- active/stopwatch bar — a pastel tint of the category color
      (same color-mix formula as the icon chips), not a saturated fill.
      Lives inside today's day-group in the timeline, right under the date. ---------- */
+  /* The running stopwatch, as a full-width band in the same strip as the memo
+     and the next-feed line — not a rounded card sitting inside the log.
+     The timer is the only thing on screen that changes every second, so it
+     is the only thing that must not be able to move anything else: fixed
+     width, monospaced digits, its own column. */
   .active-bar{
-    margin:0 0 14px; border-radius:16px;
-    background:color-mix(in srgb, var(--active-color, var(--c-feed)) 26%, var(--surface-2));
-    color:var(--fg); padding:14px 16px; display:flex; align-items:center; gap:12px;
+    width:calc(100% + 32px); margin:0 -16px; border-radius:0;
+    background:color-mix(in srgb, var(--active-color, var(--c-feed)) 22%, var(--surface-2));
+    color:var(--fg); padding:11px 16px; display:flex; align-items:center; gap:10px;
   }
-  .active-bar.paused{ opacity:.7; }
-  .active-bar .aw-emoji{ font-size:26px; line-height:1; flex:0 0 auto; }
-  /* the running timer is the widest fixed thing in this bar; tabular digits
-     mean it never actually needs more than its own text, so no min-width */
-  .active-bar .aw-time{ font-size:var(--fs-display); font-weight:var(--fw-display); font-variant-numeric:tabular-nums; flex:0 0 auto; }
-  .active-bar .aw-meta{ flex:1; min-width:0; }
-  /* three 36px buttons + the timer leave ~90px for this on a 390px phone, so
-     the "오후 05:38 · 엄마" line has to truncate rather than stack into three
-     wrapped lines and blow the bar's height out */
-  .active-bar .aw-meta b{ display:block; font-size:var(--fs-body); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .active-bar .aw-meta span{ display:block; font-size:var(--fs-caption); color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .active-bar .aw-actions{ display:flex; gap:8px; }
+  .active-bar.paused{ opacity:.72; }
+  .active-bar .aw-emoji{ font-size:17px; line-height:1; flex:0 0 auto; }
+  .active-bar .aw-meta{ flex:1 1 auto; min-width:0; }
+  .active-bar .aw-meta b{ display:block; font-size:var(--fs-caption); font-weight:var(--fw-strong);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .active-bar .aw-meta span{ display:block; font-size:var(--fs-micro); color:var(--muted);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  /* Gothic A1 has no tabular figures, so every tick redrew this at a slightly
+     different width and shoved the buttons sideways. A monospaced stack plus a
+     fixed box means the seconds change and nothing else does. */
+  .active-bar .aw-time{
+    flex:0 0 auto; width:84px; text-align:right;
+    font-family:ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size:var(--fs-title); font-weight:var(--fw-display); font-variant-numeric:tabular-nums;
+    letter-spacing:-.2px;
+  }
+  .active-bar .aw-actions{ display:flex; gap:6px; flex:0 0 auto; }
   .aw-round{
-    width:36px; height:36px; border-radius:50%; border:0; background:var(--surface);
+    width:32px; height:32px; border-radius:50%; border:0; background:var(--surface);
     display:flex; align-items:center; justify-content:center; color:var(--fg); font-size:15px; font-weight:var(--fw-strong);
   }
   .aw-round.confirm{ background:var(--primary); color:var(--primary-fg); }
@@ -275,6 +316,37 @@
 
   /* timeline — a full-bleed white sheet that docks over the page canvas; the flat
      color change alone is the separation, no rounded corner or rule line needed */
+  /* Date control for the log. Three months of records is roughly 150 screens
+     of scrolling, so "scroll until you find the day" stopped being a way to
+     find a day. */
+  .log-bar{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+  .log-nav{ display:flex; align-items:center; gap:4px; }
+  /* no chips, no boxes — three flat controls that read as one line of text */
+  .log-arrow{
+    width:26px; height:30px; background:transparent; color:var(--muted-2);
+    font-size:var(--fs-title); line-height:1; display:flex; align-items:center; justify-content:center;
+    flex:0 0 auto; padding:0; touch-action:manipulation;
+  }
+  .log-arrow:disabled{ opacity:.28; }
+  .log-date{
+    position:relative; display:flex; align-items:center; gap:6px;
+    padding:4px 2px; background:transparent;
+    font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--fg);
+    touch-action:manipulation;
+  }
+  .log-date .cal-ico{
+    width:17px; height:17px; flex:0 0 auto; fill:none; stroke:currentColor; stroke-width:1.7;
+    stroke-linecap:round; stroke-linejoin:round; color:var(--primary);
+  }
+  .log-date.is-today{ color:var(--primary); }
+  /* the native picker sits invisibly over the button, so tapping the label
+     opens the phone's own calendar rather than a home-made one */
+  .log-date input[type="date"]{
+    position:absolute; inset:0; opacity:0; width:100%; height:100%;
+    -webkit-appearance:none; appearance:none; border:0; background:transparent; padding:0;
+  }
+  #log-more{ margin-top:16px; }
+
   .timeline-section{
     background:var(--surface); margin:16px -16px 0; flex:1;
     padding:22px 18px calc(96px + env(safe-area-inset-bottom)); min-height:38vh;
@@ -285,8 +357,19 @@
      row dividers. */
   .day-group + .day-group{ position:relative; margin-top:20px; padding-top:20px; }
   .day-group + .day-group::before{ content:''; position:absolute; top:0; left:-18px; right:-18px; height:1px; background:var(--border); }
-  .day-head{ display:flex; align-items:baseline; justify-content:space-between; padding:2px 2px 10px; gap:8px; }
-  .day-head .d-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted-2); text-transform:uppercase; letter-spacing:.3px; flex:0 0 auto; }
+  /* The date band is a band now: its own background, edge to edge, and it
+     sticks under the app header while that day's records scroll past, so you
+     always know which day you are looking at. --header-h is measured at
+     runtime because the header's height moves with the safe-area inset. */
+  .day-head{
+    position:sticky; top:var(--header-h, 64px); z-index:10;
+    display:flex; align-items:baseline; justify-content:space-between; gap:8px;
+    /* full-bleed background, but the text inside lines up with the rows'
+       own 20px text column rather than sitting 2px to its left */
+    margin:0 -18px; padding:9px 20px;
+    background:var(--surface-2); box-shadow:inset 0 -1px 0 var(--border);
+  }
+  .day-head .d-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--fg); letter-spacing:.2px; flex:0 0 auto; }
   .day-totals{ display:flex; gap:11px; font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; flex-wrap:wrap; justify-content:flex-end; }
   .day-totals b{ color:var(--fg); font-weight:var(--fw-strong); }
   /* swipe-to-delete: .entry-row translates over a red delete layer sitting behind it.
@@ -314,10 +397,16 @@
   .entry-swipe.will-delete .entry-delete-bg{ filter:brightness(.82); }
   .entry-delete-bg span{ color:#fff; font-size:var(--fs-label); font-weight:var(--fw-strong); }
   .entry-row{
-    position:relative; display:flex; align-items:flex-start; gap:10px; padding:11px 20px; border:0;
+    position:relative; display:flex; align-items:flex-start; gap:10px; padding:13px 20px; border:0;
     background:var(--surface); width:100%; text-align:left; touch-action:pan-y;
   }
   .entry-row:active{ background:var(--surface-2); }
+  /* NO hairline between records: the item name carries its own type color
+     now, and that is what tells one row from the next. Left as a comment
+     because the rule is deliberately absent rather than forgotten.
+     (the old note: rows separated only by whitespace are hard to scan — and in dark
+     mode the old border was so faint it may as well not have been drawn.
+     inset shadow rather than a border so the swipe transform doesn't move it. */
   .entry-row.flash{ animation: rowFlash 900ms ease; }
   @keyframes rowFlash{ 0%{ background:var(--primary-weak-bg); } 100%{ background:var(--surface); } }
   /* time now leads the row (left column) — a fixed width, wide enough for the
@@ -332,6 +421,13 @@
      string ("오후 08:37") no longer fits 66px and would wrap mid-time. */
   .e-time{ flex:0 0 84px; width:84px; padding-top:2px; display:flex; flex-direction:column; font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; }
   .e-time-main, .e-time-end{ white-space:nowrap; }
+  /* "다음날 오전 06:00" is wider than the time column; it wraps onto its own
+     second line rather than widening every row in the list */
+  .e-time-end.wrap{ white-space:normal; }
+  /* the tail of a sleep that began yesterday — present, but plainly a
+     continuation rather than a second night */
+  .entry-row.is-cont .e-title{ color:var(--muted); font-weight:var(--fw-strong); }
+  .entry-row.is-cont .e-icon{ opacity:.72; }
   .e-author{ display:block; font-size:var(--fs-micro); color:var(--muted-2); margin-top:2px; }
   /* plain icon glyph, no color-chip background — "아이콘 + 텍스트만" */
   .e-icon{ flex:0 0 auto; padding-top:1px; font-size:18px; line-height:1.3; }
@@ -389,24 +485,52 @@
   .memo-row .m-meta{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .memo-row .m-meta span{ font-size:var(--fs-caption); color:var(--muted-2); }
   .memo-row .m-lang-tag{ font-size:var(--fs-micro); font-weight:var(--fw-strong); border-radius:6px; padding:2px 6px; }
-  .memo-row .m-lang-tag.lang-ko{ color:var(--primary); background:var(--primary-weak-bg); }
-  .memo-row .m-lang-tag.lang-vi{ color:var(--danger); background:color-mix(in srgb, var(--danger) 16%, var(--surface)); }
+  .memo-row .m-lang-tag.lang-ko{ color:var(--primary-weak-fg); background:var(--primary-weak-bg); }
+  .memo-row .m-lang-tag.lang-vi{ color:var(--danger-text); background:color-mix(in srgb, var(--danger) 16%, var(--surface)); }
 
   /* stats — same flat full-bleed sheet as .card, with a hairline divider between
      the two tiles instead of a gap, since they're one shared section now, not two
      separate rounded boxes. */
-  .stat-grid{ display:grid; grid-template-columns:1fr 1fr; background:var(--surface); margin:0 -16px; }
-  .stat-tile{ padding:16px; }
+  /* auto-flow by column: the feed section has three figures, the sleep
+     section two, and both should span the row evenly without being told how
+     many there are */
+  .stat-grid{ display:grid; grid-auto-flow:column; grid-auto-columns:1fr; background:var(--surface); margin:0 -16px; }
+  .stat-tile{ padding:16px 12px; min-width:0; }
+  .stat-foot{
+    background:var(--surface); margin:0 -16px; padding:0 16px 14px;
+    font-size:var(--fs-micro); color:var(--muted);
+  }
+  .stat-tile .st-label{ overflow-wrap:anywhere; }
   .stat-tile + .stat-tile{ border-left:1px solid var(--border); }
-  .stat-tile .st-label{ font-size:var(--fs-caption); color:var(--muted); margin-bottom:7px; font-weight:var(--fw-medium); }
+  /* two lines' worth of room whether the label needs it or not, with the text
+     sitting at the bottom of it — otherwise "하루 평균 수유량" wraps, and only
+     that tile's number drops a line while its neighbours stay put */
+  .stat-tile .st-label{
+    font-size:var(--fs-caption); color:var(--muted); margin-bottom:7px; font-weight:var(--fw-medium);
+    line-height:1.35; min-height:2.7em; display:flex; align-items:flex-end;
+  }
   .stat-tile .st-val{ font-size:var(--fs-display); font-weight:var(--fw-display); font-variant-numeric:tabular-nums; }
   .stat-tile .st-val small{ font-size:var(--fs-caption); font-weight:var(--fw-body); color:var(--muted); }
-  .bars{ display:flex; align-items:flex-end; justify-content:space-between; gap:8px; height:120px; padding:16px 16px 8px; overflow-x:auto; scrollbar-width:none; }
-  .bars::-webkit-scrollbar{ display:none; }
-  .bar-col{ flex:0 0 26px; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; gap:6px; height:100%; }
-  .bar-col .bar{ width:100%; max-width:26px; border-radius:8px 8px 3px 3px; background:var(--primary); min-height:3px; }
-  .bar-col .bar-lbl{ font-size:var(--fs-micro); color:var(--muted); }
-  .bar-col .bar-val{ font-size:var(--fs-micro); color:var(--muted-2); font-variant-numeric:tabular-nums; }
+  /* The bars live in their own fixed-height track; the number above and the
+     date below sit OUTSIDE it. Previously the whole column was one 120px box
+     holding all three, so as soon as the text got bigger the contents no
+     longer fitted — each column overflowed by a different amount and the bars
+     ended up standing on different heights instead of a shared floor.
+     Columns also share the width now, so a month of bars fits without the
+     chart running off the side. */
+  .bars{ display:flex; align-items:flex-end; gap:4px; padding:16px 14px 8px; }
+  .bar-col{ flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; gap:5px; }
+  .bar-col .bar-track{ width:100%; height:96px; display:flex; align-items:flex-end; }
+  .bar-col .bar{ width:100%; border-radius:6px 6px 2px 2px; background:var(--primary); min-height:3px; }
+  /* Fixed heights, not min-heights: on a 14- or 30-day range only some columns
+     carry a number and a date, and an empty box that measures differently from
+     a filled one shifts that column's bar off the shared floor. */
+  .bar-col .bar-lbl{ font-size:var(--fs-micro); color:var(--muted); white-space:nowrap; height:15px; line-height:15px; }
+  .bar-col .bar-val{ font-size:var(--fs-micro); color:var(--muted-2); font-variant-numeric:tabular-nums; white-space:nowrap; height:15px; line-height:15px; }
+  /* today reads as today without needing its own label */
+  .bar-col.is-today .bar{ background:var(--primary); }
+  .bar-col:not(.is-today) .bar{ background:var(--primary); opacity:.55; }
+  .bar-col.is-today .bar-lbl{ color:var(--primary); font-weight:var(--fw-strong); }
   /* one caption-to-content gap everywhere a section-title sits above its own
      content — was 10px in some spots, 8px in others, and 0 (accidentally
      inheriting the panel's inter-section gap instead) in the stats tab. */
@@ -452,13 +576,18 @@
     height:456px; padding:1px 0; text-align:right;
   }
   .pattern-axis-v span{ font-size:var(--fs-micro); color:var(--muted-2); font-variant-numeric:tabular-nums; }
+  /* The week DIVIDES the card's width rather than each day being a fixed 50px
+     in a sideways-scrolling strip. Fixed columns meant the chart's width was
+     whatever seven days happened to add up to — which left a band of empty
+     card to the right of the last day, and put some of the week out of sight
+     behind a scroll on top of that. Seven flexible columns always fill exactly
+     what is there, at any screen size, with nothing to scroll and nothing
+     left over. */
   .pattern-cols{
-    display:flex; overflow-x:auto; scroll-snap-type:x proximity;
-    -webkit-overflow-scrolling:touch; scrollbar-width:none; overflow-anchor:none; padding-bottom:1px;
+    display:flex; flex:1 1 auto; min-width:0; overflow:visible; padding-bottom:1px;
   }
-  .pattern-cols::-webkit-scrollbar{ display:none; }
   .pattern-col{
-    flex:0 0 50px; scroll-snap-align:start; display:flex; flex-direction:column; align-items:center; gap:7px;
+    flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; gap:7px;
     border-left:1px solid var(--bg);
   }
   .pattern-col:first-child{ border-left:0; }
@@ -492,6 +621,25 @@
   /* settings — rows separated by spacing, not rule lines */
   .row-item{ display:flex; align-items:center; justify-content:space-between; padding:15px 16px; gap:12px; }
   .row-item .r-label{ font-size:var(--fs-body); }
+  .row-item .r-sub{ font-size:var(--fs-caption); color:var(--muted); margin-top:2px; }
+  .row-item .r-chev{ color:var(--muted-2); font-size:var(--fs-title); flex:0 0 auto; }
+  .hint-line{ font-size:var(--fs-caption); color:var(--muted); margin:8px 2px 0; line-height:1.55; }
+
+  /* a record this phone may not change: it opens to be read, and says why */
+  .lock-note{
+    background:var(--surface-2); border-radius:14px; padding:12px 14px;
+    font-size:var(--fs-label); color:var(--fg); line-height:1.55;
+  }
+  .fullpage.is-locked .fp-body{ opacity:.96; }
+  .entry-swipe.is-locked .entry-row{ cursor:default; }
+
+  /* the bin */
+  .trash-row{ display:flex; align-items:center; gap:10px; padding:13px 16px; }
+  .trash-row + .trash-row{ border-top:1px solid var(--border); }
+  .trash-row .tr-body{ flex:1; min-width:0; }
+  .trash-row .tr-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); }
+  .trash-row .tr-sub{ font-size:var(--fs-caption); color:var(--muted); margin-top:2px; }
+  .trash-empty{ padding:22px 16px; text-align:center; color:var(--muted); font-size:var(--fs-label); }
   .chip-row{ display:flex; flex-wrap:wrap; gap:8px; padding:12px 16px; }
   .chip{ padding:9px 15px; border-radius:var(--radius-pill); background:var(--surface-2); border:0; font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--fg); }
   .chip[aria-pressed="true"]{ background:var(--primary); color:var(--primary-fg); }
@@ -507,9 +655,15 @@
     display:flex; padding:6px 8px calc(6px + env(safe-area-inset-bottom));
   }
   .tab-btn{ flex:1; background:transparent; border:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 2px; color:var(--muted-2); }
-  .tab-btn .tb-emoji{ font-size:23px; line-height:1; filter:grayscale(1); opacity:.55; }
-  .tab-btn[aria-current="true"] .tb-emoji{ filter:none; opacity:1; }
-  .tab-btn span:not(.tb-emoji){ display:none; }
+  .tab-btn .tb-ico{
+    width:25px; height:25px; display:block;
+    fill:none; stroke:currentColor; stroke-width:1.7;
+    stroke-linecap:round; stroke-linejoin:round;
+  }
+  /* the dots in the list/calendar icons are solid; the slider knobs are not */
+  .tab-btn .tb-ico circle.dot{ fill:currentColor; stroke:none; }
+  .tab-btn[aria-current="true"] .tb-ico{ stroke-width:2; }
+  .tab-btn span{ display:none; }
   .tab-btn[aria-current="true"]{ color:var(--primary); }
 
   /* ---------- full pages (announcement / entry detail) ----------
@@ -549,7 +703,7 @@
     font-size:var(--fs-title); font-weight:var(--fw-strong); white-space:nowrap;
     overflow:hidden; text-overflow:ellipsis; max-width:calc(100% - 116px); pointer-events:none;
   }
-  .fp-delete{ background:transparent; border:0; color:var(--danger); font-size:var(--fs-body); font-weight:var(--fw-strong); padding:6px 4px; flex:0 0 auto; margin-left:auto; }
+  .fp-delete{ background:transparent; border:0; color:var(--danger-text); font-size:var(--fs-body); font-weight:var(--fw-strong); padding:6px 4px; flex:0 0 auto; margin-left:auto; }
   /* extra bottom padding clears the floating save button */
   /* bottom padding has to clear the docked save bar (~73px) with room to
      spare, or the last field — the 기록자 chips — sits behind it at the end
@@ -567,6 +721,27 @@
     background:var(--surface); border-top:1px solid var(--border);
   }
   .fp-foot .btn{ width:100%; max-width:560px; margin:0 auto; display:block; }
+
+  /* ---------- 지오에게 ---------- */
+  .fullpage.egg{ background:var(--egg-bg, var(--bg)); }
+  .egg-body{ align-items:center; text-align:center; gap:0; padding-top:8px; }
+  /* the photo is a whole composition — the flowers and the "50일 강지오" are
+     part of it — so it is shown entire rather than cropped to a square */
+  .egg-photo-wrap{
+    width:min(78vw, 300px); border-radius:22px; overflow:hidden;
+    background:var(--surface-2); display:flex; align-items:center; justify-content:center;
+    box-shadow:0 12px 34px rgba(0,0,0,.16); flex:0 0 auto;
+  }
+  .egg-photo-wrap:has(.egg-photo-fallback:not([hidden])){ aspect-ratio:1/1; }
+  .egg-photo{ width:100%; height:auto; display:block; }
+  .egg-photo-fallback{ font-size:56px; }
+  .egg-name{ font-size:22px; font-weight:var(--fw-display); margin-top:20px; letter-spacing:-.4px; }
+  .egg-age{ font-size:var(--fs-caption); color:var(--muted); margin-top:4px; font-variant-numeric:tabular-nums; }
+  .egg-letter{
+    margin-top:24px; max-width:34ch; font-size:var(--fs-body); line-height:1.95;
+    color:var(--fg); white-space:pre-line; word-break:keep-all;
+  }
+  .egg-sign{ margin-top:22px; margin-bottom:8px; font-size:var(--fs-label); color:var(--muted); }
 
   .field label{ display:block; font-size:var(--fs-label); color:var(--muted); margin-bottom:7px; font-weight:var(--fw-strong); text-transform:uppercase; letter-spacing:.1px; }
   .field input[type="time"], .field input[type="date"], .field input[type="number"], .field input[type="text"]{
@@ -718,6 +893,11 @@
   .emoji-pick button{ width:44px; height:44px; border-radius:14px; background:var(--surface-2); border:0; font-size:19px; }
   .emoji-pick button[aria-pressed="true"]{ background:var(--primary-weak-bg); }
 
+  .field-hint{ margin-top:8px; font-size:var(--fs-caption); color:var(--primary); font-weight:var(--fw-strong); }
+
+  .confirm-sheet{ z-index:56; }
+  .confirm-msg{ font-size:var(--fs-body); line-height:1.62; color:var(--fg); white-space:pre-line; }
+
   .toast{
     position:fixed; left:50%; bottom:calc(90px + env(safe-area-inset-bottom)); transform:translateX(-50%) translateY(10px);
     background:var(--fg); color:var(--surface); padding:12px 20px; border-radius:var(--radius-pill); font-size:var(--fs-label); font-weight:var(--fw-strong);
@@ -730,14 +910,17 @@
 <body>
 
 <div id="app">
+  <div class="ptr" id="ptr" aria-hidden="true"><div class="ptr-dot"></div></div>
 
   <!-- ============ HEADER ============ -->
   <header class="top">
     <div class="top-row">
-      <div class="baby-id">
+      <!-- the name is a door: tap it and the app stops being a log for a
+           moment and says what it is actually for -->
+      <button type="button" class="baby-id" id="btn-egg" title="지오">
         <b id="hd-name">아기</b>
         <span id="hd-age">D+0</span>
-      </div>
+      </button>
       <div class="top-actions">
         <div class="lang-pill" id="lang-pill">
           <button type="button" data-lang="ko" aria-pressed="true">🇰🇷 KO</button>
@@ -781,6 +964,12 @@
           <div class="a-orig" id="nf-text"></div>
         </div>
       </div>
+
+      <!-- the running stopwatch. It used to live inside today's group down in
+           the log, which meant it vanished entirely while an older date was
+           being viewed — and it was a rounded card floating in a list of flat
+           rows. Same full-width band as the memo and the next-feed line. -->
+      <div id="active-bar-slot"></div>
     </div>
 
     <!-- dashboard: last feed / diaper / sleep, plain text, no card -->
@@ -792,8 +981,20 @@
     </div>
 
     <div class="timeline-section">
-      <div class="section-title" data-i18n="timeline">기록</div>
+      <div class="log-bar">
+        <div class="section-title" data-i18n="timeline" style="margin:0">기록</div>
+        <div class="log-nav" id="log-nav">
+          <button type="button" class="log-arrow" id="log-prev" title="이전 날">‹</button>
+          <button type="button" class="log-date" id="log-date-btn">
+            <svg class="cal-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3.5v4M16 3.5v4"/></svg>
+            <span id="log-date-text"></span>
+            <input type="date" id="log-date-input" />
+          </button>
+          <button type="button" class="log-arrow" id="log-next" title="다음 날">›</button>
+        </div>
+      </div>
       <div id="timeline" style="display:flex;flex-direction:column;gap:14px;"></div>
+      <button type="button" class="btn ghost" id="log-more" hidden data-i18n="loadMore">이전 기록 더 보기</button>
     </div>
   </section>
 
@@ -835,6 +1036,7 @@
         </div>
       </div>
       <div class="stat-grid" id="stat-tiles"></div>
+      <div class="stat-foot" id="stat-tiles-note" data-i18n="excludesToday">오늘은 아직 진행 중이라 평균에서 뺐어요</div>
     </div>
     <div class="card">
       <div class="bars" id="stat-bars"></div>
@@ -852,6 +1054,7 @@
     <div>
       <div class="section-title" data-i18n="statsSleep7">최근 7일 수면 통계</div>
       <div class="stat-grid" id="stat-sleep-tiles"></div>
+      <div class="stat-foot" data-i18n="excludesToday">오늘은 아직 진행 중이라 평균에서 뺐어요</div>
     </div>
   </section>
 
@@ -885,6 +1088,32 @@
         </div>
         <div id="author-manage-list"></div>
       </div>
+      <div class="hint-line" data-i18n="permissionHint">각자 자기가 적은 기록만 고치거나 지울 수 있어요. 엄마는 모든 기록을 고칠 수 있어요.</div>
+    </div>
+
+    <!-- the lock on becoming 엄마, and the bin deleted records fall into -->
+    <div>
+      <div class="section-title" data-i18n="masterTitle">엄마 권한</div>
+      <div class="card">
+        <button type="button" class="row-item" id="pin-row" style="width:100%;border:0;background:transparent;text-align:left;">
+          <div><div class="r-label" data-i18n="masterPin">엄마 전환 PIN</div>
+            <div class="r-sub" id="pin-state"></div></div>
+          <span class="r-chev">›</span>
+        </button>
+      </div>
+      <div class="hint-line" data-i18n="masterPinHint">PIN을 걸어두면 다른 사람이 설정에서 '엄마'로 바꿀 수 없어요.</div>
+    </div>
+
+    <div>
+      <div class="section-title" data-i18n="trashTitle">휴지통</div>
+      <div class="card">
+        <button type="button" class="row-item" id="trash-row" style="width:100%;border:0;background:transparent;text-align:left;">
+          <div><div class="r-label" data-i18n="trashOpen">지운 기록 보기</div>
+            <div class="r-sub" id="trash-count"></div></div>
+          <span class="r-chev">›</span>
+        </button>
+      </div>
+      <div class="hint-line" data-i18n="trashHint">지운 기록은 30일 동안 여기 남아 있어요.</div>
     </div>
 
     <div>
@@ -950,21 +1179,30 @@
   </section>
 
   <!-- ============ TAB BAR ============ -->
+  <!-- Line icons rather than emoji. A greyscale-filtered emoji is still an
+       emoji: it renders differently on every phone, sits at a different
+       baseline than its neighbours, and looks like a placeholder. These are
+       drawn to one grid, one stroke weight, and take the tab's own color. -->
   <nav class="tabbar">
     <button type="button" class="tab-btn" data-tab="record" aria-current="true">
-      <span class="tb-emoji">📋</span><span data-i18n="tabRecord">기록</span>
+      <svg class="tb-ico" viewBox="0 0 24 24" aria-hidden="true"><circle class="dot" cx="5" cy="7" r="1.4"/><circle class="dot" cx="5" cy="12" r="1.4"/><circle class="dot" cx="5" cy="17" r="1.4"/><path d="M9.5 7h9.5M9.5 12h9.5M9.5 17h9.5"/></svg>
+      <span data-i18n="tabRecord">기록</span>
     </button>
     <button type="button" class="tab-btn" data-tab="memo" aria-current="false">
-      <span class="tb-emoji">📝</span><span data-i18n="tabMemo">메모</span>
+      <svg class="tb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.5 4.5H6A1.5 1.5 0 0 0 4.5 6v12A1.5 1.5 0 0 0 6 19.5h12a1.5 1.5 0 0 0 1.5-1.5v-6.5"/><path d="M17.1 3.6l3.3 3.3-7.6 7.6-4 .7.7-4z"/></svg>
+      <span data-i18n="tabMemo">메모</span>
     </button>
     <button type="button" class="tab-btn" data-tab="pattern" aria-current="false">
-      <span class="tb-emoji">🗓️</span><span data-i18n="tabPattern">패턴</span>
+      <svg class="tb-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3.5v4M16 3.5v4"/><circle class="dot" cx="8.5" cy="14" r="1.1"/><circle class="dot" cx="12" cy="17" r="1.1"/><circle class="dot" cx="15.5" cy="14" r="1.1"/></svg>
+      <span data-i18n="tabPattern">패턴</span>
     </button>
     <button type="button" class="tab-btn" data-tab="stats" aria-current="false">
-      <span class="tb-emoji">📊</span><span data-i18n="tabStats">통계</span>
+      <svg class="tb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7.5 20v-5.5M12 20V7.5M16.5 20v-9"/></svg>
+      <span data-i18n="tabStats">통계</span>
     </button>
     <button type="button" class="tab-btn" data-tab="settings" aria-current="false">
-      <span class="tb-emoji">⚙️</span><span data-i18n="tabSettings">설정</span>
+      <svg class="tb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h6M14 8h6M4 16h10M18 16h2"/><circle cx="12" cy="8" r="2.2"/><circle cx="16" cy="16" r="2.2"/></svg>
+      <span data-i18n="tabSettings">설정</span>
     </button>
   </nav>
 
@@ -980,6 +1218,41 @@
       <button type="button" class="btn primary" id="fp-entry-save" data-i18n="save">저장</button>
     </div>
   </div>
+
+  <!-- ============ FULL PAGE: THE BIN ============ -->
+  <!-- a list that only grows, so it lives one tap in rather than sitting
+       open at the bottom of settings -->
+  <div class="fullpage" id="fp-trash">
+    <div class="fp-head">
+      <button type="button" class="fp-back" id="fp-trash-back">‹</button>
+      <h1 data-i18n="trashTitle">휴지통</h1>
+    </div>
+    <div class="fp-body">
+      <div class="card" id="trash-card" style="margin:0 -16px"></div>
+      <div class="hint-line" data-i18n="trashHint">지운 기록은 30일 동안 여기 남아 있어요.</div>
+    </div>
+  </div>
+
+  <!-- ============ FULL PAGE: FOR ZIO ============ -->
+  <!-- Tapping the baby's name in the header. Everything else in this app is
+       a number; this is the reason the numbers get written down. -->
+  <div class="fullpage egg" id="fp-egg">
+    <div class="fp-head">
+      <button type="button" class="fp-back" id="fp-egg-back">‹</button>
+      <h1 id="egg-head">-</h1>
+    </div>
+    <div class="fp-body egg-body">
+      <div class="egg-photo-wrap" id="egg-photo-wrap">
+        <img class="egg-photo" id="egg-photo" alt="" />
+        <div class="egg-photo-fallback" id="egg-photo-fallback" hidden>🍼</div>
+      </div>
+      <div class="egg-name" id="egg-name">-</div>
+      <div class="egg-age" id="egg-age">-</div>
+      <div class="egg-letter" id="egg-letter"></div>
+      <div class="egg-sign" id="egg-sign">-</div>
+    </div>
+  </div>
+
 
   <!-- ============ SHEET: CUSTOM TYPE CREATE ============ -->
   <div class="scrim" id="scrim2"></div>
@@ -1060,6 +1333,42 @@
     </div>
   </div>
 
+  <!-- ============ SHEET: YES/NO CONFIRM ============ -->
+  <!-- z-index above .fullpage (45): this is asked from inside the entry
+       detail panel, and a sheet behind that panel is a sheet nobody sees -->
+  <div class="scrim" id="scrim5" style="z-index:55"></div>
+  <div class="sheet confirm-sheet" id="confirm-sheet" data-scrim="scrim5" role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="grabber"></div>
+      <h2 id="confirm-title">-</h2>
+      <span style="width:30px"></span>
+    </div>
+    <div class="sheet-body"><p class="confirm-msg" id="confirm-msg"></p></div>
+    <div class="sheet-foot">
+      <button type="button" class="btn ghost" id="confirm-no">-</button>
+      <button type="button" class="btn primary" id="confirm-yes">-</button>
+    </div>
+  </div>
+
+  <!-- ============ SHEET: MASTER PIN ============ -->
+  <div class="scrim" id="scrim6" style="z-index:55"></div>
+  <div class="sheet confirm-sheet" id="pin-sheet" data-scrim="scrim6" role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="grabber"></div>
+      <h2 id="pin-title">-</h2>
+      <span style="width:30px"></span>
+    </div>
+    <div class="sheet-body">
+      <p class="confirm-msg" id="pin-msg"></p>
+      <input type="password" id="pin-input" inputmode="numeric" pattern="[0-9]*" maxlength="4" autocomplete="off"
+             style="width:100%;padding:14px;border-radius:14px;border:0;background:var(--surface-2);font-size:22px;text-align:center;letter-spacing:10px;color:var(--fg);" />
+    </div>
+    <div class="sheet-foot">
+      <button type="button" class="btn ghost" id="pin-cancel" data-i18n="cancel">취소</button>
+      <button type="button" class="btn primary" id="pin-ok" data-i18n="save">저장</button>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
 </div>
 
@@ -1080,7 +1389,7 @@ ko: {
   memoLabel:"메모", memoEmpty:"아직 메모가 없어요", memoComposeTitle:"메모 추가", memoComposePh:"메모를 입력하세요",
   memoSubmit:"등록", memoTranslateToVi:"베트남어 번역 (선택)", memoTranslateToKo:"한국어 번역 (선택)",
   memoNoMemos:"아직 등록된 메모가 없어요.", tabMemo:"메모", typeOrder:"항목 순서",
-  quickAdd:"빠른 기록", timeline:"기록", statsFeed7:"수유 통계", statsSleep7:"최근 7일 수면 통계",
+  quickAdd:"빠른 기록", timeline:"기록", loadMore:"이전 기록 더 보기", emptyDay:"이 날은 기록이 없어요", todayBtn:"오늘", statsFeed7:"수유 통계", statsSleep7:"최근 7일 수면 통계",
   babyInfo:"아기 정보", babyNameKo:"이름 (한국어)", babyNameVi:"이름 (베트남어)", babyBirth:"태어난 날",
   whoAmI:"나는 누구", customTypes:"커스텀 항목 관리",
   appearance:"화면", theme:"테마", themeAuto:"자동", themeLight:"라이트", themeDark:"다크",
@@ -1099,6 +1408,10 @@ ko: {
   noRecordYet:"기록 없음", justNow:"방금", agoSuffix:"전", hrShort:"시간", minShort:"분",
   wet:"소변", dirty:"대변", both:"소변+대변", diaperKind:"종류",
   nap:"낮잠", night:"밤잠", auto:"자동판별", sleepKind:"수면 종류",
+  nextDayShort:"다음날", prevDayShort:"전날", sleepCont:"이어짐",
+  crossMidTitle:"다음날 아침인가요?", crossMidMsgTpl:"시작 {start} → 종료 {end}\n종료 시간이 더 빨라요. 다음날 {end}까지 잔 거면 '다음날 맞아'를 눌러줘.", totalPrefix:"총",
+  crossMidYes:"다음날 맞아", crossMidNo:"시간 고칠래",
+
   startTime:"시작 시간", endTime:"종료 시간", nowBtn:"지금", dateLabel:"날짜",
   addEndTime:"+ 종료 시간", exactTime:"직접 입력", minusHour:"-1시간", minusTen:"-10분",
   amount:"먹은 양", ml:"ml", note:"메모", medNote:"약 이름 / 메모",
@@ -1108,7 +1421,24 @@ ko: {
   adjustStart:"시작 시간 조정", discardActive:"기록하지 않고 취소",
   pauseBtn:"일시정지", resumeBtn:"재생", pausedLabel:"일시정지됨",
   m1:"-60분", m2:"-30분", m3:"-10분", m4:"-5분", p1:"+5분", p2:"+10분", p3:"+30분", p4:"+60분",
-  avgPerFeed:"1회 평균 수유량", avgFeedsPerDay:"하루 평균 수유 횟수",
+  avgMlPerDay:"하루 평균 수유량", avgPerFeed:"1회 평균 수유량", avgFeedsPerDay:"하루 평균 수유 횟수",
+  excludesToday:"오늘은 아직 진행 중이라 평균에서 뺐어요",
+  permissionHint:"각자 자기가 적은 기록만 고치거나 지울 수 있어요. 엄마는 모든 기록을 고칠 수 있어요.",
+  lockedByTpl:"{who}이(가) 적은 기록이에요. 보기만 할 수 있어요.",
+  masterTitle:"엄마 권한", masterPin:"엄마 전환 PIN",
+  masterPinHint:"PIN을 걸어두면 다른 사람이 설정에서 '엄마'로 바꿀 수 없어요. 네 자리 숫자는 이 폰에서만 입력되고, 서버에는 알아볼 수 없는 형태로 저장돼요.",
+  pinOn:"설정됨 · 눌러서 해제", pinOff:"없음 · 눌러서 설정", pinMasterOnlyShort:"엄마만 설정할 수 있어요",
+  pinSetTitle:"PIN 설정", pinSetMsg:"'엄마'로 바꿀 때 물어볼 네 자리 숫자를 정해줘.",
+  pinEnterTitle:"엄마 PIN", pinEnterMsg:"'엄마'로 바꾸려면 PIN 네 자리를 입력해줘.",
+  pinClearTitle:"PIN 해제할까요?", pinClearMsg:"해제하면 누구나 설정에서 '엄마'로 바꿀 수 있어요.",
+  pinClearYes:"해제", pinSaved:"PIN을 설정했어요", pinCleared:"PIN을 해제했어요",
+  pinWrong:"PIN이 맞지 않아요", pinFourDigits:"네 자리 숫자를 입력해줘",
+  pinMasterOnly:"엄마만 설정할 수 있어요", pinUnavailable:"이 브라우저에서는 PIN을 쓸 수 없어요",
+  confirmBtn:"확인", recordGone:"이 기록은 이미 지워졌어요", refreshFailed:"새로고침하지 못했어요",
+  eggTitle:"지오에게", eggSign:"", eggLetter:"2026년 5월 11일 태어난\n예쁜 지오를 위해 엄마가 만든 앱\n\n엄마가 많이 사랑해 지오야",
+  trashTitle:"휴지통", trashOpen:"지운 기록 보기", trashCountTpl:"{n}개", trashHint:"지운 기록은 30일 동안 여기 남아 있어요. 30일이 지나면 자동으로 사라져요.",
+  trashEmpty:"지운 기록이 없어요", restoreBtn:"되돌리기", restoredToast:"기록을 되돌렸어요",
+  deletedAtTpl:"{when}에 지움", notMine:"내가 적은 기록이 아니에요",
   avgNap:"하루 평균 낮잠", avgNight:"하루 평균 밤잠",
   totalFeedDay:"수유", totalNap:"낮잠", totalNight:"밤잠",
   emptyTimeline:"아직 기록이 없어요. 위 아이콘을 눌러 첫 기록을 남겨보세요.",
@@ -1125,7 +1455,7 @@ vi: {
   memoLabel:"Ghi chú", memoEmpty:"Chưa có ghi chú nào", memoComposeTitle:"Thêm ghi chú", memoComposePh:"Nhập ghi chú",
   memoSubmit:"Đăng", memoTranslateToVi:"Dịch tiếng Việt (tùy chọn)", memoTranslateToKo:"Dịch tiếng Hàn (tùy chọn)",
   memoNoMemos:"Chưa có ghi chú nào được đăng.", tabMemo:"Ghi chú", typeOrder:"Thứ tự mục",
-  quickAdd:"Ghi nhanh", timeline:"Nhật ký", statsFeed7:"Thống kê bú", statsSleep7:"Thống kê ngủ 7 ngày qua",
+  quickAdd:"Ghi nhanh", timeline:"Nhật ký", loadMore:"Xem ngày trước đó", emptyDay:"Ngày này chưa có ghi chép", todayBtn:"Hôm nay", statsFeed7:"Thống kê bú", statsSleep7:"Thống kê ngủ 7 ngày qua",
   babyInfo:"Thông tin bé", babyNameKo:"Tên (Tiếng Hàn)", babyNameVi:"Tên (Tiếng Việt)", babyBirth:"Ngày sinh",
   whoAmI:"Bạn là ai", customTypes:"Quản lý mục tùy chỉnh",
   appearance:"Giao diện", theme:"Chủ đề", themeAuto:"Tự động", themeLight:"Sáng", themeDark:"Tối",
@@ -1144,6 +1474,10 @@ vi: {
   noRecordYet:"Chưa có dữ liệu", justNow:"Vừa xong", agoSuffix:"", hrShort:" giờ", minShort:" phút",
   wet:"Nước tiểu", dirty:"Phân", both:"Cả hai", diaperKind:"Loại",
   nap:"Ngủ ngày", night:"Ngủ đêm", auto:"Tự nhận diện", sleepKind:"Loại giấc ngủ",
+  nextDayShort:"Hôm sau", prevDayShort:"Hôm trước", sleepCont:"tiếp tục",
+  crossMidTitle:"Là sáng hôm sau?", crossMidMsgTpl:"Bắt đầu {start} → Kết thúc {end}\nGiờ kết thúc sớm hơn. Nếu bé ngủ đến {end} sáng hôm sau, hãy chọn 'Đúng, hôm sau'.", totalPrefix:"tổng",
+  crossMidYes:"Đúng, hôm sau", crossMidNo:"Sửa lại giờ",
+
   startTime:"Giờ bắt đầu", endTime:"Giờ kết thúc", nowBtn:"Bây giờ", dateLabel:"Ngày",
   addEndTime:"+ Giờ kết thúc", exactTime:"Nhập trực tiếp", minusHour:"-1 giờ", minusTen:"-10 phút",
   amount:"Lượng bú", ml:"ml", note:"Ghi chú", medNote:"Tên thuốc / Ghi chú",
@@ -1153,7 +1487,24 @@ vi: {
   adjustStart:"Chỉnh giờ bắt đầu", discardActive:"Hủy, không lưu",
   pauseBtn:"Tạm dừng", resumeBtn:"Tiếp tục", pausedLabel:"Đã tạm dừng",
   m1:"-60p", m2:"-30p", m3:"-10p", m4:"-5p", p1:"+5p", p2:"+10p", p3:"+30p", p4:"+60p",
-  avgPerFeed:"TB mỗi lần bú", avgFeedsPerDay:"TB số lần bú/ngày",
+  avgMlPerDay:"TB lượng bú/ngày", avgPerFeed:"TB mỗi lần bú", avgFeedsPerDay:"TB số lần bú/ngày",
+  excludesToday:"Chưa tính hôm nay vì ngày chưa kết thúc",
+  permissionHint:"Mỗi người chỉ sửa hoặc xoá được ghi chép của mình. Mẹ sửa được tất cả.",
+  lockedByTpl:"Mục này do {who} ghi. Bạn chỉ có thể xem.",
+  masterTitle:"Quyền của mẹ", masterPin:"Mã PIN để chuyển sang Mẹ",
+  masterPinHint:"Đặt mã PIN thì người khác không thể tự đổi tên thành 'Mẹ' trong cài đặt. Bốn chữ số chỉ nhập trên máy này; máy chủ chỉ lưu dạng đã mã hoá.",
+  pinOn:"Đã đặt · chạm để gỡ", pinOff:"Chưa đặt · chạm để đặt", pinMasterOnlyShort:"Chỉ Mẹ mới đặt được",
+  pinSetTitle:"Đặt mã PIN", pinSetMsg:"Chọn bốn chữ số sẽ được hỏi khi chuyển sang 'Mẹ'.",
+  pinEnterTitle:"Mã PIN của Mẹ", pinEnterMsg:"Nhập bốn chữ số để chuyển sang 'Mẹ'.",
+  pinClearTitle:"Gỡ mã PIN?", pinClearMsg:"Sau khi gỡ, ai cũng có thể đổi thành 'Mẹ' trong cài đặt.",
+  pinClearYes:"Gỡ", pinSaved:"Đã đặt mã PIN", pinCleared:"Đã gỡ mã PIN",
+  pinWrong:"Mã PIN không đúng", pinFourDigits:"Hãy nhập bốn chữ số",
+  pinMasterOnly:"Chỉ Mẹ mới đặt được", pinUnavailable:"Trình duyệt này không dùng được mã PIN",
+  confirmBtn:"Xác nhận", recordGone:"Mục này đã bị xoá", refreshFailed:"Không tải lại được",
+  eggTitle:"Gửi Zio", eggSign:"", eggLetter:"Ứng dụng mẹ làm cho Zio xinh xắn,\nsinh ngày 11 tháng 5 năm 2026\n\nMẹ yêu con thật nhiều, Zio à",
+  trashTitle:"Thùng rác", trashOpen:"Xem mục đã xoá", trashCountTpl:"{n} mục", trashHint:"Mục đã xoá được giữ ở đây 30 ngày, sau đó tự mất.",
+  trashEmpty:"Chưa có mục nào bị xoá", restoreBtn:"Khôi phục", restoredToast:"Đã khôi phục mục này",
+  deletedAtTpl:"Xoá lúc {when}", notMine:"Mục này không phải bạn ghi",
   avgNap:"TB ngủ ngày/ngày", avgNight:"TB ngủ đêm/ngày",
   totalFeedDay:"Bú", totalNap:"Ngủ ngày", totalNight:"Ngủ đêm",
   emptyTimeline:"Chưa có nhật ký nào. Nhấn biểu tượng phía trên để ghi mục đầu tiên.",
@@ -1175,6 +1526,10 @@ vi: {
 /* every type now carries a start + end time (see buildEntryFields) — the old
    singleTime flag is gone, so all of these default end=start and show a
    duration in the timeline the moment someone edits the end time. */
+/* a week at a time: enough that "yesterday" is always already there, small
+   enough that the screen is drawn immediately */
+var LOG_PAGE_DAYS = 7;
+
 var BUILT_IN = [
   {id:'feed',      emoji:'🍼', color:'var(--c-feed)',      hasAmount:true},
   {id:'diaper',    emoji:'💩', color:'var(--c-diaper)',    hasDiaperKind:true},
@@ -1203,7 +1558,11 @@ var state = {
   tab: 'record',
   entryId: null,
   adjustOpen: false,
-  statsFeedDays: 7
+  statsFeedDays: 7,
+  logDate: null,      // 'YYYY-M-D' when a single day is being viewed
+  logDays: 7,         // how many recent days the log is showing
+  crossMidAsked: false,   // guards the "다음날 아침인가요?" question from re-asking
+  crossMidEndDate: null   // 'YYYY-MM-DD' the end time was moved to, for this save only
 };
 
 function t(k){ var d = I18N[state.lang] || I18N.ko; return (d[k] !== undefined) ? d[k] : (I18N.ko[k] !== undefined ? I18N.ko[k] : k); }
@@ -1225,6 +1584,42 @@ function localizeAuthorName(name){
 function isPresetAuthorName(name){
   if (!name) return false;
   return I18N.ko.authorPresets.indexOf(name) !== -1 || I18N.vi.authorPresets.indexOf(name) !== -1;
+}
+
+/* ================================================================
+   WHO MAY CHANGE WHAT
+   The nanny deleted one of mom's records by accident on her first
+   day. Nobody signs in here — a phone is whoever it says it is in
+   settings — so this is a guard rail rather than a lock: you can
+   change what you wrote, and 엄마 can change anything.
+   Names compare by WHICH preset they are, never by their letters:
+   the same person is '내니' on a Korean screen and 'Bảo mẫu' on a
+   Vietnamese one.
+   ================================================================ */
+var MASTER_INDEX = 0;   /* 엄마 / Mẹ */
+function authorIndex(name){
+  if (!name) return -1;
+  var n = String(name).trim();
+  var i = I18N.ko.authorPresets.indexOf(n);
+  if (i === -1) i = I18N.vi.authorPresets.indexOf(n);
+  return i;
+}
+function sameAuthor(a, b){
+  var ia = authorIndex(a), ib = authorIndex(b);
+  if (ia !== -1 || ib !== -1) return ia === ib;
+  return !!String(a || '').trim() && String(a || '').trim() === String(b || '').trim();
+}
+function isMasterUser(){ return authorIndex(state.author) === MASTER_INDEX; }
+/* mine, or everything if I am 엄마. A record with no author at all is
+   mom's to sort out — those are the imported ones. */
+function canTouch(ownerName){
+  return isMasterUser() || sameAuthor(ownerName, state.author);
+}
+function withActor(payload){
+  var out = {};
+  for (var k in (payload || {})) out[k] = payload[k];
+  out.actor = state.author || '';
+  return out;
 }
 
 /* ================================================================
@@ -1260,10 +1655,18 @@ function apiMutate(type, payload){
   mutationsInFlight++;
   return fetch('/api/mutate', {
     method: 'POST', headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({ type: type, payload: payload || {} })
+    /* who is making this change. The server uses it to decide whether this
+       phone may touch this record — see assertMayTouch() in mutations.js. */
+    body: JSON.stringify({ type: type, payload: withActor(payload) })
   }).then(function(res){
     return res.json().then(function(json){
-      if (!res.ok) throw new Error(json.error || ('mutate failed: ' + type));
+      if (!res.ok){
+        var msg = json.error || ('mutate failed: ' + type);
+        /* the server's own guard rail — reachable only if two phones raced,
+           or an old page is still open somewhere */
+        if (String(msg).indexOf('not-owner') === 0) msg = t('notMine');
+        throw new Error(msg);
+      }
       return json;
     });
   }).then(function(json){
@@ -1628,7 +2031,9 @@ function renderProfilePill(){
   btn.title = name;
   var hue = state.author ? avatarColor(name) : 'var(--muted-2)';
   btn.style.background = 'color-mix(in srgb, '+hue+' 35%, var(--surface))';
-  btn.style.color = hue;
+  /* the letter leans toward the theme's text colour, so it stays legible on
+     that pale chip in light mode and on the dark one at night */
+  btn.style.color = 'color-mix(in srgb, '+hue+' 45%, var(--fg))';
 }
 
 /* ================================================================
@@ -1655,15 +2060,15 @@ function renderActiveBar(){
     slot.innerHTML =
       '<div class="active-bar" style="--active-color:'+meta.color+'">' +
         '<div class="aw-emoji">'+meta.emoji+'</div>' +
-        '<div class="aw-time" id="aw-time"></div>' +
         '<div class="aw-meta"><b id="aw-name"></b><span id="aw-sub"></span></div>' +
+        '<div class="aw-time" id="aw-time"></div>' +
         '<div class="aw-actions">' +
           '<button type="button" class="aw-round" id="aw-pause" title="'+esc(t('pauseBtn'))+'"></button>' +
           '<button type="button" class="aw-round" id="aw-adjust" title="'+esc(t('adjustStart'))+'">✎</button>' +
           '<button type="button" class="aw-round confirm" id="aw-finish" title="'+esc(t('save'))+'">✓</button>' +
         '</div>' +
       '</div>' +
-      '<div id="aw-adjust-panel" hidden style="margin:8px 16px 0;padding:10px 12px;border-radius:14px;background:var(--surface);"></div>';
+      '<div id="aw-adjust-panel" hidden style="width:calc(100% + 32px);margin:0 -16px;padding:12px 16px;background:var(--surface-2);"></div>';
     bar = slot.querySelector('.active-bar');
     document.getElementById('aw-pause').addEventListener('click', togglePauseActive);
     document.getElementById('aw-adjust').addEventListener('click', toggleAdjustPanel);
@@ -1758,18 +2163,51 @@ function entryDurationMs(e){
   if (!e.end) return 0;
   return Math.max(0, new Date(e.end) - new Date(e.start));
 }
+/* A night sleep runs past midnight, so it belongs to two days rather than
+   one. Counting all ten hours on the day it began made that day look like it
+   had a fourteen-hour night and the next day like it had none — and the
+   morning's own screen showed no night sleep at all. Split at midnight and
+   give each day the minutes that actually fell inside it. The record itself
+   stays ONE record: it is one night, and one thing to edit or delete. */
+function daySegments(startIso, endIso){
+  var s = new Date(startIso).getTime();
+  var e = new Date(endIso || startIso).getTime();
+  var firstKey = dayKey(startIso);
+  if (!(e > s)) return [{ key: firstKey, ms: 0, from: startIso, cont: false }];
+  var out = [], cur = s, guard = 0;
+  while (cur < e && guard++ < 400){
+    var d = new Date(cur);
+    var nextMidnight = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).getTime();
+    var segEnd = Math.min(nextMidnight, e);
+    out.push({ key: dayKey(d.toISOString()), ms: segEnd - cur, from: d.toISOString(), cont: out.length > 0 });
+    cur = segEnd;
+  }
+  return out;
+}
+/* does this record run past midnight into another day? */
+function crossesMidnight(e){
+  return !!(e && e.end && e.end !== e.start && dayKey(e.end) !== dayKey(e.start));
+}
 function dailyAggregate(entries){
   var byDay = {};
+  function dayFor(k, iso){
+    if (!byDay[k]) byDay[k] = {key:k, date:iso, feedMl:0, feedCount:0, nap:0, night:0, entries:[], cont:{}};
+    return byDay[k];
+  }
   entries.forEach(function(e){
     var k = dayKey(e.start);
-    if (!byDay[k]) byDay[k] = {key:k, date:e.start, feedMl:0, feedCount:0, nap:0, night:0, entries:[]};
-    var day = byDay[k];
+    var day = dayFor(k, e.start);
     day.entries.push(e);
     if (e.type==='feed' && e.amount) { day.feedMl += e.amount; day.feedCount++; }
     if (e.type==='sleep'){
       var kind = classifySleep(e);
-      var dur = entryDurationMs(e);
-      if (kind==='night') day.night += dur; else day.nap += dur;
+      daySegments(e.start, e.end).forEach(function(seg){
+        var d2 = dayFor(seg.key, seg.from);
+        if (kind==='night') d2.night += seg.ms; else d2.nap += seg.ms;
+        /* the days after the first one show the same record as a continuation
+           row, so the morning's list says when he actually woke up */
+        if (seg.cont){ d2.entries.push(e); d2.cont[e.id] = true; }
+      });
     }
   });
   return byDay;
@@ -1778,25 +2216,34 @@ function dailyAggregate(entries){
 /* ================================================================
    RENDER: DASHBOARD (since-last, local)
    ================================================================ */
-function lastOfType(entries, matcher){
+/* WHICH END OF A RECORD COUNTS AS "when it happened" depends on the record.
+   A feed is timed from when it STARTED — that is what the next feed is
+   measured against, and a bottle that took twenty minutes was not "20 minutes
+   ago" the moment it finished. A nappy change and a nap are the opposite: what
+   matters is when it ENDED, because a nap that ended at 4pm means the baby has
+   been awake since 4pm, not since it began. Both the choice of "the last one"
+   and the elapsed time use the same basis, so they can never disagree. */
+function refTimeOf(e, basis){
+  return (basis === 'start' ? e.start : (e.end || e.start)) || e.start;
+}
+function lastOfType(entries, matcher, basis){
   var best = null;
   entries.forEach(function(e){
     if (!matcher(e)) return;
-    var ref = e.end || e.start;
-    if (!best || new Date(ref) > new Date(best.end || best.start)) best = e;
+    if (!best || new Date(refTimeOf(e, basis)) > new Date(refTimeOf(best, basis))) best = e;
   });
   return best;
 }
 function renderSinceLast(){
   var entries = readEntries();
-  var feed = lastOfType(entries, function(e){ return e.type==='feed'; });
-  var diaper = lastOfType(entries, function(e){ return e.type==='diaper'; });
-  var sleep = lastOfType(entries, function(e){ return e.type==='sleep'; });
+  var feed = lastOfType(entries, function(e){ return e.type==='feed'; }, 'start');
+  var diaper = lastOfType(entries, function(e){ return e.type==='diaper'; }, 'end');
+  var sleep = lastOfType(entries, function(e){ return e.type==='sleep'; }, 'end');
   var now = Date.now();
   var cards = [
-    {key:'since_feed', emoji:'🍼', e:feed, sub: feed ? (feed.amount!=null ? feed.amount+t('ml') : '') : ''},
-    {key:'since_diaper', emoji:'💩', e:diaper, sub: diaper ? (t(diaper.diaper==='dirty'?'dirty':(diaper.diaper==='both'?'both':'wet'))) : ''},
-    {key:'since_sleep', emoji:'😴', e:sleep, sub: sleep ? (sleep.sleepKind ? t(sleep.sleepKind==='night'?'night':'nap') : '') : ''}
+    {key:'since_feed', emoji:'🍼', e:feed, basis:'start', sub: feed ? (feed.amount!=null ? feed.amount+t('ml') : '') : ''},
+    {key:'since_diaper', emoji:'💩', e:diaper, basis:'end', sub: diaper ? (t(diaper.diaper==='dirty'?'dirty':(diaper.diaper==='both'?'both':'wet'))) : ''},
+    {key:'since_sleep', emoji:'😴', e:sleep, basis:'end', sub: sleep ? (sleep.sleepKind ? t(sleep.sleepKind==='night'?'night':'nap') : '') : ''}
   ];
   var row = document.getElementById('since-row');
   /* This runs once a SECOND. Rebuilding innerHTML each tick threw away and
@@ -1812,7 +2259,7 @@ function renderSinceLast(){
   var items = row.children;
   cards.forEach(function(c, i){
     var el = items[i];
-    var ms = c.e ? (now - new Date(c.e.end || c.e.start).getTime()) : null;
+    var ms = c.e ? (now - new Date(refTimeOf(c.e, c.basis)).getTime()) : null;
     var vals = [c.emoji, t(c.key), fmtElapsed(ms), c.sub || ''];
     var nodes = el.children;
     for (var k = 0; k < 4; k++){
@@ -1828,7 +2275,7 @@ function renderSinceLast(){
    amount(ml) * 1.5 minutes after the last feed's start time).
    ================================================================ */
 function estimateNextFeedMs(entries){
-  var lastFeed = lastOfType(entries, function(e){ return e.type==='feed'; });
+  var lastFeed = lastOfType(entries, function(e){ return e.type==='feed'; }, 'start');
   if (!lastFeed || !lastFeed.start) return null;
   var amt = Number(lastFeed.amount);
   if (!amt || amt <= 0) return null;
@@ -1930,6 +2377,9 @@ function quickCreate(typeId){
   var meta = typeMeta(typeId);
   if (!meta) return;
   var now = new Date().toISOString();
+  /* a new record is always made now, so if an older day is on screen the row
+     would be written into a day nobody is looking at — come back to today */
+  leaveOldDayView();
 
   /* Show the entry BEFORE the server has heard about it. The round trip to
      the server is what a tap used to wait on, so on a phone the app felt
@@ -1946,6 +2396,14 @@ function quickCreate(typeId){
 
   apiMutate('addEntry', { type: typeId, start: now, end: now, author: state.author })
     .then(function(result){
+      /* THE DEAD SAVE BUTTON.
+         The row on screen was made here, with an id this phone invented, and
+         the server then answers with the real one. Tapping that row in the
+         seconds in between left the open record pointing at an id that no
+         longer existed, so Save looked at the list, found nothing, and
+         returned without a word — for as long as the panel stayed open.
+         Follow the record to its real id instead. */
+      if (state.entryId === tempId) state.entryId = result.entry.id;
       renderAll();               /* server state replaced the temp row */
       flashRow(result.entry.id);
     })
@@ -1964,6 +2422,7 @@ function flashRow(id){
 function startStopwatch(typeId){
   var a = getActive();
   if (a && a.type){ toast(t('alreadyActive')); return; }
+  leaveOldDayView();
   var meta = typeMeta(typeId);
   var name = meta ? meta.label : '';
   apiMutate('startActive', { type: typeId, name: name, author: state.author }).then(function(){
@@ -1974,25 +2433,124 @@ function startStopwatch(typeId){
 /* ================================================================
    RENDER: TIMELINE (local)
    ================================================================ */
+/* 'YYYY-M-D' (the key the log groups by) <-> 'YYYY-MM-DD' (what a date input
+   speaks). Kept as two small functions rather than one clever one, because a
+   mismatch here silently shows the wrong day. */
+function dayKeyToInput(k){
+  if (!k) return '';
+  var p = k.split('-');
+  return p[0] + '-' + (p[1].length < 2 ? '0' : '') + p[1] + '-' + (p[2].length < 2 ? '0' : '') + p[2];
+}
+function inputToDayKey(v){
+  if (!v) return null;
+  var p = v.split('-');
+  return Number(p[0]) + '-' + Number(p[1]) + '-' + Number(p[2]);
+}
+function shiftDayKey(k, days){
+  var p = k.split('-').map(Number);
+  var d = new Date(p[0], p[1] - 1, p[2]);
+  d.setDate(d.getDate() + days);
+  return dayKey(d.toISOString());
+}
+function leaveOldDayView(){
+  if (state.logDate && state.logDate !== dayKey(new Date().toISOString())){
+    state.logDate = null;
+    state.logDays = LOG_PAGE_DAYS;
+  }
+}
+function setLogDate(key){
+  state.logDate = key;
+  if (!key) state.logDays = LOG_PAGE_DAYS;   // back to the rolling view
+  renderTimeline();
+  renderLogNav();
+  window.scrollTo({ top: 0, behavior: 'auto' });
+}
+function renderLogNav(){
+  var btn = document.getElementById('log-date-btn');
+  var txt = document.getElementById('log-date-text');
+  var input = document.getElementById('log-date-input');
+  var next = document.getElementById('log-next');
+  if (!btn || !txt || !input) return;
+  var todayK = dayKey(new Date().toISOString());
+  if (state.logDate){
+    txt.textContent = dayHeading(new Date(state.logDate.split('-')[0],
+      state.logDate.split('-')[1]-1, state.logDate.split('-')[2]).toISOString());
+    input.value = dayKeyToInput(state.logDate);
+    btn.classList.remove('is-today');
+    /* there is nothing after today to look at */
+    if (next) next.disabled = false;
+  } else {
+    txt.textContent = t('todayBtn');
+    input.value = dayKeyToInput(todayK);
+    btn.classList.add('is-today');
+    if (next) next.disabled = true;
+  }
+  var prev = document.getElementById('log-prev');
+  if (prev) prev.disabled = false;
+}
+function wireLogNav(){
+  var input = document.getElementById('log-date-input');
+  var prev = document.getElementById('log-prev');
+  var next = document.getElementById('log-next');
+  var more = document.getElementById('log-more');
+  if (input) input.addEventListener('change', function(){
+    setLogDate(inputToDayKey(input.value));
+  });
+  if (prev) prev.addEventListener('click', function(){
+    var from = state.logDate || dayKey(new Date().toISOString());
+    setLogDate(shiftDayKey(from, -1));
+  });
+  if (next) next.addEventListener('click', function(){
+    if (!state.logDate) return;
+    var todayK = dayKey(new Date().toISOString());
+    var nextK = shiftDayKey(state.logDate, 1);
+    /* stepping past today drops back to the rolling recent view */
+    setLogDate(nextK === todayK ? null : nextK);
+  });
+  if (more) more.addEventListener('click', function(){
+    state.logDays = (state.logDays || LOG_PAGE_DAYS) + LOG_PAGE_DAYS;
+    renderTimeline();
+  });
+  renderLogNav();
+}
+
 function renderTimeline(){
   var container = document.getElementById('timeline');
+  _surfaceRgb = null;   /* the theme may have changed since the last render */
   var entries = readEntries().slice().sort(function(a,b){ return new Date(b.start) - new Date(a.start); });
-  var a = getActive();
-  var activeRunning = !!(a && a.type);
   var nowIso = new Date().toISOString();
-  var todayK = dayKey(nowIso);
 
-  if (!entries.length && !activeRunning){
+  if (!entries.length){
     container.innerHTML = '<div class="empty-note">'+esc(t('emptyTimeline'))+'</div>';
     return;
   }
   var agg = dailyAggregate(entries);
-  /* the running stopwatch lives inside today's group, right under the date —
-     synthesize an (otherwise empty) today group so it has somewhere to sit */
-  if (activeRunning && !agg[todayK]){
-    agg[todayK] = {key:todayK, date:nowIso, feedMl:0, feedCount:0, nap:0, night:0, entries:[]};
-  }
   var order = Object.keys(agg).sort(function(x,y){ return new Date(agg[y].date) - new Date(agg[x].date); });
+
+  /* WHAT GETS DRAWN. Rendering every day at once was fine with a week of
+     records; with three months it is 1,500 rows, 20,000 elements and about
+     150 screens of page — several seconds before anything appears on a phone,
+     and no way to reach a particular day except by scrolling to it.
+       · a date is picked  -> that day only
+       · otherwise         -> the most recent LOG_PAGE_DAYS, extended by the
+                              "이전 기록 더 보기" button at the bottom */
+  var more = document.getElementById('log-more');
+  var shownAll = false;
+  if (state.logDate){
+    order = order.filter(function(k){ return k === state.logDate; });
+    shownAll = true;
+    if (!order.length){
+      container.innerHTML = '<div class="empty-note">'+esc(t('emptyDay'))+'</div>';
+      if (more) more.hidden = true;
+      return;
+    }
+  } else {
+    var limit = state.logDays || LOG_PAGE_DAYS;
+    shownAll = order.length <= limit;
+    order = order.slice(0, limit);
+  }
+  if (more) more.hidden = shownAll;
+
   var html = '';
   order.forEach(function(k){
     var day = agg[k];
@@ -2003,18 +2561,94 @@ function renderTimeline(){
     html += '<span>'+esc(t('totalNap'))+' <b>'+fmtDur(day.nap)+'</b></span>';
     html += '<span>'+esc(t('totalNight'))+' <b>'+fmtDur(day.night)+'</b></span>';
     html += '</div></div>';
-    if (activeRunning && k === todayK){ html += '<div id="active-bar-slot"></div>'; }
-    dayEntries.forEach(function(e){ html += entryRowHtml(e); });
+    dayEntries.forEach(function(e){ html += entryRowHtml(e, !!(day.cont && day.cont[e.id])); });
     html += '</div>';
   });
   container.innerHTML = html;
   $$('.entry-swipe', container).forEach(function(wrap){ wireEntrySwipe(wrap); });
 }
-function entryRowHtml(e){
+/* ================================================================
+   TYPE COLOR AS TEXT
+   Every category color was picked to sit behind an icon, where it is a
+   fill. On text it is a different job: thin glyphs need contrast a filled
+   chip never did, and on the white sheet 분유's orange measures 2.06:1 —
+   less than half of readable. Rather than keep a second hand-written
+   palette in sync with the first, each color is walked toward the
+   background's opposite until it clears 4.5:1. Custom types the family
+   invents later get the same treatment for free.
+   ================================================================ */
+var TEXT_COLOR_CACHE = {};
+var _colorProbe = null;
+function resolveColor(css){
+  if (!_colorProbe){
+    _colorProbe = document.createElement('span');
+    _colorProbe.style.cssText = 'position:absolute;width:0;height:0;opacity:0;pointer-events:none';
+    document.body.appendChild(_colorProbe);
+  }
+  _colorProbe.style.color = '';
+  _colorProbe.style.color = css;
+  var m = /rgba?\(([^)]+)\)/.exec(getComputedStyle(_colorProbe).color);
+  if (!m) return [0, 0, 0];
+  var v = m[1].split(',').map(Number);
+  return [v[0], v[1], v[2]];
+}
+function _lum(c){
+  var f = function(x){ x /= 255; return x <= 0.03928 ? x/12.92 : Math.pow((x+0.055)/1.055, 2.4); };
+  return 0.2126*f(c[0]) + 0.7152*f(c[1]) + 0.0722*f(c[2]);
+}
+function _contrast(a, b){
+  var x = _lum(a), y = _lum(b);
+  if (x < y){ var tmp = x; x = y; y = tmp; }
+  return (x + 0.05) / (y + 0.05);
+}
+function _toHex(c){
+  return '#' + c.map(function(v){
+    v = Math.round(Math.max(0, Math.min(255, v)));
+    return (v < 16 ? '0' : '') + v.toString(16);
+  }).join('');
+}
+/* the sheet color is read once per rendered list rather than once per row —
+   setting and reading a color forces a style recalc every time */
+var _surfaceRgb = null;
+function typeTextColor(colorCss){
+  var bg = _surfaceRgb || (_surfaceRgb = resolveColor('var(--surface)'));
+  var key = colorCss + '|' + bg.join(',');
+  if (TEXT_COLOR_CACHE[key]) return TEXT_COLOR_CACHE[key];
+  var base = resolveColor(colorCss);
+  /* darken on a light sheet, lighten on a dark one */
+  var toward = _lum(bg) > 0.35 ? [0,0,0] : [255,255,255];
+  var out = base;
+  for (var t = 0; t <= 1.0001; t += 0.02){
+    out = [ base[0]*(1-t) + toward[0]*t, base[1]*(1-t) + toward[1]*t, base[2]*(1-t) + toward[2]*t ];
+    if (_contrast(out, bg) >= 4.5) break;
+  }
+  var hex = _toHex(out);
+  TEXT_COLOR_CACHE[key] = hex;
+  return hex;
+}
+
+function entryRowHtml(e, isCont){
   var meta = typeMeta(e.type);
   if (!meta) return '';
   var title = meta.label;
   var subParts = [];
+  /* the tail of a sleep that started the day before: this row is about the
+     waking, so it leads with the time he woke and says where it came from */
+  if (isCont){
+    var contSub = [t('sleepCont'), t('prevDayShort') + ' ' + fmtTime(e.start)];
+    if (e.end && e.end !== e.start) contSub.push(t('totalPrefix') + ' ' + fmtDur(entryDurationMs(e)));
+    var contLocked = !canTouch(e.author);
+    return '<div class="entry-swipe'+(contLocked?' is-locked':'')+'" data-id="'+esc(e.id)+'"'+(contLocked?' data-locked="1"':'')+'>' +
+      (contLocked ? '' : '<div class="entry-delete-bg" data-swipe-del="'+esc(e.id)+'"><span>'+esc(t('deleteSwipeLabel'))+'</span></div>') +
+      '<button type="button" class="entry-row is-cont" data-id="'+esc(e.id)+'" data-cont="1">' +
+        '<div class="e-time"><span class="e-time-main">~'+esc(fmtTime(e.end))+'</span>' +
+        (e.author?('<span class="e-author">'+esc(localizeAuthorName(e.author))+'</span>'):'') + '</div>' +
+        '<div class="e-icon">'+meta.emoji+'</div>' +
+        '<div class="e-main"><div class="e-title-line"><span class="e-title">'+esc(t(classifySleep(e)==='night'?'night':'nap'))+'</span>' +
+        '<span class="e-sub">'+esc(contSub.join(' · '))+'</span></div></div>' +
+      '</button>' +
+    '</div>';
+  }
   if (e.type==='feed'){
     if (e.amount!=null) subParts.push(e.amount+t('ml'));
   } else if (e.type==='diaper'){
@@ -2033,6 +2667,10 @@ function entryRowHtml(e){
      out of alignment with the row above/below it. */
   var timeMain = fmtTime(e.start);
   var timeEnd = (e.end && e.end !== e.start) ? fmtTime(e.end) : null;
+  /* "~오전 06:00" under "오후 08:00" reads as a six-hour trip backwards unless
+     the row says out loud that the end is the next morning */
+  var endNextDay = crossesMidnight(e);
+  if (timeEnd && endNextDay) timeEnd = t('nextDayShort') + ' ' + timeEnd;
   /* the note gets the same detect+mock-translate treatment as the memo tab —
      original and translated on their own lines, same size, told apart by color */
   var noteHtml = '';
@@ -2040,14 +2678,15 @@ function entryRowHtml(e){
     noteHtml = '<div class="e-note">'+esc(e.note)+'</div>' +
       (e.noteTranslated ? '<div class="e-note-trans">'+esc(e.noteTranslated)+'</div>' : '');
   }
-  return '<div class="entry-swipe" data-id="'+esc(e.id)+'">' +
-    '<div class="entry-delete-bg" data-swipe-del="'+esc(e.id)+'"><span>'+esc(t('deleteSwipeLabel'))+'</span></div>' +
+  var locked = !canTouch(e.author);
+  return '<div class="entry-swipe'+(locked?' is-locked':'')+'" data-id="'+esc(e.id)+'"'+(locked?' data-locked="1"':'')+'>' +
+    (locked ? '' : '<div class="entry-delete-bg" data-swipe-del="'+esc(e.id)+'"><span>'+esc(t('deleteSwipeLabel'))+'</span></div>') +
     '<button type="button" class="entry-row" data-id="'+esc(e.id)+'">' +
       '<div class="e-time"><span class="e-time-main">'+esc(timeMain)+'</span>' +
-      (timeEnd ? '<span class="e-time-end">~'+esc(timeEnd)+'</span>' : '') +
+      (timeEnd ? '<span class="e-time-end'+(endNextDay?' wrap':'')+'">~'+esc(timeEnd)+'</span>' : '') +
       (e.author?('<span class="e-author">'+esc(localizeAuthorName(e.author))+'</span>'):'') + '</div>' +
       '<div class="e-icon">'+meta.emoji+'</div>' +
-      '<div class="e-main"><div class="e-title-line"><span class="e-title">'+esc(title)+'</span>' +
+      '<div class="e-main"><div class="e-title-line"><span class="e-title" style="color:'+typeTextColor(meta.color)+'">'+esc(title)+'</span>' +
       (subParts.length ? '<span class="e-sub">'+esc(subParts.join(' · '))+'</span>' : '') + '</div>' + noteHtml + '</div>' +
     '</button>' +
   '</div>';
@@ -2058,6 +2697,13 @@ function entryRowHtml(e){
 function wireEntrySwipe(wrap){
   var row = $('.entry-row', wrap);
   if (!row) return;
+  /* A record this phone may not change does not slide — there is no red band
+     behind it to reveal. It still OPENS, because being able to read what the
+     nanny wrote is half the point of a shared log. */
+  if (wrap.dataset.locked === '1'){
+    row.addEventListener('click', function(){ openEntryDetail(row.dataset.id); });
+    return;
+  }
   var THRESH = 56;      /* px dragged left before the delete bg is considered "open" */
   var FULL   = 150;     /* px dragged left that means "just delete it" */
   var TAPMAX = 6;       /* px of movement still counted as a tap */
@@ -2143,6 +2789,8 @@ function wireEntrySwipe(wrap){
   }
 }
 function deleteEntryDirect(id){
+  var target = (appState.entries || []).filter(function(e){ return e.id === id; })[0];
+  if (target && !canTouch(target.author)){ toast(t('notMine')); return; }
   /* take the row out immediately. Waiting for the round trip made a swipe-
      delete feel like the slowest thing in the app — the red button stayed put
      with the row still under it until the server answered. */
@@ -2183,10 +2831,24 @@ function renderStats(){
   });
   var totalMl = feedTotals.reduce(function(a,b){return a+b;},0);
   var totalCount = feedCounts.reduce(function(a,b){return a+b;},0);
+  /* Anything divided by DAYS has to leave today out. Today is a few hours
+     old at breakfast, so counting it as a whole day dragged the daily
+     average down all morning and only recovered by bedtime — the average
+     moved because of the clock, not because of anything Zio did.
+     (per-FEED average is unaffected: a feed is a feed whenever it happened.) */
+  var doneTotals = feedTotals.slice(0, -1);
+  var doneCounts = feedCounts.slice(0, -1);
+  var doneDays = Math.max(1, doneTotals.length);
+  var doneMl = doneTotals.reduce(function(a,b){return a+b;},0);
+  var doneCount = doneCounts.reduce(function(a,b){return a+b;},0);
   var avgPerFeed = totalCount ? Math.round(totalMl/totalCount) : 0;
-  var avgFeedsPerDay = (totalCount/feedDays).toFixed(1);
+  var avgFeedsPerDay = (doneCount/doneDays).toFixed(1);
+  /* the day's total is the number that actually gets compared against a
+     feeding target, so it leads */
+  var avgMlPerDay = Math.round(doneMl/doneDays);
 
   document.getElementById('stat-tiles').innerHTML =
+    statTile(t('avgMlPerDay'), avgMlPerDay+' <small>'+t('ml')+'</small>') +
     statTile(t('avgPerFeed'), avgPerFeed+' <small>'+t('ml')+'</small>') +
     statTile(t('avgFeedsPerDay'), avgFeedsPerDay+' <small>'+ (state.lang==='vi'?'lần/ngày':'회/일') +'</small>');
 
@@ -2202,8 +2864,12 @@ function renderStats(){
     napTotals.push(a ? a.nap : 0);
     nightTotals.push(a ? a.night : 0);
   });
-  var avgNap = napTotals.reduce(function(a,b){return a+b;},0)/7;
-  var avgNight = nightTotals.reduce(function(a,b){return a+b;},0)/7;
+  /* same rule as the feed averages: a day still in progress is not a day
+     you can average. Last night's sleep counts; tonight's hasn't happened. */
+  var doneNap = napTotals.slice(0, -1), doneNight = nightTotals.slice(0, -1);
+  var sleepDone = Math.max(1, doneNap.length);
+  var avgNap = doneNap.reduce(function(a,b){return a+b;},0)/sleepDone;
+  var avgNight = doneNight.reduce(function(a,b){return a+b;},0)/sleepDone;
 
   document.getElementById('stat-sleep-tiles').innerHTML =
     statTile(t('avgNap'), '<span style="font-size:17px">'+fmtDur(avgNap)+'</span>') +
@@ -2211,15 +2877,22 @@ function renderStats(){
 
   /* -------- feed bar chart: thin labels + date-vs-weekday format for longer ranges -------- */
   var maxMl = Math.max(1, feedTotals.reduce(function(a,b){return Math.max(a,b);},0));
-  var labelEvery = feedDays > 20 ? 5 : (feedDays > 9 ? 2 : 1);
+  var labelEvery = feedDays > 20 ? 5 : (feedDays > 9 ? 3 : 1);
+  /* Printing a number over all thirty bars is unreadable at phone width, so
+     the amounts appear only where a date does. */
+  var showValues = feedDays <= 14;
   document.getElementById('stat-bars').innerHTML = days.map(function(d,i){
-    var h = Math.round((feedTotals[i]/maxMl)*94)+4;
-    var showLabel = (i === days.length-1) || (i % labelEvery === 0);
-    var lbl = '';
-    if (showLabel){
-      lbl = feedDays > 9 ? (d.getMonth()+1)+'/'+d.getDate() : t('weekday_short')[d.getDay()];
-    }
-    return '<div class="bar-col"><div class="bar-val">'+(feedTotals[i]||'')+'</div><div class="bar" style="height:'+h+'px"></div><div class="bar-lbl">'+esc(lbl)+'</div></div>';
+    var pct = Math.round((feedTotals[i]/maxMl)*100);
+    var isToday = (i === days.length-1);
+    var showLabel = isToday || (i % labelEvery === 0);
+    var lbl = showLabel
+      ? (feedDays > 9 ? (d.getMonth()+1)+'/'+d.getDate() : t('weekday_short')[d.getDay()])
+      : '';
+    var val = (showValues && showLabel && feedTotals[i]) ? feedTotals[i] : '';
+    return '<div class="bar-col'+(isToday?' is-today':'')+'">' +
+      '<div class="bar-val">'+val+'</div>' +
+      '<div class="bar-track"><div class="bar" style="height:'+pct+'%" title="'+esc((d.getMonth()+1)+'/'+d.getDate()+' · '+feedTotals[i]+t('ml'))+'"></div></div>' +
+      '<div class="bar-lbl">'+esc(lbl)+'</div></div>';
   }).join('');
 
   renderPoopChart(entries);
@@ -2289,11 +2962,27 @@ function fmtDurDayHour(ms){
   if (h > 0) return h+t('hrShort')+' '+m+t('minShort');
   return m+t('minShort');
 }
+/* The same gap, short enough to print above a dot on a phone-width chart.
+   "1일 21시간" is already wide; its Vietnamese equivalent, "1 ngày 21 giờ",
+   is nearly twice that and ran straight through its neighbours. Anything a
+   day or more is written as a decimal day instead — one number, one unit. */
+function fmtGapShort(ms){
+  if (ms == null || ms < 0) ms = 0;
+  var totalMin = Math.round(ms/60000);
+  if (totalMin >= 1440){
+    var days = totalMin/1440;
+    var shown = days >= 10 ? Math.round(days) : Math.round(days*10)/10;
+    return String(shown).replace('.', state.lang === 'vi' ? ',' : '.') + t('dayShort');
+  }
+  var h = Math.floor(totalMin/60);
+  if (h > 0) return h + t('hrShort');
+  return totalMin + t('minShort');
+}
 function fmtMonthDay(d){ return (d.getMonth()+1)+'/'+(d.getDate()<10?'0':'')+d.getDate(); }
 function buildPoopChartSvg(points){
   var maxGapDays = Math.max.apply(null, points.map(function(p){ return p.gapMs/86400000; }));
   var yMaxDays = Math.max(2, Math.ceil(maxGapDays) + 1);
-  var W = 340, H = 190, padL = 26, padR = 8, padT = 26, padB = 32;
+  var W = 340, H = 196, padL = 28, padR = 8, padT = 34, padB = 32;
   var plotW = W - padL - padR, plotH = H - padT - padB;
   var n = points.length;
   var xAt = function(i){ return n > 1 ? padL + (plotW * i/(n-1)) : padL + plotW/2; };
@@ -2322,7 +3011,11 @@ function buildPoopChartSvg(points){
     var anchor = i===0 ? 'start' : (i===n-1 ? 'end' : 'middle');
     var lblX = i===0 ? c.x+3 : (i===n-1 ? c.x-3 : c.x);
     dots += '<circle cx="'+c.x.toFixed(1)+'" cy="'+c.y.toFixed(1)+'" r="3.5" class="poop-dot" />';
-    valueLabels += '<text x="'+lblX.toFixed(1)+'" y="'+(c.y-9).toFixed(1)+'" class="poop-value-lbl" text-anchor="'+anchor+'">'+esc(fmtDurDayHour(p.gapMs))+'</text>';
+    /* neighbouring labels are staggered onto two heights: at seven points
+       across a phone-width chart there is not room for them side by side, and
+       two of them printed on top of each other is worse than none */
+    var lblY = c.y - (i % 2 ? 20 : 9);
+    valueLabels += '<text x="'+lblX.toFixed(1)+'" y="'+lblY.toFixed(1)+'" class="poop-value-lbl" text-anchor="'+anchor+'">'+esc(fmtGapShort(p.gapMs))+'</text>';
     var lines = p.isNow ? [t('nowBtn')] : [fmtMonthDay(p.t), toTimeValue(p.t.toISOString())];
     xLabels += '<text x="'+lblX.toFixed(1)+'" y="'+(H-padB+13)+'" class="poop-axis-x" text-anchor="'+anchor+'">' +
       lines.map(function(ln,li){ return '<tspan x="'+lblX.toFixed(1)+'" dy="'+(li===0?0:10)+'">'+esc(ln)+'</tspan>'; }).join('') +
@@ -2473,7 +3166,7 @@ function renderPattern(){
     '</div>';
   }
   colsBox.innerHTML = colsHtml;
-  colsBox.scrollLeft = colsBox.scrollWidth; // open already scrolled to today, at the right edge
+  /* nothing to scroll any more — the whole week is on screen by construction */
 
   var typeIds = Object.keys(usedTypes).sort(function(a,b){ return typeOrder.indexOf(a)-typeOrder.indexOf(b); });
   legendBox.innerHTML = typeIds.map(function(id){
@@ -2520,6 +3213,12 @@ function renderSettings(){
     });
   }
   renderAuthorManageList();
+  renderTrash();
+  var pinState = document.getElementById('pin-state');
+  if (pinState){
+    pinState.textContent = !isMasterUser() ? t('pinMasterOnlyShort')
+      : (hasMasterPin() ? t('pinOn') : t('pinOff'));
+  }
   renderQuickWordManage('med', 'qw-med-list');
   renderQuickWordManage('play', 'qw-play-list');
   renderQuickWordManage('tummy', 'qw-tummy-list');
@@ -2590,6 +3289,142 @@ function renderTypeOrderList(){
     });
   });
 }
+/* ================================================================
+   THE MASTER PIN
+   Four digits standing between "I picked 엄마 in settings" and
+   actually being 엄마. What is stored — on the server, in the shared
+   document every phone downloads — is the SHA-256 of those digits,
+   never the digits themselves. Four digits are guessable by anyone
+   who wants to sit and try; this is a lock on a kitchen drawer, not
+   a safe, and it is exactly the amount of lock the problem needs.
+   ================================================================ */
+function hasMasterPin(){ return !!(appState.profile && appState.profile.pinHash); }
+function canHashPins(){
+  return !!(window.crypto && window.crypto.subtle && window.crypto.subtle.digest);
+}
+function sha256Hex(text){
+  var bytes = new TextEncoder().encode(text);
+  return window.crypto.subtle.digest('SHA-256', bytes).then(function(buf){
+    return Array.prototype.map.call(new Uint8Array(buf), function(b){
+      return (b < 16 ? '0' : '') + b.toString(16);
+    }).join('');
+  });
+}
+/* opens the pad; resolves with the four digits, or null if she backed out */
+function askPin(opts){
+  return new Promise(function(resolve){
+    var input = document.getElementById('pin-input');
+    var ok = document.getElementById('pin-ok');
+    var cancel = document.getElementById('pin-cancel');
+    var scrim = document.getElementById('scrim6');
+    document.getElementById('pin-title').textContent = opts.title || '';
+    document.getElementById('pin-msg').textContent = opts.msg || '';
+    ok.textContent = opts.ok || t('save');
+    cancel.textContent = t('cancel');
+    input.value = '';
+    var done = false;
+    function finish(v){
+      if (done) return;
+      done = true;
+      ok.onclick = null; cancel.onclick = null; scrim.onclick = null; input.onkeydown = null;
+      closeSheet('pin-sheet');
+      resolve(v);
+    }
+    ok.onclick = function(){
+      var v = (input.value || '').replace(/\D/g, '');
+      if (v.length !== 4){ toast(t('pinFourDigits')); return; }
+      finish(v);
+    };
+    cancel.onclick = function(){ finish(null); };
+    scrim.onclick = function(){ finish(null); };
+    input.onkeydown = function(ev){ if (ev.key === 'Enter') ok.onclick(); };
+    openSheet('pin-sheet');
+    setTimeout(function(){ try{ input.focus(); }catch(e){} }, 260);
+  });
+}
+/* Becoming 엄마 goes through the pad; becoming anyone else never does.
+   Resolves true when the switch may go ahead. */
+function clearedForAuthor(name){
+  var wantsMaster = authorIndex(name) === MASTER_INDEX;
+  if (!wantsMaster || !hasMasterPin() || isMasterUser()) return Promise.resolve(true);
+  if (!canHashPins()){ toast(t('pinUnavailable')); return Promise.resolve(false); }
+  return askPin({ title: t('pinEnterTitle'), msg: t('pinEnterMsg'), ok: t('confirmBtn') })
+    .then(function(pin){
+      if (!pin) return false;
+      return sha256Hex(pin).then(function(hex){
+        if (hex === appState.profile.pinHash) return true;
+        toast(t('pinWrong'));
+        return false;
+      });
+    });
+}
+/* Settings → 엄마 권한 → PIN. Only 엄마 can set or clear it. */
+function openPinSettings(){
+  if (!isMasterUser()){ toast(t('pinMasterOnly')); return; }
+  if (!canHashPins()){ toast(t('pinUnavailable')); return; }
+  if (hasMasterPin()){
+    askConfirm({
+      title: t('pinClearTitle'), msg: t('pinClearMsg'),
+      yes: t('pinClearYes'), no: t('cancel')
+    }).then(function(clear){
+      if (!clear) return;
+      apiMutate('setMasterPin', { pinHash: '' })
+        .then(function(){ renderSettings(); toast(t('pinCleared')); })
+        .catch(function(err){ toast(err.message); });
+    });
+    return;
+  }
+  askPin({ title: t('pinSetTitle'), msg: t('pinSetMsg') }).then(function(pin){
+    if (!pin) return;
+    sha256Hex(pin).then(function(hex){
+      return apiMutate('setMasterPin', { pinHash: hex });
+    }).then(function(){
+      renderSettings(); toast(t('pinSaved'));
+    }).catch(function(err){ toast(err.message); });
+  });
+}
+
+/* ================================================================
+   THE BIN — deleted records, kept 30 days
+   ================================================================ */
+function readTrash(){ return (appState.trash || []).slice(); }
+function renderTrash(){
+  var box = document.getElementById('trash-card');
+  var items = readTrash().filter(function(x){ return canTouch(x.author); });
+  /* the settings row carries the count so the screen behind it is worth
+     opening — or plainly isn't */
+  var count = document.getElementById('trash-count');
+  if (count) count.textContent = items.length
+    ? t('trashCountTpl').replace('{n}', items.length)
+    : t('trashEmpty');
+  if (!box) return;
+  if (!items.length){
+    box.innerHTML = '<div class="trash-empty">'+esc(t('trashEmpty'))+'</div>';
+    return;
+  }
+  box.innerHTML = items.map(function(x){
+    var meta = typeMeta(x.type);
+    var label = meta ? (meta.emoji + ' ' + meta.label) : x.type;
+    var sub = [fmtDateTime(x.start)];
+    if (x.author) sub.push(localizeAuthorName(x.author));
+    sub.push(t('deletedAtTpl').replace('{when}', fmtDateTime(x.deletedAt)));
+    return '<div class="trash-row">' +
+      '<div class="tr-body"><div class="tr-title">'+esc(label)+'</div>' +
+      '<div class="tr-sub">'+esc(sub.join(' · '))+'</div></div>' +
+      '<button type="button" class="text-btn" data-restore="'+esc(x.id)+'">'+esc(t('restoreBtn'))+'</button>' +
+    '</div>';
+  }).join('');
+  $$('[data-restore]', box).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var id = btn.dataset.restore;
+      btn.disabled = true;
+      apiMutate('restoreEntry', { id: id })
+        .then(function(){ renderAll(); renderSettings(); renderTrash(); toast(t('restoredToast')); })
+        .catch(function(err){ btn.disabled = false; toast(err.message); });
+    });
+  });
+}
+
 function renderAuthorChips(containerId, selected, onPick){
   var box = document.getElementById(containerId);
   var presets = allAuthorNames();
@@ -2601,11 +3436,15 @@ function renderAuthorChips(containerId, selected, onPick){
   });
 }
 function setAuthor(name){
-  state.author = name;
-  localStorage.setItem(LS_AUTHOR, name);
-  renderSettings();
-  renderProfilePill();
-  toast(t('savedToast'));
+  clearedForAuthor(name).then(function(ok){
+    if (!ok){ renderSettings(); return; }   /* put the chips back as they were */
+    state.author = name;
+    localStorage.setItem(LS_AUTHOR, name);
+    renderAll();
+    renderSettings();
+    renderProfilePill();
+    toast(t('savedToast'));
+  });
 }
 
 /* ================================================================
@@ -2625,11 +3464,30 @@ function openEntryDetail(entryId){
   var meta = typeMeta(e.type);
   if (!meta) return;
   document.getElementById('fp-entry-title').textContent = meta.emoji + ' ' + meta.label;
-  document.getElementById('fp-entry-body').innerHTML = buildEntryFields(meta, e);
+  /* Somebody else's record opens to be READ, not edited: every control is
+     disabled and the save and delete buttons are gone. This is what stops a
+     mis-tap on a busy morning from rewriting a feed nobody else saw. */
+  var locked = !canTouch(raw.author);
+  var panel = document.getElementById('fp-entry');
+  panel.classList.toggle('is-locked', locked);
+  var body = document.getElementById('fp-entry-body');
+  body.innerHTML = (locked ? lockedNoticeHtml(raw.author) : '') + buildEntryFields(meta, e);
   wireEntryFields(meta);
+  if (locked){
+    $$('input, button, textarea, select', body).forEach(function(el){
+      if (el.closest('.lock-note')) return;
+      el.disabled = true;
+      el.setAttribute('tabindex', '-1');
+    });
+  }
+  document.getElementById('fp-entry-delete').hidden = locked;
+  document.getElementById('fp-entry-save').hidden = locked;
   openFullpage('fp-entry');
 }
 function closeEntryDetail(){ closeFullpage('fp-entry'); state.entryId = null; }
+function lockedNoticeHtml(owner){
+  return '<div class="lock-note">' + esc(t('lockedByTpl').replace('{who}', localizeAuthorName(owner) || '?')) + '</div>';
+}
 
 /* ================================================================
    SCRUB CONTROLS — the entry-detail time and amount inputs.
@@ -2907,8 +3765,13 @@ function buildEntryFields(meta, e){
     html += '<button type="button" class="scrub-chip ghost" id="f-add-end" style="align-self:flex-start">' +
       esc(t('addEndTime')) + '</button>';
   }
+  /* a record that already runs past midnight says so under the end ruler —
+     the ruler itself only shows a clock time, which on its own reads as the
+     same morning */
+  var crossNote = crossesMidnight(e)
+    ? '<div class="field-hint" id="f-end-note">' + esc(t('nextDayShort') + ' ' + fmtTime(e.end)) + '</div>' : '';
   html += '<div class="field" id="f-end-field"'+(hasEnd?'':' hidden')+'><label>'+esc(t('endTime'))+'</label>' +
-    timeScrubHtml('f-end', toTimeValue(e.end||e.start), false) + '</div>';
+    timeScrubHtml('f-end', toTimeValue(e.end||e.start), false) + crossNote + '</div>';
 
   if (meta.hasAmount){
     html += '<div class="field"><label>'+esc(t('amount'))+'</label>' +
@@ -2996,11 +3859,56 @@ function wireEntryFields(meta){
   }
 }
 
+/* 'YYYY-MM-DD' one day later */
+function addDaysToDateValue(dateVal, days){
+  var p = (dateVal || toDateValue()).split('-').map(Number);
+  var d = new Date(p[0], p[1] - 1, p[2] + days);
+  return toDateValue(d.toISOString());
+}
 function saveEntryDetail(){
+  /* An end time earlier in the clock than the start means one of two things,
+     and the app cannot tell them apart: a night that ran past midnight
+     (오후 08:00 → 다음날 오전 06:00), or a typo. It used to silently take the
+     second reading and save a record with no duration at all, so ask. */
+  var startEl = document.getElementById('f-start');
+  var endEl = document.getElementById('f-end');
+  var endFieldEl = document.getElementById('f-end-field');
+  var editing = (appState.entries || []).filter(function(x){ return x.id === state.entryId; })[0];
+  var alreadyCrosses = crossesMidnight(editing);
+  if (startEl && endEl && endFieldEl && !endFieldEl.hidden && !state.crossMidAsked
+      && endEl.value && startEl.value && endEl.value < startEl.value && alreadyCrosses){
+    /* it was already a night that ran past midnight and still is — she is
+       editing something else about it, so don't ask the same question again */
+    state.crossMidEndDate = addDaysToDateValue(
+      document.getElementById('f-date') ? document.getElementById('f-date').value : toDateValue(), 1);
+  } else if (startEl && endEl && endFieldEl && !endFieldEl.hidden && !state.crossMidAsked
+      && endEl.value && startEl.value && endEl.value < startEl.value){
+    var dEl = document.getElementById('f-date');
+    var startTxt = fmtTime(combineDateAndTime(dEl ? dEl.value : null, startEl.value));
+    var endTxt = fmtTime(combineDateAndTime(dEl ? dEl.value : null, endEl.value));
+    askConfirm({
+      title: t('crossMidTitle'),
+      msg: t('crossMidMsgTpl').replace(/\{end\}/g, endTxt).replace(/\{start\}/g, startTxt),
+      yes: t('crossMidYes'),
+      no: t('crossMidNo')
+    }).then(function(nextDay){
+      /* yes -> the end belongs to the following day; no -> she stays in the
+         form with the times as typed so she can fix them */
+      if (!nextDay) return;
+      state.crossMidAsked = true;
+      state.crossMidEndDate = addDaysToDateValue(dEl ? dEl.value : toDateValue(), 1);
+      try { saveEntryDetail(); } finally { state.crossMidAsked = false; state.crossMidEndDate = null; }
+    });
+    return;
+  }
+
   var raw = (appState.entries || []).filter(function(x){ return x.id === state.entryId; })[0];
-  if (!raw) return;
+  /* Never fail silently. A record can genuinely vanish under an open panel —
+     somebody else deleted it on another phone — and a button that does
+     nothing at all is the worst possible way to say so. */
+  if (!raw){ toast(t('recordGone')); closeEntryDetail(); renderAll(); return; }
   var meta = typeMeta(raw.type);
-  if (!meta) return;
+  if (!meta){ toast(t('recordGone')); closeEntryDetail(); return; }
 
   var dateVal = document.getElementById('f-date') ? document.getElementById('f-date').value : toDateValue(raw.start);
   var startTimeVal = document.getElementById('f-start').value;
@@ -3013,7 +3921,10 @@ function saveEntryDetail(){
   var endTimeVal = (!endHidden && document.getElementById('f-end'))
     ? document.getElementById('f-end').value
     : startTimeVal;
-  var newEnd = combineDateAndTime(dateVal, endTimeVal || startTimeVal);
+  /* set only when the "다음날 아침" question above was answered yes */
+  var endDateVal = state.crossMidEndDate || dateVal;
+  state.crossMidEndDate = null;   // one save only
+  var newEnd = combineDateAndTime(endDateVal, endTimeVal || startTimeVal);
 
   var payload = { id: state.entryId, start: newStart, end: newEnd };
   var amountEl = document.getElementById('f-amount');
@@ -3162,7 +4073,7 @@ function renderMemoList(){
       '</div>' +
       '<div class="m-meta">' +
         '<span>'+esc(fmtDateTime(m.time))+'</span>' +
-        '<button type="button" class="text-btn danger-btn" data-del-memo="'+esc(m.id)+'" style="padding:0;">'+esc(t('delete'))+'</button>' +
+        (canTouch(m.author) ? '<button type="button" class="text-btn danger-btn" data-del-memo="'+esc(m.id)+'" style="padding:0;">'+esc(t('delete'))+'</button>' : '') +
       '</div>' +
     '</div>';
   }).join('');
@@ -3296,6 +4207,34 @@ function closeSheet(id){
   }
 }
 
+/* A yes/no question the app asks in its own voice, rather than the browser's.
+   Resolves true for yes, false for anything else — the scrim, the back
+   gesture and the no button all mean "don't do it". */
+function askConfirm(opts){
+  return new Promise(function(resolve){
+    var sheet = document.getElementById('confirm-sheet');
+    var yes = document.getElementById('confirm-yes');
+    var no = document.getElementById('confirm-no');
+    var scrim = document.getElementById('scrim5');
+    document.getElementById('confirm-title').textContent = opts.title || '';
+    document.getElementById('confirm-msg').textContent = opts.msg || '';
+    yes.textContent = opts.yes || t('save');
+    no.textContent = opts.no || t('cancel');
+    var done = false;
+    function finish(answer){
+      if (done) return;
+      done = true;
+      yes.onclick = null; no.onclick = null; scrim.onclick = null;
+      closeSheet('confirm-sheet');
+      resolve(answer);
+    }
+    yes.onclick = function(){ finish(true); };
+    no.onclick = function(){ finish(false); };
+    scrim.onclick = function(){ finish(false); };
+    openSheet('confirm-sheet');
+  });
+}
+
 /* ================================================================
    TYPE SHEET — create a reusable custom care type
    ================================================================ */
@@ -3364,6 +4303,12 @@ function saveProfilePicker(){
   var custom = document.getElementById('profile-custom-input').value.trim();
   var picked = custom || state.author;
   if (!picked){ toast(state.lang==='vi'?'Vui lòng chọn hoặc nhập tên':'이름을 선택하거나 입력해 주세요'); return; }
+  clearedForAuthor(picked).then(function(ok){
+    if (!ok) return;
+    finishProfilePicker(picked, custom);
+  });
+}
+function finishProfilePicker(picked, custom){
   state.author = picked;
   localStorage.setItem(LS_AUTHOR, picked);
   closeSheet('profile-sheet');
@@ -3376,6 +4321,7 @@ function saveProfilePicker(){
     ? apiMutate('addCustomAuthor', { name: custom }).catch(function(){})
     : Promise.resolve();
   register.then(function(){
+    renderAll();
     renderSettings();
     renderProfilePill();
     toast(t('savedToast'));
@@ -3385,14 +4331,30 @@ function saveProfilePicker(){
 /* ================================================================
    GLOBAL RENDER
    ================================================================ */
+/* the date band sticks directly under the app header, so it needs the header's
+   real height — which changes with the notch inset and with the type size */
+function measureHeaderHeight(){
+  var el = document.querySelector('header.top');
+  if (!el) return;
+  var h = Math.round(el.getBoundingClientRect().height);
+  if (h > 0) document.documentElement.style.setProperty('--header-h', h + 'px');
+}
+window.addEventListener('resize', measureHeaderHeight);
+if (typeof ResizeObserver === 'function'){
+  var __hdr = document.querySelector('header.top');
+  if (__hdr) new ResizeObserver(measureHeaderHeight).observe(__hdr);
+}
+
 function renderAll(){
   applyI18n();
+  measureHeaderHeight();
   applyTheme();
   renderHeader();
   renderSinceLast();
   renderNextFeed();
   renderQuickActions();
   renderTimeline();   /* builds #active-bar-slot inside today's group */
+  renderLogNav();     /* the date button's label follows the language */
   renderActiveBar();  /* ...then fills/updates it */
   /* only the visible tab gets rebuilt. renderAll() runs after every write and
      on every poll that sees a change, and rebuilding the stats SVG plus the
@@ -3453,6 +4415,17 @@ function wireEvents(){
   });
 
   document.getElementById('btn-profile').addEventListener('click', openProfilePicker);
+  var eggBtn = document.getElementById('btn-egg');
+  if (eggBtn) eggBtn.addEventListener('click', openEgg);
+  var eggBack = document.getElementById('fp-egg-back');
+  if (eggBack) eggBack.addEventListener('click', function(){ closeFullpage('fp-egg'); });
+  var pinRow = document.getElementById('pin-row');
+  if (pinRow) pinRow.addEventListener('click', openPinSettings);
+  var trashRow = document.getElementById('trash-row');
+  if (trashRow) trashRow.addEventListener('click', function(){ renderTrash(); openFullpage('fp-trash'); });
+  var trashBack = document.getElementById('fp-trash-back');
+  if (trashBack) trashBack.addEventListener('click', function(){ closeFullpage('fp-trash'); });
+  wireLogNav();
 
   // stats: feed range toggle (7/14/30 days)
   $$('#stats-feed-range button').forEach(function(b){
@@ -3543,11 +4516,129 @@ function wireEvents(){
 }
 
 /* ================================================================
+   FOR ZIO — the header name is a door
+   The letter is a draft in her voice until she rewrites it; the photo
+   is a real file next to the app rather than anything in the shared
+   state document, because that document is fetched every few seconds
+   by three phones and a photo has no business riding along.
+   ================================================================ */
+function openEgg(){
+  var prof = appState.profile || {};
+  var name = (state.lang === 'vi' ? (prof.nameVi || prof.nameKo) : (prof.nameKo || prof.nameVi)) || '';
+  document.getElementById('egg-head').textContent = t('eggTitle');
+  document.getElementById('egg-name').textContent = name;
+  document.getElementById('egg-age').textContent = document.getElementById('hd-age').textContent;
+  document.getElementById('egg-letter').textContent = t('eggLetter');
+  var sign = document.getElementById('egg-sign');
+  sign.textContent = t('eggSign');
+  sign.hidden = !t('eggSign');
+  var img = document.getElementById('egg-photo');
+  var fallback = document.getElementById('egg-photo-fallback');
+  img.onerror = function(){ img.hidden = true; fallback.hidden = false; };
+  img.onload = function(){ img.hidden = false; fallback.hidden = true; };
+  img.hidden = false; fallback.hidden = true;
+  /* re-assigned every time so a photo dropped in later shows up without a
+     hard reload; the browser still caches it between opens */
+  img.src = 'zio.jpg';
+  openFullpage('fp-egg');
+}
+
+/* ================================================================
+   PULL TO REFRESH
+   The log is written by three phones at once and read on a server that
+   falls asleep, so "is this the latest?" is a real question. The poll
+   answers it every four seconds when the server is awake; this is the
+   gesture for when you want to know right now.
+
+   Rules it has to keep: never swallow an ordinary scroll (the page only
+   pulls when it is already at the very top and the finger is moving
+   down), never fight a sheet or the record panel, and never leave the
+   indicator stuck on screen if the request fails.
+   ================================================================ */
+var PTR_TRIGGER = 68;     /* px pulled before it counts */
+var PTR_MAX = 104;        /* the furthest the indicator travels */
+var ptrEl = null, ptrStartY = 0, ptrDy = 0, ptrTracking = false, ptrArmed = false, ptrBusy = false;
+
+function ptrOverlayOpen(){
+  if (document.querySelector('.fullpage.show')) return true;
+  return !!document.querySelector('.sheet.show');
+}
+function ptrSet(dy, animate){
+  if (!ptrEl) return;
+  ptrEl.classList.toggle('animate', !!animate);
+  var shown = Math.min(dy, PTR_MAX);
+  ptrEl.style.transform = 'translateY(' + (shown - 44) + 'px)';
+  ptrEl.style.opacity = dy > 6 ? Math.min(1, dy / PTR_TRIGGER) : 0;
+  ptrEl.classList.toggle('ready', dy >= PTR_TRIGGER);
+}
+function ptrReset(){
+  ptrTracking = false; ptrArmed = false; ptrDy = 0;
+  if (!ptrEl) return;
+  ptrEl.classList.remove('spinning', 'ready');
+  ptrSet(0, true);
+}
+function ptrRun(){
+  if (ptrBusy) return;
+  ptrBusy = true;
+  ptrEl.classList.add('animate', 'spinning');
+  ptrSet(PTR_TRIGGER, true);
+  var started = Date.now();
+  apiGetState()
+    .then(function(){ renderAll(); })
+    .catch(function(){ toast(t('refreshFailed')); })
+    .then(function(){
+      /* a refresh that answers in 40ms reads as "nothing happened"; hold the
+         spinner just long enough to be seen */
+      var wait = Math.max(0, 450 - (Date.now() - started));
+      setTimeout(function(){ ptrBusy = false; ptrReset(); }, wait);
+    });
+}
+function wirePullToRefresh(){
+  ptrEl = document.getElementById('ptr');
+  if (!ptrEl) return;
+  function atTop(){
+    return (window.scrollY || document.documentElement.scrollTop || 0) <= 0;
+  }
+  document.addEventListener('touchstart', function(ev){
+    if (ptrBusy || ev.touches.length !== 1 || !atTop() || ptrOverlayOpen()) return;
+    ptrTracking = true; ptrArmed = false;
+    ptrStartY = ev.touches[0].clientY; ptrDy = 0;
+    ptrEl.classList.remove('animate');
+  }, { passive: true });
+
+  document.addEventListener('touchmove', function(ev){
+    if (!ptrTracking || ptrBusy) return;
+    var dy = ev.touches[0].clientY - ptrStartY;
+    if (dy <= 0 || !atTop()){
+      if (!ptrArmed){ ptrTracking = false; ptrSet(0, false); }
+      return;
+    }
+    /* only once the pull is clearly a pull, so a fast flick down the page
+       isn't hijacked */
+    if (!ptrArmed && dy < 12) return;
+    ptrArmed = true;
+    ev.preventDefault();             /* we own this gesture now */
+    ptrDy = dy * 0.55;               /* resistance, so it feels like rubber */
+    ptrSet(ptrDy, false);
+  }, { passive: false });
+
+  function release(){
+    if (!ptrTracking || ptrBusy) { ptrTracking = false; return; }
+    ptrTracking = false;
+    if (ptrArmed && ptrDy >= PTR_TRIGGER) ptrRun();
+    else ptrReset();
+  }
+  document.addEventListener('touchend', release, { passive: true });
+  document.addEventListener('touchcancel', release, { passive: true });
+}
+
+/* ================================================================
    INIT
    ================================================================ */
 function init(){
   syncLangPills();
   wireEvents();
+  wirePullToRefresh();
   apiGetState().then(function(){
     renderAll();
     if (!state.author){ openProfilePicker(); }
