@@ -17,6 +17,57 @@ function clone(x) { return JSON.parse(JSON.stringify(x)); }
 // text is what every other viewer's poll picks up).
 const ALLOWED_ENTRY_FIELDS = ['type', 'start', 'end', 'amount', 'diaper', 'temp', 'note', 'noteLang', 'noteTranslated', 'author', 'sleepKind'];
 
+/* ---------------------------------------------------------------
+   WHO MAY CHANGE WHAT
+
+   The nanny started using the app and deleted one of mom's records
+   by accident on her first day. There are no accounts here — a phone
+   is whoever it says it is in settings — so this is not security, it
+   is a guard rail: you can change what you wrote, and mom can change
+   anything.
+
+   Names are compared by WHICH of the three presets they are, not by
+   their letters: the same person is '내니' on a Korean screen and
+   'Bảo mẫu' on a Vietnamese one, and both must count as the same
+   author. The lists are kept in step with the ones in the client.
+   --------------------------------------------------------------- */
+const PRESET_AUTHORS = [['엄마', 'Mẹ'], ['아빠', 'Bố'], ['내니', 'Bảo mẫu']];
+const MASTER_INDEX = 0;   // 엄마
+
+function authorIndex(name) {
+  const n = (name || '').trim();
+  for (let i = 0; i < PRESET_AUTHORS.length; i++) {
+    if (PRESET_AUTHORS[i].indexOf(n) !== -1) return i;
+  }
+  return -1;
+}
+function sameAuthor(a, b) {
+  const ia = authorIndex(a), ib = authorIndex(b);
+  if (ia !== -1 || ib !== -1) return ia === ib;
+  return (a || '').trim() !== '' && (a || '').trim() === (b || '').trim();
+}
+function isMaster(actor) {
+  return authorIndex(actor) === MASTER_INDEX;
+}
+/* An actor is only trusted as far as the phone that claims it. Mutations
+   carry it as payload.actor; a client that omits it gets the old
+   everyone-can-do-everything behaviour, which is why the client always
+   sends it. */
+function assertMayTouch(actor, ownerName, what) {
+  if (actor === undefined) return;            // pre-permissions client
+  if (isMaster(actor)) return;
+  if (sameAuthor(ownerName, actor)) return;
+  throw httpError(403, 'not-owner:' + (what || 'entry'));
+}
+const TRASH_DAYS = 30;
+function pruneTrash(state) {
+  const cutoff = Date.now() - TRASH_DAYS * 86400000;
+  state.trash = (state.trash || []).filter((t) => {
+    const at = new Date(t.deletedAt || 0).getTime();
+    return !(at < cutoff);
+  });
+}
+
 function applyMutation(prevState, type, payload) {
   const state = clone(prevState);
   payload = payload || {};
@@ -35,14 +86,49 @@ function applyMutation(prevState, type, payload) {
       const idx = state.entries.findIndex((e) => e.id === payload.id);
       if (idx === -1) throw httpError(404, 'entry not found');
       const entry = state.entries[idx];
+      assertMayTouch(payload.actor, entry.author, 'entry');
       ALLOWED_ENTRY_FIELDS.forEach((f) => { if (payload[f] !== undefined) entry[f] = payload[f]; });
       return { state, result: { entry } };
     }
 
+    /* Deleting moves the record to the bin instead of dropping it. The whole
+       app is one JSON document overwritten in place, so before this a delete
+       was final everywhere at once — there was nothing left to restore from,
+       not even in the database. */
     case 'deleteEntry': {
-      const before = state.entries.length;
+      const entry = state.entries.find((e) => e.id === payload.id);
+      if (!entry) throw httpError(404, 'entry not found');
+      assertMayTouch(payload.actor, entry.author, 'entry');
       state.entries = state.entries.filter((e) => e.id !== payload.id);
-      if (state.entries.length === before) throw httpError(404, 'entry not found');
+      state.trash = state.trash || [];
+      state.trash.unshift(Object.assign({}, entry, {
+        deletedAt: new Date().toISOString(),
+        deletedBy: payload.actor || '',
+      }));
+      pruneTrash(state);
+      return { state, result: {} };
+    }
+
+    case 'restoreEntry': {
+      state.trash = state.trash || [];
+      const t = state.trash.find((x) => x.id === payload.id);
+      if (!t) throw httpError(404, 'not in the bin');
+      assertMayTouch(payload.actor, t.author, 'entry');
+      const entry = Object.assign({}, t);
+      delete entry.deletedAt; delete entry.deletedBy;
+      state.trash = state.trash.filter((x) => x.id !== payload.id);
+      state.entries.unshift(entry);
+      return { state, result: { entry } };
+    }
+
+    /* Emptying the bin for good — mom only, and never automatic. */
+    case 'purgeTrash': {
+      if (payload.actor !== undefined && !isMaster(payload.actor)) {
+        throw httpError(403, 'not-owner:trash');
+      }
+      state.trash = payload.id
+        ? (state.trash || []).filter((x) => x.id !== payload.id)
+        : [];
       return { state, result: {} };
     }
 
@@ -128,9 +214,10 @@ function applyMutation(prevState, type, payload) {
     }
 
     case 'deleteMemo': {
-      const before = state.memos.length;
+      const memo = state.memos.find((m) => m.id === payload.id);
+      if (!memo) throw httpError(404, 'memo not found');
+      assertMayTouch(payload.actor, memo.author, 'memo');
       state.memos = state.memos.filter((m) => m.id !== payload.id);
-      if (state.memos.length === before) throw httpError(404, 'memo not found');
       return { state, result: {} };
     }
 
@@ -170,6 +257,26 @@ function applyMutation(prevState, type, payload) {
       state.profile = state.profile || {};
       ['nameKo', 'nameVi', 'birth'].forEach((f) => { if (payload[f] !== undefined) state.profile[f] = payload[f]; });
       return { state, result: { profile: state.profile } };
+    }
+
+    /* The lock on switching a phone to 엄마. What is stored is a SHA-256 of
+       the four digits, never the digits: the whole state document is handed
+       to every phone that opens the app, and the PIN itself has no business
+       travelling in it. Only 엄마 can set or clear it. */
+    case 'setMasterPin': {
+      if (payload.actor !== undefined && !isMaster(payload.actor)) {
+        throw httpError(403, 'not-owner:pin');
+      }
+      state.profile = state.profile || {};
+      if (payload.pinHash === '' || payload.pinHash === null) {
+        delete state.profile.pinHash;
+      } else {
+        if (typeof payload.pinHash !== 'string' || !/^[0-9a-f]{64}$/.test(payload.pinHash)) {
+          throw httpError(400, 'pinHash must be a sha-256 hex digest');
+        }
+        state.profile.pinHash = payload.pinHash;
+      }
+      return { state, result: { hasPin: !!state.profile.pinHash } };
     }
 
     // ---- custom author names ----

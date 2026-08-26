@@ -14,6 +14,7 @@ const pool = new Pool({
 
 const EMPTY_STATE = {
   entries: [],       // [{id,type,start,end,amount,diaper,temp,note,author,sleepKind}]
+  trash: [],          // deleted entries, kept 30 days: [{...entry, deletedAt, deletedBy}]
   active: null,       // {type,start,name,author,paused,pausedAt} | null
   customTypes: [],    // [{id,name,color,emoji}]
   memos: [],          // [{id,text,lang,translation,author,ts}]
