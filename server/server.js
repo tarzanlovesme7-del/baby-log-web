@@ -4,11 +4,20 @@ const zlib = require('zlib');
 const crypto = require('crypto');
 const express = require('express');
 const db = require('./db');
+const photos = require('./photos');
 const { applyMutation } = require('./mutations');
 const { translateText } = require('./translate');
 
 const app = express();
-app.use(express.json({ limit: '256kb' }));
+/* 256kb is generous for a nappy change and far too small for a photograph.
+   This parser runs on everything, so it has to step aside for the one route
+   that carries a picture — otherwise it rejects the upload at 413 before the
+   route's own, larger parser is ever reached. */
+const jsonSmall = express.json({ limit: '256kb' });
+app.use((req, res, next) => {
+  if (req.path === '/api/photo' && req.method === 'POST') return next();
+  return jsonSmall(req, res, next);
+});
 
 /* ---- gzip, without pulling in a dependency ----
    The whole app is one ~170KB HTML file, and Express sends static files
@@ -96,11 +105,66 @@ app.post('/api/mutate', async (req, res, next) => {
       const { state: nextState, result } = applyMutation(data, type, payload);
       const saved = await db.saveState(nextState, version);
       if (saved) {
+        /* the bytes go only once the write that orphaned them has actually
+           landed — deleting them first would lose the pictures to a version
+           conflict that then retries and keeps the memo */
+        if (result && result.removedPhotos && result.removedPhotos.length) {
+          photos.deletePhotos(result.removedPhotos)
+            .catch((e) => console.error('[baby-log] photo cleanup', e));
+        }
         return res.json({ data: saved.data, version: saved.version, result });
       }
       // version conflict — someone else wrote in between; retry
     }
     return res.status(409).json({ error: 'too many concurrent writes, please retry' });
+  } catch (err) { next(err); }
+});
+
+/* ---- PHOTOS ----
+   The bytes never go near /api/state: see server/photos.js for why. These
+   two routes are the whole of it — one to put a picture up, one to get it
+   back — and the state document only ever holds the id.
+
+   The body limit here is its own: the app-wide one is 256kb, which is
+   generous for a nappy change and far too small for a photograph. The phone
+   has already shrunk the picture before it arrives (a 4MB iPhone photo lands
+   at ~200KB); this ceiling is the guard against something that has not. */
+const photoBody = express.json({ limit: '5mb' });
+
+app.post('/api/photo', photoBody, async (req, res, next) => {
+  try {
+    const { id, mime, w, h, data, thumb } = req.body || {};
+    if (!data || !thumb) return res.status(400).json({ error: 'data and thumb are required' });
+    const saved = await photos.putPhoto({
+      id, mime, w, h,
+      bytes: Buffer.from(String(data), 'base64'),
+      thumb: Buffer.from(String(thumb), 'base64'),
+    });
+    res.json(saved);
+  } catch (err) { next(err); }
+});
+
+app.get('/api/photo/:id', async (req, res, next) => {
+  try {
+    const wantThumb = req.query.t === '1';
+    const found = await photos.getPhoto(req.params.id, wantThumb);
+    if (!found) return res.status(404).json({ error: 'photo not found' });
+    /* A photo is written once and never changed, so its id IS its version:
+       the phone that has it never needs to ask about it again. */
+    res.set('Content-Type', found.mime);
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.set('ETag', '"' + req.params.id + (wantThumb ? 't' : 'f') + '"');
+    if (req.headers['if-none-match'] === res.get('ETag')) return res.status(304).end();
+    res.end(found.data);
+  } catch (err) { next(err); }
+});
+
+/* how much room is left, for the settings screen to show before it runs out
+   rather than after */
+app.get('/api/photo-usage', async (req, res, next) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    res.json({ used: await photos.usedBytes(), budget: photos.BUDGET_BYTES });
   } catch (err) { next(err); }
 });
 
@@ -137,9 +201,26 @@ app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
 
 const PORT = process.env.PORT || 3000;
 
+/* Pictures that went up but whose memo never landed — the app was closed
+   between the two writes, or the memo write failed after the upload. Nothing
+   references them and nothing ever will, so they are swept an hour later,
+   when whatever went wrong is long over. */
+async function sweepOrphanPhotos() {
+  try {
+    const { data } = await db.getState();
+    const referenced = [];
+    (data.memos || []).forEach((m) => (m.photos || []).forEach((p) => referenced.push(p.id)));
+    const gone = await photos.sweepOrphans(referenced, 60);
+    if (gone) console.log('[baby-log] swept ' + gone + ' orphaned photo(s)');
+  } catch (err) { console.error('[baby-log] orphan sweep', err); }
+}
+
 db.init()
+  .then(() => photos.initPhotos())
   .then(() => {
     app.listen(PORT, () => console.log('baby-log listening on :' + PORT));
+    sweepOrphanPhotos();
+    setInterval(sweepOrphanPhotos, 6 * 60 * 60 * 1000).unref();
   })
   .catch((err) => {
     console.error('[baby-log] failed to init database', err);

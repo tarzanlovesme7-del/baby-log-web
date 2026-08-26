@@ -19,13 +19,22 @@ function check(n, a, e) { const ok = JSON.stringify(a) === JSON.stringify(e); R.
   console.log((ok ? 'PASS  ' : 'FAIL  ') + n + (ok ? '' : '\n        got=' + JSON.stringify(a) + '\n        want=' + JSON.stringify(e))); }
 
 const src = fs.readFileSync(SRC, 'utf8');
-/* comments are where the false positives live: "toss.im" in a CSS comment
-   looks exactly like a class called .im */
+/* Comments are where the false positives live: "toss.im" in a CSS comment
+   looks exactly like a class called .im.
+
+   But a comment is only a comment in the language it is written in, and this
+   file is three languages in one. `accept="image/*"` is an ordinary HTML
+   attribute — and reading it as the start of a /* block comment swallowed
+   fifty kilobytes of markup up to the next */ /* in the script, after which
+   this guard cheerfully reported that half the page's classes were unused.
+   So each part is stripped as what it actually is. */
 const stripBlockComments = t => t.replace(/\/\*[\s\S]*?\*\//g, ' ');
+const stripHtmlComments = t => t.replace(/<!--[\s\S]*?-->/g, ' ');
 
 const cssBody = /<style>([\s\S]*?)<\/style>/.exec(src)[1];
 const scriptBody = /<script>\n\(function\(\)\{([\s\S]*?)\n<\/script>/.exec(src)[1];
-const markup = src.slice(src.indexOf('<div id="app">'), src.indexOf('<script>'));
+const markupRaw = src.slice(src.indexOf('<div id="app">'), src.indexOf('<script>'));
+const markup = stripHtmlComments(markupRaw);
 
 // ---- i18n -----------------------------------------------------------------
 const iKo = src.indexOf('\nko: {'), iVi = src.indexOf('\nvi: {'), iEnd = src.indexOf('\n};', iVi);
@@ -34,7 +43,9 @@ const viBody = stripBlockComments(src.slice(iVi, iEnd));
 /* values are written with either kind of quote, and a few are arrays */
 const keysOf = b => new Set([...b.matchAll(/(?:^|[\s,{])([a-zA-Z0-9_]+)\s*:\s*["'[]/gm)].map(m => m[1]));
 const ko = keysOf(koBody), vi = keysOf(viBody);
-const outside = stripBlockComments(src.slice(0, iKo) + src.slice(iEnd));
+/* everything that can ASK for a string: the markup (HTML comments gone) and
+   the script (block comments gone), rather than the raw file */
+const outside = markup + stripBlockComments(scriptBody);
 
 console.log('       ' + ko.size + ' Korean strings, ' + vi.size + ' Vietnamese');
 check('every Korean string has a Vietnamese twin', [...ko].filter(k => !vi.has(k)), []);
@@ -59,7 +70,7 @@ check('every string the code asks for exists', [...asked].filter(k => !ko.has(k)
 // ---- CSS ------------------------------------------------------------------
 const css = stripBlockComments(cssBody);
 const defined = new Set([...css.matchAll(/\.([a-zA-Z][a-zA-Z0-9_-]*)/g)].map(m => m[1]));
-const elsewhere = stripBlockComments(markup + scriptBody);
+const elsewhere = markup + stripBlockComments(scriptBody);
 const usedClasses = [...defined].filter(c => new RegExp('\\b' + c.replace(/-/g, '\\-') + '\\b').test(elsewhere));
 console.log('       ' + defined.size + ' CSS classes defined, ' + usedClasses.length + ' referenced');
 check('no CSS class is defined and never used',

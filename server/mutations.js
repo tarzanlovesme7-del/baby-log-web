@@ -148,16 +148,22 @@ function applyMutation(prevState, type, payload) {
     case 'togglePauseActive': {
       const a = state.active;
       if (!a) throw httpError(409, 'nothing active');
+      // The phone draws the result of this the instant it is tapped, so it
+      // has to be able to work out the same answer we do. It sends the moment
+      // of the tap; without one (an older tab) we fall back to our own clock
+      // and the two may differ by the round trip.
+      const at = payload.at ? new Date(payload.at) : new Date();
+      if (Number.isNaN(at.getTime())) throw httpError(400, 'togglePauseActive: bad at');
       if (a.paused) {
         // resume: shift start forward by however long the pause lasted so
         // elapsed = now - start keeps excluding the paused span
-        const pausedMs = Date.now() - new Date(a.pausedAt).getTime();
+        const pausedMs = at.getTime() - new Date(a.pausedAt).getTime();
         a.start = new Date(new Date(a.start).getTime() + pausedMs).toISOString();
         a.paused = false;
         a.pausedAt = null;
       } else {
         a.paused = true;
-        a.pausedAt = new Date().toISOString();
+        a.pausedAt = at.toISOString();
       }
       return { state, result: { active: a } };
     }
@@ -178,7 +184,15 @@ function applyMutation(prevState, type, payload) {
     case 'finishActive': {
       const a = state.active;
       if (!a) throw httpError(409, 'nothing active');
-      const end = a.paused && a.pausedAt ? a.pausedAt : new Date().toISOString();
+      // same reason as togglePauseActive: the phone has already drawn this
+      // record, so the end time it drew is the one that must be stored
+      let end = a.paused && a.pausedAt ? a.pausedAt : new Date().toISOString();
+      if (payload.end) {
+        const t = new Date(payload.end);
+        if (Number.isNaN(t.getTime())) throw httpError(400, 'finishActive: bad end');
+        end = t.toISOString();
+      }
+      if (new Date(end) < new Date(a.start)) throw httpError(400, 'finishActive: end before start');
       const entry = {
         id: uid('e_'), type: a.type, start: a.start, end,
         author: a.author || payload.author || '', note: '',
@@ -188,6 +202,10 @@ function applyMutation(prevState, type, payload) {
       return { state, result: { entry } };
     }
 
+    /* A memo may carry photos. What is stored HERE is only which pictures
+       belong to it and what shape they are — the bytes live in their own
+       table (server/photos.js), because this document is re-sent to every
+       phone whenever any part of it changes. */
     case 'addMemo': {
       if (!payload.text || !payload.text.trim()) throw httpError(400, 'memo text required');
       const memo = {
@@ -198,18 +216,25 @@ function applyMutation(prevState, type, payload) {
         author: payload.author || '',
         ts: new Date().toISOString(),
       };
+      const photos = normalizePhotos(payload.photos);
+      if (photos.length) memo.photos = photos;
       state.memos.unshift(memo);
       return { state, result: { memo } };
     }
 
-    /* A memo is posted immediately and its translation filled in afterwards,
-       so the translation arrives as its own write rather than as part of the
-       memo. Only the translation may be set this way — the text a person
-       typed is never rewritten by a background job. */
+    /* A memo is posted immediately and its translation — and its pictures,
+       which have to finish uploading — are filled in afterwards, so both
+       arrive as their own write rather than as part of the memo. Only those
+       two may be set this way: the text a person typed is never rewritten by
+       a background job. */
     case 'updateMemo': {
       const memo = state.memos.find((m) => m.id === payload.id);
       if (!memo) throw httpError(404, 'memo not found');
       if (payload.translation !== undefined) memo.translation = payload.translation;
+      if (payload.photos !== undefined) {
+        const photos = normalizePhotos(payload.photos);
+        if (photos.length) memo.photos = photos; else delete memo.photos;
+      }
       return { state, result: { memo } };
     }
 
@@ -218,7 +243,9 @@ function applyMutation(prevState, type, payload) {
       if (!memo) throw httpError(404, 'memo not found');
       assertMayTouch(payload.actor, memo.author, 'memo');
       state.memos = state.memos.filter((m) => m.id !== payload.id);
-      return { state, result: {} };
+      /* the caller deletes the bytes once this write has actually landed —
+         doing it first would lose the pictures on a version conflict */
+      return { state, result: { removedPhotos: (memo.photos || []).map((p) => p.id) } };
     }
 
     case 'addCustomType': {
@@ -343,6 +370,30 @@ function applyMutation(prevState, type, payload) {
     default:
       throw httpError(400, 'unknown mutation type: ' + type);
   }
+}
+
+/* A photo reference is three small numbers and an id. Anything else a client
+   sends is dropped rather than trusted into the shared document. */
+const PHOTO_ID_RE = /^p_[0-9a-f]{24,40}$/;
+const MAX_PHOTOS_PER_MEMO = 4;
+function normalizePhotos(list) {
+  if (!Array.isArray(list)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const raw of list) {
+    if (!raw || typeof raw !== 'object') continue;
+    const id = raw.id;
+    if (!PHOTO_ID_RE.test(id) || seen.has(id)) continue;
+    seen.add(id);
+    const w = Number(raw.w), h = Number(raw.h);
+    out.push({
+      id,
+      w: Number.isFinite(w) && w > 0 ? Math.round(w) : null,
+      h: Number.isFinite(h) && h > 0 ? Math.round(h) : null,
+    });
+    if (out.length >= MAX_PHOTOS_PER_MEMO) break;
+  }
+  return out;
 }
 
 function httpError(status, message) {

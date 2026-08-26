@@ -224,27 +224,63 @@
     color:var(--fg); padding:11px 16px; display:flex; align-items:center; gap:10px;
   }
   .active-bar.paused{ opacity:.72; }
-  .active-bar .aw-emoji{ font-size:17px; line-height:1; flex:0 0 auto; }
+  .active-bar .aw-emoji{ width:19px; height:19px; flex:0 0 auto; color:var(--active-color); display:block; }
   .active-bar .aw-meta{ flex:1 1 auto; min-width:0; }
   .active-bar .aw-meta b{ display:block; font-size:var(--fs-caption); font-weight:var(--fw-strong);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .active-bar .aw-meta span{ display:block; font-size:var(--fs-micro); color:var(--muted);
+  /* DIRECT children only. #aw-sub holds two spans of its own now, and an
+     unscoped `span` rule turned them into blocks — the author dropped onto a
+     line of its own inside a bar with no room for one. */
+  .active-bar .aw-meta > span{ display:block; font-size:var(--fs-micro); color:var(--muted);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   /* Gothic A1 has no tabular figures, so every tick redrew this at a slightly
      different width and shoved the buttons sideways. A monospaced stack plus a
      fixed box means the seconds change and nothing else does. */
+  /* THE BOX IS SIZED TO WHAT IS IN IT, IN THREE STEPS. One box wide enough
+     for the overnight case ("12:05:22") stole that width from the line under
+     the name for the whole of every four-minute feed; one sized for a feed
+     clipped the overnight. So: mm:ss by default, and it steps out when the
+     clock actually grows. It still never changes width WHILE the seconds
+     tick — only when the hour turns over. */
   .active-bar .aw-time{
-    flex:0 0 auto; width:84px; text-align:right;
+    flex:0 0 auto; width:58px; text-align:right;
     font-family:ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
     font-size:var(--fs-title); font-weight:var(--fw-display); font-variant-numeric:tabular-nums;
     letter-spacing:-.2px;
   }
+  .active-bar .aw-time.is-long{ width:80px; }
+  .active-bar .aw-time.is-xlong{ width:90px; }
   .active-bar .aw-actions{ display:flex; gap:6px; flex:0 0 auto; }
   .aw-round{
     width:32px; height:32px; border-radius:50%; border:0; background:var(--surface);
     display:flex; align-items:center; justify-content:center; color:var(--fg); font-size:15px; font-weight:var(--fw-strong);
   }
   .aw-round.confirm{ background:var(--primary); color:var(--primary-fg); }
+  .aw-ico{
+    width:17px; height:17px; display:block;
+    fill:none; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round;
+  }
+  .aw-ico.solid{ fill:currentColor; }
+  /* NARROWING, IN TWO STEPS. The line under the name was still four pixels
+     over at 361px — just above where the old single breakpoint started — so
+     the cheap saving (smaller buttons) happens early and keeps everything,
+     and only the genuinely cramped phones give up the author.
+     The clock's box stays fixed at each step so the buttons never move as
+     the seconds tick; it has to hold "1:05:22" once a nap passes an hour. */
+  @media (max-width: 400px){
+    .active-bar .aw-round{ width:28px; height:28px; }
+    .active-bar .aw-ico{ width:15px; height:15px; }
+    .active-bar .aw-actions{ gap:4px; }
+  }
+  /* 360, not 340: at 341px an overnight sleep timer ("12:05:22") took just
+     enough of the row to push the author five pixels off the end. The widest
+     the clock can get is what this step has to survive, not the average. */
+  @media (max-width: 360px){
+    .active-bar .aw-sub-who{ display:none; }
+    .active-bar .aw-time{ width:52px; font-size:var(--fs-body); }
+    .active-bar .aw-time.is-long{ width:72px; }
+    .active-bar .aw-time.is-xlong{ width:80px; }
+  }
 
   /* ---------- section ---------- */
   section.panel{ padding:16px 16px 8px; display:flex; flex-direction:column; gap:18px; flex:1; }
@@ -320,7 +356,12 @@
     display:flex; flex-direction:column; align-items:center; gap:8px; user-select:none;
     -webkit-user-select:none; touch-action:manipulation;
   }
-  .qa-ico{ width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center; font-size:24px; line-height:1; transition:transform .15s ease; }
+  .qa-ico{
+    width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center;
+    font-size:24px; line-height:1; transition:transform .15s ease;
+  }
+  /* the glyph sits inside the tinted tile with room around it */
+  .qa-ico .ty-ico{ width:27px; height:27px; stroke-width:1.6; }
   .qa-btn:active .qa-ico{ transform:scale(.92); }
   .qa-btn.holding .qa-ico{ transform:scale(1.1); }
   .qa-label{ font-size:var(--fs-label); font-weight:var(--fw-medium); text-align:center; line-height:1.2; color:var(--muted); }
@@ -398,8 +439,11 @@
   }
   .day-head .d-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--fg); letter-spacing:.2px; }
   .day-head .d-total{
-    font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums;
+    /* three numbers share the top line in two languages, so this is the one
+       place the caption size is a size smaller */
+    font-size:var(--fs-micro); color:var(--muted); font-variant-numeric:tabular-nums;
   }
+  .day-head .d-sep{ opacity:.5; }
   .day-head .d-total.right{ text-align:right; }
   /* the two sleep totals share the second line, both pushed right */
   .day-head .d-sleeps{
@@ -408,6 +452,26 @@
   }
   .day-head .d-sleeps .d-total{ flex:0 1 auto; }
   .day-head .d-total b{ color:var(--fg); font-weight:var(--fw-strong); }
+  /* NARROW PHONES, IN VIETNAMESE. "22시간 20분" is "22 giờ 20 phút" — the
+     same fact, half again as wide — and adding the day's total sleep beside
+     the milk put three figures on one line. On a 320px screen (or hers with
+     the display scale turned up) the heaviest day ran 17px past the end of
+     its cell, where the ellipsis quietly ate the number. Every cell here is
+     nowrap, so this never showed as a wrap or a pushed layout; it just went
+     missing. One point smaller and two pixels tighter buys back more than
+     the worst day needs. */
+  @media (max-width: 360px){
+    .day-head{ column-gap:8px; }
+    .day-head .d-total{ font-size:11px; }
+    .day-head .d-sleeps{ gap:10px; }
+  }
+  /* An SE, or a modern phone with the display scale at its largest. At 11px
+     the heaviest Vietnamese day still landed with nothing to spare, and
+     "nothing to spare" is not fitting — a rounding difference on a real
+     phone is enough to start eating the number. */
+  @media (max-width: 340px){
+    .day-head .d-total{ font-size:10px; }
+  }
   /* swipe-to-delete: .entry-row translates over a red delete layer sitting behind it.
      Square, edge-to-edge: rounding it made the red read as a floating pill with a
      crescent of page showing around it, which fought the flat full-bleed language
@@ -470,7 +534,7 @@
   .entry-row.is-cont .e-icon{ opacity:.72; }
   .e-author{ display:block; font-size:var(--fs-micro); color:var(--muted-2); margin-top:2px; }
   /* plain icon glyph, no color-chip background — "아이콘 + 텍스트만" */
-  .e-icon{ flex:0 0 auto; font-size:20px; line-height:1.3; }
+  .e-icon{ flex:0 0 auto; width:22px; height:22px; display:block; align-self:center; }
   .e-main{ flex:1; min-width:0; }
   .e-title-line{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:6px; row-gap:0; }
   /* the name of the thing is what the eye lands on first, so it is the
@@ -523,6 +587,64 @@
   .memo-row .m-row-head{ display:flex; align-items:center; justify-content:flex-end; gap:7px; }
   .memo-row .m-author{ font-size:var(--fs-micro); color:var(--muted-2); font-weight:var(--fw-strong); }
   .memo-row .m-bilingual{ display:flex; flex-direction:column; gap:5px; }
+  /* PICTURES ON A MEMO.
+     A grid of squares rather than the photographs' own shapes: a column of
+     mixed portrait and landscape in a list that also has text in it reads as
+     a mess. One picture on its own is allowed to be taller, because then it
+     IS the memo. Each box reserves its space before the image arrives so the
+     list does not jump as the thumbnails load. */
+  .memo-row .m-photos{ display:grid; grid-template-columns:repeat(auto-fit, minmax(0, 1fr)); gap:5px; }
+  .memo-row .m-photos.one{ grid-template-columns:1fr; max-width:62%; }
+  .m-photo{
+    display:block; padding:0; border:0; background:var(--surface-2);
+    border-radius:12px; overflow:hidden; width:100%; aspect-ratio:1/1;
+  }
+  /* a single tall photo is allowed its own shape, but not the whole screen —
+     it is still a thumbnail in a list, and tapping it is what shows it whole */
+  .memo-row .m-photos.one .m-photo{ aspect-ratio:1 / var(--ar, 1); max-height:250px; }
+  .m-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+  /* the strip of pictures waiting to be posted, in the compose sheet */
+  .mp-strip{ display:flex; gap:8px; flex-wrap:wrap; }
+  .mp-chip{ position:relative; width:66px; height:66px; border-radius:12px; overflow:hidden; background:var(--surface-2); }
+  .mp-chip img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .mp-x{
+    position:absolute; top:3px; right:3px; width:22px; height:22px; border-radius:50%;
+    border:0; background:rgba(0,0,0,.58); color:#fff; font-size:12px; line-height:1;
+    display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .mp-add{
+    align-self:flex-start; display:inline-flex; align-items:center; gap:7px;
+    background:var(--surface-2); border:0; border-radius:14px; padding:10px 14px;
+    font-size:var(--fs-label); font-weight:var(--fw-medium); color:var(--fg);
+  }
+  .mp-add:disabled{ opacity:.45; }
+  .mp-add .ty-ico{ color:var(--muted); }
+
+  /* THE VIEWER IS BLACK IN BOTH THEMES.
+     Every selector here is `.fullpage.photo-page`, not `.photo-page`: the
+     .fullpage rules further down this stylesheet carry the same specificity,
+     and at equal specificity the later rule wins — so a bare `.photo-page`
+     background was quietly overruled by `.fullpage`'s var(--bg), and in
+     light mode the whole viewer came out pale grey with white chevrons on
+     it. A photograph wants a dark surround whichever theme the phone is in. */
+  .fullpage.photo-page{ background:#0b0b0c; }
+  .fullpage.photo-page .photo-head{ background:transparent; box-shadow:none; color:#fff; }
+  .fullpage.photo-page .photo-head h1{ color:#fff; font-variant-numeric:tabular-nums; }
+  .fullpage.photo-page .fp-back{ color:#fff; }
+  .fullpage.photo-page .photo-stage{
+    position:absolute; inset:var(--header-h, 64px) 0 0 0;
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+  }
+  .photo-stage img{ max-width:100%; max-height:100%; object-fit:contain; display:block; }
+  .photo-nav{
+    position:absolute; top:50%; transform:translateY(-50%);
+    width:44px; height:44px; border-radius:50%; border:0;
+    background:rgba(255,255,255,.16); color:#fff; font-size:26px; line-height:1;
+    display:flex; align-items:center; justify-content:center; padding:0 0 3px;
+  }
+  .photo-nav.prev{ left:10px; }
+  .photo-nav.next{ right:10px; }
   .memo-row .m-orig{ font-size:var(--fs-body); font-weight:var(--fw-body); line-height:1.5; color:var(--fg); white-space:pre-wrap; word-break:break-word; }
   .memo-row .m-trans{ font-size:var(--fs-body); font-weight:var(--fw-body); line-height:1.5; color:var(--primary); white-space:pre-wrap; word-break:break-word; }
   .memo-row .m-meta{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
@@ -657,10 +779,15 @@
      whole point. Per direct design feedback: marks are flat, full-width
      "stacked bar" stripes (no pill/circle shapes, no rounded corners) in a
      muted/pastel tint of the type color (color-mix toward the track
-     background, not the saturated brand hue); feed/sleep are color-only,
-     every other type gets its bare emoji floating on top of its stripe
-     (no icon badge/circle around it). */
+     background, not the saturated brand hue). NO ICONS: seven columns of
+     emoji buried the shape of the day under a wall of pictures, and the
+     shape is the whole point. Colour identifies, the legend names. */
   .pattern-caption{ font-size:var(--fs-caption); color:var(--muted-2); padding:0 2px; margin-bottom:2px; }
+  /* title on the left, range switch on the right — the same shape the stats
+     cards use, so the two tabs read as one app */
+  .pattern-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+  .pattern-head-text{ min-width:0; }
+  .pattern-head .seg{ flex:0 0 auto; width:150px; margin-top:1px; }
   .pattern-chart-card{ padding:16px 14px 14px; display:flex; flex-direction:column; gap:12px; }
   .pattern-chart-inner{ display:flex; gap:10px; }
   .pattern-axis-v{
@@ -680,27 +807,36 @@
   }
   .pattern-col{
     flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; gap:7px;
+  }
+  /* the day separator belongs to the TRACK, not the whole column — run it
+     down the label row too and it draws a line through the dates */
+  .pattern-col-track{
+    position:relative; width:100%; height:456px; background:var(--surface-2);
     border-left:1px solid var(--bg);
   }
-  .pattern-col:first-child{ border-left:0; }
-  .pattern-col-track{ position:relative; width:100%; height:456px; background:var(--surface-2); }
+  .pattern-col:first-child .pattern-col-track{ border-left:0; }
   .pattern-grid-line-h{ position:absolute; left:0; right:0; height:1px; background:var(--border); }
   /* flat full-bleed stripes — edge to edge in the column, square corners,
      stacked like segments of a bar chart rather than floating pills */
   .pattern-mark-band{ position:absolute; left:0; right:0; }
-  .pattern-mark-band.is-point{ height:6px; margin-top:-3px; }
-  /* z-index as well as DOM order: an icon must never end up underneath a
-     stripe, whichever order the day's marks happen to be built in */
-  .pattern-mark-emoji{
-    position:absolute; left:50%; top:0; transform:translate(-50%,-50%); font-size:14px; line-height:1;
-    text-shadow:0 1px 3px rgba(0,0,0,.35); z-index:3;
-  }
-  .pattern-mark-band{ z-index:1; }
+  /* A MOMENT, NOT A STRETCH. Drops at 8am and an hour of sleep were both
+     drawn as a full-width stripe, so the only difference was thickness —
+     which at this scale is a couple of pixels. A moment is drawn as a short
+     centred tick instead: different shape, not just a different size. */
+  .pattern-mark-band.is-point{ height:4px; margin-top:-2px; left:20%; right:20%; }
   .pattern-grid-line-h{ z-index:0; }
+  .pattern-mark-band{ z-index:1; }
   .pattern-col-label{
     font-size:var(--fs-micro); font-weight:var(--fw-medium); color:var(--muted); text-align:center; line-height:1.3;
+    white-space:nowrap;
   }
-  .pattern-col-label .pattern-col-date{ display:block; color:var(--muted-2); }
+  /* the date line is always present even when it is blank, so a column
+     without a date is exactly as tall as one with it */
+  .pattern-col-label .pattern-col-date{ display:block; min-height:1.3em; color:var(--muted-2); white-space:nowrap; }
+  .pattern-col.today .pattern-col-date{ color:var(--primary); }
+  /* Over 28 days a date under every column would be 28 overlapping labels.
+     Only some columns get one, and that label is allowed to spill over its
+     (10px-wide) neighbours — which are blank by construction. */
   .pattern-col.today .pattern-col-label{ color:var(--primary); font-weight:var(--fw-strong); }
   .pattern-legend{ display:flex; flex-wrap:wrap; gap:10px 16px; padding:2px 4px 0; }
   .pattern-legend-item{ display:inline-flex; align-items:center; gap:6px; font-size:var(--fs-caption); color:var(--muted); }
@@ -708,7 +844,6 @@
      icon alone (no swatch behind it), so color and icon never both appear
      on the same legend key */
   .pattern-legend-swatch{ width:20px; height:10px; flex:0 0 auto; }
-  .pattern-legend-emoji-only{ font-size:14px; line-height:1; flex:0 0 auto; }
 
   /* settings — rows separated by spacing, not rule lines */
   .row-item{ display:flex; align-items:center; justify-content:space-between; padding:15px 16px; gap:12px; }
@@ -736,7 +871,15 @@
   .trash-row{ display:flex; align-items:center; gap:10px; padding:13px 16px; }
   .trash-row + .trash-row{ border-top:1px solid var(--border); }
   .trash-row .tr-body{ flex:1; min-width:0; }
-  .trash-row .tr-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); }
+  .trash-row .tr-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); display:flex; align-items:center; gap:6px; }
+  /* a glyph set beside a line of text rather than inside a box of its own */
+  .ty-inline{ width:17px; height:17px; flex:0 0 auto; display:block; }
+  /* the little coloured square the settings list uses to identify a type */
+  .ty-chip{
+    width:30px; height:30px; border-radius:10px; flex:0 0 auto;
+    display:flex; align-items:center; justify-content:center; font-size:14px;
+  }
+  .ty-chip .ty-ico{ width:18px; height:18px; }
   .trash-row .tr-sub{ font-size:var(--fs-caption); color:var(--muted); margin-top:2px; }
   .trash-empty{ padding:22px 16px; text-align:center; color:var(--muted); font-size:var(--fs-label); }
   .chip-row{ display:flex; flex-wrap:wrap; gap:8px; padding:12px 16px; }
@@ -754,6 +897,24 @@
     display:flex; padding:6px 8px calc(6px + env(safe-area-inset-bottom));
   }
   .tab-btn{ flex:1; background:transparent; border:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 2px; color:var(--muted-2); }
+  /* the care-type glyphs — same grid and weight as the tab bar's, but they
+     take the type's own colour rather than the tab's */
+  .ty-ico{
+    width:100%; height:100%; display:block;
+    fill:none; stroke:currentColor; stroke-width:1.7;
+    stroke-linecap:round; stroke-linejoin:round;
+  }
+  .ty-ico circle.dot{ fill:currentColor; stroke:none; }
+  /* SOFT FILL. Filling a line drawing outright blots out the detail that
+     makes it readable — the bear loses its face, the bottle its measure
+     marks, the bath its tap. So the body of each shape is washed in its own
+     colour at a fifth strength and the outline stays on top of it: the mass
+     of a filled icon, with everything still legible. The strokes that ARE
+     the detail carry no data-solid and stay hollow. */
+  .ty-ico [data-solid]{ fill:currentColor; fill-opacity:.22; }
+  /* a custom type keeps whatever emoji its owner chose */
+  .ico-emoji{ font-size:.86em; line-height:1; }
+
   .tab-btn .tb-ico{
     width:25px; height:25px; display:block;
     fill:none; stroke:currentColor; stroke-width:1.7;
@@ -802,6 +963,8 @@
     font-size:var(--fs-title); font-weight:var(--fw-strong); white-space:nowrap;
     overflow:hidden; text-overflow:ellipsis; max-width:calc(100% - 116px); pointer-events:none;
   }
+  /* the type's glyph sits with the title, centred as one unit */
+  .fp-head h1{ display:flex; align-items:center; justify-content:center; gap:7px; }
   .fp-delete{ background:transparent; border:0; color:var(--danger-text); font-size:var(--fs-body); font-weight:var(--fw-strong); padding:6px 4px; flex:0 0 auto; margin-left:auto; }
   /* extra bottom padding clears the floating save button */
   /* bottom padding has to clear the docked save bar (~73px) with room to
@@ -1109,9 +1272,18 @@
 
   <!-- ============ TAB: PATTERN ============ -->
   <section class="panel" id="tab-pattern" data-tab-panel hidden>
-    <div>
-      <div class="section-title" style="margin-bottom:2px" data-i18n="patternTitle">주간 패턴</div>
-      <div class="pattern-caption" data-i18n="patternCaption">최근 7일, 시간대별 기록</div>
+    <!-- how far back the chart looks. Seven days is the everyday view; 28 is
+         where a habit that has been forming for a month becomes visible. -->
+    <div class="pattern-head">
+      <div class="pattern-head-text">
+        <div class="section-title" style="margin-bottom:2px" data-i18n="patternTitle">시간대 패턴</div>
+        <div class="pattern-caption" data-i18n="patternCaption">세로축은 하루 24시간</div>
+      </div>
+      <div class="seg seg-sm" id="pattern-range">
+        <button type="button" data-days="7" aria-pressed="true" data-i18n="range7">7일</button>
+        <button type="button" data-days="14" aria-pressed="false" data-i18n="range14">14일</button>
+        <button type="button" data-days="28" aria-pressed="false" data-i18n="range28">28일</button>
+      </div>
     </div>
     <div class="card pattern-chart-card" id="pattern-chart-card">
       <div class="pattern-chart-inner">
@@ -1120,7 +1292,7 @@
       </div>
     </div>
     <div class="pattern-legend" id="pattern-legend"></div>
-    <div class="empty-note" id="pattern-empty" hidden data-i18n="patternEmpty">최근 7일간 기록이 없어요</div>
+    <div class="empty-note" id="pattern-empty" hidden data-i18n="patternEmpty">이 기간엔 기록이 없어요</div>
   </section>
 
   <!-- ============ TAB: STATS ============ -->
@@ -1139,9 +1311,25 @@
           <button type="button" data-range="30" aria-pressed="false" data-i18n="range30">30일</button>
         </div>
       </div>
+      <!-- "is he eating enough TODAY?" — today's running total against what
+           he had normally drunk by this same hour over the past week. The
+           daily average can only answer that question at bedtime. -->
+      <div class="stat-lede" id="feed-pace-lede"></div>
       <div class="stat-grid" id="stat-tiles"></div>
       <div class="stat-note" id="stat-tiles-note"></div>
       <div class="bars" id="stat-bars"></div>
+    </div>
+
+    <!-- One bar per week of his life. The daily chart says what happened;
+         this says which way it is going as he grows. -->
+    <div class="card stat-card" id="weekly-feed-card">
+      <div class="stat-head">
+        <div class="stat-h" data-i18n="weeklyFeedTitle">주별 수유량</div>
+        <span class="stat-badge" data-i18n="byAgeWeek">생후 주수</span>
+      </div>
+      <div class="stat-lede" id="weekly-feed-lede"></div>
+      <div class="bars" id="weekly-feed-bars"></div>
+      <div class="stat-note" data-i18n="weeklyNote">막대 하나는 그 주의 하루 평균 · 오늘은 진행 중이라 뺐어요</div>
     </div>
 
     <div class="card stat-card">
@@ -1328,6 +1516,22 @@
   <!-- ============ FULL PAGE: THE BIN ============ -->
   <!-- a list that only grows, so it lives one tap in rather than sitting
        open at the bottom of settings -->
+  <!-- ============ FULL PAGE: PHOTO VIEWER ============ -->
+  <!-- black, edge to edge, one picture: the point of opening it is to look
+       at the baby, so nothing else is on the screen -->
+  <div class="fullpage photo-page" id="fp-photo">
+    <div class="fp-head photo-head">
+      <button type="button" class="fp-back" id="fp-photo-back">‹</button>
+      <h1 id="fp-photo-count"></h1>
+      <span style="width:30px"></span>
+    </div>
+    <div class="photo-stage">
+      <button type="button" class="photo-nav prev" id="fp-photo-prev" aria-label="prev" hidden>‹</button>
+      <img id="fp-photo-img" alt="" />
+      <button type="button" class="photo-nav next" id="fp-photo-next" aria-label="next" hidden>›</button>
+    </div>
+  </div>
+
   <div class="fullpage" id="fp-trash">
     <div class="fp-head">
       <button type="button" class="fp-back" id="fp-trash-back">‹</button>
@@ -1433,6 +1637,19 @@
         <label style="display:block;font-size:11.5px;color:var(--muted);margin-bottom:6px;font-weight:700;" id="memo-compose-translate-label"></label>
         <div id="memo-compose-translate-preview" style="width:100%;box-sizing:border-box;background:var(--surface-2);border-radius:14px;padding:12px 13px;font-size:14.5px;color:var(--fg);min-height:1.4em;"></div>
       </div>
+      <!-- no `capture` attribute: with it the phone goes straight to the
+           camera, and half the time the picture she wants is one already in
+           the roll. Without it iOS offers both. -->
+      <input type="file" id="memo-photo-input" accept="image/*" multiple hidden />
+      <div class="mp-strip" id="memo-photo-strip" hidden></div>
+      <button type="button" class="mp-add" id="memo-photo-btn">
+        <svg class="ty-ico" viewBox="0 0 24 24" aria-hidden="true" style="width:18px;height:18px">
+          <rect data-solid x="3.2" y="5.4" width="17.6" height="13.2" rx="2.6"/>
+          <circle data-solid cx="12" cy="12" r="3.4"/>
+          <path d="M8.6 5.4l1.3-2h4.2l1.3 2"/>
+        </svg>
+        <span data-i18n="photoAdd">사진</span>
+      </button>
     </div>
     <div class="sheet-foot">
       <button type="button" class="btn primary" id="memo-compose-submit" data-i18n="memoSubmit">등록</button>
@@ -1494,6 +1711,10 @@ var I18N = {
 ko: {
   memoLabel:"메모", memoEmpty:"아직 메모가 없어요", memoComposeTitle:"메모 추가", memoComposePh:"메모를 입력하세요",
   memoSubmit:"등록", memoTranslateToVi:"베트남어 번역 (선택)", memoTranslateToKo:"한국어 번역 (선택)",
+  photoAdd:"사진", photoRemove:"사진 빼기", photoMaxTpl:"사진은 {n}장까지 넣을 수 있어요",
+  photoTooBig:"이 사진은 열 수 없어요", photoUploading:"사진 올리는 중...",
+  photoFailed:"사진을 올리지 못했어요", photoStorageFull:"사진 저장 공간이 가득 찼어요",
+  photoClose:"닫기", photoOf:"{i}/{n}",
   memoNoMemos:"아직 등록된 메모가 없어요.", tabMemo:"메모", typeOrder:"항목 순서",
   quickAdd:"빠른 기록", timeline:"기록", loadMore:"이전 기록 더 보기", emptyDay:"이 날은 기록이 없어요", todayBtn:"오늘", babyInfo:"아기 정보", babyNameKo:"이름 (한국어)", babyNameVi:"이름 (베트남어)", babyBirth:"태어난 날",
   whoAmI:"나는 누구", customTypes:"커스텀 항목 관리",
@@ -1510,7 +1731,7 @@ ko: {
   since_feed:"마지막 수유", since_sleep:"마지막 잠",
   since_poop:"마지막 똥", prevPoopTpl:"그 전 {t}", authorViPh:"베트남어 이름 (자동 번역)",
   nextFeedLabel:"다음 추천 수유", nextFeedValueTpl:"{time} · {remain} 후", nextFeedDueValueTpl:"시간이 지났어요 · {time}",
-  tabPattern:"패턴", patternTitle:"주간 패턴", patternCaption:"최근 7일, 시간대별 기록", patternEmpty:"최근 7일간 기록이 없어요",
+  tabPattern:"패턴", patternTitle:"시간대 패턴", patternCaption:"세로축은 하루 24시간", patternEmpty:"이 기간엔 기록이 없어요",
   noRecordYet:"기록 없음", justNow:"방금", agoSuffix:"전", hrShort:"시간", minShort:"분",
   wet:"소변", dirty:"대변", both:"소변+대변", diaperKind:"종류",
   nap:"낮잠", night:"밤잠", auto:"자동판별", sleepKind:"수면 종류",
@@ -1525,7 +1746,7 @@ ko: {
   savedToast:"저장했어요", deletedToast:"삭제했어요", startedToast:"타이머를 시작했어요", recordedToast:"기록했어요",
   alreadyActive:"이미 진행 중인 기록이 있어요", canceledToast:"취소했어요",
   adjustStart:"시작 시간 조정", discardActive:"기록하지 않고 취소",
-  pauseBtn:"일시정지", resumeBtn:"재생", pausedLabel:"일시정지됨",
+  pauseBtn:"일시정지", resumeBtn:"재생", pausedLabel:"일시정지",
   avgMlPerDay:"하루 평균", avgPerFeed:"1회 평균", avgFeedsPerDay:"하루 횟수",
   permissionHint:"각자 자기가 적은 기록만 고치거나 지울 수 있어요. 엄마는 모든 기록을 고칠 수 있어요.",
   lockedByTpl:"{who}이(가) 적은 기록이에요. 보기만 할 수 있어요.",
@@ -1544,7 +1765,7 @@ ko: {
   trashEmpty:"지운 기록이 없어요", restoreBtn:"되돌리기", restoredToast:"기록을 되돌렸어요",
   deletedAtTpl:"{when}에 지움", notMine:"내가 적은 기록이 아니에요",
   avgNap:"하루 평균 낮잠", avgNight:"하루 평균 밤잠",
-  totalFeedDay:"수유", totalNap:"낮잠", totalNight:"밤잠",
+  totalFeedDay:"수유", totalSleep:"수면", totalNap:"낮잠", totalNight:"밤잠",
   emptyTimeline:"아직 기록이 없어요. 위 아이콘을 눌러 첫 기록을 남겨보세요.",
   noCustomTypes:"아직 커스텀 항목이 없어요",
   quickWordsTitle:"메모 퀵버튼 관리", qwAddPh:"자주 쓰는 문구 입력", noQuickWords:"등록된 문구가 없어요",
@@ -1555,12 +1776,25 @@ ko: {
   avgOverDaysTpl:"어제까지 {n}일 평균 · 오늘은 진행 중이라 뺐어요",
   poopLedeTpl:"평균 {avg}마다 · 마지막은 {last} 전", nowShort:"지금", afterGapTpl:"{v} 만에",
   notEnoughData:"데이터 부족",
-  range7:"7일", range14:"14일", range30:"30일",
+  range7:"7일", range14:"14일", range30:"30일", range28:"28일",
+  /* 주별 수유량 — 막대 하나가 생후 한 주, 그 주의 "하루 평균" */
+  weeklyFeedTitle:"주별 수유량", byAgeWeek:"생후 주수",
+  weeklyLedeTpl:"{w}주차 하루 평균 {cur} · 지난주보다 {diff}",
+  weeklyLedeFirstTpl:"{w}주차 하루 평균 {cur}",
+  weeklyNote:"막대 하나는 그 주의 하루 평균 · 오늘은 진행 중이라 뺐어요",
+  ageWeekTpl:"{n}주",
+  /* 오늘 이 시간까지 마신 양 vs 지난 7일 같은 시간대 평균 */
+  feedPaceTpl:"오늘 지금까지 {cur} · 평소 이 시간엔 {usual}",
+  longestSleep:"최장 연속",
   translating:"번역 중...", translateFailed:"번역을 못 가져왔어요", dayShort:"일", poopRecentTpl:"최근 {n}개"
 },
 vi: {
   memoLabel:"Ghi chú", memoEmpty:"Chưa có ghi chú nào", memoComposeTitle:"Thêm ghi chú", memoComposePh:"Nhập ghi chú",
   memoSubmit:"Đăng", memoTranslateToVi:"Dịch tiếng Việt (tùy chọn)", memoTranslateToKo:"Dịch tiếng Hàn (tùy chọn)",
+  photoAdd:"Ảnh", photoRemove:"Bỏ ảnh", photoMaxTpl:"Chỉ thêm được tối đa {n} ảnh",
+  photoTooBig:"Không mở được ảnh này", photoUploading:"Đang tải ảnh lên...",
+  photoFailed:"Không tải được ảnh lên", photoStorageFull:"Hết dung lượng lưu ảnh",
+  photoClose:"Đóng", photoOf:"{i}/{n}",
   memoNoMemos:"Chưa có ghi chú nào được đăng.", tabMemo:"Ghi chú", typeOrder:"Thứ tự mục",
   quickAdd:"Ghi nhanh", timeline:"Nhật ký", loadMore:"Xem ngày trước đó", emptyDay:"Ngày này chưa có ghi chép", todayBtn:"Hôm nay", babyInfo:"Thông tin bé", babyNameKo:"Tên (Tiếng Hàn)", babyNameVi:"Tên (Tiếng Việt)", babyBirth:"Ngày sinh",
   whoAmI:"Bạn là ai", customTypes:"Quản lý mục tùy chỉnh",
@@ -1577,7 +1811,7 @@ vi: {
   since_feed:"Lần bú gần nhất", since_sleep:"Giấc ngủ gần nhất",
   since_poop:"Lần ị gần nhất", prevPoopTpl:"trước đó {t}", authorViPh:"Tên tiếng Việt (tự dịch)",
   nextFeedLabel:"Dự kiến bú tiếp theo", nextFeedValueTpl:"{time} · còn {remain}", nextFeedDueValueTpl:"Đã quá giờ · {time}",
-  tabPattern:"Mẫu hình", patternTitle:"Mẫu hình tuần", patternCaption:"7 ngày qua, theo khung giờ trong ngày", patternEmpty:"Chưa có nhật ký trong 7 ngày qua",
+  tabPattern:"Mẫu hình", patternTitle:"Mẫu hình theo giờ", patternCaption:"Trục dọc là 24 giờ trong ngày", patternEmpty:"Chưa có nhật ký trong khoảng này",
   noRecordYet:"Chưa có dữ liệu", justNow:"Vừa xong", agoSuffix:"", hrShort:" giờ", minShort:" phút",
   wet:"Nước tiểu", dirty:"Phân", both:"Cả hai", diaperKind:"Loại",
   nap:"Ngủ ngày", night:"Ngủ đêm", auto:"Tự nhận diện", sleepKind:"Loại giấc ngủ",
@@ -1592,7 +1826,7 @@ vi: {
   savedToast:"Đã lưu", deletedToast:"Đã xóa", startedToast:"Đã bắt đầu hẹn giờ", recordedToast:"Đã ghi nhận",
   alreadyActive:"Đang có một mục hẹn giờ chạy rồi", canceledToast:"Đã hủy",
   adjustStart:"Chỉnh giờ bắt đầu", discardActive:"Hủy, không lưu",
-  pauseBtn:"Tạm dừng", resumeBtn:"Tiếp tục", pausedLabel:"Đã tạm dừng",
+  pauseBtn:"Tạm dừng", resumeBtn:"Tiếp tục", pausedLabel:"Tạm dừng",
   avgMlPerDay:"TB mỗi ngày", avgPerFeed:"TB mỗi lần", avgFeedsPerDay:"Lần/ngày",
   permissionHint:"Mỗi người chỉ sửa hoặc xoá được ghi chép của mình. Mẹ sửa được tất cả.",
   lockedByTpl:"Mục này do {who} ghi. Bạn chỉ có thể xem.",
@@ -1611,7 +1845,7 @@ vi: {
   trashEmpty:"Chưa có mục nào bị xoá", restoreBtn:"Khôi phục", restoredToast:"Đã khôi phục mục này",
   deletedAtTpl:"Xoá lúc {when}", notMine:"Mục này không phải bạn ghi",
   avgNap:"TB ngủ ngày", avgNight:"TB ngủ đêm",
-  totalFeedDay:"Bú", totalNap:"Ngủ ngày", totalNight:"Ngủ đêm",
+  totalFeedDay:"Bú", totalSleep:"Ngủ", totalNap:"Ngủ ngày", totalNight:"Ngủ đêm",
   emptyTimeline:"Chưa có nhật ký nào. Nhấn biểu tượng phía trên để ghi mục đầu tiên.",
   noCustomTypes:"Chưa có mục tùy chỉnh nào",
   quickWordsTitle:"Quản lý nút nhanh ghi chú", qwAddPh:"Nhập cụm từ hay dùng", noQuickWords:"Chưa có cụm từ nào",
@@ -1624,7 +1858,14 @@ vi: {
   notEnoughData:"Chưa đủ dữ liệu",
   /* just the numbers in the toggle: "7 ngày" wrapped onto two lines and
      made the card header taller than the Korean one */
-  range7:"7", range14:"14", range30:"30",
+  range7:"7", range14:"14", range30:"30", range28:"28",
+  weeklyFeedTitle:"Sữa theo tuần", byAgeWeek:"Tuần tuổi",
+  weeklyLedeTpl:"Tuần {w}: TB {cur}/ngày · so với tuần trước {diff}",
+  weeklyLedeFirstTpl:"Tuần {w}: TB {cur}/ngày",
+  weeklyNote:"Mỗi cột là TB một ngày của tuần đó · chưa tính hôm nay",
+  ageWeekTpl:"T{n}",
+  feedPaceTpl:"Hôm nay đến giờ {cur} · thường giờ này {usual}",
+  longestSleep:"Dài nhất",
   translating:"Đang dịch...", translateFailed:"Không lấy được bản dịch", dayShort:" ngày", poopRecentTpl:"{n} lần gần đây"
 }
 };
@@ -1661,6 +1902,8 @@ var EMOJI_CHOICES = ['⭐','🎵','🚗','🦷','🧴','👀','✏️','❤️']
    STATE / STORAGE KEYS
    ================================================================ */
 var LS_LANG='bbl_lang', LS_AUTHOR='bbl_author', LS_THEME='bbl_theme';
+/* where the amount scale opens for a feed nobody has filled in yet */
+var FEED_DEFAULT_ML = 150;
 var state = {
   lang: localStorage.getItem(LS_LANG) || 'ko',
   author: localStorage.getItem(LS_AUTHOR) || '',
@@ -1669,6 +1912,7 @@ var state = {
   entryId: null,
   adjustOpen: false,
   statsFeedDays: 7,
+  patternDays: 7,     // how far back the pattern chart looks (7/14/28)
   logDate: null,      // 'YYYY-M-D' when a single day is being viewed
   logDays: 7,         // how many recent days the log is showing
   crossMidAsked: false,   // guards the "다음날 아침인가요?" question from re-asking
@@ -1983,6 +2227,104 @@ function readQuickWords(typeId){
     .map(function(w){ return { id: w.id, typeId: w.typeId, text: w.text || '' }; });
 }
 function getActive(){ return appState.active; }
+/* The stopwatch's own three controls. ⏸ ▶ ✎ ✓ are characters, and a
+   character is at the mercy of whatever font the phone falls back to: on
+   hers the pause was a hollow outline that didn't match anything else on
+   the bar. Drawn, they are the right weight and the right size every time.
+   Pause and play are solid — a control you press wants some mass to it. */
+var AW_ICONS = {
+  /* two bars, drawn as thick round-capped strokes rather than rectangles */
+  pause: { d: '<rect x="8.1" y="6" width="3.3" height="12" rx="1.6"/>' +
+                '<rect x="12.6" y="6" width="3.3" height="12" rx="1.6"/>', w: 0, solid: true },
+  /* a triangle, stroked as well as filled so its corners round off */
+  play:  { d: '<path d="M9.2 6.4L18.2 12 9.2 17.6Z"/>', w: 2.4, solid: true },
+  edit:  { d: '<path d="M12.5 4.9H6.4A1.5 1.5 0 0 0 4.9 6.4v11.2a1.5 1.5 0 0 0 1.5 1.5h11.2a1.5 1.5 0 0 0 1.5-1.5v-6.1"/>' +
+              '<path d="M17.1 3.9l3 3-7.1 7.1-3.7.7.7-3.7z"/>', w: 1.9 },
+  check: { d: '<path d="M6.2 12.4l4 4 7.6-8.8"/>', w: 2.3 },
+};
+function awIcon(name){
+  var i = AW_ICONS[name];
+  return '<svg class="aw-ico' + (i.solid ? ' solid' : '') + '" viewBox="0 0 24 24" ' +
+    'stroke-width="' + i.w + '" aria-hidden="true">' + i.d + '</svg>';
+}
+
+/* ================================================================
+   TYPE ICONS — drawn, not typed.
+
+   These were emoji. An emoji is somebody else's picture: it arrives at a
+   different size and a different baseline on every phone, carries its own
+   colours that fight the app's, and next to a set of line-drawn tab icons it
+   reads as a placeholder somebody forgot to replace. The nappy was a pile of
+   poo, the massage was a face in a spa, and 놀이 was a teddy bear that
+   dwarfed everything beside it.
+
+   One 24×24 grid, one stroke weight, no fills except where a shape needs a
+   solid dot — the same rules the tab bar already follows. Every glyph takes
+   `currentColor`, so an icon is the colour of the thing it stands for and
+   nothing has to be re-drawn for dark mode.
+
+   Custom types keep the emoji their owner picked: that one is their choice
+   to make, not mine to override.
+   ================================================================ */
+var TYPE_ICONS = {
+  /* a bottle: teat, collar, body, measure marks. The first attempt was
+     narrow enough to read as an aerosol can. */
+  feed: '<path data-solid d="M9.8 5.1V4.2a2.2 2.2 0 0 1 4.4 0v.9"/>' +
+        '<path data-solid d="M8.2 5.1h7.6v2.5H8.2z"/>' +
+        '<path data-solid d="M8.2 7.6c0 1.4-1.6 1.7-1.6 3.3v8.1a2.2 2.2 0 0 0 2.2 2.2h6.4a2.2 2.2 0 0 0 2.2-2.2v-8.1c0-1.6-1.6-1.9-1.6-3.3z"/>' +
+        '<path d="M6.8 13.4h2.6M6.8 16.2h2.6"/>',
+  /* a nappy: waistband with its two fasteners, tapering to the leg holes.
+     Without the fasteners the shape alone read as a basket. */
+  diaper: '<path data-solid d="M4.8 5H19.2Q14.8 12 17.6 19.4H6.4Q9.2 12 4.8 5Z"/>' +
+          '<circle class="dot" cx="8.4" cy="7.4" r=".95"/><circle class="dot" cx="15.6" cy="7.4" r=".95"/>',
+  /* the moon everyone already reads as sleep */
+  sleep: '<path data-solid d="M20.2 14.6A8.4 8.4 0 0 1 9.4 3.8a8.6 8.6 0 1 0 10.8 10.8z"/>',
+  /* a rattle: ball, short neck, ring to hold. Drawn as a ball on a diagonal
+     stick it was a magnifying glass — upright, with a ring at the bottom and
+     two beads inside the ball, it can only be a rattle. */
+  /* A RATTLE, and the ways it goes wrong. A ball on a diagonal stick is a
+     magnifying glass. A ball over a ring is a snowman — and a near-twin of
+     the tummy-time figure two tiles along. Two beads inside the ball are
+     eyes. What only a rattle has is the taper: a round head over a handle
+     that narrows into a grip. */
+  play: '<circle data-solid cx="12" cy="7" r="4.6"/>' +
+        '<path d="M9.5 11.9h5"/>' +
+        '<path data-solid d="M10 12.4h4a1 1 0 0 1 1 1.2l-1 6a1.7 1.7 0 0 1-1.7 1.4h-.6a1.7 1.7 0 0 1-1.7-1.4l-1-6a1 1 0 0 1 1-1.2z"/>',
+  /* tummy time, seen from above: head, body, arms out to the sides. Drawn
+     from the side it was a squiggle in a deck chair. */
+  tummy: '<circle data-solid cx="12" cy="6.2" r="3"/>' +
+         '<path data-solid d="M12 9.4c2.6 0 4.1 1.8 4.1 4.5v3.4c0 2.2-1.7 3.7-4.1 3.7s-4.1-1.5-4.1-3.7v-3.4c0-2.7 1.5-4.5 4.1-4.5z"/>' +
+         '<path d="M8.3 11.7L4.3 14.2M15.7 11.7l4 2.5"/>',
+  /* massage: a touch, and the calm going out from it */
+  massage: '<circle class="dot" cx="12" cy="12" r="2.1"/>' +
+           '<path d="M7.9 7.9a5.8 5.8 0 0 0 0 8.2M16.1 16.1a5.8 5.8 0 0 0 0-8.2"/>' +
+           '<path d="M4.8 4.8a10.2 10.2 0 0 0 0 14.4M19.2 19.2a10.2 10.2 0 0 0 0-14.4"/>',
+  /* a bath, with the tap and the feet */
+  bath: '<path data-solid d="M3 12.6h18v2.6a4.2 4.2 0 0 1-4.2 4.2H7.2A4.2 4.2 0 0 1 3 15.2z"/>' +
+        '<path d="M6.6 12.6V6.3a2.3 2.3 0 0 1 4.6 0"/><path d="M6.4 19.4v1.7M17.6 19.4v1.7"/>',
+  /* drops */
+  probiotic: '<path data-solid d="M12 3.4c0 0 5.6 6.1 5.6 9.8a5.6 5.6 0 1 1-11.2 0C6.4 9.5 12 3.4 12 3.4z"/>',
+  /* the bulb aspirator, not a sneeze */
+  nose: '<circle data-solid cx="8.6" cy="15.4" r="5.3"/>' +
+        '<path d="M12.4 11.7l4.3-4.3a1.9 1.9 0 0 1 2.7 2.7l-4.3 4.3"/>',
+  /* baby nail scissors. The clipper, seen from the side, is a stapler; the
+     fingertip-with-a-nail before that was a padlock. */
+  nails: '<circle data-solid cx="6.4" cy="18" r="2.5"/><circle data-solid cx="6.4" cy="6" r="2.5"/>' +
+         '<path d="M8.7 16.9L19.2 5.2M8.7 7.1L19.2 18.8"/>',
+  /* a thermometer */
+  temp: '<path data-solid d="M14 13.7V5a2 2 0 0 0-4 0v8.7a4.1 4.1 0 1 0 4 0z"/><path d="M12 8.2v6.2"/>',
+  /* a capsule */
+  med: '<rect data-solid x="3.2" y="8.4" width="17.6" height="7.2" rx="3.6"/><path d="M12 8.4v7.2"/>'
+};
+/* One icon, wherever an icon goes. `cls` is the box it sits in — the same
+   markup serves the quick tile, the log row, the dashboard and the bar. */
+function typeIconHtml(meta, cls, styleAttr){
+  var box = cls ? ' class="'+cls+'"' : '';
+  var sty = styleAttr ? ' style="'+styleAttr+'"' : '';
+  var g = meta && TYPE_ICONS[meta.id];
+  if (!g) return '<span'+box+sty+'><span class="ico-emoji">'+(meta ? meta.emoji : '')+'</span></span>';
+  return '<span'+box+sty+'><svg class="ty-ico" viewBox="0 0 24 24" aria-hidden="true">'+g+'</svg></span>';
+}
 function typeMeta(typeStr){
   if (!typeStr) return null;
   if (typeStr.indexOf('custom:') === 0){
@@ -2243,13 +2585,13 @@ function renderActiveBar(){
   if (!bar){
     slot.innerHTML =
       '<div class="active-bar" style="--active-color:'+meta.color+'">' +
-        '<div class="aw-emoji">'+meta.emoji+'</div>' +
+        typeIconHtml(meta, 'aw-emoji') +
         '<div class="aw-meta"><b id="aw-name"></b><span id="aw-sub"></span></div>' +
         '<div class="aw-time" id="aw-time"></div>' +
         '<div class="aw-actions">' +
           '<button type="button" class="aw-round" id="aw-pause" title="'+esc(t('pauseBtn'))+'"></button>' +
-          '<button type="button" class="aw-round" id="aw-adjust" title="'+esc(t('adjustStart'))+'">✎</button>' +
-          '<button type="button" class="aw-round confirm" id="aw-finish" title="'+esc(t('save'))+'">✓</button>' +
+          '<button type="button" class="aw-round" id="aw-adjust" title="'+esc(t('adjustStart'))+'">'+awIcon('edit')+'</button>' +
+          '<button type="button" class="aw-round confirm" id="aw-finish" title="'+esc(t('save'))+'">'+awIcon('check')+'</button>' +
         '</div>' +
       '</div>' +
       '<div id="aw-adjust-panel" hidden style="width:calc(100% + 32px);margin:0 -16px;padding:12px 16px;background:var(--surface-2);"></div>';
@@ -2260,14 +2602,27 @@ function renderActiveBar(){
   }
   bar.style.setProperty('--active-color', meta.color);
   bar.classList.toggle('paused', paused);
-  document.getElementById('aw-time').textContent = fmtStopwatch(elapsed);
-  document.getElementById('aw-pause').textContent = paused ? '▶' : '⏸';
+  var timeEl = document.getElementById('aw-time');
+  var stopTxt = fmtStopwatch(elapsed);
+  timeEl.textContent = stopTxt;
+  /* "04:12" / "1:05:22" / "12:05:22" — three widths, picked by the string */
+  timeEl.classList.toggle('is-long', stopTxt.length > 5);
+  timeEl.classList.toggle('is-xlong', stopTxt.length > 7);
+  document.getElementById('aw-pause').innerHTML = awIcon(paused ? 'play' : 'pause');
   document.getElementById('aw-pause').title = paused ? t('resumeBtn') : t('pauseBtn');
   document.getElementById('aw-name').textContent = name;
-  var subParts = [fmtTime(a.start)];
-  if (paused) subParts.push(t('pausedLabel'));
-  if (author) subParts.push(localizeAuthorName(author));
-  document.getElementById('aw-sub').textContent = subParts.join(' · ');
+  /* THREE THINGS DO NOT FIT ON THIS LINE. Start time, "일시정지됨" and the
+     author together ran past the end of the bar at every width, in both
+     languages — and the line is nowrap+ellipsis, so what fell off was the
+     author, silently. A paused stopwatch says so instead of saying when it
+     started; the start time is still there behind the pencil, and the bar
+     is not paused for long. */
+  /* On a 320px screen even two of them do not fit, so the author is a span
+     of its own that the narrow layout drops — it is nearly always whoever is
+     holding the phone, and the saved record keeps it either way. */
+  document.getElementById('aw-sub').innerHTML =
+    '<span class="aw-sub-main">' + esc(paused ? t('pausedLabel') : fmtTime(a.start)) + '</span>' +
+    (author ? '<span class="aw-sub-who"> · ' + esc(localizeAuthorName(author)) + '</span>' : '');
 }
 
 /* pausing freezes the visible timer without losing the start time: on resume the
@@ -2276,9 +2631,27 @@ function renderActiveBar(){
 function togglePauseActive(){
   var a = getActive();
   if (!a || !a.type) return;
-  apiMutate('togglePauseActive', {}).then(function(){
-    renderActiveBar();
-  }).catch(function(err){ toast(err.message); });
+  var at = new Date().toISOString();
+  var prev = { start: a.start, paused: a.paused, pausedAt: a.pausedAt };
+
+  if (a.paused){
+    var pausedMs = new Date(at).getTime() - new Date(a.pausedAt).getTime();
+    a.start = new Date(new Date(a.start).getTime() + pausedMs).toISOString();
+    a.paused = false; a.pausedAt = null;
+  } else {
+    a.paused = true; a.pausedAt = at;
+  }
+  renderActiveBar();
+  if (navigator.vibrate) try{ navigator.vibrate(8); }catch(e){}
+
+  apiMutate('togglePauseActive', { at: at })
+    .then(function(){ renderActiveBar(); })
+    .catch(function(err){
+      var now = getActive();
+      if (now){ now.start = prev.start; now.paused = prev.paused; now.pausedAt = prev.pausedAt; }
+      renderActiveBar();
+      toast(err.message);
+    });
 }
 
 function toggleAdjustPanel(){
@@ -2307,17 +2680,32 @@ function renderAdjustPanel(){
   document.getElementById('aw-start-input').addEventListener('scrubchange', function(ev){
     var a2 = getActive();
     if (!a2) return;
-    apiMutate('adjustActiveStart', { start: combineDateTime(a2.start, ev.target.value) }).then(function(){
-      renderActiveBar();
-    }).catch(function(err){ toast(err.message); });
+    var next = combineDateTime(a2.start, ev.target.value);
+    var prevStart = a2.start;
+    a2.start = next;
+    renderActiveBar();
+    apiMutate('adjustActiveStart', { start: next })
+      .catch(function(err){
+        var now = getActive();
+        if (now) now.start = prevStart;
+        renderActiveBar();
+        toast(err.message);
+      });
   });
   document.getElementById('aw-discard').addEventListener('click', function(){
-    apiMutate('cancelActive', {}).then(function(){
-      state.adjustOpen = false;
-      toast(t('canceledToast'));
-      renderTimeline();
-      renderActiveBar();
-    }).catch(function(err){ toast(err.message); });
+    var prev = appState.active;
+    appState.active = null;
+    state.adjustOpen = false;
+    toast(t('canceledToast'));
+    renderTimeline();
+    renderActiveBar();
+    apiMutate('cancelActive', {})
+      .catch(function(err){
+        appState.active = prev;
+        renderTimeline();
+        renderActiveBar();
+        toast(err.message);
+      });
   });
 }
 
@@ -2327,10 +2715,35 @@ function finishActive(){
   var meta = typeMeta(a.type);
   if (!meta) return;
   state.adjustOpen = false;
-  apiMutate('finishActive', { author: state.author }).then(function(result){
-    renderAll();
-    toast(t('recordedToast'));
-  }).catch(function(err){ toast(err.message); });
+  /* a paused stopwatch stops at the moment it was paused, not now */
+  var end = (a.paused && a.pausedAt) ? a.pausedAt : new Date().toISOString();
+
+  var prevActive = a, prevEntries = appState.entries;
+  var tempId = 'tmp_' + Date.now() + '_' + Math.round(Math.random()*1e6);
+  appState.entries = [{ id: tempId, type: a.type, start: a.start, end: end,
+                        author: a.author || state.author, note: '' }]
+    .concat(appState.entries || []);
+  appState.active = null;
+  renderAll();
+  toast(t('recordedToast'));
+  if (navigator.vibrate) try{ navigator.vibrate(8); }catch(e){}
+  flashRow(tempId);
+
+  apiMutate('finishActive', { author: state.author, end: end })
+    .then(function(result){
+      /* same trap as quickCreate: the row on screen carries an id this phone
+         invented, and tapping it before the server answers would leave the
+         open record pointing at nothing */
+      if (state.entryId === tempId) state.entryId = result.entry.id;
+      renderAll();
+      flashRow(result.entry.id);
+    })
+    .catch(function(err){
+      appState.entries = prevEntries;
+      appState.active = prevActive;
+      renderAll();
+      toast(err.message);
+    });
 }
 
 /* ================================================================
@@ -2507,7 +2920,7 @@ function renderQuickActions(){
   var prevScroll = grid.scrollLeft; // preserve swipe position across re-renders
   var html = '';
   allTypesInOrder().forEach(function(b){
-    html += quickBtnHtml(b.id, b.label, b.color, b.emoji);
+    html += quickBtnHtml(b.id, b.label, b.color, b.emoji, b);
   });
   html += '<button type="button" class="qa-btn qa-add" id="qa-add-type">' +
     '<div class="qa-ico">+</div>' +
@@ -2519,9 +2932,12 @@ function renderQuickActions(){
   var addBtn = document.getElementById('qa-add-type');
   if (addBtn) addBtn.addEventListener('click', openTypeSheet);
 }
-function quickBtnHtml(typeId, label, color, emoji){
+function quickBtnHtml(typeId, label, color, emoji, meta){
+  /* the tile is a pale wash of the type's colour with the glyph drawn on it
+     in the same colour, full strength */
+  var style = 'background:color-mix(in srgb, '+color+' 16%, var(--surface));color:'+color;
   return '<button type="button" class="qa-btn" data-type="'+esc(typeId)+'">' +
-    '<div class="qa-ico" style="background:color-mix(in srgb, '+color+' 18%, var(--surface))">'+emoji+'</div>' +
+    typeIconHtml(meta || typeMeta(typeId), 'qa-ico', style) +
     '<div class="qa-label">'+esc(label)+'</div>' +
   '</button>';
 }
@@ -2617,15 +3033,37 @@ function flashRow(id){
   var row = document.querySelector('.entry-row[data-id="'+cssEsc(id)+'"]');
   if (row){ row.classList.add('flash'); setTimeout(function(){ row.classList.remove('flash'); }, 900); }
 }
+/* THE STOPWATCH ANSWERS THE FINGER, NOT THE SERVER.
+   Every other write in this app draws first and posts second; these five
+   were the exception, and they are the ones you press while holding a baby.
+   Each tap waited on a round trip to an instance that sleeps after fifteen
+   minutes and takes the better part of a minute to wake — so the button did
+   nothing, visibly, for as long as that took.
+   The clock the phone predicts with is sent along with the write, so the
+   server stores the same instant the screen already showed rather than its
+   own; and every one of them puts back exactly what it changed if the write
+   turns out not to have landed. */
 function startStopwatch(typeId){
   var a = getActive();
   if (a && a.type){ toast(t('alreadyActive')); return; }
   leaveOldDayView();
   var meta = typeMeta(typeId);
   var name = meta ? meta.label : '';
-  apiMutate('startActive', { type: typeId, name: name, author: state.author }).then(function(){
-    renderTimeline(); renderActiveBar(); toast(t('startedToast'));
-  }).catch(function(err){ toast(err.message); });
+  var start = new Date().toISOString();
+
+  var prev = appState.active;
+  appState.active = { type: typeId, start: start, name: name,
+                      author: state.author, paused: false, pausedAt: null };
+  renderTimeline(); renderActiveBar(); toast(t('startedToast'));
+  if (navigator.vibrate) try{ navigator.vibrate(8); }catch(e){}
+
+  apiMutate('startActive', { type: typeId, name: name, author: state.author, start: start })
+    .then(function(){ renderTimeline(); renderActiveBar(); })
+    .catch(function(err){
+      appState.active = prev;
+      renderTimeline(); renderActiveBar();
+      toast(err.message);
+    });
 }
 
 /* ================================================================
@@ -2754,10 +3192,13 @@ function renderTimeline(){
     var day = agg[k];
     var dayEntries = day.entries.slice().sort(function(x,y){ return new Date(y.start)-new Date(x.start); });
     html += '<div class="day-group">';
-    /* four cells, two rows — see .day-head in the stylesheet */
+    /* Two rows. The top line is the day's two headline numbers — how much he
+       ate and how much he slept in total; the second breaks the sleep into
+       naps and night for anyone who wants it. */
     html += '<div class="day-head">';
     html += '<div class="d-title">'+esc(dayHeading(day.date))+'</div>';
-    html += '<div class="d-total right">'+esc(t('totalFeedDay'))+' <b>'+day.feedMl+t('ml')+'</b></div>';
+    html += '<div class="d-total right">'+esc(t('totalFeedDay'))+' <b>'+day.feedMl+t('ml')+'</b>' +
+      ' <span class="d-sep">·</span> '+esc(t('totalSleep'))+' <b>'+fmtDur(day.nap + day.night)+'</b></div>';
     html += '<div class="d-sleeps">';
     html += '<div class="d-total">'+esc(t('totalNap'))+' <b>'+fmtDur(day.nap)+'</b></div>';
     html += '<div class="d-total">'+esc(t('totalNight'))+' <b>'+fmtDur(day.night)+'</b></div>';
@@ -2857,7 +3298,7 @@ function entryRowHtml(e, isCont){
       '<button type="button" class="entry-row is-cont" data-id="'+esc(e.id)+'" data-cont="1">' +
         '<div class="e-time"><span class="e-time-main">~'+esc(fmtTime(e.end))+'</span>' +
         (e.author?('<span class="e-author">'+esc(localizeAuthorName(e.author))+'</span>'):'') + '</div>' +
-        '<div class="e-icon">'+meta.emoji+'</div>' +
+        typeIconHtml(meta, 'e-icon', 'color:'+meta.color) +
         '<div class="e-main"><div class="e-title-line"><span class="e-title">'+esc(t(classifySleep(e)==='night'?'night':'nap'))+'</span>' +
         '<span class="e-sub">'+esc(contSub.join(' · '))+'</span></div></div>' +
       '</button>' +
@@ -2899,7 +3340,7 @@ function entryRowHtml(e, isCont){
       '<div class="e-time"><span class="e-time-main">'+esc(timeMain)+'</span>' +
       (timeEnd ? '<span class="e-time-end'+(endNextDay?' wrap':'')+'">~'+esc(timeEnd)+'</span>' : '') +
       (e.author?('<span class="e-author">'+esc(localizeAuthorName(e.author))+'</span>'):'') + '</div>' +
-      '<div class="e-icon">'+meta.emoji+'</div>' +
+      typeIconHtml(meta, 'e-icon', 'color:'+meta.color) +
       '<div class="e-main"><div class="e-title-line"><span class="e-title"'+colorAttr(meta.color)+'>'+esc(title)+'</span>' +
       (subParts.length ? '<span class="e-sub">'+esc(subParts.join(' · '))+'</span>' : '') + '</div>' + noteHtml + '</div>' +
     '</button>' +
@@ -3087,11 +3528,60 @@ function renderStats(){
   var avgNap = doneNap.reduce(function(a,b){return a+b;},0)/sleepDone;
   var avgNight = doneNight.reduce(function(a,b){return a+b;},0)/sleepDone;
 
+  /* THE ONE NUMBER EVERY PARENT OF A THREE-MONTH-OLD ASKS FOR: how long was
+     the longest unbroken stretch. It is a maximum, not an average, so
+     today's half-finished day doesn't distort it and is included. */
+  var sleepSinceMs = sleepDays[0].getTime();
+  var longestSleepMs = 0;
+  entries.forEach(function(e){
+    if (e.type !== 'sleep' || !e.end) return;
+    var ss = new Date(e.start).getTime(), se = new Date(e.end).getTime();
+    if (isNaN(ss) || isNaN(se) || se <= ss || se < sleepSinceMs) return;
+    if (se - ss > longestSleepMs) longestSleepMs = se - ss;
+  });
+
   var sleepNote = document.getElementById('stat-sleep-note');
   if (sleepNote) sleepNote.textContent = t('avgOverDaysTpl').replace('{n}', sleepDone);
   document.getElementById('stat-sleep-tiles').innerHTML =
     statTile(t('avgNap'), '<span style="font-size:17px">'+fmtDur(avgNap)+'</span>') +
-    statTile(t('avgNight'), '<span style="font-size:17px">'+fmtDur(avgNight)+'</span>');
+    statTile(t('avgNight'), '<span style="font-size:17px">'+fmtDur(avgNight)+'</span>') +
+    statTile(t('longestSleep'), '<span style="font-size:17px">'+fmtDur(longestSleepMs)+'</span>');
+
+  /* -------- today's pace: is he behind, or is it just early? --------
+     The daily average can only answer "did he eat enough" at bedtime. This
+     compares what he has drunk SO FAR today against what he had normally
+     drunk by this same hour on the last seven logged days. */
+  var paceEl = document.getElementById('feed-pace-lede');
+  if (paceEl){
+    var cutMin = now.getHours()*60 + now.getMinutes();
+    var soFar = {};
+    entries.forEach(function(e){
+      if (e.type !== 'feed' || !e.amount) return;
+      var d = new Date(e.start);
+      if (isNaN(d) || d.getHours()*60 + d.getMinutes() > cutMin) return;
+      var k = d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();
+      soFar[k] = (soFar[k] || 0) + e.amount;
+    });
+    var todayKey = now.getFullYear()+'-'+(now.getMonth()+1)+'-'+now.getDate();
+    var pastSum = 0, pastDays = 0;
+    for (var pd = 1; pd <= 7; pd++){
+      var dd = new Date(now.getFullYear(), now.getMonth(), now.getDate()-pd);
+      var pk = dd.getFullYear()+'-'+(dd.getMonth()+1)+'-'+dd.getDate();
+      /* a day nobody logged is not a day he drank nothing */
+      if (!agg[pk] || !agg[pk].feedCount) continue;
+      pastSum += (soFar[pk] || 0); pastDays++;
+    }
+    /* one or two days is not "평소" */
+    if (pastDays >= 3){
+      paceEl.hidden = false;
+      paceEl.innerHTML = t('feedPaceTpl')
+        .replace('{cur}', '<b>'+(soFar[todayKey] || 0)+t('ml')+'</b>')
+        .replace('{usual}', '<b>'+Math.round(pastSum/pastDays)+t('ml')+'</b>');
+    } else {
+      paceEl.hidden = true;
+      paceEl.innerHTML = '';
+    }
+  }
 
   /* -------- feed bar chart: thin labels + date-vs-weekday format for longer ranges -------- */
   var maxMl = Math.max(1, feedTotals.reduce(function(a,b){return Math.max(a,b);},0));
@@ -3113,7 +3603,94 @@ function renderStats(){
       '<div class="bar-lbl">'+esc(lbl)+'</div></div>';
   }).join('');
 
+  renderWeeklyFeed(entries, agg, now);
   renderPoopChart(entries);
+}
+
+/* ================================================================
+   WEEKLY FEED TREND — one bar per week of his life, each bar being
+   that week's average day. The daily chart says what happened; this
+   says which way it is going as he grows, which is the question a
+   feeding log is actually kept to answer.
+   ================================================================ */
+function renderWeeklyFeed(entries, agg, now){
+  var card = document.getElementById('weekly-feed-card');
+  var barsBox = document.getElementById('weekly-feed-bars');
+  var ledeEl = document.getElementById('weekly-feed-lede');
+  if (!card || !barsBox) return;
+  var DAY_MS = 86400000;
+  var todayMs = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+
+  /* Week 1 is the first seven days of his life — so the bars are labelled
+     the way everyone already talks about a baby's age, and a growth spurt
+     lands on the week people will compare notes about. */
+  var anchor = null;
+  var birthVal = (appState.profile || {}).birth;
+  if (birthVal){
+    var b = new Date(birthVal + 'T00:00:00');
+    if (!isNaN(b.getTime())) anchor = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
+  }
+  /* no birthday on file: count weeks from the first record instead */
+  if (anchor === null){
+    var firstMs = null;
+    entries.forEach(function(e){
+      var s = new Date(e.start).getTime();
+      if (!isNaN(s) && (firstMs === null || s < firstMs)) firstMs = s;
+    });
+    if (firstMs === null){ card.hidden = true; return; }
+    var f = new Date(firstMs);
+    anchor = new Date(f.getFullYear(), f.getMonth(), f.getDate()).getTime();
+  }
+
+  var buckets = {};
+  Object.keys(agg).forEach(function(k){
+    var a = agg[k];
+    if (!a || !a.feedCount) return;   // a day nobody logged is not a zero
+    var p = k.split('-');
+    var dMs = new Date(Number(p[0]), Number(p[1])-1, Number(p[2])).getTime();
+    if (isNaN(dMs) || dMs >= todayMs) return;   // today is still running
+    var w = Math.floor((dMs - anchor) / (7*DAY_MS));
+    if (w < 0) return;
+    if (!buckets[w]) buckets[w] = { ml:0, days:0 };
+    buckets[w].ml += a.feedMl;
+    buckets[w].days += 1;
+  });
+
+  var nums = Object.keys(buckets).map(Number).sort(function(a,b){ return a-b; });
+  if (!nums.length){ card.hidden = true; return; }
+  card.hidden = false;
+
+  var shown = nums.slice(-8).map(function(w){
+    return { week: w+1, avg: Math.round(buckets[w].ml / buckets[w].days), days: buckets[w].days };
+  });
+  var last = shown[shown.length-1];
+  var prev = shown.length > 1 ? shown[shown.length-2] : null;
+
+  if (ledeEl){
+    var curTxt = '<b>'+last.avg+t('ml')+'</b>';
+    /* "지난주보다" is only true if the bar before it really is the week
+       before it — a gap in the log must not be described as last week */
+    if (prev && prev.week === last.week - 1 && prev.avg !== last.avg){
+      var diff = last.avg - prev.avg;
+      ledeEl.innerHTML = t('weeklyLedeTpl')
+        .replace('{w}', last.week)
+        .replace('{cur}', curTxt)
+        .replace('{diff}', '<b>'+(diff > 0 ? '+' : '-')+Math.abs(diff)+t('ml')+'</b>');
+    } else {
+      ledeEl.innerHTML = t('weeklyLedeFirstTpl').replace('{w}', last.week).replace('{cur}', curTxt);
+    }
+  }
+
+  var maxAvg = Math.max.apply(null, shown.map(function(x){ return x.avg; })) || 1;
+  barsBox.innerHTML = shown.map(function(x, i){
+    var pct = Math.round((x.avg / maxAvg) * 100);
+    var isLast = (i === shown.length-1);
+    return '<div class="bar-col'+(isLast ? ' is-today' : '')+'">' +
+      '<div class="bar-val">'+x.avg+'</div>' +
+      '<div class="bar-track"><div class="bar" style="height:'+pct+'%" title="'+
+        esc(t('ageWeekTpl').replace('{n}', x.week)+' · '+x.avg+t('ml')+' × '+x.days+t('dayShort'))+'"></div></div>' +
+      '<div class="bar-lbl">'+esc(t('ageWeekTpl').replace('{n}', x.week))+'</div></div>';
+  }).join('');
 }
 
 /* ================================================================
@@ -3233,16 +3810,16 @@ function statTile(label, valHtml){
    too — for the flat stacked-bar-style marks. */
 function patternTint(color){ return 'color-mix(in srgb, '+color+' 46%, var(--surface-2))'; }
 
-/* diaper is the one type with a mixed rule: a plain wet change is common
-   enough that an icon on every one would be noise (same reasoning as
-   feed), but a dirty/both change is exactly the kind of thing worth
-   spotting at a glance, so only THOSE get the icon. Every other
-   non-feed/sleep type always gets its icon. */
-function markHasEmoji(e){
-  if (e.type === 'feed' || e.type === 'sleep') return false;
+/* Only a POO goes on the chart, not every nappy. A wet change happens all
+   day and barely gets logged; drawing them made a brown stripe across every
+   column that said nothing. The legend says 대변 for the same reason. */
+function patternShows(e){
   if (e.type === 'diaper') return e.diaper === 'dirty' || e.diaper === 'both';
   return true;
 }
+/* the shortest a band can be and still be seen — anything briefer is drawn
+   as a point instead */
+var PATTERN_MIN_MS = 60000;
 
 function renderPattern(){
   var colsBox = document.getElementById('pattern-cols');
@@ -3259,105 +3836,86 @@ function renderPattern(){
   var usedTypes = {};
   var anyMark = false;
   var colsHtml = '';
+  var pDays = state.patternDays || 7;
+  /* Every column gets a label at a week; a month of them would be 28 dates
+     drawn on top of each other. So: thin them out, and drop the weekday
+     first — which day of the week it was matters less the further back you
+     look, and the date is the part you navigate by. */
+  var labelEvery = pDays > 20 ? 4 : (pDays > 9 ? 2 : 1);
+  var showWeekday = pDays <= 14;
 
-  for (var i = 6; i >= 0; i--){
+  for (var i = pDays - 1; i >= 0; i--){
     var dStart = new Date(todayStart.getTime() - i*DAY_MS);
     var dStartMs = dStart.getTime(), dEndMs = dStartMs + DAY_MS;
     // collected with a priority rank, then painted lowest-priority-first so
     // that when two entries land at (nearly) the same time, the one
     // earlier in the default item order ends up on top
     var dayMarks = [];
-    var dayEmoji = [];   // drawn last, over every stripe
 
     entries.forEach(function(e){
       var meta = typeMeta(e.type);
-      if (!meta) return;
+      if (!meta || !patternShows(e)) return;
       var s = new Date(e.start).getTime();
       if (isNaN(s)) return;
       var tint = patternTint(meta.color);
       var rank = typeOrder.indexOf(e.type);
       if (rank < 0) rank = typeOrder.length;
-      if (e.type === 'sleep'){
-        var en = e.end ? new Date(e.end).getTime() : s;
-        if (en < s) en = s;
+
+      /* COLOUR ONLY, NO ICONS. Seven columns of emoji — a bear, a bath, a
+         bottle of drops on every single day — was a wall of pictures with
+         the actual shape of the day hidden behind it. What the chart is for
+         is the shape: when he slept, when he ate, when he played. That is a
+         length, and a length is a coloured band. The legend is where the
+         colours get their names. */
+      var en = e.end ? new Date(e.end).getTime() : s;
+      if (en - s >= PATTERN_MIN_MS){
         var os = Math.max(s, dStartMs), oe = Math.min(en, dEndMs);
         if (oe <= os) return;
         var topPct = (os - dStartMs)/DAY_MS*100;
-        var hPct = Math.max((oe-os)/DAY_MS*100, 0.6);
+        var hPct = Math.max((oe-os)/DAY_MS*100, 0.5);
         usedTypes[e.type] = meta; anyMark = true;
-        dayMarks.push({ rank: rank, html: '<span class="pattern-mark-band" style="top:'+topPct.toFixed(2)+'%;height:'+hPct.toFixed(2)+'%;background:'+tint+'" title="'+esc(meta.label)+'"></span>' });
+        dayMarks.push({ rank: rank, html: '<span class="pattern-mark-band" style="top:'+topPct.toFixed(2)+'%;height:'+hPct.toFixed(2)+'%;background:'+tint+'" title="'+esc(meta.label)+' '+esc(fmtTime(e.start))+'"></span>' });
       } else {
+        /* something that happened AT a moment rather than over one: a thin
+           line, so a 30-second event never looks like an hour of sleep */
         if (s < dStartMs || s >= dEndMs) return;
         var pct = (s - dStartMs)/DAY_MS*100;
         usedTypes[e.type] = meta; anyMark = true;
-        var titleAttr = ' title="'+esc(meta.label)+' '+esc(fmtTime(e.start))+'"';
-        dayMarks.push({ rank: rank, html: '<span class="pattern-mark-band is-point" style="top:'+pct.toFixed(2)+'%;background:'+tint+'"'+titleAttr+'></span>' });
-        /* the icon is NOT stored with its stripe. An icon is drawn centred on
-           its own stripe, so half of it sticks up into whatever is above — and
-           a sleep block painted after it covered that half, leaving a row of
-           icons with their heads sliced off. Every icon is collected here and
-           laid over the finished chart instead. */
-        if (markHasEmoji(e)){
-          /* an icon straddles its own position, so one at 00:05 or 23:55 would
-             hang over the end of the column and be cut off by the chart's
-             edge — keep it just inside */
-          var ePct = Math.min(98.4, Math.max(1.6, pct));
-          dayEmoji.push({ rank: rank, pct: ePct, emoji: meta.emoji, title: titleAttr });
-        }
+        dayMarks.push({ rank: rank, html: '<span class="pattern-mark-band is-point" style="top:'+pct.toFixed(2)+'%;background:'+tint+'" title="'+esc(meta.label)+' '+esc(fmtTime(e.start))+'"></span>' });
       }
     });
 
-    dayMarks.sort(function(a, b){ return b.rank - a.rank; }); // lowest priority (highest rank number) painted first
-
-    /* A whole day is only ~456px tall, so a minute is a third of a pixel:
-       things logged a few minutes apart (tummy time, massage and a bath all
-       around 16:30) land on top of each other and the last one drawn hides
-       the rest. Icons close in time are spread sideways within the column so
-       each one stays readable. */
-    dayEmoji.sort(function(a, b){ return a.pct - b.pct; });
-    var CLUSTER_PCT = 3.4;   // roughly one icon height on the day's scale
-    var STEP_PX = 15;
-    var clusters = [];
-    dayEmoji.forEach(function(m){
-      var last = clusters[clusters.length - 1];
-      if (last && m.pct - last[0].pct < CLUSTER_PCT) last.push(m);
-      else clusters.push([m]);
-    });
-    var emojiHtml = [];
-    clusters.forEach(function(group){
-      group.forEach(function(m, i){
-        var dx = (i - (group.length - 1) / 2) * STEP_PX;
-        var left = dx ? 'left:calc(50% + '+dx.toFixed(1)+'px);' : '';
-        emojiHtml.push('<span class="pattern-mark-emoji" style="'+left+'top:'+m.pct.toFixed(2)+'%"'+m.title+'>'+m.emoji+'</span>');
-      });
-    });
+  dayMarks.sort(function(a, b){ return b.rank - a.rank; }); // lowest priority (highest rank number) painted first
 
     var marks = ['<span class="pattern-grid-line-h" style="top:25%"></span>',
                  '<span class="pattern-grid-line-h" style="top:50%"></span>',
                  '<span class="pattern-grid-line-h" style="top:75%"></span>']
-      .concat(dayMarks.map(function(m){ return m.html; }))
-      .concat(emojiHtml);
+      .concat(dayMarks.map(function(m){ return m.html; }));
+
+    /* counted back from today, so today always carries a label and the rest
+       step away from it evenly */
+    var dateTxt = (i % labelEvery === 0) ? (dStart.getMonth()+1)+'/'+dStart.getDate() : '';
+    var labelHtml = (showWeekday ? esc(t('weekday_short')[dStart.getDay()]) : '') +
+      '<span class="pattern-col-date">'+dateTxt+'</span>';
 
     colsHtml += '<div class="pattern-col'+(i===0 ? ' today' : '')+'">' +
       '<div class="pattern-col-track">'+marks.join('')+'</div>' +
-      '<div class="pattern-col-label">'+esc(t('weekday_short')[dStart.getDay()])+
-        '<span class="pattern-col-date">'+(dStart.getMonth()+1)+'/'+dStart.getDate()+'</span></div>' +
+      '<div class="pattern-col-label">'+labelHtml+'</div>' +
     '</div>';
   }
   colsBox.innerHTML = colsHtml;
   /* nothing to scroll any more — the whole week is on screen by construction */
 
   var typeIds = Object.keys(usedTypes).sort(function(a,b){ return typeOrder.indexOf(a)-typeOrder.indexOf(b); });
+  /* one shape for every entry in the key, because the chart now has one
+     shape for everything: a colour and its name. 기저귀 is called 대변 here —
+     that is the only kind the chart draws. */
   legendBox.innerHTML = typeIds.map(function(id){
     var m = usedTypes[id];
-    /* legend mirrors the chart's own split: feed/sleep are color-only there,
-       so they get a plain swatch here too; every other type shows its icon
-       ALONE (no color swatch behind it) so color and icon never sit on top
-       of one another in the key. */
-    if (id === 'feed' || id === 'sleep'){
-      return '<span class="pattern-legend-item"><span class="pattern-legend-swatch" style="background:'+patternTint(m.color)+'"></span>'+esc(m.label)+'</span>';
-    }
-    return '<span class="pattern-legend-item"><span class="pattern-legend-emoji-only">'+m.emoji+'</span>'+esc(m.label)+'</span>';
+    var label = id === 'diaper' ? t('dirty') : m.label;
+    return '<span class="pattern-legend-item">' +
+      '<span class="pattern-legend-swatch" style="background:'+patternTint(m.color)+'"></span>' +
+      esc(label) + '</span>';
   }).join('');
 
   if (cardEl) cardEl.hidden = !anyMark;
@@ -3377,7 +3935,7 @@ function renderSettings(){
   } else {
     customBox.innerHTML = types.map(function(c){
       return '<div class="row-item"><div style="display:flex;align-items:center;gap:10px;">' +
-        '<span style="width:30px;height:30px;border-radius:10px;background:color-mix(in srgb, '+esc(c.color)+' 18%, var(--surface-2));display:flex;align-items:center;justify-content:center;font-size:14px;">'+c.emoji+'</span>' +
+        typeIconHtml(c, 'ty-chip', 'background:color-mix(in srgb, '+esc(c.color)+' 16%, var(--surface-2));color:'+esc(c.color)) +
         '<span class="r-label">'+esc(c.name)+'</span></div>' +
         '<button type="button" class="text-btn danger-btn" data-del-type="'+esc(c.id)+'">'+esc(t('delete'))+'</button>' +
       '</div>';
@@ -3467,7 +4025,7 @@ function renderTypeOrderList(){
   box.innerHTML = list.map(function(x, i){
     return '<div class="row-item">' +
       '<div style="display:flex;align-items:center;gap:10px;min-width:0;">' +
-        '<span style="width:30px;height:30px;border-radius:10px;background:color-mix(in srgb, '+x.color+' 18%, var(--surface-2));display:flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 auto;">'+x.emoji+'</span>' +
+        typeIconHtml(x, 'ty-chip', 'background:color-mix(in srgb, '+x.color+' 16%, var(--surface-2));color:'+x.color) +
         '<span class="r-label" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(x.label)+'</span>' +
       '</div>' +
       '<div style="display:flex;gap:6px;flex:0 0 auto;">' +
@@ -3597,12 +4155,13 @@ function renderTrash(){
   }
   box.innerHTML = items.map(function(x){
     var meta = typeMeta(x.type);
-    var label = meta ? (meta.emoji + ' ' + meta.label) : x.type;
+    var label = meta ? meta.label : x.type;
+    var labelIcon = meta ? typeIconHtml(meta, 'ty-inline', 'color:'+meta.color) : '';
     var sub = [fmtDateTime(x.start)];
     if (x.author) sub.push(localizeAuthorName(x.author));
     sub.push(t('deletedAtTpl').replace('{when}', fmtDateTime(x.deletedAt)));
     return '<div class="trash-row">' +
-      '<div class="tr-body"><div class="tr-title">'+esc(label)+'</div>' +
+      '<div class="tr-body"><div class="tr-title">'+labelIcon+esc(label)+'</div>' +
       '<div class="tr-sub">'+esc(sub.join(' · '))+'</div></div>' +
       '<button type="button" class="text-btn" data-restore="'+esc(x.id)+'">'+esc(t('restoreBtn'))+'</button>' +
     '</div>';
@@ -3650,13 +4209,16 @@ function openEntryDetail(entryId){
   state.entryId = entryId;
   var e = {
     type: raw.type, start: raw.start, end: raw.end || '',
-    amount: raw.amount != null ? raw.amount : '0', diaper: raw.diaper || 'wet',
+    /* an empty string, not '0' — "nobody has said how much yet" and "zero"
+       are different answers, and only the first one gets a default */
+    amount: raw.amount != null ? raw.amount : '', diaper: raw.diaper || 'wet',
     temp: raw.temp != null ? raw.temp : '', note: raw.note || '',
     author: raw.author || state.author, sleepKind: raw.sleepKind || ''
   };
   var meta = typeMeta(e.type);
   if (!meta) return;
-  document.getElementById('fp-entry-title').textContent = meta.emoji + ' ' + meta.label;
+  document.getElementById('fp-entry-title').innerHTML =
+    typeIconHtml(meta, 'ty-inline', 'color:'+meta.color) + esc(meta.label);
   /* Somebody else's record opens to be READ, not edited: every control is
      disabled and the save and delete buttons are gone. This is what stops a
      mis-tap on a busy morning from rewriting a feed nobody else saw. */
@@ -3967,8 +4529,13 @@ function buildEntryFields(meta, e){
     timeScrubHtml('f-end', toTimeValue(e.end||e.start), false) + crossNote + '</div>';
 
   if (meta.hasAmount){
+    /* a feed with no amount yet opens the scale at the usual bottle rather
+       than at zero — every entry started with a scroll up from nothing.
+       A record genuinely saved as 0 keeps its 0. */
+    var amt = (e.amount === null || e.amount === undefined || e.amount === '')
+      ? FEED_DEFAULT_ML : Number(e.amount);
     html += '<div class="field"><label>'+esc(t('amount'))+'</label>' +
-      rulerScrubHtml('f-amount', Number(e.amount) || 0, 0, 500, 5, t('ml')) + '</div>';
+      rulerScrubHtml('f-amount', amt, 0, 500, 5, t('ml')) + '</div>';
   }
   if (meta.hasDiaperKind){
     html += '<div class="field"><label>'+esc(t('diaperKind'))+'</label><div class="seg" id="f-diaper">' +
@@ -4216,7 +4783,8 @@ function readMemos(){
   return (appState.memos || []).map(function(m){
     return {
       id: m.id, text: m.text || '', lang: m.lang || 'other',
-      translated: m.translation || '', author: m.author || '', time: m.ts || ''
+      translated: m.translation || '', author: m.author || '', time: m.ts || '',
+      photos: Array.isArray(m.photos) ? m.photos : []
     };
   }).sort(function(a,b){ return new Date(b.time) - new Date(a.time); });
 }
@@ -4267,12 +4835,30 @@ function renderMemoList(){
         '<div class="m-orig">'+esc(m.text)+'</div>' +
         (m.translated ? '<div class="m-trans">'+esc(m.translated)+'</div>' : '') +
       '</div>' +
+      (m.photos.length ? '<div class="m-photos'+(m.photos.length === 1 ? ' one' : '')+'">' +
+        m.photos.map(function(ph, i){
+          /* thumbnails, not the full pictures — ten memos should not pull ten
+             photographs to draw ten small squares. The box is reserved at the
+             photo's own shape so the list does not jump as they arrive. */
+          var ratio = (ph.w && ph.h) ? (ph.h / ph.w) : 1;
+          return '<button type="button" class="m-photo" data-photo-memo="'+esc(m.id)+'" data-photo-i="'+i+'"' +
+            ' style="--ar:'+(Math.round(Math.min(1.6, Math.max(0.6, ratio))*1000)/1000)+'">' +
+            '<img src="'+esc(displayPhotoUrl(ph.id, true))+'" alt="" loading="lazy" />' +
+          '</button>';
+        }).join('') + '</div>' : '') +
       '<div class="m-meta">' +
         '<span>'+esc(fmtDateTime(m.time))+'</span>' +
         (canTouch(m.author) ? '<button type="button" class="text-btn danger-btn" data-del-memo="'+esc(m.id)+'" style="padding:0;">'+esc(t('delete'))+'</button>' : '') +
       '</div>' +
     '</div>';
   }).join('');
+  $$('[data-photo-memo]', box).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var m = readMemos().filter(function(x){ return x.id === btn.dataset.photoMemo; })[0];
+      if (!m || !m.photos.length) return;
+      openPhotoViewer(m.photos.map(function(p){ return p.id; }), Number(btn.dataset.photoI) || 0);
+    });
+  });
   $$('[data-del-memo]', box).forEach(function(btn){
     btn.addEventListener('click', function(){
       apiMutate('deleteMemo', { id: btn.dataset.delMemo }).then(function(){
@@ -4329,6 +4915,196 @@ function updateMemoComposeTranslateField(){
     });
   }, 500);
 }
+/* ================================================================
+   PHOTOS ON A MEMO
+
+   The picture that comes off a phone camera is four megabytes and 4032
+   pixels wide. Nobody needs that to see what the rash looks like, and on a
+   Vietnamese mobile connection nobody would wait for it either — so the
+   phone shrinks it before it ever leaves: a display copy at 1600px and a
+   thumbnail at 400px, both JPEG. Four megabytes becomes about two hundred
+   kilobytes, and the memo list draws thumbnails rather than pulling ten
+   full-size pictures to show ten small squares.
+
+   The id is made HERE, not by the server, so the memo that references the
+   picture can be posted without waiting for the upload to come back.
+   ================================================================ */
+var PHOTO_MAX = 4;                 // per memo
+var PHOTO_LONG_EDGE = 1600;
+var PHOTO_THUMB_EDGE = 400;
+var PHOTO_QUALITY = 0.82;
+var PHOTO_THUMB_QUALITY = 0.7;
+
+function newPhotoId(){
+  var a = new Uint8Array(14);
+  (window.crypto || {}).getRandomValues ? window.crypto.getRandomValues(a)
+    : a.forEach(function(_, i){ a[i] = Math.floor(Math.random()*256); });
+  var hex = '';
+  for (var i = 0; i < a.length; i++) hex += (a[i] < 16 ? '0' : '') + a[i].toString(16);
+  return 'p_' + hex;
+}
+
+/* An iPhone photo is usually stored sideways with an EXIF tag saying which
+   way up it really is. Drawing it to a canvas without honouring that tag is
+   how photo uploads come out rotated, so ask for the oriented bitmap and
+   only fall back to an <img> where that is not available. */
+function decodeImage(file){
+  if (window.createImageBitmap){
+    try {
+      return createImageBitmap(file, { imageOrientation: 'from-image' })
+        .catch(function(){ return decodeViaImg(file); });
+    } catch (e) { /* older Safari throws on the options argument */ }
+  }
+  return decodeViaImg(file);
+}
+function decodeViaImg(file){
+  return new Promise(function(resolve, reject){
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function(){ URL.revokeObjectURL(url); resolve(img); };
+    img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error('decode failed')); };
+    img.src = url;
+  });
+}
+function drawScaled(src, longEdge, quality){
+  var w = src.width || src.naturalWidth, h = src.height || src.naturalHeight;
+  var scale = Math.min(1, longEdge / Math.max(w, h));
+  var cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+  var c = document.createElement('canvas');
+  c.width = cw; c.height = ch;
+  var ctx = c.getContext('2d');
+  ctx.drawImage(src, 0, 0, cw, ch);
+  return new Promise(function(resolve){
+    /* toBlob is asynchronous and does not block the tap that started it */
+    c.toBlob(function(blob){ resolve({ blob: blob, w: cw, h: ch }); }, 'image/jpeg', quality);
+  });
+}
+function compressPhoto(file){
+  return decodeImage(file).then(function(src){
+    return Promise.all([
+      drawScaled(src, PHOTO_LONG_EDGE, PHOTO_QUALITY),
+      drawScaled(src, PHOTO_THUMB_EDGE, PHOTO_THUMB_QUALITY),
+    ]).then(function(pair){
+      if (src.close) src.close();     // release the decoded bitmap
+      var full = pair[0], thumb = pair[1];
+      return { id: newPhotoId(), mime: 'image/jpeg', w: full.w, h: full.h,
+               blob: full.blob, thumbBlob: thumb.blob };
+    });
+  });
+}
+function blobToBase64(blob){
+  return new Promise(function(resolve, reject){
+    var r = new FileReader();
+    r.onload = function(){ resolve(String(r.result).split(',')[1] || ''); };
+    r.onerror = function(){ reject(new Error('read failed')); };
+    r.readAsDataURL(blob);
+  });
+}
+function uploadPhoto(p){
+  return Promise.all([blobToBase64(p.blob), blobToBase64(p.thumbBlob)])
+    .then(function(pair){
+      return fetch('/api/photo', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: p.id, mime: p.mime, w: p.w, h: p.h,
+                               data: pair[0], thumb: pair[1] }),
+      });
+    })
+    .then(function(res){
+      if (res.ok) return res.json();
+      return res.json().catch(function(){ return {}; }).then(function(j){
+        var e = new Error(j.error || 'upload failed');
+        e.status = res.status;
+        throw e;
+      });
+    });
+}
+function photoUrl(id, thumb){ return '/api/photo/' + encodeURIComponent(id) + (thumb ? '?t=1' : ''); }
+
+/* A picture just taken is on this phone already. Showing it from the blob
+   while it uploads is the difference between a memo that appears at once and
+   one that appears when the network says so. */
+var localPhotoUrls = {};
+function localPhotoUrl(id){ return localPhotoUrls[id] || null; }
+function rememberLocalPhoto(id, blob){
+  if (localPhotoUrls[id]) return;
+  localPhotoUrls[id] = URL.createObjectURL(blob);
+}
+function displayPhotoUrl(id, thumb){ return localPhotoUrl(id) || photoUrl(id, thumb); }
+
+/* ---- the strip of pending pictures in the compose sheet ---- */
+var composePhotos = [];
+function renderComposePhotos(){
+  var strip = document.getElementById('memo-photo-strip');
+  if (!strip) return;
+  strip.hidden = !composePhotos.length;
+  strip.innerHTML = composePhotos.map(function(p){
+    return '<div class="mp-chip"><img src="'+esc(localPhotoUrl(p.id) || '')+'" alt="" />' +
+      '<button type="button" class="mp-x" data-drop-photo="'+esc(p.id)+'" ' +
+      'aria-label="'+esc(t('photoRemove'))+'">✕</button></div>';
+  }).join('');
+  $$('[data-drop-photo]', strip).forEach(function(b){
+    b.addEventListener('click', function(){
+      var id = b.dataset.dropPhoto;
+      composePhotos = composePhotos.filter(function(x){ return x.id !== id; });
+      if (localPhotoUrls[id]){ URL.revokeObjectURL(localPhotoUrls[id]); delete localPhotoUrls[id]; }
+      renderComposePhotos();
+    });
+  });
+  var btn = document.getElementById('memo-photo-btn');
+  if (btn) btn.disabled = composePhotos.length >= PHOTO_MAX;
+}
+function addComposePhotos(files){
+  var room = PHOTO_MAX - composePhotos.length;
+  if (room <= 0){ toast(t('photoMaxTpl').replace('{n}', PHOTO_MAX)); return; }
+  var take = Array.prototype.slice.call(files, 0, room);
+  if (files.length > room) toast(t('photoMaxTpl').replace('{n}', PHOTO_MAX));
+  take.forEach(function(f){
+    compressPhoto(f).then(function(p){
+      rememberLocalPhoto(p.id, p.blob);
+      composePhotos.push(p);
+      renderComposePhotos();
+    }).catch(function(){ toast(t('photoTooBig')); });
+  });
+}
+function clearComposePhotos(){
+  composePhotos.forEach(function(p){
+    if (localPhotoUrls[p.id]){ URL.revokeObjectURL(localPhotoUrls[p.id]); delete localPhotoUrls[p.id]; }
+  });
+  composePhotos = [];
+  renderComposePhotos();
+}
+
+/* ---- the viewer ---- */
+var viewerPhotos = [], viewerIndex = 0;
+function openPhotoViewer(ids, start){
+  viewerPhotos = ids.slice();
+  viewerIndex = Math.max(0, Math.min(start || 0, viewerPhotos.length - 1));
+  renderPhotoViewer();
+  openFullpage('fp-photo');
+}
+function renderPhotoViewer(){
+  var img = document.getElementById('fp-photo-img');
+  var count = document.getElementById('fp-photo-count');
+  if (!img) return;
+  var id = viewerPhotos[viewerIndex];
+  img.src = displayPhotoUrl(id, false);
+  if (count){
+    count.textContent = viewerPhotos.length > 1
+      ? t('photoOf').replace('{i}', viewerIndex + 1).replace('{n}', viewerPhotos.length) : '';
+  }
+  var back = document.getElementById('fp-photo-back');
+  if (back) back.setAttribute('aria-label', t('photoClose'));
+  var prev = document.getElementById('fp-photo-prev');
+  var next = document.getElementById('fp-photo-next');
+  if (prev) prev.hidden = viewerPhotos.length < 2;
+  if (next) next.hidden = viewerPhotos.length < 2;
+}
+function stepPhotoViewer(d){
+  if (viewerPhotos.length < 2) return;
+  viewerIndex = (viewerIndex + d + viewerPhotos.length) % viewerPhotos.length;
+  renderPhotoViewer();
+}
+
 function submitMemo(){
   var textEl = document.getElementById('memo-compose-text');
   var text = textEl.value.trim();
@@ -4342,15 +5118,26 @@ function submitMemo(){
   var cached = (translatable && memoTranslateCache.text === text && memoTranslateCache.lang === lang)
     ? (memoTranslateCache.translation || '') : '';
 
+  /* THE PICTURES DO NOT HOLD UP THE MEMO. The text is posted immediately —
+     it is what the other phone needs to read — and the photographs, which
+     have to be uploaded, are attached to it a moment later. On this phone
+     they are visible the whole time, drawn from the blobs it already has. */
+  var pending = composePhotos.slice();
+  var photoRefs = pending.map(function(p){ return { id: p.id, w: p.w, h: p.h }; });
+
   var tempId = 'tmp_' + Date.now();
   appState.memos = [{ id: tempId, text: text, lang: lang, translation: cached,
-                      author: state.author, ts: new Date().toISOString() }]
+                      author: state.author, ts: new Date().toISOString(),
+                      photos: photoRefs.length ? photoRefs : undefined }]
                    .concat(appState.memos || []);
 
   textEl.value = '';
   document.getElementById('memo-compose-translate-preview').textContent = '';
   document.getElementById('memo-compose-translate-wrap').hidden = true;
   memoTranslateCache = { text: '', lang: '', translation: '' };
+  /* the blob urls stay alive — the strip is cleared, not the pictures */
+  composePhotos = [];
+  renderComposePhotos();
   closeSheet('memo-compose-sheet');
   renderMemoList();
   updateMemoPreview();
@@ -4361,12 +5148,38 @@ function submitMemo(){
       renderMemoList(); updateMemoPreview();
       var newId = res && res.memo && res.memo.id;
       if (translatable && !cached && newId) fillInMemoTranslation(newId, text, lang);
+      if (pending.length && newId) attachMemoPhotos(newId, pending);
     })
     .catch(function(err){
       appState.memos = (appState.memos || []).filter(function(m){ return m.id !== tempId; });
       renderMemoList(); updateMemoPreview();
       toast(err.message || 'error');
     });
+}
+
+/* Upload each picture, then tell the memo which ones made it. A photo that
+   fails is dropped from the memo rather than left as a broken square, and
+   the memo itself — the words somebody wrote — is never lost to it. */
+function attachMemoPhotos(memoId, pending){
+  toast(t('photoUploading'));
+  var landed = [];
+  var failed = 0, full = false;
+  return pending.reduce(function(chain, p){
+    return chain.then(function(){
+      return uploadPhoto(p)
+        .then(function(){ landed.push({ id: p.id, w: p.w, h: p.h }); })
+        .catch(function(err){ failed++; if (err && err.status === 507) full = true; });
+    });
+  }, Promise.resolve()).then(function(){
+    var m = (appState.memos || []).filter(function(x){ return x.id === memoId; })[0];
+    if (m){
+      if (landed.length) m.photos = landed; else delete m.photos;
+      renderMemoList();
+    }
+    if (failed) toast(full ? t('photoStorageFull') : t('photoFailed'));
+    if (!landed.length) return;
+    return apiMutate('updateMemo', { id: memoId, photos: landed });
+  }).catch(function(){ toast(t('photoFailed')); });
 }
 
 /* translate a memo after it is already posted, and store the result so every
@@ -4634,6 +5447,15 @@ function wireEvents(){
     });
   });
 
+  // pattern: how far back the chart looks (7/14/28 days)
+  $$('#pattern-range button').forEach(function(b){
+    b.addEventListener('click', function(){
+      state.patternDays = Number(b.dataset.days);
+      $$('#pattern-range button').forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); });
+      renderPattern();
+    });
+  });
+
   // memo tab
   document.getElementById('memo-open-btn').addEventListener('click', function(){ switchTab('memo'); });
   document.getElementById('memo-fab').addEventListener('click', function(){
@@ -4641,8 +5463,22 @@ function wireEvents(){
     document.getElementById('memo-compose-translate-preview').textContent = '';
     document.getElementById('memo-compose-translate-wrap').hidden = true;
     memoTranslateCache = { text: '', lang: '', translation: '' };
+    clearComposePhotos();
     openSheet('memo-compose-sheet');
   });
+
+  // memo photos
+  var photoInput = document.getElementById('memo-photo-input');
+  document.getElementById('memo-photo-btn').addEventListener('click', function(){ photoInput.click(); });
+  photoInput.addEventListener('change', function(){
+    if (photoInput.files && photoInput.files.length) addComposePhotos(photoInput.files);
+    /* cleared so that picking the SAME picture again still fires a change */
+    photoInput.value = '';
+  });
+  document.getElementById('fp-photo-back').addEventListener('click', function(){ closeFullpage('fp-photo'); });
+  document.getElementById('fp-photo-prev').addEventListener('click', function(){ stepPhotoViewer(-1); });
+  document.getElementById('fp-photo-next').addEventListener('click', function(){ stepPhotoViewer(1); });
+
   document.getElementById('memo-compose-sheet-close').addEventListener('click', function(){ closeSheet('memo-compose-sheet'); });
   document.getElementById('scrim4').addEventListener('click', function(){ closeSheet('memo-compose-sheet'); });
   document.getElementById('memo-compose-text').addEventListener('input', updateMemoComposeTranslateField);
