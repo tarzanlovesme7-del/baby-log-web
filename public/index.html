@@ -351,27 +351,51 @@
     background:var(--surface); margin:16px -16px 0; flex:1;
     padding:22px 18px calc(96px + env(safe-area-inset-bottom)); min-height:38vh;
   }
-  /* full-bleed divider: a pseudo-element ignores the section's own side padding
-     (unlike a plain border-top, which would stop short at the day-group's edge)
-     so the line runs the full width of the white sheet, same as the memo list's
-     row dividers. */
-  .day-group + .day-group{ position:relative; margin-top:20px; padding-top:20px; }
-  .day-group + .day-group::before{ content:''; position:absolute; top:0; left:-18px; right:-18px; height:1px; background:var(--border); }
+  /* There used to be a full-bleed rule between one day and the next, from
+     back when the date was just a line of text. The date is a coloured band
+     now, so the rule had nothing left to do — and sitting 20px above the
+     band, with 20px of white under the previous day's last record, it read
+     as a stray line stuck to the wrong day. The band separates the days by
+     itself; it just needed an edge along its top as well as its bottom. */
+  .day-group + .day-group{ margin-top:14px; }
   /* The date band is a band now: its own background, edge to edge, and it
      sticks under the app header while that day's records scroll past, so you
      always know which day you are looking at. --header-h is measured at
      runtime because the header's height moves with the safe-area inset. */
+  /* ALWAYS TWO LINES. On one line the totals wrapped or didn't depending on
+     how much Zio had eaten and how long the words were in that language, so
+     the band — which is stuck to the top of the screen while you scroll —
+     changed height as you passed from one day to the next. Two lines by
+     construction: date and the day's milk above, the two sleep totals below,
+     each cell on its own fixed line so nothing can ever reflow. */
   .day-head{
     position:sticky; top:var(--header-h, 64px); z-index:10;
-    display:flex; align-items:baseline; justify-content:space-between; gap:8px;
+    display:grid; grid-template-columns:auto 1fr; row-gap:2px; column-gap:10px;
+    /* the numbers all stack against the right edge, in one column of their
+       own — reading down "350ml / 2시간 58분 / 7시간 1분" is the point, and
+       that only works if they start from the same side */
     /* full-bleed background, but the text inside lines up with the rows'
        own 20px text column rather than sitting 2px to its left */
-    margin:0 -18px; padding:9px 20px;
-    background:var(--surface-2); box-shadow:inset 0 -1px 0 var(--border);
+    margin:0 -18px; padding:8px 20px;
+    background:var(--surface-2);
+    box-shadow:inset 0 1px 0 var(--border), inset 0 -1px 0 var(--border);
   }
-  .day-head .d-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--fg); letter-spacing:.2px; flex:0 0 auto; }
-  .day-totals{ display:flex; gap:11px; font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; flex-wrap:wrap; justify-content:flex-end; }
-  .day-totals b{ color:var(--fg); font-weight:var(--fw-strong); }
+  .day-head > *{
+    min-width:0; height:19px; line-height:19px;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .day-head .d-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--fg); letter-spacing:.2px; }
+  .day-head .d-total{
+    font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums;
+  }
+  .day-head .d-total.right{ text-align:right; }
+  /* the two sleep totals share the second line, both pushed right */
+  .day-head .d-sleeps{
+    grid-column:1 / -1; display:flex; justify-content:flex-end; gap:12px;
+    min-width:0; height:19px; line-height:19px;
+  }
+  .day-head .d-sleeps .d-total{ flex:0 1 auto; }
+  .day-head .d-total b{ color:var(--fg); font-weight:var(--fw-strong); }
   /* swipe-to-delete: .entry-row translates over a red delete layer sitting behind it.
      Square, edge-to-edge: rounding it made the red read as a floating pill with a
      crescent of page showing around it, which fought the flat full-bleed language
@@ -396,8 +420,12 @@
      the part actually showing, and moving the label left hid it under the row. */
   .entry-swipe.will-delete .entry-delete-bg{ filter:brightness(.82); }
   .entry-delete-bg span{ color:#fff; font-size:var(--fs-label); font-weight:var(--fw-strong); }
+  /* Rows are centred, not top-aligned. Most of the nanny's records carry BOTH
+     a start and an end, so the time column runs to three lines while the name
+     beside it is one — top-aligning left the name stranded at the top with a
+     ragged gap under it, and the gap was a different size on every row. */
   .entry-row{
-    position:relative; display:flex; align-items:flex-start; gap:10px; padding:13px 20px; border:0;
+    position:relative; display:flex; align-items:center; gap:10px; padding:13px 20px; border:0;
     background:var(--surface); width:100%; text-align:left; touch-action:pan-y;
   }
   .entry-row:active{ background:var(--surface-2); }
@@ -419,7 +447,7 @@
      set a step larger than the rest of the app rather than at the shared
      caption/body sizes. The time column widens to match — at 13px the longest
      string ("오후 08:37") no longer fits 66px and would wrap mid-time. */
-  .e-time{ flex:0 0 84px; width:84px; padding-top:2px; display:flex; flex-direction:column; font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; }
+  .e-time{ flex:0 0 84px; width:84px; display:flex; flex-direction:column; font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; }
   .e-time-main, .e-time-end{ white-space:nowrap; }
   /* "다음날 오전 06:00" is wider than the time column; it wraps onto its own
      second line rather than widening every row in the list */
@@ -430,11 +458,14 @@
   .entry-row.is-cont .e-icon{ opacity:.72; }
   .e-author{ display:block; font-size:var(--fs-micro); color:var(--muted-2); margin-top:2px; }
   /* plain icon glyph, no color-chip background — "아이콘 + 텍스트만" */
-  .e-icon{ flex:0 0 auto; padding-top:1px; font-size:18px; line-height:1.3; }
+  .e-icon{ flex:0 0 auto; font-size:20px; line-height:1.3; }
   .e-main{ flex:1; min-width:0; }
   .e-title-line{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:6px; row-gap:0; }
-  .e-title{ font-size:var(--fs-body); font-weight:var(--fw-strong); }
-  .e-sub{ font-size:var(--fs-caption); color:var(--muted); font-weight:var(--fw-body); }
+  /* the name of the thing is what the eye lands on first, so it is the
+     largest text in the row — there was room going spare next to a
+     three-line time column */
+  .e-title{ font-size:var(--fs-title); font-weight:var(--fw-strong); }
+  .e-sub{ font-size:var(--fs-label); color:var(--muted); font-weight:var(--fw-body); }
   /* per-entry note — same detect+mock-translate treatment as the memo tab */
   .e-note{ font-size:var(--fs-caption); color:var(--fg); margin-top:3px; white-space:pre-wrap; word-break:break-word; }
   .e-note-trans{ font-size:var(--fs-caption); color:var(--primary); margin-top:2px; white-space:pre-wrap; word-break:break-word; }
@@ -1403,6 +1434,7 @@ ko: {
   t_tummy:"터미타임", t_nose:"콧물제거", t_nails:"손톱정리", t_temp:"체온", t_massage:"마사지", t_custom:"기타",
   addNew:"항목 추가",
   since_feed:"마지막 수유", since_diaper:"마지막 기저귀", since_sleep:"마지막 잠",
+  since_poop:"마지막 똥", prevPoopTpl:"그 전 {t}",
   nextFeedLabel:"다음 추천 수유", nextFeedValueTpl:"{time} · {remain} 후", nextFeedDueValueTpl:"시간이 지났어요 · {time}",
   tabPattern:"패턴", patternTitle:"주간 패턴", patternCaption:"최근 7일, 시간대별 기록", patternEmpty:"최근 7일간 기록이 없어요",
   noRecordYet:"기록 없음", justNow:"방금", agoSuffix:"전", hrShort:"시간", minShort:"분",
@@ -1469,6 +1501,7 @@ vi: {
   t_tummy:"Nằm sấp", t_nose:"Vệ sinh mũi", t_nails:"Cắt móng", t_temp:"Thân nhiệt", t_massage:"Mát-xa", t_custom:"Khác",
   addNew:"Thêm mục",
   since_feed:"Lần bú gần nhất", since_diaper:"Lần thay tã gần nhất", since_sleep:"Giấc ngủ gần nhất",
+  since_poop:"Lần ị gần nhất", prevPoopTpl:"trước đó {t}",
   nextFeedLabel:"Dự kiến bú tiếp theo", nextFeedValueTpl:"{time} · còn {remain}", nextFeedDueValueTpl:"Đã quá giờ · {time}",
   tabPattern:"Mẫu hình", patternTitle:"Mẫu hình tuần", patternCaption:"7 ngày qua, theo khung giờ trong ngày", patternEmpty:"Chưa có nhật ký trong 7 ngày qua",
   noRecordYet:"Chưa có dữ liệu", justNow:"Vừa xong", agoSuffix:"", hrShort:" giờ", minShort:" phút",
@@ -1901,7 +1934,7 @@ function fmtDur(ms){
   if (ms == null || ms < 0) ms = 0;
   var totalMin = Math.round(ms/60000);
   var h = Math.floor(totalMin/60), m = totalMin%60;
-  if (h > 0) return h + t('hrShort') + ' ' + m + t('minShort');
+  if (h > 0) return m === 0 ? (h + t('hrShort')) : (h + t('hrShort') + ' ' + m + t('minShort'));
   return m + t('minShort');
 }
 function fmtElapsed(ms){
@@ -1909,7 +1942,12 @@ function fmtElapsed(ms){
   if (ms < 60000) return t('justNow');
   var totalMin = Math.floor(ms/60000);
   var h = Math.floor(totalMin/60), m = totalMin%60;
-  var out = h>0 ? (h+t('hrShort')+' '+m+t('minShort')) : (m+t('minShort'));
+  /* "26시간 5분 전" is precision nobody asked for — past half a day the
+     minutes are noise, and the number reads faster without them. Under 12
+     hours they still matter (a feed 2시간 30분 ago is not 2시간 ago). */
+  /* and "3시간 0분" is just "3시간" */
+  var out = (h >= 12 || (h > 0 && m === 0)) ? (h+t('hrShort'))
+    : (h>0 ? (h+t('hrShort')+' '+m+t('minShort')) : (m+t('minShort')));
   /* Vietnamese leaves this empty: the label above already reads "gần nhất",
      and the extra word pushed the number onto a third line */
   var suffix = t('agoSuffix');
@@ -2237,13 +2275,27 @@ function lastOfType(entries, matcher, basis){
 function renderSinceLast(){
   var entries = readEntries();
   var feed = lastOfType(entries, function(e){ return e.type==='feed'; }, 'start');
-  var diaper = lastOfType(entries, function(e){ return e.type==='diaper'; }, 'end');
   var sleep = lastOfType(entries, function(e){ return e.type==='sleep'; }, 'end');
+  /* WEE IS NOT WORTH A THIRD OF THIS SCREEN. Nobody logs every wet nappy, so
+     "마지막 기저귀" was usually answering a question nobody asked. A poo is
+     the one that gets watched — and watched over days, not hours, which is
+     why the line underneath is the poo BEFORE the last one: two numbers
+     together say whether he is on his usual rhythm or overdue. */
+  var poops = entries.filter(function(e){
+    return e.type === 'diaper' && (e.diaper === 'dirty' || e.diaper === 'both');
+  }).sort(function(a, b){
+    return new Date(refTimeOf(b, 'end')) - new Date(refTimeOf(a, 'end'));
+  });
+  var poop = poops[0] || null;
+  var prevPoop = poops[1] || null;
   var now = Date.now();
   var cards = [
     {key:'since_feed', emoji:'🍼', e:feed, basis:'start', sub: feed ? (feed.amount!=null ? feed.amount+t('ml') : '') : ''},
-    {key:'since_diaper', emoji:'💩', e:diaper, basis:'end', sub: diaper ? (t(diaper.diaper==='dirty'?'dirty':(diaper.diaper==='both'?'both':'wet'))) : ''},
-    {key:'since_sleep', emoji:'😴', e:sleep, basis:'end', sub: sleep ? (sleep.sleepKind ? t(sleep.sleepKind==='night'?'night':'nap') : '') : ''}
+    {key:'since_sleep', emoji:'😴', e:sleep, basis:'end', sub: sleep ? (sleep.sleepKind ? t(sleep.sleepKind==='night'?'night':'nap') : '') : ''},
+    {key:'since_poop', emoji:'💩', e:poop, basis:'end',
+     sub: prevPoop
+       ? t('prevPoopTpl').replace('{t}', fmtElapsed(now - new Date(refTimeOf(prevPoop, 'end')).getTime()))
+       : ''}
   ];
   var row = document.getElementById('since-row');
   /* This runs once a SECOND. Rebuilding innerHTML each tick threw away and
@@ -2556,11 +2608,15 @@ function renderTimeline(){
     var day = agg[k];
     var dayEntries = day.entries.slice().sort(function(x,y){ return new Date(y.start)-new Date(x.start); });
     html += '<div class="day-group">';
-    html += '<div class="day-head"><div class="d-title">'+esc(dayHeading(day.date))+'</div><div class="day-totals">';
-    html += '<span>'+esc(t('totalFeedDay'))+' <b>'+day.feedMl+t('ml')+'</b></span>';
-    html += '<span>'+esc(t('totalNap'))+' <b>'+fmtDur(day.nap)+'</b></span>';
-    html += '<span>'+esc(t('totalNight'))+' <b>'+fmtDur(day.night)+'</b></span>';
-    html += '</div></div>';
+    /* four cells, two rows — see .day-head in the stylesheet */
+    html += '<div class="day-head">';
+    html += '<div class="d-title">'+esc(dayHeading(day.date))+'</div>';
+    html += '<div class="d-total right">'+esc(t('totalFeedDay'))+' <b>'+day.feedMl+t('ml')+'</b></div>';
+    html += '<div class="d-sleeps">';
+    html += '<div class="d-total">'+esc(t('totalNap'))+' <b>'+fmtDur(day.nap)+'</b></div>';
+    html += '<div class="d-total">'+esc(t('totalNight'))+' <b>'+fmtDur(day.night)+'</b></div>';
+    html += '</div>';
+    html += '</div>';
     dayEntries.forEach(function(e){ html += entryRowHtml(e, !!(day.cont && day.cont[e.id])); });
     html += '</div>';
   });
@@ -2568,14 +2624,18 @@ function renderTimeline(){
   $$('.entry-swipe', container).forEach(function(wrap){ wireEntrySwipe(wrap); });
 }
 /* ================================================================
-   TYPE COLOR AS TEXT
-   Every category color was picked to sit behind an icon, where it is a
-   fill. On text it is a different job: thin glyphs need contrast a filled
-   chip never did, and on the white sheet 분유's orange measures 2.06:1 —
-   less than half of readable. Rather than keep a second hand-written
-   palette in sync with the first, each color is walked toward the
-   background's opposite until it clears 4.5:1. Custom types the family
-   invents later get the same treatment for free.
+   TYPE COLOR AS TEXT — dark mode only
+
+   On the dark sheet the category colors glow and the names are easier to
+   tell apart at a glance than plain white would be. On the white sheet
+   they are the opposite: every one of them has to be darkened so far to
+   stay readable that it stops looking like the color and just looks like
+   muddy text. So light mode gets plain black, and only dark mode gets
+   the color — decided by measuring the sheet, so a phone switching
+   themes at sunset switches with it.
+
+   The darkening below still runs for dark mode: a few of the colors
+   (보라 sleep, 파랑 play) fall under 4.5:1 even on black.
    ================================================================ */
 var TEXT_COLOR_CACHE = {};
 var _colorProbe = null;
@@ -2612,6 +2672,8 @@ function _toHex(c){
 var _surfaceRgb = null;
 function typeTextColor(colorCss){
   var bg = _surfaceRgb || (_surfaceRgb = resolveColor('var(--surface)'));
+  /* a light sheet: the name stays the same black as everything else */
+  if (_lum(bg) > 0.35) return '';
   var key = colorCss + '|' + bg.join(',');
   if (TEXT_COLOR_CACHE[key]) return TEXT_COLOR_CACHE[key];
   var base = resolveColor(colorCss);
@@ -2627,6 +2689,12 @@ function typeTextColor(colorCss){
   return hex;
 }
 
+/* an inline color only where there is one to apply — light mode leaves the
+   attribute off entirely so the stylesheet's own --fg wins */
+function colorAttr(colorCss){
+  var c = typeTextColor(colorCss);
+  return c ? ' style="color:' + c + '"' : '';
+}
 function entryRowHtml(e, isCont){
   var meta = typeMeta(e.type);
   if (!meta) return '';
@@ -2686,7 +2754,7 @@ function entryRowHtml(e, isCont){
       (timeEnd ? '<span class="e-time-end'+(endNextDay?' wrap':'')+'">~'+esc(timeEnd)+'</span>' : '') +
       (e.author?('<span class="e-author">'+esc(localizeAuthorName(e.author))+'</span>'):'') + '</div>' +
       '<div class="e-icon">'+meta.emoji+'</div>' +
-      '<div class="e-main"><div class="e-title-line"><span class="e-title" style="color:'+typeTextColor(meta.color)+'">'+esc(title)+'</span>' +
+      '<div class="e-main"><div class="e-title-line"><span class="e-title"'+colorAttr(meta.color)+'>'+esc(title)+'</span>' +
       (subParts.length ? '<span class="e-sub">'+esc(subParts.join(' · '))+'</span>' : '') + '</div>' + noteHtml + '</div>' +
     '</button>' +
   '</div>';
