@@ -10,7 +10,19 @@
 <meta property="og:site_name" content="Zio Log" />
 <meta property="og:description" content="지오의 하루 기록 · 가족이 함께 쓰는 육아 기록장" />
 <meta property="og:type" content="website" />
-<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍼</text></svg>" />
+<!-- Zio's own face, not a bottle emoji. Added to a home screen, iOS was
+     falling back to a screenshot of the page because there was no
+     apple-touch-icon at all. -->
+<link rel="icon" type="image/png" sizes="48x48" href="/favicon.png" />
+<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+<link rel="manifest" href="/site.webmanifest" />
+<!-- opened from the home screen it runs without Safari's chrome; the layout
+     already reserves the notch and home-bar insets -->
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#eff1f4" />
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0b0e13" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Gothic+A1:wght@400;500;600;700;800;900&family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -1936,8 +1948,28 @@ function readCustomAuthors(){
     return { id: a.id, name: a.name || '', nameVi: a.nameVi || '' };
   });
 }
-function allAuthorNames(){
-  return t('authorPresets').concat(readCustomAuthors().map(function(c){ return c.name; }));
+/* The author chips — in settings, on the first-run sheet, and inside a record.
+   Two different strings are needed for each one: what is SAVED on the record
+   (always the same string, whatever language the phone is in, so the same
+   person doesn't end up as two people) and what is SHOWN (the reader's own
+   language). They were the same string before, which is why '지오 할아버지'
+   stayed in Korean on the nanny's screen even after it had a Vietnamese
+   form. */
+function allAuthorChoices(){
+  var presets = t('authorPresets').map(function(n){ return { value: n, label: n }; });
+  return presets.concat(readCustomAuthors().map(function(c){
+    return { value: c.name, label: localizeAuthorName(c.name) };
+  }));
+}
+/* is this chip the one the record is already set to? '내니' and 'Bảo mẫu' are
+   one person; so are '지오 할아버지' and its Vietnamese form */
+function isSameAuthorName(a, b){
+  if (!a || !b) return false;
+  if (a === b) return true;
+  if (sameAuthor(a, b)) return true;
+  var ca = readCustomAuthors().filter(function(x){ return x.name === a || x.nameVi === a; })[0];
+  var cb = readCustomAuthors().filter(function(x){ return x.name === b || x.nameVi === b; })[0];
+  return !!(ca && cb && ca.id === cb.id);
 }
 /* reusable note snippets per care type, managed in Settings and tapped as
    chips in the entry-detail note field instead of being retyped */
@@ -3584,9 +3616,9 @@ function renderTrash(){
 
 function renderAuthorChips(containerId, selected, onPick){
   var box = document.getElementById(containerId);
-  var presets = allAuthorNames();
-  box.innerHTML = presets.map(function(name){
-    return '<button type="button" class="chip" data-name="'+esc(name)+'" aria-pressed="'+(localizeAuthorName(selected)===name)+'">'+esc(name)+'</button>';
+  box.innerHTML = allAuthorChoices().map(function(c){
+    return '<button type="button" class="chip" data-name="'+esc(c.value)+'" ' +
+      'aria-pressed="'+isSameAuthorName(c.value, selected)+'">'+esc(c.label)+'</button>';
   }).join('');
   $$('.chip', box).forEach(function(chip){
     chip.addEventListener('click', function(){ onPick(chip.dataset.name); });
@@ -3963,7 +3995,10 @@ function buildEntryFields(meta, e){
      shared list from Settings, never typed one-off on a single entry, so
      the same handful of names stays consistent across every record. */
   html += '<div class="field"><label>'+esc(t('author'))+'</label><div class="chip-row" id="f-author" style="padding:0">' +
-    allAuthorNames().map(function(n){ return '<button type="button" class="chip" data-author="'+esc(n)+'" aria-pressed="'+(localizeAuthorName(e.author)===n)+'">'+esc(n)+'</button>'; }).join('') +
+    allAuthorChoices().map(function(c){
+      return '<button type="button" class="chip" data-author="'+esc(c.value)+'" ' +
+        'aria-pressed="'+isSameAuthorName(c.value, e.author)+'">'+esc(c.label)+'</button>';
+    }).join('') +
   '</div></div>';
 
   return html;
