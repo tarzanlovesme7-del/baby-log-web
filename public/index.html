@@ -525,23 +525,53 @@
   /* auto-flow by column: the feed section has three figures, the sleep
      section two, and both should span the row evenly without being told how
      many there are */
-  .stat-grid{ display:grid; grid-auto-flow:column; grid-auto-columns:1fr; background:var(--surface); margin:0 -16px; }
-  .stat-tile{ padding:16px 12px; min-width:0; }
-  .stat-foot{
-    background:var(--surface); margin:0 -16px; padding:0 16px 14px;
-    font-size:var(--fs-micro); color:var(--muted);
+  /* THE STATS TAB.
+     One card per subject, everything inside it: title, numbers, chart,
+     footnote. And one weight rule — the NUMBERS are bold and nothing else
+     is. Before this every label, every date and every value was strong,
+     so the eye had nothing to land on. */
+  .stats-panel{ gap:12px; }
+  .stat-card{ padding:16px 16px 18px; display:flex; flex-direction:column; gap:0; }
+  .stat-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; }
+  .stat-h{ font-size:var(--fs-title); font-weight:var(--fw-strong); color:var(--fg); }
+  .stat-badge{
+    font-size:var(--fs-caption); font-weight:var(--fw-medium); color:var(--muted);
+    background:var(--surface-2); padding:5px 11px; border-radius:var(--radius-pill); flex:0 0 auto;
   }
-  .stat-tile .st-label{ overflow-wrap:anywhere; }
-  .stat-tile + .stat-tile{ border-left:1px solid var(--border); }
-  /* two lines' worth of room whether the label needs it or not, with the text
-     sitting at the bottom of it — otherwise "하루 평균 수유량" wraps, and only
-     that tile's number drops a line while its neighbours stay put */
+  .seg-sm{ width:174px; padding:2px; }
+  .seg-sm button{ padding:7px 4px; font-size:var(--fs-caption); }
+
+  .stat-grid{ display:grid; grid-auto-flow:column; grid-auto-columns:1fr; }
+  .stat-tile{ padding:0 12px 0 0; min-width:0; }
+  .stat-tile + .stat-tile{ border-left:1px solid var(--border); padding-left:14px; }
+  /* the label gets two lines' worth of room whether it needs it or not, with
+     the text sitting at the BOTTOM of it — otherwise "하루 평균 수유량" wraps,
+     and only that tile's number drops a line while its neighbours stay put */
+  /* ONE LINE, always. A label that wraps in one language and not another
+     pushes that tile's number down on its own, and the row reads as three
+     different heights — which is what the old two-line reservation was
+     working around, at the cost of a band of dead space under every header. */
   .stat-tile .st-label{
-    font-size:var(--fs-caption); color:var(--muted); margin-bottom:7px; font-weight:var(--fw-medium);
-    line-height:1.35; min-height:2.7em; display:flex; align-items:flex-end;
+    font-size:var(--fs-caption); color:var(--muted); font-weight:var(--fw-body);
+    line-height:1.35; margin-bottom:7px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
-  .stat-tile .st-val{ font-size:var(--fs-display); font-weight:var(--fw-display); font-variant-numeric:tabular-nums; }
-  .stat-tile .st-val small{ font-size:var(--fs-caption); font-weight:var(--fw-body); color:var(--muted); }
+  .stat-tile .st-val{
+    font-size:22px; font-weight:var(--fw-display); color:var(--fg);
+    font-variant-numeric:tabular-nums; letter-spacing:-.4px; line-height:1.2;
+  }
+  /* a footnote is a footnote: quiet, and with room under it. It used to sit
+     flush against the bottom edge, so it read as if it belonged to whatever
+     card came next. */
+  .stat-note{
+    margin-top:10px; font-size:var(--fs-micro); color:var(--muted-2); line-height:1.5;
+  }
+  .stat-lede{
+    margin-top:-4px; margin-bottom:14px;
+    font-size:var(--fs-label); color:var(--muted); line-height:1.5;
+  }
+  .stat-lede b{ color:var(--fg); font-weight:var(--fw-strong); font-variant-numeric:tabular-nums; }
+  .stat-tile .st-val small{ font-size:var(--fs-caption); font-weight:var(--fw-body); color:var(--muted); margin-left:1px; }
   /* The bars live in their own fixed-height track; the number above and the
      date below sit OUTSIDE it. Previously the whole column was one 120px box
      holding all three, so as soon as the text got bigger the contents no
@@ -549,44 +579,64 @@
      ended up standing on different heights instead of a shared floor.
      Columns also share the width now, so a month of bars fits without the
      chart running off the side. */
-  .bars{ display:flex; align-items:flex-end; gap:4px; padding:16px 14px 8px; }
+  /* the side padding is for the LABELS, not the bars: on a 14- or 30-day
+     range a column is 6-17px wide and its date sits wider than that, so the
+     row needs somewhere for the first and last labels to hang */
+  .bars{ display:flex; align-items:flex-end; gap:4px; padding:20px 12px 0; }
   .bar-col{ flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; gap:5px; }
   .bar-col .bar-track{ width:100%; height:96px; display:flex; align-items:flex-end; }
   .bar-col .bar{ width:100%; border-radius:6px 6px 2px 2px; background:var(--primary); min-height:3px; }
   /* Fixed heights, not min-heights: on a 14- or 30-day range only some columns
      carry a number and a date, and an empty box that measures differently from
      a filled one shifts that column's bar off the shared floor. */
-  .bar-col .bar-lbl{ font-size:var(--fs-micro); color:var(--muted); white-space:nowrap; height:15px; line-height:15px; }
-  .bar-col .bar-val{ font-size:var(--fs-micro); color:var(--muted-2); font-variant-numeric:tabular-nums; white-space:nowrap; height:15px; line-height:15px; }
+  .bar-col .bar-lbl{ font-size:var(--fs-micro); color:var(--muted-2); white-space:nowrap; height:16px; line-height:16px; }
+  .bar-col .bar-val{ font-size:var(--fs-micro); color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap; height:16px; line-height:16px; }
   /* today reads as today without needing its own label */
+  /* today is the only column that gets emphasis — it is also the only one
+     that is still being written */
   .bar-col.is-today .bar{ background:var(--primary); }
-  .bar-col:not(.is-today) .bar{ background:var(--primary); opacity:.55; }
-  .bar-col.is-today .bar-lbl{ color:var(--primary); font-weight:var(--fw-strong); }
+  .bar-col:not(.is-today) .bar{ background:var(--primary); opacity:.42; }
+  .bar-col.is-today .bar-lbl,
+  .bar-col.is-today .bar-val{ color:var(--primary); font-weight:var(--fw-strong); }
   /* one caption-to-content gap everywhere a section-title sits above its own
      content — was 10px in some spots, 8px in others, and 0 (accidentally
      inheriting the panel's inter-section gap instead) in the stats tab. */
   .section-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted); text-transform:uppercase; letter-spacing:.12px; padding:0 2px; margin-bottom:10px; }
 
-  /* poop-interval chart card — line+area chart with a day-scaled Y-axis,
-     modeled on a phone Health-app "record interval" chart per direct request */
-  .poop-chart-card{ padding:16px; display:flex; flex-direction:column; gap:14px; }
-  .poop-chart-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  .poop-chart-title{ display:flex; align-items:center; gap:6px; font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted); text-transform:uppercase; letter-spacing:.12px; }
-  .poop-chart-title .poop-emoji{ font-size:15px; }
-  .poop-recent-badge{ font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted-2); background:var(--surface-2); padding:4px 10px; border-radius:var(--radius-pill); flex:0 0 auto; }
-  .poop-chart-svg{ width:100%; height:auto; display:block; overflow:visible; }
-  .poop-grid-line{ stroke:var(--border); stroke-width:1; stroke-dasharray:2.5 3; }
-  .poop-axis-y{ fill:var(--muted-2); font-size:8.5px; font-weight:var(--fw-strong); }
-  .poop-axis-x{ fill:var(--muted-2); font-size:7.5px; font-weight:var(--fw-medium); }
-  .poop-line{ stroke:var(--c-diaper); stroke-width:2; fill:none; stroke-linejoin:round; stroke-linecap:round; }
-  .poop-dot{ fill:var(--c-diaper); stroke:var(--surface); stroke-width:1.5; }
-  .poop-value-lbl{ fill:var(--fg); font-size:8.5px; font-weight:var(--fw-strong); }
-  .poop-day-list{ display:flex; flex-direction:column; }
-  .poop-day-group + .poop-day-group{ margin-top:16px; }
-  .poop-day-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted-2); margin-bottom:6px; }
-  .poop-day-row{ display:flex; align-items:baseline; gap:10px; padding:6px 0; font-size:var(--fs-label); }
-  .poop-day-row + .poop-day-row{ border-top:1px solid var(--border); }
-  .poop-day-time{ font-weight:var(--fw-strong); color:var(--fg); font-variant-numeric:tabular-nums; flex:0 0 auto; }
+  /* THE POO SECTION.
+     It was a line chart of gaps, with a label on every point ("2일 2일 2일"),
+     a y-axis mixing days and minutes, and a two-line list entry per record.
+     Almost none of that answered the only question being asked: is he on his
+     usual rhythm, or overdue? So: one sentence of headline, one bar per gap
+     — bars because the question is "how does this gap compare to the last
+     ones", which is a length comparison — and one line per record. */
+  .poop-bars{ display:flex; align-items:flex-end; gap:5px; }
+  .poop-bar-col{ flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; gap:5px; }
+  .poop-bar-col .pb-val{
+    font-size:var(--fs-micro); color:var(--muted); font-variant-numeric:tabular-nums;
+    height:16px; line-height:16px; white-space:nowrap;
+  }
+  .poop-bar-col .pb-track{ width:100%; height:76px; display:flex; align-items:flex-end; }
+  .poop-bar-col .pb-bar{
+    width:100%; border-radius:5px 5px 2px 2px; background:var(--c-diaper); opacity:.5; min-height:3px;
+  }
+  .poop-bar-col .pb-lbl{
+    font-size:var(--fs-micro); color:var(--muted-2); height:16px; line-height:16px; white-space:nowrap;
+  }
+  /* the gap still running — the one that tells her whether he is overdue */
+  .poop-bar-col.is-open .pb-bar{ opacity:1; }
+  .poop-bar-col.is-open .pb-val,
+  .poop-bar-col.is-open .pb-lbl{ color:var(--c-diaper-text, var(--fg)); font-weight:var(--fw-strong); }
+
+  .poop-day-list{ display:flex; flex-direction:column; margin-top:18px; }
+  .poop-day-row{
+    display:flex; align-items:baseline; justify-content:space-between; gap:10px;
+    padding:9px 0; font-size:var(--fs-label);
+  }
+  .poop-day-row + .poop-day-row{ box-shadow:inset 0 1px 0 var(--border); }
+  .poop-day-when{ color:var(--fg); font-variant-numeric:tabular-nums; min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .poop-day-gap{ color:var(--muted); font-size:var(--fs-caption); flex:0 0 auto; font-variant-numeric:tabular-nums; }
   .poop-day-note{ color:var(--muted); font-size:var(--fs-caption); }
 
   /* weekly pattern — a fixed hour axis (0~24, top to bottom) on the left,
@@ -1063,36 +1113,43 @@
   </section>
 
   <!-- ============ TAB: STATS ============ -->
-  <section class="panel" id="tab-stats" data-tab-panel hidden>
-    <div>
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
-        <div class="section-title" style="margin:0" data-i18n="statsFeed7">수유 통계</div>
-        <div class="seg" id="stats-feed-range" style="width:180px">
+  <!-- Three subjects, three cards — 수유 / 배변 / 수면 — each holding its own
+       title, numbers and chart. It used to alternate between grey title bands
+       and white cards, which gave the tab four different vertical rhythms and
+       left the footnotes touching the edge of the card below them. -->
+  <section class="panel stats-panel" id="tab-stats" data-tab-panel hidden>
+
+    <div class="card stat-card">
+      <div class="stat-head">
+        <div class="stat-h" data-i18n="statsFeedTitle">수유</div>
+        <div class="seg seg-sm" id="stats-feed-range">
           <button type="button" data-range="7" aria-pressed="true" data-i18n="range7">7일</button>
           <button type="button" data-range="14" aria-pressed="false" data-i18n="range14">14일</button>
           <button type="button" data-range="30" aria-pressed="false" data-i18n="range30">30일</button>
         </div>
       </div>
       <div class="stat-grid" id="stat-tiles"></div>
-      <div class="stat-foot" id="stat-tiles-note" data-i18n="excludesToday">오늘은 아직 진행 중이라 평균에서 뺐어요</div>
-    </div>
-    <div class="card">
+      <div class="stat-note" id="stat-tiles-note"></div>
       <div class="bars" id="stat-bars"></div>
     </div>
 
-    <div class="card poop-chart-card">
-      <div class="poop-chart-head">
-        <span class="poop-chart-title"><span class="poop-emoji">💩</span> <span data-i18n="poopStats">배변 통계</span></span>
-        <span class="poop-recent-badge" id="poop-recent-badge"></span>
+    <div class="card stat-card">
+      <div class="stat-head">
+        <div class="stat-h" data-i18n="poopTitle">배변</div>
+        <span class="stat-badge" id="poop-recent-badge"></span>
       </div>
+      <div class="stat-lede" id="poop-lede"></div>
       <div id="poop-chart-wrap"></div>
       <div id="poop-day-list" class="poop-day-list"></div>
     </div>
 
-    <div>
-      <div class="section-title" data-i18n="statsSleep7">최근 7일 수면 통계</div>
+    <div class="card stat-card">
+      <div class="stat-head">
+        <div class="stat-h" data-i18n="statsSleepTitle">수면</div>
+        <span class="stat-badge" data-i18n="last7days">최근 7일</span>
+      </div>
       <div class="stat-grid" id="stat-sleep-tiles"></div>
-      <div class="stat-foot" data-i18n="excludesToday">오늘은 아직 진행 중이라 평균에서 뺐어요</div>
+      <div class="stat-note" id="stat-sleep-note"></div>
     </div>
   </section>
 
@@ -1460,7 +1517,7 @@ ko: {
   adjustStart:"시작 시간 조정", discardActive:"기록하지 않고 취소",
   pauseBtn:"일시정지", resumeBtn:"재생", pausedLabel:"일시정지됨",
   m1:"-60분", m2:"-30분", m3:"-10분", m4:"-5분", p1:"+5분", p2:"+10분", p3:"+30분", p4:"+60분",
-  avgMlPerDay:"하루 평균 수유량", avgPerFeed:"1회 평균 수유량", avgFeedsPerDay:"하루 평균 수유 횟수",
+  avgMlPerDay:"하루 평균", avgPerFeed:"1회 평균", avgFeedsPerDay:"하루 횟수",
   excludesToday:"오늘은 아직 진행 중이라 평균에서 뺐어요",
   permissionHint:"각자 자기가 적은 기록만 고치거나 지울 수 있어요. 엄마는 모든 기록을 고칠 수 있어요.",
   lockedByTpl:"{who}이(가) 적은 기록이에요. 보기만 할 수 있어요.",
@@ -1486,6 +1543,9 @@ ko: {
   weekday_short:["일","월","화","수","목","금","토"],
   authorPresets:["엄마","아빠","내니"], authorCustomPh:"예: 지오할머니",
   entryDetailFor:"상세", deleteSwipeLabel:"삭제",
+  statsFeedTitle:"수유", statsSleepTitle:"수면", poopTitle:"배변", last7days:"최근 7일",
+  avgOverDaysTpl:"어제까지 {n}일 평균 · 오늘은 진행 중이라 뺐어요",
+  poopLedeTpl:"평균 {avg}마다 · 마지막은 {last} 전", nowShort:"지금", afterGapTpl:"{v} 만에",
   poopStats:"배변 통계", avgPoopInterval:"평균 대변 간격", notEnoughData:"데이터 부족",
   feedStatsRange:"기간", range7:"7일", range14:"14일", range30:"30일",
   translating:"번역 중...", translateFailed:"번역을 못 가져왔어요", dayShort:"일", poopRecentTpl:"최근 {n}개"
@@ -1527,7 +1587,7 @@ vi: {
   adjustStart:"Chỉnh giờ bắt đầu", discardActive:"Hủy, không lưu",
   pauseBtn:"Tạm dừng", resumeBtn:"Tiếp tục", pausedLabel:"Đã tạm dừng",
   m1:"-60p", m2:"-30p", m3:"-10p", m4:"-5p", p1:"+5p", p2:"+10p", p3:"+30p", p4:"+60p",
-  avgMlPerDay:"TB lượng bú/ngày", avgPerFeed:"TB mỗi lần bú", avgFeedsPerDay:"TB số lần bú/ngày",
+  avgMlPerDay:"TB mỗi ngày", avgPerFeed:"TB mỗi lần", avgFeedsPerDay:"Lần/ngày",
   excludesToday:"Chưa tính hôm nay vì ngày chưa kết thúc",
   permissionHint:"Mỗi người chỉ sửa hoặc xoá được ghi chép của mình. Mẹ sửa được tất cả.",
   lockedByTpl:"Mục này do {who} ghi. Bạn chỉ có thể xem.",
@@ -1545,7 +1605,7 @@ vi: {
   trashTitle:"Thùng rác", trashOpen:"Xem mục đã xoá", trashCountTpl:"{n} mục", trashHint:"Mục đã xoá được giữ ở đây 30 ngày, sau đó tự mất.",
   trashEmpty:"Chưa có mục nào bị xoá", restoreBtn:"Khôi phục", restoredToast:"Đã khôi phục mục này",
   deletedAtTpl:"Xoá lúc {when}", notMine:"Mục này không phải bạn ghi",
-  avgNap:"TB ngủ ngày/ngày", avgNight:"TB ngủ đêm/ngày",
+  avgNap:"TB ngủ ngày", avgNight:"TB ngủ đêm",
   totalFeedDay:"Bú", totalNap:"Ngủ ngày", totalNight:"Ngủ đêm",
   emptyTimeline:"Chưa có nhật ký nào. Nhấn biểu tượng phía trên để ghi mục đầu tiên.",
   noCustomTypes:"Chưa có mục tùy chỉnh nào",
@@ -1553,8 +1613,13 @@ vi: {
   weekday_short:["CN","T2","T3","T4","T5","T6","T7"],
   authorPresets:["Mẹ","Bố","Bảo mẫu"], authorCustomPh:"VD: Bà nội Zio",
   entryDetailFor:"Chi tiết", deleteSwipeLabel:"Xóa",
+  statsFeedTitle:"Bú", statsSleepTitle:"Giấc ngủ", poopTitle:"Đi phân", last7days:"7 ngày qua",
+  avgOverDaysTpl:"TB {n} ngày đến hết hôm qua · chưa tính hôm nay",
+  poopLedeTpl:"Trung bình mỗi {avg} · lần gần nhất {last} trước", nowShort:"Bây giờ", afterGapTpl:"sau {v}",
   poopStats:"Thống kê đi phân", avgPoopInterval:"Khoảng cách TB giữa các lần đi phân", notEnoughData:"Chưa đủ dữ liệu",
-  feedStatsRange:"Khoảng thời gian", range7:"7 ngày", range14:"14 ngày", range30:"30 ngày",
+  /* just the numbers in the toggle: "7 ngày" wrapped onto two lines and
+     made the card header taller than the Korean one */
+  feedStatsRange:"Khoảng thời gian", range7:"7", range14:"14", range30:"30",
   translating:"Đang dịch...", translateFailed:"Không lấy được bản dịch", dayShort:" ngày", poopRecentTpl:"{n} lần gần đây"
 }
 };
@@ -2960,10 +3025,12 @@ function renderStats(){
      feeding target, so it leads */
   var avgMlPerDay = Math.round(doneMl/doneDays);
 
+  var noteEl = document.getElementById('stat-tiles-note');
+  if (noteEl) noteEl.textContent = t('avgOverDaysTpl').replace('{n}', doneDays);
   document.getElementById('stat-tiles').innerHTML =
     statTile(t('avgMlPerDay'), avgMlPerDay+' <small>'+t('ml')+'</small>') +
     statTile(t('avgPerFeed'), avgPerFeed+' <small>'+t('ml')+'</small>') +
-    statTile(t('avgFeedsPerDay'), avgFeedsPerDay+' <small>'+ (state.lang==='vi'?'lần/ngày':'회/일') +'</small>');
+    statTile(t('avgFeedsPerDay'), avgFeedsPerDay+' <small>'+ (state.lang==='vi'?'lần':'회') +'</small>');
 
   /* -------- sleep stats: fixed at 7 days -------- */
   var sleepDays = [];
@@ -2984,6 +3051,8 @@ function renderStats(){
   var avgNap = doneNap.reduce(function(a,b){return a+b;},0)/sleepDone;
   var avgNight = doneNight.reduce(function(a,b){return a+b;},0)/sleepDone;
 
+  var sleepNote = document.getElementById('stat-sleep-note');
+  if (sleepNote) sleepNote.textContent = t('avgOverDaysTpl').replace('{n}', sleepDone);
   document.getElementById('stat-sleep-tiles').innerHTML =
     statTile(t('avgNap'), '<span style="font-size:17px">'+fmtDur(avgNap)+'</span>') +
     statTile(t('avgNight'), '<span style="font-size:17px">'+fmtDur(avgNight)+'</span>');
@@ -3021,64 +3090,69 @@ function renderPoopChart(entries){
   var wrap = document.getElementById('poop-chart-wrap');
   var listBox = document.getElementById('poop-day-list');
   var badge = document.getElementById('poop-recent-badge');
+  var lede = document.getElementById('poop-lede');
   if (!wrap || !listBox) return;
 
-  var poopEntries = entries
+  var poops = entries
     .filter(function(e){ return e.type==='diaper' && (e.diaper==='dirty' || e.diaper==='both'); })
     .sort(function(a,b){ return new Date(a.start) - new Date(b.start); });
-  var RECENT_N = 7;
-  var recent = poopEntries.slice(-RECENT_N);
+  var RECENT_N = 8;
+  var recent = poops.slice(-RECENT_N);
 
   if (badge) badge.textContent = recent.length ? t('poopRecentTpl').replace('{n}', recent.length) : '';
 
   if (recent.length < 2){
-    wrap.innerHTML = '<div class="empty-note" style="padding:30px 16px;">'+esc(t('notEnoughData'))+'</div>';
+    if (lede) lede.textContent = '';
+    wrap.innerHTML = '<div class="empty-note" style="padding:26px 0">'+esc(t('notEnoughData'))+'</div>';
     listBox.innerHTML = '';
     return;
   }
 
-  var now = new Date();
-  var points = [];
-  for (var i=1;i<recent.length;i++){
-    points.push({ t: new Date(recent[i].start), gapMs: new Date(recent[i].start) - new Date(recent[i-1].start), isNow:false });
+  var now = Date.now();
+  /* one bar per GAP: how long he went between one and the next, with the gap
+     currently running as the last bar */
+  var gaps = [];
+  for (var i = 1; i < recent.length; i++){
+    gaps.push({
+      ms: new Date(recent[i].start) - new Date(recent[i-1].start),
+      at: recent[i].start,
+      open: false
+    });
   }
-  points.push({ t: now, gapMs: now - new Date(recent[recent.length-1].start), isNow:true });
+  gaps.push({ ms: now - new Date(recent[recent.length-1].start).getTime(), at: null, open: true });
 
-  wrap.innerHTML = buildPoopChartSvg(points);
+  var closed = gaps.filter(function(g){ return !g.open; });
+  var avgMs = closed.reduce(function(a, g){ return a + g.ms; }, 0) / (closed.length || 1);
 
-  var byDay = {}, order = [];
-  recent.slice().sort(function(a,b){ return new Date(b.start) - new Date(a.start); }).forEach(function(e){
-    var k = dayKey(e.start);
-    if (!byDay[k]){ byDay[k] = []; order.push(k); }
-    byDay[k].push(e);
-  });
-  listBox.innerHTML = order.map(function(k){
-    var dayEntries = byDay[k];
-    return '<div class="poop-day-group">' +
-      '<div class="poop-day-title">'+esc(dayHeading(dayEntries[0].start))+'</div>' +
-      dayEntries.map(function(e){
-        return '<div class="poop-day-row">' +
-          '<span class="poop-day-time">'+esc(fmtTime(e.start))+'</span>' +
-          (e.note ? '<span class="poop-day-note">'+esc(e.note)+'</span>' : '') +
-        '</div>';
-      }).join('') +
+  /* the headline says the two things worth saying in one sentence */
+  if (lede){
+    lede.innerHTML = t('poopLedeTpl')
+      .replace('{avg}', '<b>' + esc(fmtGapShort(avgMs)) + '</b>')
+      .replace('{last}', '<b>' + esc(fmtElapsedPlain(now - new Date(recent[recent.length-1].start).getTime())) + '</b>');
+  }
+
+  var maxMs = Math.max.apply(null, gaps.map(function(g){ return g.ms; })) || 1;
+  wrap.innerHTML = '<div class="poop-bars">' + gaps.map(function(g){
+    var pct = Math.max(4, Math.round((g.ms / maxMs) * 100));
+    return '<div class="poop-bar-col'+(g.open ? ' is-open' : '')+'">' +
+      '<div class="pb-val">'+esc(fmtGapShort(g.ms))+'</div>' +
+      '<div class="pb-track"><div class="pb-bar" style="height:'+pct+'%"></div></div>' +
+      '<div class="pb-lbl">'+esc(g.open ? t('nowShort') : fmtMonthDay(g.at))+'</div>' +
+    '</div>';
+  }).join('') + '</div>';
+
+  /* one line per record: when it was, and how long since the one before it */
+  var desc = recent.slice().reverse();
+  listBox.innerHTML = desc.map(function(e, idx){
+    var prev = desc[idx + 1];
+    var gap = prev ? fmtGapShort(new Date(e.start) - new Date(prev.start)) : '';
+    return '<div class="poop-day-row">' +
+      '<span class="poop-day-when">'+esc(dayHeading(e.start))+' · '+esc(fmtTime(e.start))+'</span>' +
+      (gap ? '<span class="poop-day-gap">'+esc(t('afterGapTpl').replace('{v}', gap))+'</span>' : '') +
     '</div>';
   }).join('');
 }
-function fmtDurDayHour(ms){
-  if (ms == null || ms < 0) ms = 0;
-  var totalMin = Math.round(ms/60000);
-  var d = Math.floor(totalMin/1440);
-  var h = Math.floor((totalMin%1440)/60);
-  var m = totalMin%60;
-  if (d > 0) return d+t('dayShort')+' '+h+t('hrShort');
-  if (h > 0) return h+t('hrShort')+' '+m+t('minShort');
-  return m+t('minShort');
-}
-/* The same gap, short enough to print above a dot on a phone-width chart.
-   "1일 21시간" is already wide; its Vietnamese equivalent, "1 ngày 21 giờ",
-   is nearly twice that and ran straight through its neighbours. Anything a
-   day or more is written as a decimal day instead — one number, one unit. */
+/* a gap, said as briefly as it can be: "2일", "1.9일", "14시간", "40분" */
 function fmtGapShort(ms){
   if (ms == null || ms < 0) ms = 0;
   var totalMin = Math.round(ms/60000);
@@ -3091,60 +3165,16 @@ function fmtGapShort(ms){
   if (h > 0) return h + t('hrShort');
   return totalMin + t('minShort');
 }
-function fmtMonthDay(d){ return (d.getMonth()+1)+'/'+(d.getDate()<10?'0':'')+d.getDate(); }
-function buildPoopChartSvg(points){
-  var maxGapDays = Math.max.apply(null, points.map(function(p){ return p.gapMs/86400000; }));
-  var yMaxDays = Math.max(2, Math.ceil(maxGapDays) + 1);
-  var W = 340, H = 196, padL = 28, padR = 8, padT = 34, padB = 32;
-  var plotW = W - padL - padR, plotH = H - padT - padB;
-  var n = points.length;
-  var xAt = function(i){ return n > 1 ? padL + (plotW * i/(n-1)) : padL + plotW/2; };
-  var yAt = function(days){ return padT + plotH - (Math.min(days, yMaxDays)/yMaxDays) * plotH; };
-  var coords = points.map(function(p,i){ return { x: xAt(i), y: yAt(p.gapMs/86400000) }; });
-
-  var linePath = coords.map(function(c,i){ return (i===0?'M':'L')+c.x.toFixed(1)+','+c.y.toFixed(1); }).join(' ');
-  var areaPath = linePath +
-    ' L'+coords[coords.length-1].x.toFixed(1)+','+(padT+plotH) +
-    ' L'+coords[0].x.toFixed(1)+','+(padT+plotH)+' Z';
-
-  var gridLines = '';
-  for (var lvl=0; lvl<=yMaxDays; lvl++){
-    var gy = yAt(lvl);
-    var lbl = lvl===0 ? ('0'+t('minShort')) : (lvl+t('dayShort'));
-    gridLines += '<line x1="'+padL+'" y1="'+gy.toFixed(1)+'" x2="'+(W-padR)+'" y2="'+gy.toFixed(1)+'" class="poop-grid-line" />';
-    gridLines += '<text x="'+(padL-6)+'" y="'+(gy+3).toFixed(1)+'" class="poop-axis-y" text-anchor="end">'+esc(lbl)+'</text>';
-  }
-
-  /* the first/last points sit right at the plot's left/right edge — centering
-     their labels there would run them into the y-axis text (left) or off the
-     canvas (right), so those two ends anchor outward instead of centering */
-  var dots = '', valueLabels = '', xLabels = '';
-  points.forEach(function(p,i){
-    var c = coords[i];
-    var anchor = i===0 ? 'start' : (i===n-1 ? 'end' : 'middle');
-    var lblX = i===0 ? c.x+3 : (i===n-1 ? c.x-3 : c.x);
-    dots += '<circle cx="'+c.x.toFixed(1)+'" cy="'+c.y.toFixed(1)+'" r="3.5" class="poop-dot" />';
-    /* neighbouring labels are staggered onto two heights: at seven points
-       across a phone-width chart there is not room for them side by side, and
-       two of them printed on top of each other is worse than none */
-    var lblY = c.y - (i % 2 ? 20 : 9);
-    valueLabels += '<text x="'+lblX.toFixed(1)+'" y="'+lblY.toFixed(1)+'" class="poop-value-lbl" text-anchor="'+anchor+'">'+esc(fmtGapShort(p.gapMs))+'</text>';
-    var lines = p.isNow ? [t('nowBtn')] : [fmtMonthDay(p.t), toTimeValue(p.t.toISOString())];
-    xLabels += '<text x="'+lblX.toFixed(1)+'" y="'+(H-padB+13)+'" class="poop-axis-x" text-anchor="'+anchor+'">' +
-      lines.map(function(ln,li){ return '<tspan x="'+lblX.toFixed(1)+'" dy="'+(li===0?0:10)+'">'+esc(ln)+'</tspan>'; }).join('') +
-    '</text>';
-  });
-
-  return '<svg viewBox="0 0 '+W+' '+H+'" class="poop-chart-svg" role="img" aria-label="'+esc(t('poopStats'))+'">' +
-    '<defs><linearGradient id="poopFill" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0%" stop-color="var(--c-diaper)" stop-opacity="0.35" />' +
-      '<stop offset="100%" stop-color="var(--c-diaper)" stop-opacity="0" />' +
-    '</linearGradient></defs>' +
-    gridLines +
-    '<path d="'+areaPath+'" fill="url(#poopFill)" stroke="none" />' +
-    '<path d="'+linePath+'" class="poop-line" />' +
-    dots + valueLabels + xLabels +
-  '</svg>';
+/* "8/24" — the bar labels only need to say which day the gap ended on */
+function fmtMonthDay(iso){
+  var d = new Date(iso);
+  return (d.getMonth()+1) + '/' + d.getDate();
+}
+/* elapsed without the "전" suffix, for use inside a sentence */
+function fmtElapsedPlain(ms){
+  var was = I18N[state.lang] && I18N[state.lang].agoSuffix;
+  var out = fmtElapsed(ms);
+  return was ? out.replace(new RegExp('\\s*' + was + '$'), '') : out;
 }
 function statTile(label, valHtml){
   /* no .card here — .stat-grid itself is the full-bleed surface now, and
