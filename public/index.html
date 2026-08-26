@@ -653,6 +653,13 @@
   .row-item{ display:flex; align-items:center; justify-content:space-between; padding:15px 16px; gap:12px; }
   .row-item .r-label{ font-size:var(--fs-body); }
   .row-item .r-sub{ font-size:var(--fs-caption); color:var(--muted); margin-top:2px; }
+  /* the Vietnamese form of a name the family added — shown as an editable
+     line under the Korean one rather than hidden behind another screen */
+  .row-item .author-vi{
+    display:block; width:100%; margin-top:4px; padding:0; border:0; background:transparent;
+    font-size:var(--fs-caption); color:var(--link);
+  }
+  .row-item .author-vi::placeholder{ color:var(--muted-2); }
   .row-item .r-chev{ color:var(--muted-2); font-size:var(--fs-title); flex:0 0 auto; }
   .hint-line{ font-size:var(--fs-caption); color:var(--muted); margin:8px 2px 0; line-height:1.55; }
 
@@ -1434,7 +1441,7 @@ ko: {
   t_tummy:"터미타임", t_nose:"콧물제거", t_nails:"손톱정리", t_temp:"체온", t_massage:"마사지", t_custom:"기타",
   addNew:"항목 추가",
   since_feed:"마지막 수유", since_diaper:"마지막 기저귀", since_sleep:"마지막 잠",
-  since_poop:"마지막 똥", prevPoopTpl:"그 전 {t}",
+  since_poop:"마지막 똥", prevPoopTpl:"그 전 {t}", authorViPh:"베트남어 이름 (자동 번역)",
   nextFeedLabel:"다음 추천 수유", nextFeedValueTpl:"{time} · {remain} 후", nextFeedDueValueTpl:"시간이 지났어요 · {time}",
   tabPattern:"패턴", patternTitle:"주간 패턴", patternCaption:"최근 7일, 시간대별 기록", patternEmpty:"최근 7일간 기록이 없어요",
   noRecordYet:"기록 없음", justNow:"방금", agoSuffix:"전", hrShort:"시간", minShort:"분",
@@ -1501,7 +1508,7 @@ vi: {
   t_tummy:"Nằm sấp", t_nose:"Vệ sinh mũi", t_nails:"Cắt móng", t_temp:"Thân nhiệt", t_massage:"Mát-xa", t_custom:"Khác",
   addNew:"Thêm mục",
   since_feed:"Lần bú gần nhất", since_diaper:"Lần thay tã gần nhất", since_sleep:"Giấc ngủ gần nhất",
-  since_poop:"Lần ị gần nhất", prevPoopTpl:"trước đó {t}",
+  since_poop:"Lần ị gần nhất", prevPoopTpl:"trước đó {t}", authorViPh:"Tên tiếng Việt (tự dịch)",
   nextFeedLabel:"Dự kiến bú tiếp theo", nextFeedValueTpl:"{time} · còn {remain}", nextFeedDueValueTpl:"Đã quá giờ · {time}",
   tabPattern:"Mẫu hình", patternTitle:"Mẫu hình tuần", patternCaption:"7 ngày qua, theo khung giờ trong ngày", patternEmpty:"Chưa có nhật ký trong 7 ngày qua",
   noRecordYet:"Chưa có dữ liệu", justNow:"Vừa xong", agoSuffix:"", hrShort:" giờ", minShort:" phút",
@@ -1611,8 +1618,18 @@ function localizeAuthorName(name){
   if (!name) return name;
   var idx = I18N.ko.authorPresets.indexOf(name);
   if (idx === -1) idx = I18N.vi.authorPresets.indexOf(name);
-  if (idx === -1) return name;
-  return t('authorPresets')[idx];
+  if (idx !== -1) return t('authorPresets')[idx];
+  /* A name the family added themselves — '하영이 이모', '지오 할아버지'. The
+     nanny cannot read those, so each one carries a Vietnamese form too,
+     translated once when the name is first used and editable in settings. */
+  var custom = readCustomAuthors().filter(function(a){
+    return a.name === name || a.nameVi === name;
+  })[0];
+  if (custom){
+    if (state.lang === 'vi') return custom.nameVi || custom.name;
+    return custom.name;
+  }
+  return name;
 }
 function isPresetAuthorName(name){
   if (!name) return false;
@@ -1774,12 +1791,38 @@ function serverTranslate(text, target){
    sit through, so the CHAIN has its own deadline on top of the per-provider
    ones. Whatever is still trying when this expires is abandoned. */
 var TRANSLATE_TOTAL_MS = 10000;
+
+/* HIS NAME IS SPELLED ZIO.
+   Left alone, a translator romanises 지오 however it likes — Geo, Ji-o, Jio —
+   and the nanny reads a memo about a baby whose name she doesn't recognise.
+   The two spellings the family actually uses are already stored (설정 → 아기
+   정보), so they are swapped in BEFORE the text is sent, and any romanisation
+   that slips through anyway is corrected in the answer. */
+var ZIO_ROMAN = /\b(ji[\s-]?o|jio|gio|geo|jee[\s-]?o|chi[\s-]?o|ji[\s-]?oh)\b/gi;
+function babyNames(){
+  var prof = appState.profile || {};
+  return { ko: (prof.nameKo || '').trim(), vi: (prof.nameVi || '').trim() };
+}
+function swapBabyName(text, target){
+  var n = babyNames();
+  if (!n.ko || !n.vi || !text) return text;
+  if (target === 'vi') return text.split(n.ko).join(n.vi);
+  if (target === 'ko') return text.split(n.vi).join(n.ko);
+  return text;
+}
+function fixBabyName(text, target){
+  var n = babyNames();
+  if (!text) return text;
+  if (target === 'vi' && n.vi) return String(text).replace(ZIO_ROMAN, n.vi);
+  return text;
+}
 function apiTranslate(text, target){
+  var src = swapBabyName(text, target);
   return withTimeout(
-    clientTranslate(text, target)
-      .catch(function(){ return clientMyMemory(text, target); })
-      .catch(function(){ return serverTranslate(text, target); }),
-    TRANSLATE_TOTAL_MS);
+    clientTranslate(src, target)
+      .catch(function(){ return clientMyMemory(src, target); })
+      .catch(function(){ return serverTranslate(src, target); }),
+    TRANSLATE_TOTAL_MS).then(function(out){ return fixBabyName(out, target); });
 }
 /* poll for edits made by other viewers; skip the tick if a mutation is
    already in flight from this tab so responses can't land out of order */
@@ -1824,7 +1867,9 @@ function readCustomTypes(){
    extra names the household added (a grandparent, a second sitter). Shared
    server state, so a name added on one phone shows up in everyone's picker. */
 function readCustomAuthors(){
-  return (appState.customAuthors || []).map(function(a){ return { id: a.id, name: a.name || '' }; });
+  return (appState.customAuthors || []).map(function(a){
+    return { id: a.id, name: a.name || '', nameVi: a.nameVi || '' };
+  });
 }
 function allAuthorNames(){
   return t('authorPresets').concat(readCustomAuthors().map(function(c){ return c.name; }));
@@ -3302,9 +3347,23 @@ function renderAuthorManageList(){
   var customs = readCustomAuthors();
   if (!customs.length){ box.innerHTML = ''; return; }
   box.innerHTML = customs.map(function(c){
-    return '<div class="row-item"><span class="r-label">'+esc(c.name)+'</span>' +
+    return '<div class="row-item">' +
+      '<div style="flex:1;min-width:0">' +
+        '<div class="r-label">'+esc(c.name)+'</div>' +
+        '<input type="text" class="author-vi" data-vi-author="'+esc(c.id)+'" value="'+esc(c.nameVi)+'" ' +
+          'placeholder="'+esc(t('authorViPh'))+'" />' +
+      '</div>' +
       '<button type="button" class="text-btn danger-btn" data-del-author="'+esc(c.id)+'">'+esc(t('delete'))+'</button></div>';
   }).join('');
+  /* a machine translation of somebody's nickname is a guess; this is where
+     it gets corrected */
+  $$('[data-vi-author]', box).forEach(function(input){
+    input.addEventListener('change', function(){
+      apiMutate('updateCustomAuthor', { id: input.dataset.viAuthor, nameVi: input.value.trim() })
+        .then(function(){ renderAll(); toast(t('savedToast')); })
+        .catch(function(err){ toast(err.message); });
+    });
+  });
   $$('[data-del-author]', box).forEach(function(btn){
     btn.addEventListener('click', function(){
       apiMutate('deleteCustomAuthor', { id: btn.dataset.delAuthor }).then(function(){
@@ -4386,7 +4445,9 @@ function finishProfilePicker(picked, custom){
      that only this device remembers. */
   var register = (custom && !isPresetAuthorName(custom) &&
       !readCustomAuthors().some(function(a){ return a.name === custom; }))
-    ? apiMutate('addCustomAuthor', { name: custom }).catch(function(){})
+    ? apiMutate('addCustomAuthor', { name: custom })
+        .then(function(res){ return translateAuthorName(res && res.author); })
+        .catch(function(){})
     : Promise.resolve();
   register.then(function(){
     renderAll();
@@ -4546,10 +4607,11 @@ function wireEvents(){
     var v = input.value.trim();
     if (!v){ toast(state.lang==='vi'?'Vui lòng nhập tên':'이름을 입력해 주세요'); return; }
     if (isPresetAuthorName(v)){ input.value = ''; setAuthor(v); return; }
-    apiMutate('addCustomAuthor', { name: v }).then(function(){
+    apiMutate('addCustomAuthor', { name: v }).then(function(res){
       input.value = '';
       setAuthor(v);
       renderSettings();
+      return translateAuthorName(res && res.author);
     }).catch(function(err){ toast(err.message); });
   });
 
@@ -4581,6 +4643,39 @@ function wireEvents(){
   document.getElementById('profile-save-btn').addEventListener('click', saveProfilePicker);
   document.getElementById('scrim3').addEventListener('click', function(){ closeSheet('profile-sheet'); });
 
+}
+
+/* Names added before this existed — and any whose translation didn't make it
+   through first time — get their Vietnamese form filled in on a later load.
+   One at a time, quietly, and never on top of a name somebody has typed by
+   hand in settings. */
+/* the Vietnamese form of one name, translated and stored. Never blocks the
+   thing that triggered it — a name is usable the moment it is typed. */
+function translateAuthorName(author){
+  if (!author || !author.id || !author.name || author.nameVi) return Promise.resolve();
+  return apiTranslate(author.name, 'vi').then(function(vi){
+    if (!vi || vi === author.name) return;
+    return apiMutate('updateCustomAuthor', { id: author.id, nameVi: vi });
+  }).then(function(){ renderAll(); renderSettings(); })
+    .catch(function(){});
+}
+var authorBackfillDone = false;
+function backfillAuthorNames(){
+  if (authorBackfillDone) return;
+  var missing = readCustomAuthors().filter(function(a){ return a.name && !a.nameVi; });
+  if (!missing.length) return;
+  authorBackfillDone = true;
+  var next = function(i){
+    if (i >= missing.length) return;
+    var a = missing[i];
+    apiTranslate(a.name, 'vi').then(function(vi){
+      if (!vi || vi === a.name) return;
+      return apiMutate('updateCustomAuthor', { id: a.id, nameVi: vi }).then(function(){
+        renderAll(); renderSettings();
+      });
+    }).catch(function(){}).then(function(){ next(i + 1); });
+  };
+  next(0);
 }
 
 /* ================================================================
@@ -4710,6 +4805,8 @@ function init(){
   apiGetState().then(function(){
     renderAll();
     if (!state.author){ openProfilePicker(); }
+    /* after the first paint, never before it */
+    setTimeout(backfillAuthorNames, 1500);
   }).catch(function(err){
     toast(err.message || 'failed to load');
     renderAll();

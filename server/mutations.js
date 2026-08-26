@@ -291,8 +291,25 @@ function applyMutation(prevState, type, payload) {
       if (state.customAuthors.some((a) => a.name === name)) {
         return { state, result: { duplicate: true } };
       }
+      /* Two of the three people using this app read Korean and one does not,
+         so a name added as '하영이 이모' has to have a Vietnamese form too —
+         otherwise the nanny opens a memo and cannot tell who left it. The
+         translation is filled in afterwards by the phone that added the
+         name, the same way memo translations arrive. */
       const author = { id: uid('a_'), name };
+      if (payload.nameVi) author.nameVi = String(payload.nameVi).trim();
       state.customAuthors.push(author);
+      return { state, result: { author } };
+    }
+
+    case 'updateCustomAuthor': {
+      state.customAuthors = state.customAuthors || [];
+      const author = state.customAuthors.find((a) => a.id === payload.id);
+      if (!author) throw httpError(404, 'author not found');
+      if (payload.nameVi !== undefined) {
+        const vi = String(payload.nameVi).trim();
+        if (vi) author.nameVi = vi; else delete author.nameVi;
+      }
       return { state, result: { author } };
     }
 
