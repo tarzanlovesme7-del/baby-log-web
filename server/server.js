@@ -62,6 +62,19 @@ app.use(express.static(PUBLIC_DIR, { index: false }));
 // ---- API ----
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 
+/* THE POLL ASKS THIS, NOT /api/state.
+   Every open phone checks for other people's writes every few seconds. It
+   used to do that by downloading the entire document — 234KB of records,
+   ~23KB gzipped, every tick, or about 21MB an hour on a phone left open,
+   growing as the log grows. The version counter answers the same question
+   in a few bytes, and the whole document is fetched only when it moved. */
+app.get('/api/version', async (req, res, next) => {
+  try {
+    res.set('Cache-Control', 'no-store');
+    res.json({ version: await db.getVersion() });
+  } catch (err) { next(err); }
+});
+
 app.get('/api/state', async (req, res, next) => {
   try {
     const { data, version } = await db.getState();

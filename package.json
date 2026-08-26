@@ -4,7 +4,8 @@
   "description": "Bilingual (Korean/Vietnamese) baby-care tracker with real server-side auto-translation",
   "main": "server/server.js",
   "scripts": {
-    "start": "node server/server.js"
+    "start": "node server/server.js",
+    "check": "node rot-check.js"
   },
   "engines": {
     "node": ">=18"

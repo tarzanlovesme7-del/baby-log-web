@@ -48,6 +48,14 @@ async function getState() {
   return { data: rows[0].data, version: Number(rows[0].version) };
 }
 
+/* Just the version counter. The app asks for this every few seconds to find
+   out whether anything changed; sending the whole document to answer that
+   question was costing every phone ~23KB a tick. */
+async function getVersion() {
+  const { rows } = await pool.query('SELECT version FROM app_state WHERE id = 1');
+  return rows.length ? Number(rows[0].version) : 0;
+}
+
 async function saveState(data, expectedVersion) {
   const { rows } = await pool.query(
     `UPDATE app_state SET data = $1, version = version + 1, updated_at = now()
@@ -59,4 +67,4 @@ async function saveState(data, expectedVersion) {
   return { data: rows[0].data, version: Number(rows[0].version) };
 }
 
-module.exports = { pool, init, getState, saveState, EMPTY_STATE };
+module.exports = { pool, init, getState, getVersion, saveState, EMPTY_STATE };

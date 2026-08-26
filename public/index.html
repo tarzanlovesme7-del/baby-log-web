@@ -649,7 +649,6 @@
   .poop-day-when{ color:var(--fg); font-variant-numeric:tabular-nums; min-width:0;
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .poop-day-gap{ color:var(--muted); font-size:var(--fs-caption); flex:0 0 auto; font-variant-numeric:tabular-nums; }
-  .poop-day-note{ color:var(--muted); font-size:var(--fs-caption); }
 
   /* weekly pattern — a fixed hour axis (0~24, top to bottom) on the left,
      with one vertical day-column per day scrolling underneath it, oldest on
@@ -1496,8 +1495,7 @@ ko: {
   memoLabel:"메모", memoEmpty:"아직 메모가 없어요", memoComposeTitle:"메모 추가", memoComposePh:"메모를 입력하세요",
   memoSubmit:"등록", memoTranslateToVi:"베트남어 번역 (선택)", memoTranslateToKo:"한국어 번역 (선택)",
   memoNoMemos:"아직 등록된 메모가 없어요.", tabMemo:"메모", typeOrder:"항목 순서",
-  quickAdd:"빠른 기록", timeline:"기록", loadMore:"이전 기록 더 보기", emptyDay:"이 날은 기록이 없어요", todayBtn:"오늘", statsFeed7:"수유 통계", statsSleep7:"최근 7일 수면 통계",
-  babyInfo:"아기 정보", babyNameKo:"이름 (한국어)", babyNameVi:"이름 (베트남어)", babyBirth:"태어난 날",
+  quickAdd:"빠른 기록", timeline:"기록", loadMore:"이전 기록 더 보기", emptyDay:"이 날은 기록이 없어요", todayBtn:"오늘", babyInfo:"아기 정보", babyNameKo:"이름 (한국어)", babyNameVi:"이름 (베트남어)", babyBirth:"태어난 날",
   whoAmI:"나는 누구", customTypes:"커스텀 항목 관리",
   appearance:"화면", theme:"테마", themeAuto:"자동", themeLight:"라이트", themeDark:"다크",
   shareHint:'가족 모두와 함께 쓰려면 이 링크를 공유해 주세요. 기록은 이 페이지를 여는 모든 사람과 실시간으로 공유됩니다.',
@@ -1509,7 +1507,7 @@ ko: {
   t_feed:"분유", t_diaper:"기저귀", t_bath:"목욕", t_sleep:"수면", t_med:"투약", t_probiotic:"유산균", t_play:"놀이",
   t_tummy:"터미타임", t_nose:"콧물제거", t_nails:"손톱정리", t_temp:"체온", t_massage:"마사지", t_custom:"기타",
   addNew:"항목 추가",
-  since_feed:"마지막 수유", since_diaper:"마지막 기저귀", since_sleep:"마지막 잠",
+  since_feed:"마지막 수유", since_sleep:"마지막 잠",
   since_poop:"마지막 똥", prevPoopTpl:"그 전 {t}", authorViPh:"베트남어 이름 (자동 번역)",
   nextFeedLabel:"다음 추천 수유", nextFeedValueTpl:"{time} · {remain} 후", nextFeedDueValueTpl:"시간이 지났어요 · {time}",
   tabPattern:"패턴", patternTitle:"주간 패턴", patternCaption:"최근 7일, 시간대별 기록", patternEmpty:"최근 7일간 기록이 없어요",
@@ -1521,16 +1519,14 @@ ko: {
   crossMidYes:"다음날 맞아", crossMidNo:"시간 고칠래",
 
   startTime:"시작 시간", endTime:"종료 시간", nowBtn:"지금", dateLabel:"날짜",
-  addEndTime:"+ 종료 시간", exactTime:"직접 입력", minusHour:"-1시간", minusTen:"-10분",
+  addEndTime:"+ 종료 시간", minusTen:"-10분",
   amount:"먹은 양", ml:"ml", note:"메모", medNote:"약 이름 / 메모",
   temperature:"체온", celsius:"°C", author:"기록자",
   savedToast:"저장했어요", deletedToast:"삭제했어요", startedToast:"타이머를 시작했어요", recordedToast:"기록했어요",
   alreadyActive:"이미 진행 중인 기록이 있어요", canceledToast:"취소했어요",
   adjustStart:"시작 시간 조정", discardActive:"기록하지 않고 취소",
   pauseBtn:"일시정지", resumeBtn:"재생", pausedLabel:"일시정지됨",
-  m1:"-60분", m2:"-30분", m3:"-10분", m4:"-5분", p1:"+5분", p2:"+10분", p3:"+30분", p4:"+60분",
   avgMlPerDay:"하루 평균", avgPerFeed:"1회 평균", avgFeedsPerDay:"하루 횟수",
-  excludesToday:"오늘은 아직 진행 중이라 평균에서 뺐어요",
   permissionHint:"각자 자기가 적은 기록만 고치거나 지울 수 있어요. 엄마는 모든 기록을 고칠 수 있어요.",
   lockedByTpl:"{who}이(가) 적은 기록이에요. 보기만 할 수 있어요.",
   masterTitle:"엄마 권한", masterPin:"엄마 전환 PIN",
@@ -1554,20 +1550,19 @@ ko: {
   quickWordsTitle:"메모 퀵버튼 관리", qwAddPh:"자주 쓰는 문구 입력", noQuickWords:"등록된 문구가 없어요",
   weekday_short:["일","월","화","수","목","금","토"],
   authorPresets:["엄마","아빠","내니"], authorCustomPh:"예: 지오할머니",
-  entryDetailFor:"상세", deleteSwipeLabel:"삭제",
+  deleteSwipeLabel:"삭제",
   statsFeedTitle:"수유", statsSleepTitle:"수면", poopTitle:"배변", last7days:"최근 7일",
   avgOverDaysTpl:"어제까지 {n}일 평균 · 오늘은 진행 중이라 뺐어요",
   poopLedeTpl:"평균 {avg}마다 · 마지막은 {last} 전", nowShort:"지금", afterGapTpl:"{v} 만에",
-  poopStats:"배변 통계", avgPoopInterval:"평균 대변 간격", notEnoughData:"데이터 부족",
-  feedStatsRange:"기간", range7:"7일", range14:"14일", range30:"30일",
+  notEnoughData:"데이터 부족",
+  range7:"7일", range14:"14일", range30:"30일",
   translating:"번역 중...", translateFailed:"번역을 못 가져왔어요", dayShort:"일", poopRecentTpl:"최근 {n}개"
 },
 vi: {
   memoLabel:"Ghi chú", memoEmpty:"Chưa có ghi chú nào", memoComposeTitle:"Thêm ghi chú", memoComposePh:"Nhập ghi chú",
   memoSubmit:"Đăng", memoTranslateToVi:"Dịch tiếng Việt (tùy chọn)", memoTranslateToKo:"Dịch tiếng Hàn (tùy chọn)",
   memoNoMemos:"Chưa có ghi chú nào được đăng.", tabMemo:"Ghi chú", typeOrder:"Thứ tự mục",
-  quickAdd:"Ghi nhanh", timeline:"Nhật ký", loadMore:"Xem ngày trước đó", emptyDay:"Ngày này chưa có ghi chép", todayBtn:"Hôm nay", statsFeed7:"Thống kê bú", statsSleep7:"Thống kê ngủ 7 ngày qua",
-  babyInfo:"Thông tin bé", babyNameKo:"Tên (Tiếng Hàn)", babyNameVi:"Tên (Tiếng Việt)", babyBirth:"Ngày sinh",
+  quickAdd:"Ghi nhanh", timeline:"Nhật ký", loadMore:"Xem ngày trước đó", emptyDay:"Ngày này chưa có ghi chép", todayBtn:"Hôm nay", babyInfo:"Thông tin bé", babyNameKo:"Tên (Tiếng Hàn)", babyNameVi:"Tên (Tiếng Việt)", babyBirth:"Ngày sinh",
   whoAmI:"Bạn là ai", customTypes:"Quản lý mục tùy chỉnh",
   appearance:"Giao diện", theme:"Chủ đề", themeAuto:"Tự động", themeLight:"Sáng", themeDark:"Tối",
   shareHint:'Để cả nhà cùng dùng, hãy chia sẻ đường link này. Nhật ký sẽ được đồng bộ theo thời gian thực với mọi người mở trang này.',
@@ -1579,7 +1574,7 @@ vi: {
   t_feed:"Bú sữa", t_diaper:"Tã", t_bath:"Tắm", t_sleep:"Ngủ", t_med:"Uống thuốc", t_probiotic:"Men vi sinh", t_play:"Chơi",
   t_tummy:"Nằm sấp", t_nose:"Vệ sinh mũi", t_nails:"Cắt móng", t_temp:"Thân nhiệt", t_massage:"Mát-xa", t_custom:"Khác",
   addNew:"Thêm mục",
-  since_feed:"Lần bú gần nhất", since_diaper:"Lần thay tã gần nhất", since_sleep:"Giấc ngủ gần nhất",
+  since_feed:"Lần bú gần nhất", since_sleep:"Giấc ngủ gần nhất",
   since_poop:"Lần ị gần nhất", prevPoopTpl:"trước đó {t}", authorViPh:"Tên tiếng Việt (tự dịch)",
   nextFeedLabel:"Dự kiến bú tiếp theo", nextFeedValueTpl:"{time} · còn {remain}", nextFeedDueValueTpl:"Đã quá giờ · {time}",
   tabPattern:"Mẫu hình", patternTitle:"Mẫu hình tuần", patternCaption:"7 ngày qua, theo khung giờ trong ngày", patternEmpty:"Chưa có nhật ký trong 7 ngày qua",
@@ -1591,16 +1586,14 @@ vi: {
   crossMidYes:"Đúng, hôm sau", crossMidNo:"Sửa lại giờ",
 
   startTime:"Giờ bắt đầu", endTime:"Giờ kết thúc", nowBtn:"Bây giờ", dateLabel:"Ngày",
-  addEndTime:"+ Giờ kết thúc", exactTime:"Nhập trực tiếp", minusHour:"-1 giờ", minusTen:"-10 phút",
+  addEndTime:"+ Giờ kết thúc", minusTen:"-10 phút",
   amount:"Lượng bú", ml:"ml", note:"Ghi chú", medNote:"Tên thuốc / Ghi chú",
   temperature:"Thân nhiệt", celsius:"°C", author:"Người ghi",
   savedToast:"Đã lưu", deletedToast:"Đã xóa", startedToast:"Đã bắt đầu hẹn giờ", recordedToast:"Đã ghi nhận",
   alreadyActive:"Đang có một mục hẹn giờ chạy rồi", canceledToast:"Đã hủy",
   adjustStart:"Chỉnh giờ bắt đầu", discardActive:"Hủy, không lưu",
   pauseBtn:"Tạm dừng", resumeBtn:"Tiếp tục", pausedLabel:"Đã tạm dừng",
-  m1:"-60p", m2:"-30p", m3:"-10p", m4:"-5p", p1:"+5p", p2:"+10p", p3:"+30p", p4:"+60p",
   avgMlPerDay:"TB mỗi ngày", avgPerFeed:"TB mỗi lần", avgFeedsPerDay:"Lần/ngày",
-  excludesToday:"Chưa tính hôm nay vì ngày chưa kết thúc",
   permissionHint:"Mỗi người chỉ sửa hoặc xoá được ghi chép của mình. Mẹ sửa được tất cả.",
   lockedByTpl:"Mục này do {who} ghi. Bạn chỉ có thể xem.",
   masterTitle:"Quyền của mẹ", masterPin:"Mã PIN để chuyển sang Mẹ",
@@ -1624,14 +1617,14 @@ vi: {
   quickWordsTitle:"Quản lý nút nhanh ghi chú", qwAddPh:"Nhập cụm từ hay dùng", noQuickWords:"Chưa có cụm từ nào",
   weekday_short:["CN","T2","T3","T4","T5","T6","T7"],
   authorPresets:["Mẹ","Bố","Bảo mẫu"], authorCustomPh:"VD: Bà nội Zio",
-  entryDetailFor:"Chi tiết", deleteSwipeLabel:"Xóa",
+  deleteSwipeLabel:"Xóa",
   statsFeedTitle:"Bú", statsSleepTitle:"Giấc ngủ", poopTitle:"Đi phân", last7days:"7 ngày qua",
   avgOverDaysTpl:"TB {n} ngày đến hết hôm qua · chưa tính hôm nay",
   poopLedeTpl:"Trung bình mỗi {avg} · lần gần nhất {last} trước", nowShort:"Bây giờ", afterGapTpl:"sau {v}",
-  poopStats:"Thống kê đi phân", avgPoopInterval:"Khoảng cách TB giữa các lần đi phân", notEnoughData:"Chưa đủ dữ liệu",
+  notEnoughData:"Chưa đủ dữ liệu",
   /* just the numbers in the toggle: "7 ngày" wrapped onto two lines and
      made the card header taller than the Korean one */
-  feedStatsRange:"Khoảng thời gian", range7:"7", range14:"14", range30:"30",
+  range7:"7", range14:"14", range30:"30",
   translating:"Đang dịch...", translateFailed:"Không lấy được bản dịch", dayShort:" ngày", poopRecentTpl:"{n} lần gần đây"
 }
 };
@@ -1754,7 +1747,6 @@ function withActor(payload){
    ================================================================ */
 function $(sel, el){ return (el||document).querySelector(sel); }
 function $$(sel, el){ return Array.prototype.slice.call((el||document).querySelectorAll(sel)); }
-function uid(p){ return p + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
 function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 function cssEsc(s){ return String(s).replace(/["\\]/g, '\\$&'); }
 
@@ -1901,21 +1893,33 @@ function apiTranslate(text, target){
       .catch(function(){ return serverTranslate(src, target); }),
     TRANSLATE_TOTAL_MS).then(function(out){ return fixBabyName(out, target); });
 }
-/* poll for edits made by other viewers; skip the tick if a mutation is
-   already in flight from this tab so responses can't land out of order */
+/* POLLING FOR OTHER PEOPLE'S WRITES.
+   Three phones write into this log, so every open copy checks for changes
+   every few seconds. It used to answer "has anything changed?" by
+   downloading the whole document — 234KB of records, ~23KB gzipped, EVERY
+   TICK. A phone left open cost about 21MB an hour, and it grew with the
+   log. The version counter answers the same question in a few bytes; the
+   records are fetched only when it has actually moved. */
 var pollBusy = false;
 function pollState(){
   /* a poll landing mid-write would replace appState with a version that
      predates the optimistic row and make it flicker away */
   if (pollBusy || mutationsInFlight > 0) return;
   pollBusy = true;
-  fetch('/api/state').then(function(res){ return res.json(); }).then(function(json){
-    pollBusy = false;
-    if (json.version !== appVersion){
-      appState = json.data; appVersion = json.version;
-      renderAll();
-    }
-  }).catch(function(){ pollBusy = false; });
+  function done(){ pollBusy = false; }
+  function pullEverything(){
+    return apiGetState().then(function(){ renderAll(); });
+  }
+  fetch('/api/version').then(function(res){
+    if (!res.ok) throw new Error('no version endpoint');
+    return res.json();
+  }).then(function(v){
+    if (v.version === appVersion) return;   /* nothing to fetch */
+    return pullEverything();
+  }).then(done)
+    /* an older server that doesn't know /api/version, or a hiccup: fall back
+       to the way it always worked rather than going stale */
+    .catch(function(){ pullEverything().then(done).catch(done); });
 }
 
 /* ================================================================
