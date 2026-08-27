@@ -217,26 +217,37 @@
   /* The running stopwatch, as a full-width band in the same strip as the memo
      and the next-feed line — not a rounded card sitting inside the log.
      The timer is the only thing on screen that changes every second, so it
-     is the only thing that must not be able to move anything else: fixed
-     width, monospaced digits, its own column. */
+     is the only thing that must not be able to move anything else: per-char
+     slots hold the digits still, its own column holds the line. */
+  /* the running stopwatch wears the SAME band clothes as the memo preview and
+     the next-feed estimate above it — same 13px vertical padding, same caption
+     type sizes — so the three read as one family of strips, not two banners
+     and a stray widget ("스탑워치 배너만 따로 노네") */
   .active-bar{
     width:calc(100% + 32px); margin:0 -16px; border-radius:0;
     background:color-mix(in srgb, var(--active-color, var(--c-feed)) 22%, var(--surface-2));
-    color:var(--fg); padding:11px 16px; display:flex; align-items:center; gap:10px;
+    color:var(--fg); padding:13px 16px; display:flex; align-items:center; gap:10px;
   }
   .active-bar.paused{ opacity:.72; }
   .active-bar .aw-emoji{ width:19px; height:19px; flex:0 0 auto; color:var(--active-color); display:block; }
   .active-bar .aw-meta{ flex:1 1 auto; min-width:0; }
+  /* the name line stands 20px tall with 2px under it — the exact skeleton of
+     the banner's .a-top + gap, so the two bands come out the same height */
   .active-bar .aw-meta b{ display:block; font-size:var(--fs-caption); font-weight:var(--fw-strong);
+    line-height:20px; margin-bottom:2px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   /* DIRECT children only. #aw-sub holds two spans of its own now, and an
      unscoped `span` rule turned them into blocks — the author dropped onto a
      line of its own inside a bar with no room for one. */
-  .active-bar .aw-meta > span{ display:block; font-size:var(--fs-micro); color:var(--muted);
+  .active-bar .aw-meta > span{ display:block; font-size:var(--fs-caption); color:var(--muted);
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   /* Gothic A1 has no tabular figures, so every tick redrew this at a slightly
-     different width and shoved the buttons sideways. A monospaced stack plus a
-     fixed box means the seconds change and nothing else does. */
+     different width and shoved the buttons sideways. It used to be monospaced
+     for that reason — which is exactly what made it look like it belonged to a
+     different app. Now it is the app's own face, with each character sitting
+     in its own fixed slot (see the span rule below): the seconds change and
+     nothing else moves, and the whole element only grows when the hour turns
+     over — same as before. */
   /* THE BOX IS SIZED TO WHAT IS IN IT, IN THREE STEPS. One box wide enough
      for the overnight case ("12:05:22") stole that width from the line under
      the name for the whole of every four-minute feed; one sized for a feed
@@ -244,13 +255,13 @@
      clock actually grows. It still never changes width WHILE the seconds
      tick — only when the hour turns over. */
   .active-bar .aw-time{
-    flex:0 0 auto; width:58px; text-align:right;
-    font-family:ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-    font-size:var(--fs-title); font-weight:var(--fw-display); font-variant-numeric:tabular-nums;
-    letter-spacing:-.2px;
+    flex:0 0 auto; text-align:right; white-space:nowrap;
+    font-size:var(--fs-caption); font-weight:var(--fw-strong);
+    font-variant-numeric:tabular-nums;
   }
-  .active-bar .aw-time.is-long{ width:80px; }
-  .active-bar .aw-time.is-xlong{ width:90px; }
+  /* hand-made tabular figures: every digit in an equal slot, colons narrower */
+  .active-bar .aw-time span{ display:inline-block; width:.64em; text-align:center; }
+  .active-bar .aw-time span.c{ width:.34em; }
   .active-bar .aw-actions{ display:flex; gap:6px; flex:0 0 auto; }
   .aw-round{
     width:32px; height:32px; border-radius:50%; border:0; background:var(--surface);
@@ -278,9 +289,6 @@
      the clock can get is what this step has to survive, not the average. */
   @media (max-width: 360px){
     .active-bar .aw-sub-who{ display:none; }
-    .active-bar .aw-time{ width:52px; font-size:var(--fs-body); }
-    .active-bar .aw-time.is-long{ width:72px; }
-    .active-bar .aw-time.is-xlong{ width:80px; }
   }
 
   /* ---------- section ---------- */
@@ -3294,10 +3302,11 @@ function renderActiveBar(){
   bar.classList.toggle('paused', paused);
   var timeEl = document.getElementById('aw-time');
   var stopTxt = fmtStopwatch(elapsed);
-  timeEl.textContent = stopTxt;
-  /* "04:12" / "1:05:22" / "12:05:22" — three widths, picked by the string */
-  timeEl.classList.toggle('is-long', stopTxt.length > 5);
-  timeEl.classList.toggle('is-xlong', stopTxt.length > 7);
+  /* one fixed-width slot per character — the app font's own digits, held
+     still by the slots instead of by a monospace family */
+  timeEl.innerHTML = stopTxt.split('').map(function(ch){
+    return ch === ':' ? '<span class="c">:</span>' : '<span>'+ch+'</span>';
+  }).join('');
   document.getElementById('aw-pause').innerHTML = awIcon(paused ? 'play' : 'pause');
   document.getElementById('aw-pause').title = paused ? t('resumeBtn') : t('pauseBtn');
   document.getElementById('aw-name').textContent = name;
@@ -6325,6 +6334,13 @@ function unreadReplyIds(){
    them vanish under her thumb on the next four-second poll — and the marks
    are the whole point of having opened it. */
 var memoUnreadShown = {};
+/* the last moment the memo list was drawn while actually in front of her
+   eyes. Leaving the tab used to stamp the watermark at NOW — which also
+   swallowed memos that arrived while the phone sat locked on the memo tab:
+   the poll kept rendering into a page nobody was looking at, and her first
+   tap after unlocking marked it all read. Only a render she could SEE moves
+   the mark. */
+var memoVisitSeenAt = null;
 function noteUnreadOnScreen(list){
   list.forEach(function(m){ memoUnreadShown[m.id] = true; });
   var rids = unreadReplyIds();
@@ -6332,7 +6348,14 @@ function noteUnreadOnScreen(list){
 }
 function markMemosRead(){
   memoUnreadShown = {};
-  try { localStorage.setItem(LS_MEMO_SEEN, new Date().toISOString()); } catch(e){}
+  if (memoVisitSeenAt){
+    try {
+      var cur = localStorage.getItem(LS_MEMO_SEEN);
+      /* ISO strings order lexically; the watermark never walks backwards */
+      if (!cur || cur < memoVisitSeenAt) localStorage.setItem(LS_MEMO_SEEN, memoVisitSeenAt);
+    } catch(e){}
+  }
+  memoVisitSeenAt = null;
   updateMemoPreview();
 }
 
@@ -6407,7 +6430,10 @@ function renderMemoList(){
   /* Anything unread when the tab was opened STAYS marked for the whole
      visit. Recomputing it on every four-second poll would clear the marks
      out from under her while she is still reading them. */
-  if (state.tab === 'memo') noteUnreadOnScreen(unreadMemos());
+  if (state.tab === 'memo' && document.visibilityState !== 'hidden'){
+    memoVisitSeenAt = new Date().toISOString();
+    noteUnreadOnScreen(unreadMemos());
+  }
   /* this list is rebuilt by every 4-second poll, and a reply being TYPED
      lives inside it — capture the half-written text (and where the cursor
      was) before the rebuild, put it back after, or the poll eats her reply
@@ -6455,11 +6481,12 @@ function renderMemoList(){
       (m.replies.length ? '<div class="m-replies">' + m.replies.map(function(r){
         var rNew = !!memoUnreadShown[r.id];
         var mine = isSameAuthorName(r.author, state.author);
-        /* my own bubble does not need my name on it — its side says that */
+        /* every bubble carries its author — the side alone was not enough:
+           "누가 남겼는지 표기가 안되어 있음" */
         return '<div class="m-reply'+(mine ? ' mine' : '')+'">' +
           '<div class="mr-head">' +
             (rNew ? '<span class="m-new-dot" aria-hidden="true"></span>' : '') +
-            (mine ? '' : '<span class="mr-author">'+esc(localizeAuthorName(r.author))+'</span>') +
+            '<span class="mr-author">'+esc(localizeAuthorName(r.author))+'</span>' +
             '<span class="mr-time">'+esc(fmtDateTime(r.time))+'</span>' +
             kebabBtnHtml('class="ico-btn kebab-btn mr-del" data-kb-reply="'+esc(m.id)+'|'+esc(r.id)+'"').replace('class="ico-btn kebab-btn" ', '') +
           '</div>' +
