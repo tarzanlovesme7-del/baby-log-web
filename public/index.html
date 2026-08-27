@@ -13,6 +13,8 @@
 <!-- Zio's own face, not a bottle emoji. Added to a home screen, iOS was
      falling back to a screenshot of the page because there was no
      apple-touch-icon at all. -->
+<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
 <link rel="icon" type="image/png" sizes="48x48" href="/favicon.png" />
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
 <link rel="manifest" href="/site.webmanifest" />
@@ -95,6 +97,15 @@
     --c-nails:#e8b100; --c-temp:#ff6b5e; --c-massage:#f472b6; --c-custom:#8b95a1;
     --c-outing:#2fae5f;
 
+    /* schedule pastels — six soft fills with a darker voice of the same hue
+       for the words on them; the dark theme redefines every pair below */
+    --ev-sky-bg:#dbeafe;   --ev-sky-fg:#1d5fae;
+    --ev-mint-bg:#d3f2e0;  --ev-mint-fg:#187a49;
+    --ev-peach-bg:#ffe6d3; --ev-peach-fg:#b45a12;
+    --ev-lilac-bg:#ecdffb; --ev-lilac-fg:#7743c9;
+    --ev-lemon-bg:#fdf2c4; --ev-lemon-fg:#97700a;
+    --ev-rose-bg:#fde1e8;  --ev-rose-fg:#bb2e64;
+
     /* "Apple SD Gothic Neo" is a system font — it isn't fetched, it's simply named first
        so it's used natively on the family's iPhones/Macs. Gothic A1 (loaded via Google
        Fonts, the only external host the Artifact CSP allows) is the fallback for anyone
@@ -114,6 +125,12 @@
       --danger:#d42535; --danger-text:#ff8b95;
       --memo-bg:#40330f; --memo-fg:#ffd84d;
       --nf-bg:#452b0d; --nf-fg:#ffc078;
+      --ev-sky-bg:#1c3350;   --ev-sky-fg:#9cc4ff;
+      --ev-mint-bg:#143829;  --ev-mint-fg:#7fe0ae;
+      --ev-peach-bg:#46290f; --ev-peach-fg:#ffb877;
+      --ev-lilac-bg:#32224e; --ev-lilac-fg:#cdaaff;
+      --ev-lemon-bg:#403812; --ev-lemon-fg:#f0d76a;
+      --ev-rose-bg:#471d2b;  --ev-rose-fg:#ff9dbc;
     }
   }
   :root[data-theme="dark"]{
@@ -125,6 +142,12 @@
     --danger:#d42535; --danger-text:#ff8b95;
     --memo-bg:#40330f; --memo-fg:#ffd84d;
     --nf-bg:#452b0d; --nf-fg:#ffc078;
+    --ev-sky-bg:#1c3350;   --ev-sky-fg:#9cc4ff;
+    --ev-mint-bg:#143829;  --ev-mint-fg:#7fe0ae;
+    --ev-peach-bg:#46290f; --ev-peach-fg:#ffb877;
+    --ev-lilac-bg:#32224e; --ev-lilac-fg:#cdaaff;
+    --ev-lemon-bg:#403812; --ev-lemon-fg:#f0d76a;
+    --ev-rose-bg:#471d2b;  --ev-rose-fg:#ff9dbc;
   }
   :root[lang="vi"]{
     --font: "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI",
@@ -1026,6 +1049,66 @@
   .gcal-day.today{ box-shadow:inset 0 0 0 1.5px var(--primary); }
   .gcal-day.selected{ background:color-mix(in srgb, var(--primary) 10%, var(--surface)); }
   .gcal-day:empty{ visibility:hidden; }
+  /* a schedule shows its WORDS right on the month grid — a pastel pill with
+     the title, no tapping required. A multi-day schedule runs as one bar
+     across its days (the cells touch, so joined pills read as one); the bar
+     loses its rounding on the side it continues past. Three lanes fit; the
+     rest become "+n". */
+  .gcal-evt{
+    display:block; width:100%; box-sizing:border-box; padding:1px 3px;
+    border-radius:5px; font-size:9px; line-height:1.4; height:14.6px;
+    font-weight:var(--fw-body);
+    background:var(--ev-sky-bg); color:var(--ev-sky-fg);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center;
+  }
+  .gcal-evt.cont-l{ border-top-left-radius:0; border-bottom-left-radius:0; }
+  .gcal-evt.cont-r{ border-top-right-radius:0; border-bottom-right-radius:0; }
+  .gcal-evt.ghost{ visibility:hidden; }
+  .gcal-evt.more{ background:transparent; color:var(--muted-2); height:auto; }
+  /* the pills sit in aligned lanes at the bottom of every cell, so a bar
+     stays level as it crosses days whose numbers carry different marks */
+  .gcal-lanes{ margin-top:auto; width:100%; display:flex; flex-direction:column; gap:2px; }
+  .evc-sky{ background:var(--ev-sky-bg); color:var(--ev-sky-fg); }
+  .evc-mint{ background:var(--ev-mint-bg); color:var(--ev-mint-fg); }
+  .evc-peach{ background:var(--ev-peach-bg); color:var(--ev-peach-fg); }
+  .evc-lilac{ background:var(--ev-lilac-bg); color:var(--ev-lilac-fg); }
+  .evc-lemon{ background:var(--ev-lemon-bg); color:var(--ev-lemon-fg); }
+  .evc-rose{ background:var(--ev-rose-bg); color:var(--ev-rose-fg); }
+  /* the little identity dot a schedule wears in the week list and day page */
+  .evd{ width:7px; height:7px; border-radius:50%; flex:0 0 auto; align-self:center; }
+  .evd-sky{ background:var(--ev-sky-fg); } .evd-mint{ background:var(--ev-mint-fg); }
+  .evd-peach{ background:var(--ev-peach-fg); } .evd-lilac{ background:var(--ev-lilac-fg); }
+  .evd-lemon{ background:var(--ev-lemon-fg); } .evd-rose{ background:var(--ev-rose-fg); }
+  /* "2/3" on a multi-day schedule in the week list */
+  .nth{ font-size:var(--fs-micro); color:var(--muted-2); font-variant-numeric:tabular-nums; flex:0 0 auto; }
+  /* the schedule form's second row: hour, end date, colors */
+  .sched-opts{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:4px 0 2px; }
+  .sched-opts input{ border:1px solid var(--border); background:var(--surface); color:var(--fg);
+    border-radius:10px; padding:7px 9px; font-size:var(--fs-caption); min-width:0; }
+  .sched-opts .so-sep{ color:var(--muted-2); font-size:var(--fs-caption); }
+  .sched-colors{ display:flex; gap:7px; align-items:center; }
+  .sc-dot{ width:21px; height:21px; border-radius:50%; border:0; padding:0;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.08); }
+  .sc-dot[aria-pressed="true"]{ box-shadow:0 0 0 2px var(--surface), 0 0 0 3.5px var(--fg); }
+  /* ---------- the week view: same card, readable lines ---------- */
+  .gweek-day{ display:flex; gap:12px; padding:11px 2px; border-top:1px solid var(--border);
+    align-items:flex-start; width:100%; border-left:0; border-right:0; border-bottom:0;
+    background:transparent; text-align:left; }
+  .gweek-day:first-child{ border-top:0; }
+  .gweek-date{ flex:0 0 40px; text-align:center; }
+  .gweek-date b{ display:block; font-size:var(--fs-title); font-weight:var(--fw-display);
+    font-variant-numeric:tabular-nums; color:var(--fg); line-height:1.2; }
+  .gweek-date span{ font-size:var(--fs-micro); color:var(--muted-2); }
+  .gweek-day.today .gweek-date b{ color:var(--primary-weak-fg); }
+  .gweek-day.dim .gweek-date b{ color:var(--muted-2); font-weight:var(--fw-body); }
+  .gweek-body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; padding-top:2px; }
+  .gweek-evt{ display:flex; gap:7px; align-items:baseline; font-size:var(--fs-caption);
+    color:var(--fg); min-width:0; }
+  .gweek-evt .tm{ flex:0 0 auto; font-size:var(--fs-micro); color:var(--muted-2);
+    font-variant-numeric:tabular-nums; }
+  .gweek-evt .tx{ min-width:0; overflow:hidden; text-overflow:ellipsis; }
+  .gweek-sub{ font-size:var(--fs-micro); color:var(--muted); }
+  .gweek-empty{ font-size:var(--fs-micro); color:var(--muted-2); padding-top:4px; }
   /* two number boxes, two unit labels and a button on one 320px row: the
      boxes give, everything else keeps its size */
   #fp-gday .weight-form input[type="number"]{ flex:1; min-width:0; width:auto; }
@@ -1717,6 +1800,12 @@
     </div>
 
     <div class="ins-panel" data-gv-panel="cal">
+      <!-- month for the overview (schedules as small pills right on the
+           grid), week for reading: full schedule text, day by day -->
+      <div class="chips-nav" id="gcal-sub">
+        <button type="button" data-gcv="month" aria-pressed="true" data-i18n="gViewMonth">월간</button>
+        <button type="button" data-gcv="week" aria-pressed="false" data-i18n="gViewWeek">주간</button>
+      </div>
       <div class="card gcal-card">
         <div class="gcal-head">
           <button type="button" class="log-arrow" id="gcal-prev">‹</button>
@@ -1725,8 +1814,9 @@
         </div>
         <div class="gcal-dow" id="gcal-dow"></div>
         <div class="gcal-grid" id="gcal-grid"></div>
+        <div id="gweek-list" hidden></div>
       </div>
-      <div class="hint-line" data-i18n="gCalHint">기록이 있는 날만 진하게 · 날짜를 누르면 입력</div>
+      <div class="hint-line" data-i18n="gCalHint">⚖️ 몸무게 · 📏 키 · ⭐ 발달 · 📝 일기</div>
       <div class="memo-fab-wrap">
         <button type="button" class="fab" id="gcal-fab" aria-label="growth add">+</button>
       </div>
@@ -1958,6 +2048,22 @@
           <button type="button" id="gday-milestone-add" data-i18n="add">추가</button>
         </div>
         <div id="gday-list"></div>
+      </div>
+      <div>
+        <div class="section-title" data-i18n="schedTitle">일정</div>
+        <div id="gday-sched-form">
+          <div class="weight-form" style="padding-top:2px">
+            <input type="text" id="gday-sched-text" data-i18n-ph="schedPh" maxlength="120" style="flex:1;min-width:0;" />
+            <button type="button" id="gday-sched-add" data-i18n="add">추가</button>
+          </div>
+          <div class="sched-opts">
+            <input type="time" id="gday-sched-time" />
+            <span class="so-sep">~</span>
+            <input type="date" id="gday-sched-end" title="종료일 · Ngày kết thúc" />
+            <div class="sched-colors" id="gday-sched-colors"></div>
+          </div>
+        </div>
+        <div id="gday-sched-list"></div>
       </div>
       <div>
         <div class="section-title" data-i18n="gDiaryTitle">육아일기</div>
@@ -2196,10 +2302,13 @@ ko: {
   patternTitle:"시간대 패턴", patternCaption:"세로축은 하루 24시간", patternEmpty:"이 기간엔 기록이 없어요",
   insAll:"일과", tabGrowth:"성장", gCal:"캘린더", gGraph:"그래프",
   heightTitle:"키", milestoneTitle:"발달 기록", milestonePh:"뒤집기, 첫 웃음…",
-  gCalHint:"⚖️ 몸무게 · 📏 키 · ⭐ 발달 · 📝 일기 — 날짜를 누르면 입력",
+  gCalHint:"⚖️ 몸무게 · 📏 키 · ⭐ 발달 · 📝 일기",
   feedSubTerm:"수유텀", feedSubStats:"수유량", pvSleepTerm:"잠텀", sleepSubStats:"수면 통계", gMeasures:"측정", gDiaryTitle:"육아일기",
   gEdit:"수정", gDone:"완료", gNoMeasure:"기록 없음", memoEditTitle:"메모 수정",
   diaryPh:"오늘의 육아일기…", diarySave:"일기 저장", diaryEmpty:"이 날의 일기가 아직 없어요",
+  gViewMonth:"월간", gViewWeek:"주간",
+  schedTitle:"일정", schedPh:"예: 예방접종", schedEmpty:"이 날 일정이 없어요",
+  gWeekEmpty:"이번 주에는 아직 아무것도 없어요",
   weightTitle:"몸무게", weightCountTpl:"{n}회 측정",
   weightLedeTpl:"지금 <b>{kg}kg</b> · 태어나서 +{gain}kg",
   weightPrevTpl:"지난 측정({d})보다 +{diff}kg", weightPrevDownTpl:"지난 측정({d})보다 {diff}kg",
@@ -2296,10 +2405,13 @@ vi: {
   patternTitle:"Mẫu hình theo giờ", patternCaption:"Trục dọc là 24 giờ trong ngày", patternEmpty:"Chưa có nhật ký trong khoảng này",
   insAll:"Sinh hoạt", tabGrowth:"Phát triển", gCal:"Lịch", gGraph:"Biểu đồ",
   heightTitle:"Chiều cao", milestoneTitle:"Cột mốc phát triển", milestonePh:"Lật người, nụ cười đầu…",
-  gCalHint:"⚖️ Cân nặng · 📏 Chiều cao · ⭐ Cột mốc · 📝 Nhật ký — chạm vào ngày để nhập",
+  gCalHint:"⚖️ Cân nặng · 📏 Chiều cao · ⭐ Cột mốc · 📝 Nhật ký",
   feedSubTerm:"Cữ bú", feedSubStats:"Lượng sữa", pvSleepTerm:"Bé thức", sleepSubStats:"Thống kê ngủ", gMeasures:"Đo lường", gDiaryTitle:"Nhật ký bé",
   gEdit:"Sửa", gDone:"Xong", gNoMeasure:"Chưa có ghi chép", memoEditTitle:"Sửa ghi chú",
   diaryPh:"Nhật ký hôm nay…", diarySave:"Lưu nhật ký", diaryEmpty:"Chưa có nhật ký cho ngày này",
+  gViewMonth:"Tháng", gViewWeek:"Tuần",
+  schedTitle:"Lịch hẹn", schedPh:"VD: Tiêm chủng", schedEmpty:"Không có lịch hẹn ngày này",
+  gWeekEmpty:"Tuần này chưa có gì",
   weightTitle:"Cân nặng", weightCountTpl:"Đo {n} lần",
   weightLedeTpl:"Hiện tại <b>{kg}kg</b> · tăng {gain}kg từ khi sinh",
   weightPrevTpl:"Tăng {diff}kg so với lần trước ({d})", weightPrevDownTpl:"{diff}kg so với lần trước ({d})",
@@ -2420,6 +2532,8 @@ var state = {
   gTab: 'cal',        // 성장 tab view: 'cal' | 'graph'
   gMonth: null,       // 'YYYY-MM' the calendar is showing (null = this month)
   gDate: null,        // 'YYYY-MM-DD' selected on the calendar (null = today)
+  gCalView: 'month',  // 캘린더 화면: 'month' (그리드+일정 pill) | 'week' (리스트)
+  gWeek: null,        // 'YYYY-MM-DD' the Sunday the week view starts on (null = this week)
   feedSub: 'term',    // 수유 section sub-screen: 'term' (수유텀) | 'stats' (수유량)
   sleepSub: 'term',   // 수면 section sub-screen: 'term' (잠텀) | 'stats' (수면 통계)
   gMode: 'view',      // the day page: 'view' (기록 보기) | 'edit' (입력·수정)
@@ -3360,6 +3474,31 @@ function toggleAdjustPanel(){
   panel.hidden = !state.adjustOpen;
   if (state.adjustOpen) renderAdjustPanel();
 }
+/* one write per settled ruler position — see the scrubchange listener */
+var adjustSendTimer = null, adjustPendingStart = null, adjustPrevStart = null, adjustInFlight = false;
+function sendAdjustStart(){
+  if (adjustInFlight || adjustPendingStart === null) return;
+  var next = adjustPendingStart;
+  var rollback = adjustPrevStart;
+  adjustPendingStart = null;
+  adjustPrevStart = null;
+  adjustInFlight = true;
+  apiMutate('adjustActiveStart', { start: next })
+    .catch(function(err){
+      var now = getActive();
+      /* no active any more = it was finished/cancelled while this write was
+         on the wire; the finish carried the start itself, nothing to say */
+      if (!now) return;
+      if (rollback) now.start = rollback;
+      renderActiveBar();
+      toast(err.message);
+    })
+    .then(function(){
+      adjustInFlight = false;
+      /* the ruler moved again while this write was on the wire */
+      if (adjustPendingStart !== null) sendAdjustStart();
+    });
+}
 function renderAdjustPanel(){
   var panel = document.getElementById('aw-adjust-panel');
   if (!panel) return;
@@ -3374,24 +3513,28 @@ function renderAdjustPanel(){
   html += '<button type="button" class="text-btn" style="color:var(--danger);padding-left:0;margin-top:10px;" id="aw-discard">'+esc(t('discardActive'))+'</button>';
   panel.innerHTML = html;
   wireScrubs(panel);
-  /* persist on every user-driven move; 'scrubchange' rather than 'change' so
-     the scrub's own re-anchor listener doesn't fight this one */
+  /* the screen follows every move of the ruler, the SERVER hears about it
+     once. A drag crosses dozens of minute-cells, and writing each one made
+     that many read-modify-write races — enough of them collided that the
+     server gave up with "too many concurrent writes". So: update locally on
+     every tick, and only after the ruler has been still for a moment send
+     ONE write carrying wherever it ended up; if a write is already on the
+     wire, the newest value simply waits its turn instead of racing it.
+     'scrubchange' rather than 'change' so the scrub's own re-anchor
+     listener doesn't fight this one. */
   document.getElementById('aw-start-input').addEventListener('scrubchange', function(ev){
     var a2 = getActive();
     if (!a2) return;
-    var next = combineDateTime(a2.start, ev.target.value);
-    var prevStart = a2.start;
-    a2.start = next;
+    if (adjustPrevStart === null) adjustPrevStart = a2.start;  /* rollback point: where the burst began */
+    a2.start = combineDateTime(a2.start, ev.target.value);
     renderActiveBar();
-    apiMutate('adjustActiveStart', { start: next })
-      .catch(function(err){
-        var now = getActive();
-        if (now) now.start = prevStart;
-        renderActiveBar();
-        toast(err.message);
-      });
+    adjustPendingStart = a2.start;
+    clearTimeout(adjustSendTimer);
+    adjustSendTimer = setTimeout(sendAdjustStart, 450);
   });
   document.getElementById('aw-discard').addEventListener('click', function(){
+    clearTimeout(adjustSendTimer);
+    adjustPendingStart = null; adjustPrevStart = null;
     var prev = appState.active;
     appState.active = null;
     state.adjustOpen = false;
@@ -3428,7 +3571,11 @@ function finishActive(){
   if (navigator.vibrate) try{ navigator.vibrate(8); }catch(e){}
   flashRow(tempId);
 
-  apiMutate('finishActive', { author: state.author, end: end })
+  /* the ruler's settled-write may still be waiting its 450ms — the finish
+     itself carries the start on screen, so nothing is owed afterwards */
+  clearTimeout(adjustSendTimer);
+  adjustPendingStart = null; adjustPrevStart = null;
+  apiMutate('finishActive', { author: state.author, end: end, start: a.start })
     .then(function(result){
       /* same trap as quickCreate: the row on screen carries an id this phone
          invented, and tapping it before the server answers would leave the
@@ -5017,6 +5164,35 @@ function readMilestones(){
     return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
   });
 }
+function readSchedules(){
+  return (appState.schedules || []).map(function(s){
+    var out = Object.assign({}, s);
+    out.translated = glossaryFix(s.text || '', s.lang || '', s.translation || '');
+    /* a single day is a span of one: every schedule has an end */
+    out.endDate = (s.endDate && s.endDate > s.date) ? s.endDate : s.date;
+    out.color = s.color || 'sky';
+    return out;
+  }).sort(function(a, b){
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+    return (a.time || '99:99') < (b.time || '99:99') ? -1 : 1;
+  });
+}
+/* how many days a schedule covers, and which of them a given day is */
+function schedNights(s){
+  return Math.round((new Date(s.endDate + 'T00:00:00') - new Date(s.date + 'T00:00:00')) / 86400000) + 1;
+}
+function schedDayIndex(s, ds){
+  return Math.round((new Date(ds + 'T00:00:00') - new Date(s.date + 'T00:00:00')) / 86400000) + 1;
+}
+function schedulesOnDay(ds){
+  return readSchedules().filter(function(s){ return s.date <= ds && ds <= s.endDate; });
+}
+/* the words a reader actually reads: their own language when the schedule
+   was written in it, the stored translation otherwise */
+function schedShownText(s){
+  if (s.lang === state.lang || !s.translated) return s.text;
+  return s.translated;
+}
 function renderHeightCard(){
   var wrap = document.getElementById('height-chart-wrap');
   var lede = document.getElementById('height-lede');
@@ -5072,10 +5248,26 @@ function renderMilestoneCard(){
 
 /* ---- the calendar ------------------------------------------------------ */
 function gShiftMonth(delta){
+  /* the arrows serve whichever view is up: months in the grid, weeks in
+     the list */
+  if (state.gCalView === 'week'){
+    var ws = new Date(gWeekStart() + 'T00:00:00');
+    ws.setDate(ws.getDate() + delta * 7);
+    state.gWeek = toDateValue(ws);
+    renderGrowth();
+    return;
+  }
   var mk = gMonthKey();
   var d = new Date(Number(mk.slice(0, 4)), Number(mk.slice(5, 7)) - 1 + delta, 1);
   state.gMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
   renderGrowth();
+}
+/* the Sunday the week view opens on */
+function gWeekStart(){
+  if (state.gWeek) return state.gWeek;
+  var n = new Date();
+  n.setDate(n.getDate() - n.getDay());
+  return toDateValue(n);
 }
 function gMonthKey(){
   if (state.gMonth) return state.gMonth;
@@ -5089,7 +5281,16 @@ function renderGrowthCalendar(){
   var grid = document.getElementById('gcal-grid');
   var titleEl = document.getElementById('gcal-title');
   var dowEl = document.getElementById('gcal-dow');
+  var weekEl = document.getElementById('gweek-list');
   if (!grid) return;
+  var view = state.gCalView || 'month';
+  $$('#gcal-sub button').forEach(function(b){
+    b.setAttribute('aria-pressed', String(b.dataset.gcv === view));
+  });
+  grid.hidden = view !== 'month';
+  dowEl.hidden = view !== 'month';
+  if (weekEl) weekEl.hidden = view !== 'week';
+  if (view === 'week'){ renderGrowthWeek(); return; }
   var mk = gMonthKey();
   var y = Number(mk.slice(0, 4)), mo = Number(mk.slice(5, 7));
   titleEl.textContent = state.lang === 'vi' ? (mo + '/' + y) : (y + '년 ' + mo + '월');
@@ -5109,6 +5310,52 @@ function renderGrowthCalendar(){
   var daysInMonth = new Date(y, mo, 0).getDate();
   var todayStr = toDateValue();
   var sel = gSelectedDate();
+
+  /* ---- schedule lanes. A multi-day schedule is one bar running across its
+     days; within each week row every schedule takes the lowest lane that is
+     free for its whole stretch, so bars never collide and a bar stays level
+     from cell to cell. Three lanes show; anything below them becomes "+n". */
+  var LANE_CAP = 3;
+  var monthStart = mk + '-01';
+  var monthEnd = mk + '-' + String(daysInMonth).padStart(2, '0');
+  var dayOf = function(row, col){ return row * 7 + col - firstDow + 1; };
+  var dsOf = function(dayNum){ return mk + '-' + String(dayNum).padStart(2, '0'); };
+  var monthEvs = readSchedules().filter(function(s){ return s.date <= monthEnd && s.endDate >= monthStart; });
+  monthEvs.sort(function(a, b){
+    var la = schedNights(a), lb = schedNights(b);
+    if (la !== lb) return lb - la;                       /* long bars claim lanes first */
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+    return (a.time || '99:99') < (b.time || '99:99') ? -1 : 1;
+  });
+  var laneBusy = {};       /* row -> lane -> [[c1,c2], ...] */
+  var dayLanes = {};       /* ds  -> lane -> {ev, contL, contR, text} */
+  var dayExtra = {};       /* ds  -> how many fell below the cap */
+  monthEvs.forEach(function(ev){
+    var startNum = Math.max(1, ev.date > monthStart ? Number(ev.date.slice(8, 10)) : 1);
+    var endNum = Math.min(daysInMonth, ev.endDate < monthEnd ? Number(ev.endDate.slice(8, 10)) : daysInMonth);
+    var rowFirst = Math.floor((firstDow + startNum - 1) / 7);
+    var rowLast = Math.floor((firstDow + endNum - 1) / 7);
+    for (var row = rowFirst; row <= rowLast; row++){
+      var c1 = Math.max(0, (firstDow + startNum - 1) - row * 7);
+      var c2 = Math.min(6, (firstDow + endNum - 1) - row * 7);
+      var lanes = laneBusy[row] = laneBusy[row] || [];
+      var lane = 0;
+      while ((lanes[lane] || []).some(function(iv){ return !(c2 < iv[0] || c1 > iv[1]); })) lane++;
+      (lanes[lane] = lanes[lane] || []).push([c1, c2]);
+      for (var c = c1; c <= c2; c++){
+        var dn = dayOf(row, c);
+        if (dn < 1 || dn > daysInMonth) continue;
+        var ds2 = dsOf(dn);
+        if (lane >= LANE_CAP){ dayExtra[ds2] = (dayExtra[ds2] || 0) + 1; continue; }
+        (dayLanes[ds2] = dayLanes[ds2] || {})[lane] = {
+          ev: ev,
+          contL: ds2 !== ev.date,
+          contR: ds2 !== ev.endDate,
+          text: ds2 === ev.date || c === c1,
+        };
+      }
+    }
+  });
   var cells = [];
   for (var b2 = 0; b2 < firstDow; b2++) cells.push('<span class="gcal-day"></span>');
   for (var d = 1; d <= daysInMonth; d++){
@@ -5119,7 +5366,28 @@ function renderGrowthCalendar(){
     var marks = flags ? '<span class="gcal-marks">' +
       ['w','h','m','d'].filter(function(k){ return flags[k]; })
         .map(function(k){ return MARK_ICONS[k]; }).join('') + '</span>' : '';
-    cells.push('<button type="button" class="' + cls + '" data-gday="' + ds + '">' + d + marks + '</button>');
+    /* the schedule's own words, right on the grid — lanes of pastel pills,
+       a multi-day bar continuing seamlessly into the next cell. Every cell
+       in a week row reserves the row's full lane count (ghosts fill the
+       gaps), so a bar sits at the same height in every cell it crosses. */
+    var row3 = Math.floor((firstDow + d - 1) / 7);
+    var rowMax = -1;
+    (laneBusy[row3] || []).forEach(function(iv, li){ if (iv && iv.length && li < LANE_CAP) rowMax = Math.max(rowMax, li); });
+    var lanesHere = dayLanes[ds];
+    var pills = '';
+    if ((lanesHere || dayExtra[ds]) && rowMax >= 0){
+      var lane_html = [];
+      for (var ln = 0; ln <= rowMax; ln++){
+        var seg = lanesHere && lanesHere[ln];
+        if (!seg){ lane_html.push('<span class="gcal-evt ghost"> </span>'); continue; }
+        lane_html.push('<span class="gcal-evt evc-' + seg.ev.color +
+          (seg.contL ? ' cont-l' : '') + (seg.contR ? ' cont-r' : '') + '">' +
+          (seg.text ? esc(schedShownText(seg.ev)) : ' ') + '</span>');
+      }
+      if (dayExtra[ds]) lane_html.push('<span class="gcal-evt more">+' + dayExtra[ds] + '</span>');
+      pills = '<span class="gcal-lanes">' + lane_html.join('') + '</span>';
+    }
+    cells.push('<button type="button" class="' + cls + '" data-gday="' + ds + '">' + d + marks + pills + '</button>');
   }
   grid.innerHTML = cells.join('');
   $$('[data-gday]', grid).forEach(function(btn){
@@ -5129,14 +5397,76 @@ function renderGrowthCalendar(){
     });
   });
 }
+/* seven days as readable lines: the schedule text in full with its hour,
+   the day's firsts, and a quiet line of what was measured — nothing needs
+   a tap to be read. Tapping a day still opens its page. */
+function renderGrowthWeek(){
+  var weekEl = document.getElementById('gweek-list');
+  var titleEl = document.getElementById('gcal-title');
+  if (!weekEl) return;
+  var start = new Date(gWeekStart() + 'T00:00:00');
+  var end = new Date(start); end.setDate(end.getDate() + 6);
+  titleEl.textContent = state.lang === 'vi'
+    ? (start.getDate() + '/' + (start.getMonth() + 1) + ' – ' + end.getDate() + '/' + (end.getMonth() + 1))
+    : ((start.getMonth() + 1) + '월 ' + start.getDate() + '일 – ' +
+       (end.getMonth() === start.getMonth() ? '' : (end.getMonth() + 1) + '월 ') + end.getDate() + '일');
+
+  var mstones = readMilestones();
+  var weights = readWeights();
+  var heights = readHeights();
+  var diaries = readDiaries();
+  var todayStr = toDateValue();
+  var dows = t('weekday_short');
+  var anything = false;
+  var rows = [];
+  for (var i = 0; i < 7; i++){
+    var d = new Date(start); d.setDate(start.getDate() + i);
+    var ds = toDateValue(d);
+    var lines = [];
+    schedulesOnDay(ds).forEach(function(s){
+      /* a stay of n days announces which day this is: 1/3, 2/3 … */
+      var n = schedNights(s);
+      lines.push('<span class="gweek-evt"><i class="evd evd-' + s.color + '"></i>' +
+        (s.time && ds === s.date ? '<span class="tm">' + esc(s.time) + '</span>' : '') +
+        '<span class="tx">' + esc(schedShownText(s)) + '</span>' +
+        (n > 1 ? '<span class="nth">' + schedDayIndex(s, ds) + '/' + n + '</span>' : '') +
+      '</span>');
+    });
+    mstones.filter(function(m){ return m.date === ds; }).forEach(function(m){
+      lines.push('<span class="gweek-evt"><span class="tm">⭐</span><span class="tx">' + esc(m.text) + '</span></span>');
+    });
+    var subs = [];
+    var w = weights.filter(function(x){ return x.date === ds; })[0];
+    var h = heights.filter(function(x){ return x.date === ds; })[0];
+    if (w) subs.push('⚖️ ' + w.kg + 'kg');
+    if (h) subs.push('📏 ' + h.cm + 'cm');
+    if (diaries.some(function(x){ return x.date === ds; })) subs.push('📝');
+    if (subs.length) lines.push('<span class="gweek-sub">' + subs.join(' · ') + '</span>');
+    if (lines.length) anything = true;
+    rows.push('<button type="button" class="gweek-day' + (ds === todayStr ? ' today' : '') +
+      (lines.length ? '' : ' dim') + '" data-gday="' + ds + '">' +
+      '<span class="gweek-date"><b>' + d.getDate() + '</b><span>' + esc(dows[d.getDay()]) + '</span></span>' +
+      '<span class="gweek-body">' + (lines.join('') || '<span class="gweek-empty">·</span>') + '</span>' +
+    '</button>');
+  }
+  weekEl.innerHTML = rows.join('') +
+    (anything ? '' : '<div class="empty-note" style="padding:8px 0 2px;font-size:var(--fs-caption)">' + esc(t('gWeekEmpty')) + '</div>');
+  $$('[data-gday]', weekEl).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      state.gDate = btn.dataset.gday;
+      openGrowthDay();
+    });
+  });
+}
 function openGrowthDay(mode){
   state.gMode = mode || 'view';
-  gPendingMile = null; gPendingDiary = null;
+  gPendingMile = null; gPendingDiary = null; gPendingSched = null;
+  resetSchedForm();
   renderGrowthDay();
   openFullpage('fp-gday');
 }
 function closeGrowthDay(){
-  gPendingMile = null; gPendingDiary = null;
+  gPendingMile = null; gPendingDiary = null; gPendingSched = null;
   closeFullpage('fp-gday');
   /* the month behind may have gained a mark while the page was open */
   renderGrowth();
@@ -5164,6 +5494,7 @@ function renderGrowthDay(){
   modeBtn.setAttribute('aria-label', t(editing ? 'gDone' : 'gEdit'));
   document.getElementById('gday-measure-form').hidden = !editing;
   document.getElementById('gday-mile-form').hidden = !editing;
+  document.getElementById('gday-sched-form').hidden = !editing;
   document.getElementById('gday-diary-form').hidden = !editing;
   var mv = document.getElementById('gday-measure-view');
   mv.hidden = editing;
@@ -5227,6 +5558,53 @@ function renderGrowthDay(){
     });
   });
 
+  /* the day's schedule — its color, the hour, the words (and the words in
+     the other language, so 엄마 writes 예방접종 and the nanny reads Tiêm
+     chủng), which day of a longer stay this is, and who put it there */
+  var scheds = schedulesOnDay(ds);
+  var sl = document.getElementById('gday-sched-list');
+  sl.innerHTML = !scheds.length
+    ? (editing ? '' : '<div class="empty-note" style="padding:6px 0;font-size:var(--fs-caption)">' + esc(t('schedEmpty')) + '</div>')
+    : scheds.map(function(s){
+        var shown = schedShownText(s);
+        /* the other language underneath, quietly, when there is one */
+        var second = (s.translated && s.translated !== s.text)
+          ? (shown === s.text ? s.translated : s.text) : '';
+        var n = schedNights(s);
+        return '<div class="gday-row"><i class="evd evd-' + s.color + '"></i>' +
+          (s.time ? '<span style="color:var(--muted-2);font-size:var(--fs-micro);font-variant-numeric:tabular-nums;flex:0 0 auto;">' + esc(s.time) + '</span>' : '') +
+          '<span style="flex:1;min-width:0;">' + esc(shown) +
+            (n > 1 ? ' <span class="nth">' + schedDayIndex(s, ds) + '/' + n + '</span>' : '') +
+            (second ? '<span class="gweek-sub" style="display:block">' + esc(second) + '</span>' : '') +
+          '</span>' +
+          '<span class="gweek-sub" style="flex:0 0 auto">' + esc(localizeAuthorName(s.author)) + '</span>' +
+          kebabBtnHtml('data-kb-sched="' + esc(s.id) + '"') +
+        '</div>';
+      }).join('');
+  $$('[data-kb-sched]', sl).forEach(function(btn){
+    btn.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var s = scheds.filter(function(x){ return x.id === btn.dataset.kbSched; })[0];
+      if (!s) return;
+      var items = [{ label: t('gEdit'), icon: 'pencil', fn: function(){
+        gPendingSched = s.id;
+        state.gMode = 'edit'; renderGrowthDay();
+        document.getElementById('gday-sched-time').value = s.time || '';
+        document.getElementById('gday-sched-end').value = (s.endDate > s.date) ? s.endDate : '';
+        gSchedColor = s.color; renderSchedColorDots();
+        var inp = document.getElementById('gday-sched-text');
+        inp.value = s.text;
+        setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 60);
+      } }];
+      if (canTouch(s.author)) items.push({ label: t('delete'), icon: 'trash', danger: true, fn: function(){
+        apiMutate('deleteSchedule', { id: s.id }).then(function(){
+          renderGrowth(); toast(t('deletedToast'));
+        }).catch(function(err){ toast(err.message); });
+      } });
+      openKebabMenu(btn, items);
+    });
+  });
+
   /* the day's diary pages, newest first — words, pictures, whoever wrote it */
   var diaries = readDiaries().filter(function(d2){ return d2.date === ds; });
   var dl = document.getElementById('gday-diary-list');
@@ -5281,7 +5659,32 @@ function renderGrowthDay(){
 
 /* an item being EDITED via its ⋯ menu: the words go back into the input
    and the save button writes an update instead of a new record */
-var gPendingMile = null, gPendingDiary = null;
+var gPendingMile = null, gPendingDiary = null, gPendingSched = null;
+
+/* the schedule pastels — ids shared with the server's allowlist */
+var SCHED_COLOR_IDS = ['sky', 'mint', 'peach', 'lilac', 'lemon', 'rose'];
+var gSchedColor = 'sky';
+function renderSchedColorDots(){
+  var box = document.getElementById('gday-sched-colors');
+  if (!box) return;
+  box.innerHTML = SCHED_COLOR_IDS.map(function(c){
+    return '<button type="button" class="sc-dot" data-sc="' + c + '" aria-pressed="' + (c === gSchedColor) + '"' +
+      ' style="background:var(--ev-' + c + '-bg)" aria-label="' + c + '"></button>';
+  }).join('');
+  $$('.sc-dot', box).forEach(function(b){
+    b.addEventListener('click', function(){ gSchedColor = b.dataset.sc; renderSchedColorDots(); });
+  });
+}
+function resetSchedForm(){
+  gSchedColor = 'sky';
+  var tEl = document.getElementById('gday-sched-text');
+  var tmEl = document.getElementById('gday-sched-time');
+  var eEl = document.getElementById('gday-sched-end');
+  if (tEl) tEl.value = '';
+  if (tmEl) tmEl.value = '';
+  if (eEl) eEl.value = '';
+  renderSchedColorDots();
+}
 
 /* ---- diary photos: same pipeline as memo photos, their own staging ---- */
 var diaryPhotos = [];
@@ -6481,12 +6884,12 @@ function renderMemoList(){
       (m.replies.length ? '<div class="m-replies">' + m.replies.map(function(r){
         var rNew = !!memoUnreadShown[r.id];
         var mine = isSameAuthorName(r.author, state.author);
-        /* every bubble carries its author — the side alone was not enough:
-           "누가 남겼는지 표기가 안되어 있음" */
+        /* my own bubble does not need my name on it — its side says that
+           (she agreed: "아 내가 남긴거라 답글에 이름 표시 안되는거구나 됐어") */
         return '<div class="m-reply'+(mine ? ' mine' : '')+'">' +
           '<div class="mr-head">' +
             (rNew ? '<span class="m-new-dot" aria-hidden="true"></span>' : '') +
-            '<span class="mr-author">'+esc(localizeAuthorName(r.author))+'</span>' +
+            (mine ? '' : '<span class="mr-author">'+esc(localizeAuthorName(r.author))+'</span>') +
             '<span class="mr-time">'+esc(fmtDateTime(r.time))+'</span>' +
             kebabBtnHtml('class="ico-btn kebab-btn mr-del" data-kb-reply="'+esc(m.id)+'|'+esc(r.id)+'"').replace('class="ico-btn kebab-btn" ', '') +
           '</div>' +
@@ -7213,6 +7616,10 @@ function renderAll(){
      scroll to today, and renderAll() runs on every 4s poll — that would yank
      the chart back while someone is swiping through earlier days. The pattern
      tab renders on entry instead (see switchTab). */
+  /* the growth tab IS here: a schedule or weigh-in another phone writes must
+     appear on an open calendar. The form inputs are static elements, so a
+     re-render never eats what someone is typing into them. */
+  if (state.tab === 'growth') renderGrowth();
   if (state.tab === 'settings') renderSettings();
   updateMemoPreview();
   if (state.tab === 'memo') renderMemoList();
@@ -7356,6 +7763,46 @@ function wireEvents(){
     gPendingMile = null;
     op.then(function(){ renderGrowth(); toast(t('savedToast')); })
       .catch(function(err){ toast(err.message || 'error'); });
+  });
+  // month ⇄ week on the growth calendar
+  $$('#gcal-sub button').forEach(function(b){
+    b.addEventListener('click', function(){
+      state.gCalView = b.dataset.gcv;
+      renderGrowth();
+    });
+  });
+  // a schedule typed on the day page — translated in the background so the
+  // nanny reads it in her own words
+  renderSchedColorDots();
+  document.getElementById('gday-sched-add').addEventListener('click', function(){
+    var inp = document.getElementById('gday-sched-text');
+    var text = inp.value.trim();
+    if (!text) return;
+    var time = document.getElementById('gday-sched-time').value || '';
+    var endDate = document.getElementById('gday-sched-end').value || '';
+    var color = gSchedColor;
+    resetSchedForm();
+    var lang = detectLang(text);
+    var editId = gPendingSched;
+    gPendingSched = null;
+    /* a new schedule starts on the open day; an edit keeps its own start,
+       so the guard against a backwards range belongs to the server there */
+    if (!editId && endDate && endDate <= gSelectedDate()) endDate = '';
+    var op = editId
+      ? apiMutate('updateSchedule', { id: editId, text: text, time: time, endDate: endDate, color: color, lang: lang })
+      : apiMutate('addSchedule', { date: gSelectedDate(), text: text, time: time, endDate: endDate, color: color, lang: lang, author: state.author });
+    op.then(function(res){
+      renderGrowth(); toast(t('savedToast'));
+      var id = editId || (res && res.schedule && res.schedule.id);
+      if (id && (lang === 'ko' || lang === 'vi')){
+        apiTranslate(text, lang === 'ko' ? 'vi' : 'ko').then(function(tr){
+          if (!tr) return;
+          var s = (appState.schedules || []).filter(function(x){ return x.id === id; })[0];
+          if (s){ s.translation = tr; if (state.tab === 'growth') renderGrowth(); }
+          return apiMutate('updateSchedule', { id: id, translation: tr });
+        }).catch(function(){ /* an untranslated schedule still keeps the date */ });
+      }
+    }).catch(function(err){ toast(err.message || 'error'); });
   });
 
   // weight: save (optimistic — the free-tier server may be waking up)

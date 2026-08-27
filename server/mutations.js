@@ -61,6 +61,8 @@ function assertMayTouch(actor, ownerName, what) {
   throw httpError(403, 'not-owner:' + (what || 'entry'));
 }
 const TRASH_DAYS = 30;
+/* the pastel voices a schedule may wear on the growth calendar */
+const SCHED_COLORS = ['sky', 'mint', 'peach', 'lilac', 'lemon', 'rose'];
 function pruneTrash(state) {
   const cutoff = Date.now() - TRASH_DAYS * 86400000;
   state.trash = (state.trash || []).filter((t) => {
@@ -190,6 +192,15 @@ function applyMutation(prevState, type, payload) {
     case 'finishActive': {
       const a = state.active;
       if (!a) throw httpError(409, 'nothing active');
+      /* the phone may still owe the server a start-time nudge from the
+         adjust ruler (those are sent once the ruler settles) — the finish
+         carries the start the phone is showing, so what lands is what the
+         family saw on screen */
+      if (payload.start) {
+        const st = new Date(payload.start);
+        if (Number.isNaN(st.getTime())) throw httpError(400, 'finishActive: bad start');
+        a.start = st.toISOString();
+      }
       // same reason as togglePauseActive: the phone has already drawn this
       // record, so the end time it drew is the one that must be stored
       let end = a.paused && a.pausedAt ? a.pausedAt : new Date().toISOString();
@@ -441,6 +452,84 @@ function applyMutation(prevState, type, payload) {
       assertMayTouch(payload.actor, diary.author, 'diary');
       state.diaries = state.diaries.filter((d) => d.id !== payload.id);
       return { state, result: { removedPhotos: (diary.photos || []).map((p) => p.id) } };
+    }
+
+    /* schedules: appointments on the growth calendar — 예방접종, 검진,
+       문화센터. A date, an optional time-of-day, free text. Translated in
+       the background like memos and diary pages so the nanny can read
+       them; several may share a day. */
+    case 'addSchedule': {
+      const text = String(payload.text || '').trim().slice(0, 120);
+      if (!text) throw httpError(400, 'schedule text required');
+      const date = String(payload.date || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw httpError(400, 'bad date');
+      let time = '';
+      if (payload.time) {
+        time = String(payload.time);
+        /* a real clock time, not merely two digits, a colon and two digits */
+        if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw httpError(400, 'bad time');
+      }
+      /* a stay of several nights: an end date, never earlier than the start */
+      let endDate = '';
+      if (payload.endDate) {
+        endDate = String(payload.endDate).slice(0, 10);
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(endDate)) throw httpError(400, 'bad end date');
+        if (endDate < date) throw httpError(400, 'end date before start');
+        if (endDate === date) endDate = '';
+      }
+      const color = SCHED_COLORS.includes(payload.color) ? payload.color : 'sky';
+      state.schedules = state.schedules || [];
+      const schedule = { id: uid('s_'), date, time, endDate, color, text,
+        lang: payload.lang || 'other', translation: payload.translation || '',
+        author: payload.author || '' };
+      state.schedules.push(schedule);
+      return { state, result: { schedule } };
+    }
+
+    case 'updateSchedule': {
+      state.schedules = state.schedules || [];
+      const s = state.schedules.find((x) => x.id === payload.id);
+      if (!s) throw httpError(404, 'schedule not found');
+      /* person edits (text present) are free; a machine write only ever
+         carries the translation */
+      if (payload.text !== undefined) {
+        const text = String(payload.text || '').trim().slice(0, 120);
+        if (!text) throw httpError(400, 'schedule text required');
+        s.text = text;
+        s.lang = payload.lang || s.lang || 'other';
+        s.translation = payload.translation || '';
+        if (payload.date !== undefined) {
+          const date = String(payload.date || '').slice(0, 10);
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw httpError(400, 'bad date');
+          s.date = date;
+        }
+        if (payload.time !== undefined) {
+          const time = payload.time ? String(payload.time) : '';
+          if (time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) throw httpError(400, 'bad time');
+          s.time = time;
+        }
+        if (payload.endDate !== undefined) {
+          let endDate = payload.endDate ? String(payload.endDate).slice(0, 10) : '';
+          if (endDate) {
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(endDate)) throw httpError(400, 'bad end date');
+            if (endDate < s.date) throw httpError(400, 'end date before start');
+            if (endDate === s.date) endDate = '';
+          }
+          s.endDate = endDate;
+        }
+        if (payload.color !== undefined && SCHED_COLORS.includes(payload.color)) s.color = payload.color;
+      }
+      if (payload.translation !== undefined) s.translation = payload.translation;
+      return { state, result: { schedule: s } };
+    }
+
+    case 'deleteSchedule': {
+      state.schedules = state.schedules || [];
+      const s = state.schedules.find((x) => x.id === payload.id);
+      if (!s) throw httpError(404, 'schedule not found');
+      assertMayTouch(payload.actor, s.author, 'schedule');
+      state.schedules = state.schedules.filter((x) => x.id !== payload.id);
+      return { state, result: {} };
     }
 
     case 'updateMilestone': {
