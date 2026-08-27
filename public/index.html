@@ -93,6 +93,7 @@
     --c-feed:#ff9f0a; --c-diaper:#ac8058; --c-bath:#1ec8d8; --c-sleep:#8b5cf6;
     --c-med:#26b876; --c-probiotic:#0aa88f; --c-play:#3182f6; --c-tummy:#ff5673; --c-nose:#3ba9e8;
     --c-nails:#e8b100; --c-temp:#ff6b5e; --c-massage:#f472b6; --c-custom:#8b95a1;
+    --c-outing:#2fae5f;
 
     /* "Apple SD Gothic Neo" is a system font — it isn't fetched, it's simply named first
        so it's used natively on the family's iPhones/Macs. Gothic A1 (loaded via Google
@@ -405,7 +406,7 @@
   /* Date control for the log. Three months of records is roughly 150 screens
      of scrolling, so "scroll until you find the day" stopped being a way to
      find a day. */
-  .log-bar{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
+  .log-bar{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:18px; }
   .log-nav{ display:flex; align-items:center; gap:4px; }
   /* no chips, no boxes — three flat controls that read as one line of text */
   .log-arrow{
@@ -433,9 +434,15 @@
   }
   #log-more{ margin-top:16px; }
 
+  /* ONE VERTICAL RHYTHM: 18px. The panel already puts 18 between the
+     dashboard and 빠른 기록; the white sheet used to add its own 16px margin
+     on top of that (34 above it), open with 22 inside, and give the 기록
+     bar only 10 underneath — four different gaps on one screen. Now the
+     sheet rides the panel's own 18, opens with 18, and the bar keeps 18
+     below, so every seam on the way down is the same size. */
   .timeline-section{
-    background:var(--surface); margin:16px -16px 0; flex:1;
-    padding:22px 18px calc(96px + env(safe-area-inset-bottom)); min-height:38vh;
+    background:var(--surface); margin:0 -16px; flex:1;
+    padding:18px 18px calc(96px + env(safe-area-inset-bottom)); min-height:38vh;
   }
   /* There used to be a full-bleed rule between one day and the next, from
      back when the date was just a line of text. The date is a coloured band
@@ -637,15 +644,15 @@
      a mess. One picture on its own is allowed to be taller, because then it
      IS the memo. Each box reserves its space before the image arrives so the
      list does not jump as the thumbnails load. */
-  .memo-row .m-photos{ display:grid; grid-template-columns:repeat(auto-fit, minmax(0, 1fr)); gap:5px; }
-  .memo-row .m-photos.one{ grid-template-columns:1fr; max-width:62%; }
+  .memo-row .m-photos, .gdiary-entry .m-photos{ display:grid; grid-template-columns:repeat(auto-fit, minmax(0, 1fr)); gap:5px; }
+  .memo-row .m-photos.one, .gdiary-entry .m-photos.one{ grid-template-columns:1fr; max-width:62%; }
   .m-photo{
     display:block; padding:0; border:0; background:var(--surface-2);
     border-radius:12px; overflow:hidden; width:100%; aspect-ratio:1/1;
   }
   /* a single tall photo is allowed its own shape, but not the whole screen —
      it is still a thumbnail in a list, and tapping it is what shows it whole */
-  .memo-row .m-photos.one .m-photo{ aspect-ratio:1 / var(--ar, 1); max-height:250px; }
+  .memo-row .m-photos.one .m-photo, .gdiary-entry .m-photos.one .m-photo{ aspect-ratio:1 / var(--ar, 1); max-height:250px; }
   .m-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
 
   /* the strip of pictures waiting to be posted, in the compose sheet */
@@ -692,24 +699,36 @@
   .memo-row .m-orig{ font-size:var(--fs-body); font-weight:var(--fw-body); line-height:1.5; color:var(--fg); white-space:pre-wrap; word-break:break-word; }
   .memo-row .m-trans{ font-size:var(--fs-body); font-weight:var(--fw-body); line-height:1.5; color:var(--primary); white-space:pre-wrap; word-break:break-word; }
   .memo-row .m-meta{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
-  /* replies: the thread hangs off the memo's left edge behind one rule, so a
-     glance separates "what she wrote" from "what was said back" */
-  .m-replies{ display:flex; flex-direction:column; gap:10px; margin:2px 0 0 6px;
-    padding-left:12px; border-left:2px solid var(--border); }
-  .m-reply .mr-head{ display:flex; align-items:center; gap:7px; }
+  /* replies: chat bubbles, because that is what a thread under a memo IS —
+     a short conversation. Mine sit on the right in the app's own tint,
+     everyone else's on the left in grey, so who said what is readable from
+     across the room before a single word is */
+  .m-replies{ display:flex; flex-direction:column; gap:8px; margin-top:2px; }
+  .m-reply{
+    align-self:flex-start; max-width:86%; min-width:120px;
+    background:var(--surface-2); border-radius:4px 16px 16px 16px;
+    padding:8px 13px 9px;
+  }
+  .m-reply.mine{
+    align-self:flex-end;
+    background:color-mix(in srgb, var(--primary) 11%, var(--surface));
+    border-radius:16px 4px 16px 16px;
+  }
+  .m-reply .mr-head{ display:flex; align-items:center; gap:7px; margin-bottom:2px; }
   /* the memo head is right-justified and its dot uses margin-right:auto to
      sit alone on the left; a reply head reads left-to-right, so the dot
      stays in flow beside the author */
   .m-reply .m-new-dot{ margin-right:0; }
-  .m-reply .mr-author{ font-size:var(--fs-caption); font-weight:var(--fw-strong); color:var(--muted); }
+  .m-reply .mr-author{ font-size:var(--fs-micro); font-weight:var(--fw-strong); color:var(--muted); }
   .m-reply .mr-time{ font-size:var(--fs-micro); color:var(--muted-2); }
-  .m-reply .mr-del{ margin-left:auto; }
+  .m-reply .mr-del{ margin-left:auto; font-size:var(--fs-micro); }
   .m-reply .m-orig, .m-reply .m-trans{ font-size:var(--fs-label); }
+  .m-reply .m-bilingual{ gap:3px; }
   .m-reply-form{ display:flex; gap:8px; margin-top:2px; }
   .m-reply-form input{ flex:1; min-width:0; border:1px solid var(--border); background:var(--surface);
     color:var(--fg); border-radius:12px; padding:9px 12px; font-size:var(--fs-label); }
   .m-reply-form button{ flex:0 0 auto; border:0; border-radius:12px; padding:9px 14px;
-    background:var(--primary); color:#fff; font-size:var(--fs-label); font-weight:var(--fw-strong); }
+    background:var(--primary); color:var(--primary-fg, #fff); font-size:var(--fs-label); font-weight:var(--fw-strong); }
   .memo-row .m-meta span{ font-size:var(--fs-caption); color:var(--muted-2); }
   .memo-row .m-lang-tag{ font-size:var(--fs-micro); font-weight:var(--fw-strong); border-radius:6px; padding:2px 6px; }
   .memo-row .m-lang-tag.lang-ko{ color:var(--primary-weak-fg); background:var(--primary-weak-bg); }
@@ -779,6 +798,38 @@
      range a column is 6-17px wide and its date sits wider than that, so the
      row needs somewhere for the first and last labels to hang */
   .bars{ display:flex; align-items:flex-end; gap:4px; padding:20px 12px 0; }
+
+  /* weight: a growth curve, so a line — the one line chart in the app */
+  #weight-chart-wrap{ padding:14px 2px 2px; }
+  #weight-chart-wrap svg{ display:block; width:100%; height:auto; }
+  .wc-line{ fill:none; stroke:var(--primary); stroke-width:2; stroke-linejoin:round; stroke-linecap:round; }
+  .wc-area{ fill:var(--primary); opacity:.10; }
+  .wc-dot{ fill:var(--surface); stroke:var(--primary); stroke-width:1.6; }
+  .wc-dot.last{ fill:var(--primary); }
+  .wc-lbl{ font-size:10.5px; fill:var(--muted-2); }
+  .wc-lbl.val{ font-size:11px; fill:var(--muted); font-weight:600; }
+  .wc-grid{ stroke:var(--border); stroke-width:1; }
+  .weight-form{ display:flex; align-items:center; gap:8px; padding:14px 0 4px; }
+  .weight-form input{
+    border:1px solid var(--border); background:var(--surface); color:var(--fg);
+    border-radius:11px; padding:9px 10px; font-size:var(--fs-label);
+  }
+  .weight-form input[type="date"]{ flex:1; min-width:0; }
+  #weight-kg{ width:84px; text-align:right; font-variant-numeric:tabular-nums; }
+  .weight-form .w-unit{ color:var(--muted); font-size:var(--fs-caption); }
+  .weight-form button{
+    border:0; border-radius:11px; padding:9px 16px; background:var(--primary);
+    color:var(--primary-fg, #fff); font-size:var(--fs-label); font-weight:var(--fw-strong);
+  }
+  .weight-row{
+    display:flex; align-items:center; gap:10px; padding:8px 2px;
+    border-top:1px solid var(--border); font-size:var(--fs-caption);
+  }
+  .weight-row:first-child{ border-top:0; }
+  .weight-row .wr-date{ color:var(--muted); font-variant-numeric:tabular-nums; }
+  .weight-row .wr-kg{ font-weight:var(--fw-strong); color:var(--fg); font-variant-numeric:tabular-nums; }
+  .weight-row .wr-diff{ color:var(--muted-2); font-variant-numeric:tabular-nums; }
+  #weight-list{ margin-top:10px; }
   .bar-col{ flex:1 1 0; min-width:0; display:flex; flex-direction:column; align-items:center; gap:5px; }
   .bar-col .bar-track{ width:100%; height:96px; display:flex; align-items:flex-end; }
   .bar-col .bar{ width:100%; border-radius:6px 6px 2px 2px; background:var(--primary); min-height:3px; }
@@ -912,13 +963,132 @@
      which are the actual subject of this screen — are chips hanging on the
      LEFT of the spine, so the eye can run straight down the chip column and
      read the rhythm without touching the events at all. */
+  /* header tabs — her spec: bare labels on a hairline, the chosen one in
+     the app color with a thick underline riding the line. No boxes. */
+  .htabs{ display:flex; gap:26px; border-bottom:2px solid var(--border); padding:0 2px; }
+  .htabs button{
+    border:0; background:transparent; padding:11px 1px 9px; margin-bottom:-2px;
+    font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted);
+    border-bottom:2.5px solid transparent;
+  }
+  /* the label uses the darker text-grade blue (the same one link text and
+     the weak-button foreground use) — raw --primary is a BUTTON-FILL blue
+     and misses 4.5:1 as 15px text on the grey page */
+  .htabs button[aria-pressed="true"]{ color:var(--primary-weak-fg, var(--primary)); border-bottom-color:var(--primary); }
+  .ins-panel{ display:flex; flex-direction:column; gap:18px; }
+  /* sub-screen chips: soft pills, the chosen one filled with the app's weak
+     tint — not another boxed radio group. Idle chips keep a hairline so
+     they still read as buttons on the grey page. */
+  .chips-nav{ display:flex; gap:8px; align-self:flex-start; }
+  .chips-nav button{
+    border:1px solid var(--border); background:var(--surface); color:var(--muted);
+    border-radius:999px; padding:8px 16px;
+    font-size:var(--fs-caption); font-weight:var(--fw-strong);
+  }
+  .chips-nav button[aria-pressed="true"]{
+    background:var(--primary-weak-bg); color:var(--primary-weak-fg);
+    border-color:color-mix(in srgb, var(--primary) 35%, var(--border));
+  }
+  #term-block{ display:flex; flex-direction:column; gap:18px; }
+
+  /* growth calendar: a month at a glance, where only the days that carry a
+     record speak up — dark number, dot under it — and the rest stay pale */
+  .gcal-card{ padding:14px 12px 12px; }
+  .gcal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+  .gcal-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); font-variant-numeric:tabular-nums; }
+  .gcal-dow{ display:grid; grid-template-columns:repeat(7,1fr); text-align:center;
+    font-size:var(--fs-micro); color:var(--muted-2); padding-bottom:4px; }
+  .gcal-grid{ display:grid; grid-template-columns:repeat(7,1fr); row-gap:6px; }
+  .gcal-day{
+    position:relative; border:0; background:transparent; border-radius:10px;
+    padding:7px 0 12px; font-size:var(--fs-caption); font-variant-numeric:tabular-nums;
+    color:var(--muted-2); font-weight:var(--fw-body);
+  }
+  .gcal-day.has-data{ color:var(--fg); font-weight:var(--fw-strong); }
+  /* WHICH record, not just "a record": each day carries its icons — scale,
+     ruler, star, page — big enough to read without squinting. The cells are
+     tall (the calendar IS this screen now; the day itself opens on tap), so
+     the icons get a real row of their own and wrap to a second one. */
+  .gcal-day{ padding:8px 0 6px; min-height:58px; display:flex;
+    flex-direction:column; align-items:center; gap:4px; }
+  .gcal-marks{
+    display:flex; flex-wrap:wrap; justify-content:center; gap:1px;
+    font-size:10.5px; line-height:1.2; max-width:50px;
+  }
+  .gcal-day.today{ box-shadow:inset 0 0 0 1.5px var(--primary); }
+  .gcal-day.selected{ background:color-mix(in srgb, var(--primary) 10%, var(--surface)); }
+  .gcal-day:empty{ visibility:hidden; }
+  /* two number boxes, two unit labels and a button on one 320px row: the
+     boxes give, everything else keeps its size */
+  #fp-gday .weight-form input[type="number"]{ flex:1; min-width:0; width:auto; }
+  .gday-row{ display:flex; align-items:center; gap:10px; padding:8px 2px;
+    border-top:1px solid var(--border); font-size:var(--fs-caption); }
+  .gday-row b{ font-variant-numeric:tabular-nums; }
+  .gday-row .text-btn, .gday-row .ico-btn{ margin-left:auto; }
+  .gdiary-compose{ margin-top:12px; padding-top:12px; border-top:1px solid var(--border);
+    display:flex; flex-direction:column; gap:8px; }
+  .gdiary-compose textarea{
+    border:1px solid var(--border); background:var(--surface); color:var(--fg);
+    border-radius:11px; padding:10px 12px; font-size:var(--fs-label); resize:vertical;
+    font-family:inherit; line-height:1.5;
+  }
+  .gdiary-actions{ display:flex; align-items:center; justify-content:space-between; }
+  #gday-diary-save{
+    border:0; border-radius:11px; padding:9px 16px; background:var(--primary);
+    color:var(--primary-fg, #fff); font-size:var(--fs-label); font-weight:var(--fw-strong);
+  }
+  .gdiary-entry{ padding:10px 2px 4px; border-top:1px solid var(--border); }
+  .gdiary-entry .gd-head{ display:flex; align-items:center; gap:8px;
+    font-size:var(--fs-micro); color:var(--muted-2); margin-bottom:4px; }
+  .gdiary-entry .gd-head .text-btn, .gdiary-entry .gd-head .ico-btn{ margin-left:auto; }
+  .gdiary-entry .gd-text{ font-size:var(--fs-label); line-height:1.55; white-space:pre-wrap; word-break:break-word; }
+  .gdiary-entry .gd-trans{ font-size:var(--fs-label); line-height:1.55; white-space:pre-wrap; word-break:break-word;
+    color:var(--primary-weak-fg, var(--primary)); margin-top:3px; }
+  .gdiary-entry .m-photos{ margin-top:8px; }
+  .ico-btn{
+    border:0; background:transparent; padding:5px; border-radius:9px;
+    display:inline-flex; align-items:center; justify-content:center;
+    color:var(--muted); flex:0 0 auto;
+  }
+  .ico-btn .ui-ico{ width:18px; height:18px; fill:none; stroke:currentColor;
+    stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .ui-ico .kdot{ fill:currentColor; stroke:none; }
+  /* the ⋯ menu: one small floating card, 수정 then 삭제 */
+  .kebab-menu{
+    position:fixed; z-index:70; min-width:132px; padding:5px;
+    background:var(--surface); border:1px solid var(--border); border-radius:13px;
+    box-shadow:0 12px 32px rgba(15,23,42,.18);
+    display:flex; flex-direction:column;
+  }
+  .kebab-menu button{
+    border:0; background:transparent; text-align:left; border-radius:9px;
+    padding:11px 13px; font-size:var(--fs-label); font-weight:var(--fw-medium);
+    color:var(--fg); display:flex; align-items:center; gap:9px;
+  }
+  .kebab-menu button .ui-ico{ width:16px; height:16px; fill:none; stroke:currentColor;
+    stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+  .kebab-menu button.danger{ color:var(--danger-text); }
+  .kebab-menu button:active{ background:var(--surface-2); }
+  .ico-btn.danger{ color:var(--danger-text); }
+  .ico-btn:active{ background:var(--surface-2); }
+
   .term-avg{
     display:flex; align-items:baseline; gap:8px; padding:12px 16px;
   }
+  /* the sleep view answers three questions at once — how long awake, how
+     long a nap runs, how long the night runs — so its header is three
+     columns, the same shape as the dashboard */
+  .term-avg.multi{ display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:2px 8px; text-align:center; }
+  .term-avg.multi .ta-item{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+  .term-avg.multi .ta-val{ font-size:var(--fs-label); white-space:nowrap; }
   .term-avg .ta-label{ font-size:var(--fs-caption); color:var(--muted-2); font-weight:var(--fw-medium); }
   .term-avg .ta-val{ font-size:var(--fs-title); font-weight:var(--fw-display); font-variant-numeric:tabular-nums; letter-spacing:-.3px; }
   .term-avg .ta-range{ font-size:var(--fs-caption); color:var(--muted-2); margin-left:auto; }
-  .term-card{ padding:8px 16px 12px; }
+  /* the first thing in this card is always a date band, so the card opens
+     WITH it — top padding here left a white sliver between the band and the
+     card edge that read as a stray empty box */
+  .term-card{ padding:0 16px 12px; }
+  .term-card .term-day:first-child{ margin-top:0; }
   /* time | spine | body: one shared grid so the spine is a straight line.
      The columns are proportional, not fixed — with a 96px time gutter the
      spine sat a third of the way in and the right half of the screen was
@@ -995,10 +1165,6 @@
   .hint-line{ font-size:var(--fs-caption); color:var(--muted); margin:8px 2px 0; line-height:1.55; }
 
   /* a record this phone may not change: it opens to be read, and says why */
-  .lock-note{
-    background:var(--surface-2); border-radius:14px; padding:12px 14px;
-    font-size:var(--fs-label); color:var(--fg); line-height:1.55;
-  }
   .fullpage.is-locked .fp-body{ opacity:.96; }
   .entry-swipe.is-locked .entry-row{ cursor:default; }
 
@@ -1406,51 +1572,49 @@
     </div>
   </section>
 
-  <!-- ============ TAB: PATTERN ============ -->
-  <section class="panel" id="tab-pattern" data-tab-panel hidden>
-    <!-- Three ways of looking at the same records, each answering a different
-         question. 시간대: WHEN in the day things happen (the 24h columns).
-         수유텀: how far apart the feeds are. 잠텀: how long he stays awake
-         between sleeps — asked for as "깨시", which is what parents of a
-         four-month-old actually track, because the wake window is what
-         decides when the next nap should start. -->
-    <div class="seg" id="pattern-view">
-      <button type="button" data-view="clock" aria-pressed="true" data-i18n="pvClock">시간대</button>
-      <button type="button" data-view="feed" aria-pressed="false" data-i18n="pvFeed">수유텀</button>
-      <button type="button" data-view="sleep" aria-pressed="false" data-i18n="pvSleep">잠텀</button>
-    </div>
-    <!-- how far back it looks. Seven days is the everyday view; 28 is where
-         a habit that has been forming for a month becomes visible. -->
-    <div class="pattern-head">
-      <div class="pattern-head-text">
-        <div class="section-title" style="margin-bottom:2px" id="pattern-title" data-i18n="patternTitle">시간대 패턴</div>
-        <div class="pattern-caption" id="pattern-caption" data-i18n="patternCaption">세로축은 하루 24시간</div>
-      </div>
-      <div class="seg seg-sm" id="pattern-range">
-        <button type="button" data-days="7" aria-pressed="true" data-i18n="range7">7일</button>
-        <button type="button" data-days="14" aria-pressed="false" data-i18n="range14">14일</button>
-        <button type="button" data-days="28" aria-pressed="false" data-i18n="range28">28일</button>
-      </div>
-    </div>
-    <div class="card pattern-chart-card" id="pattern-chart-card">
-      <div class="pattern-chart-inner">
-        <div class="pattern-axis-v"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
-        <div class="pattern-cols" id="pattern-cols"></div>
-      </div>
-    </div>
-    <div class="pattern-legend" id="pattern-legend"></div>
-    <div class="term-avg card" id="term-avg" hidden></div>
-    <div class="card term-card" id="term-card" hidden><div id="term-list"></div></div>
-    <div class="empty-note" id="pattern-empty" hidden data-i18n="patternEmpty">이 기간엔 기록이 없어요</div>
-  </section>
-
-  <!-- ============ TAB: STATS ============ -->
-  <!-- Three subjects, three cards — 수유 / 배변 / 수면 — each holding its own
-       title, numbers and chart. It used to alternate between grey title bands
-       and white cards, which gave the tab four different vertical rhythms and
-       left the footnotes touching the edge of the card below them. -->
+  <!-- ============ TAB: STATS — 통계+패턴, four subjects under one roof ====
+       일과: the 24h pattern (WHEN things happen).
+       수유: feed intervals + daily and weekly volumes.
+       배변: the poo rhythm chart.
+       수면: wake windows + sleep numbers.
+       The switcher is a text header-tab row (her spec), not the boxed seg. -->
   <section class="panel stats-panel" id="tab-stats" data-tab-panel hidden>
+    <div class="htabs" id="insight-tabs">
+      <button type="button" data-ins="all" aria-pressed="true" data-i18n="insAll">일과</button>
+      <button type="button" data-ins="feed" aria-pressed="false" data-i18n="statsFeedTitle">수유</button>
+      <button type="button" data-ins="poop" aria-pressed="false" data-i18n="poopTitle">배변</button>
+      <button type="button" data-ins="sleep" aria-pressed="false" data-i18n="statsSleepTitle">수면</button>
+    </div>
 
+    <div class="ins-panel" data-ins-panel="all">
+      <div class="pattern-head">
+        <div class="pattern-head-text">
+          <div class="section-title" style="margin-bottom:2px" id="pattern-title" data-i18n="patternTitle">시간대 패턴</div>
+          <div class="pattern-caption" id="pattern-caption" data-i18n="patternCaption">세로축은 하루 24시간</div>
+        </div>
+        <div class="seg seg-sm" id="pattern-range">
+          <button type="button" data-days="7" aria-pressed="true" data-i18n="range7">7일</button>
+          <button type="button" data-days="14" aria-pressed="false" data-i18n="range14">14일</button>
+          <button type="button" data-days="28" aria-pressed="false" data-i18n="range28">28일</button>
+        </div>
+      </div>
+      <div class="card pattern-chart-card" id="pattern-chart-card">
+        <div class="pattern-chart-inner">
+          <div class="pattern-axis-v"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
+          <div class="pattern-cols" id="pattern-cols"></div>
+        </div>
+      </div>
+      <div class="pattern-legend" id="pattern-legend"></div>
+      <div class="empty-note" id="pattern-empty" hidden data-i18n="patternEmpty">이 기간엔 기록이 없어요</div>
+    </div>
+
+    <div class="ins-panel" data-ins-panel="feed" hidden>
+      <div class="chips-nav" id="feed-sub">
+        <button type="button" data-fs="term" aria-pressed="true" data-i18n="feedSubTerm">수유텀</button>
+        <button type="button" data-fs="stats" aria-pressed="false" data-i18n="feedSubStats">수유량</button>
+      </div>
+      <div id="term-anchor-feed"></div>
+      <div id="feed-stats-wrap" hidden style="display:flex;flex-direction:column;gap:18px;">
     <div class="card stat-card">
       <div class="stat-head">
         <div class="stat-h" data-i18n="statsFeedTitle">수유</div>
@@ -1468,7 +1632,6 @@
       <div class="stat-note" id="stat-tiles-note"></div>
       <div class="bars" id="stat-bars"></div>
     </div>
-
     <!-- One bar per week of his life. The daily chart says what happened;
          this says which way it is going as he grows. -->
     <div class="card stat-card" id="weekly-feed-card">
@@ -1480,7 +1643,10 @@
       <div class="bars" id="weekly-feed-bars"></div>
       <div class="stat-note" data-i18n="weeklyNote">막대 하나는 그 주의 하루 평균 · 오늘은 진행 중이라 뺐어요</div>
     </div>
+      </div>
+    </div>
 
+    <div class="ins-panel" data-ins-panel="poop" hidden>
     <div class="card stat-card">
       <div class="stat-head">
         <div class="stat-h" data-i18n="poopTitle">배변</div>
@@ -1490,7 +1656,15 @@
       <div id="poop-chart-wrap"></div>
       <div id="poop-day-list" class="poop-day-list"></div>
     </div>
+    </div>
 
+    <div class="ins-panel" data-ins-panel="sleep" hidden>
+      <div class="chips-nav" id="sleep-sub">
+        <button type="button" data-ss="term" aria-pressed="true" data-i18n="pvSleepTerm">잠텀</button>
+        <button type="button" data-ss="stats" aria-pressed="false" data-i18n="sleepSubStats">수면 통계</button>
+      </div>
+      <div id="term-anchor-sleep"></div>
+      <div id="sleep-stats-wrap" hidden style="display:flex;flex-direction:column;gap:18px;">
     <div class="card stat-card">
       <div class="stat-head">
         <div class="stat-h" data-i18n="statsSleepTitle">수면</div>
@@ -1498,6 +1672,92 @@
       </div>
       <div class="stat-grid" id="stat-sleep-tiles"></div>
       <div class="stat-note" id="stat-sleep-note"></div>
+    </div>
+      </div>
+    </div>
+
+    <!-- ONE term block, moved bodily into whichever section is open. The
+         feed-interval and wake-window views are the same machine pointed at
+         different records, so they share their DOM and the renderer decides
+         what it shows. -->
+    <div id="term-block" hidden>
+      <div class="pattern-head">
+        <div class="pattern-head-text">
+          <div class="section-title" style="margin-bottom:2px" id="term-title"></div>
+          <div class="pattern-caption" id="term-caption"></div>
+        </div>
+        <div class="seg seg-sm" id="term-range">
+          <button type="button" data-days="7" aria-pressed="true" data-i18n="range7">7일</button>
+          <button type="button" data-days="14" aria-pressed="false" data-i18n="range14">14일</button>
+          <button type="button" data-days="28" aria-pressed="false" data-i18n="range28">28일</button>
+        </div>
+      </div>
+      <div class="term-avg card" id="term-avg" hidden></div>
+      <div class="card term-card" id="term-card" hidden><div id="term-list"></div></div>
+      <div class="empty-note" id="term-empty" hidden data-i18n="patternEmpty">이 기간엔 기록이 없어요</div>
+    </div>
+  </section>
+
+  <!-- ============ TAB: GROWTH — 성장 기록 ============
+       Weight, height and the firsts (뒤집기, 첫 웃음) on a calendar: days
+       with a record are dark, the rest grey; the graph view holds the
+       curves. -->
+  <section class="panel" id="tab-growth" data-tab-panel hidden>
+    <div class="htabs" id="growth-tabs">
+      <button type="button" data-gv="cal" aria-pressed="true" data-i18n="gCal">캘린더</button>
+      <button type="button" data-gv="graph" aria-pressed="false" data-i18n="gGraph">그래프</button>
+    </div>
+
+    <div class="ins-panel" data-gv-panel="cal">
+      <div class="card gcal-card">
+        <div class="gcal-head">
+          <button type="button" class="log-arrow" id="gcal-prev">‹</button>
+          <div class="gcal-title" id="gcal-title"></div>
+          <button type="button" class="log-arrow" id="gcal-next">›</button>
+        </div>
+        <div class="gcal-dow" id="gcal-dow"></div>
+        <div class="gcal-grid" id="gcal-grid"></div>
+      </div>
+      <div class="hint-line" data-i18n="gCalHint">기록이 있는 날만 진하게 · 날짜를 누르면 입력</div>
+      <div class="memo-fab-wrap">
+        <button type="button" class="fab" id="gcal-fab" aria-label="growth add">+</button>
+      </div>
+    </div>
+
+    <div class="ins-panel" data-gv-panel="graph" hidden>
+    <!-- Weight is measured every week or two, not logged in passing — so
+         this card is the record itself: the growth curve since birth, a
+         one-line reading of it, and the box the next weigh-in goes into. -->
+    <div class="card stat-card" id="weight-card">
+      <div class="stat-head">
+        <div class="stat-h" data-i18n="weightTitle">몸무게</div>
+        <span class="stat-badge" id="weight-badge"></span>
+      </div>
+      <div class="stat-lede" id="weight-lede"></div>
+      <div id="weight-chart-wrap"></div>
+      <div class="weight-form">
+        <input type="date" id="weight-date" />
+        <input type="number" id="weight-kg" inputmode="decimal" step="0.01" min="0.3" max="30" placeholder="7.6" />
+        <span class="w-unit">kg</span>
+        <button type="button" id="weight-save" data-i18n="save">저장</button>
+      </div>
+      <div id="weight-list"></div>
+    </div>
+      <div class="card stat-card" id="height-card">
+        <div class="stat-head">
+          <div class="stat-h" data-i18n="heightTitle">키</div>
+          <span class="stat-badge" id="height-badge"></span>
+        </div>
+        <div class="stat-lede" id="height-lede"></div>
+        <div id="height-chart-wrap"></div>
+      </div>
+      <div class="card stat-card" id="milestone-card">
+        <div class="stat-head">
+          <div class="stat-h" data-i18n="milestoneTitle">발달 기록</div>
+          <span class="stat-badge" id="milestone-badge"></span>
+        </div>
+        <div id="milestone-list"></div>
+      </div>
     </div>
   </section>
 
@@ -1531,7 +1791,7 @@
         </div>
         <div id="author-manage-list"></div>
       </div>
-      <div class="hint-line" data-i18n="permissionHint">각자 자기가 적은 기록만 고치거나 지울 수 있어요. 엄마는 모든 기록을 고칠 수 있어요.</div>
+      <div class="hint-line" data-i18n="permissionHint">기록은 누구나 고칠 수 있어요. 지우는 건 자기가 쓴 것만 — 엄마는 모두 지울 수 있어요.</div>
     </div>
 
     <!-- the lock on becoming 엄마, and the bin deleted records fall into -->
@@ -1635,13 +1895,13 @@
       <svg class="tb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12.5 4.5H6A1.5 1.5 0 0 0 4.5 6v12A1.5 1.5 0 0 0 6 19.5h12a1.5 1.5 0 0 0 1.5-1.5v-6.5"/><path d="M17.1 3.6l3.3 3.3-7.6 7.6-4 .7.7-4z"/></svg>
       <span data-i18n="tabMemo">메모</span>
     </button>
-    <button type="button" class="tab-btn" data-tab="pattern" aria-current="false">
-      <svg class="tb-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3.5v4M16 3.5v4"/><circle class="dot" cx="8.5" cy="14" r="1.1"/><circle class="dot" cx="12" cy="17" r="1.1"/><circle class="dot" cx="15.5" cy="14" r="1.1"/></svg>
-      <span data-i18n="tabPattern">패턴</span>
-    </button>
     <button type="button" class="tab-btn" data-tab="stats" aria-current="false">
       <svg class="tb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16"/><path d="M7.5 20v-5.5M12 20V7.5M16.5 20v-9"/></svg>
       <span data-i18n="tabStats">통계</span>
+    </button>
+    <button type="button" class="tab-btn" data-tab="growth" aria-current="false">
+      <svg class="tb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-8.2"/><path d="M12 12.8C12 8.9 9.2 6.2 5.2 6.2c0 3.9 2.8 6.6 6.8 6.6z"/><path d="M12 10.9c0-3.3 2.4-5.6 5.9-5.6 0 3.3-2.4 5.6-5.9 5.6z"/></svg>
+      <span data-i18n="tabGrowth">성장</span>
     </button>
     <button type="button" class="tab-btn" data-tab="settings" aria-current="false">
       <svg class="tb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h6M14 8h6M4 16h10M18 16h2"/><circle cx="12" cy="8" r="2.2"/><circle cx="16" cy="16" r="2.2"/></svg>
@@ -1654,11 +1914,56 @@
     <div class="fp-head">
       <button type="button" class="fp-back" id="fp-entry-back">‹</button>
       <h1 id="fp-entry-title">-</h1>
-      <button type="button" class="fp-delete" id="fp-entry-delete" data-i18n="delete">삭제</button>
+      <button type="button" class="fp-delete ico-btn danger" id="fp-entry-delete" aria-label="삭제 · Xoá"><svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 6.5h15"/><path d="M8.6 6.5V5a1.5 1.5 0 0 1 1.5-1.5h3.8A1.5 1.5 0 0 1 15.4 5v1.5"/><path d="M6.6 6.5l.7 12a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9l.7-12"/><path d="M10.1 10.6v5.8M13.9 10.6v5.8"/></svg></button>
     </div>
     <div class="fp-body" id="fp-entry-body"></div>
     <div class="fp-foot">
       <button type="button" class="btn primary" id="fp-entry-save" data-i18n="save">저장</button>
+    </div>
+  </div>
+
+  <!-- ============ FULL PAGE: A DAY ON THE GROWTH CALENDAR ============
+       Second depth: the calendar is for finding the day, this page is for
+       reading and writing it — measurements, the firsts, and the diary. -->
+  <div class="fullpage" id="fp-gday">
+    <div class="fp-head">
+      <button type="button" class="fp-back" id="fp-gday-back">‹</button>
+      <h1 id="fp-gday-title">-</h1>
+      <button type="button" class="ico-btn" id="fp-gday-mode" style="margin-left:auto;color:var(--link)"></button>
+    </div>
+    <div class="fp-body" id="fp-gday-body">
+      <div>
+        <div class="section-title" data-i18n="gMeasures">측정</div>
+        <div id="gday-measure-view"></div>
+        <div class="weight-form" id="gday-measure-form">
+          <input type="number" id="gday-kg" inputmode="decimal" step="0.01" min="0.3" max="30" placeholder="7.6" />
+          <span class="w-unit">kg</span>
+          <input type="number" id="gday-cm" inputmode="decimal" step="0.1" min="20" max="130" placeholder="66.5" />
+          <span class="w-unit">cm</span>
+          <button type="button" id="gday-save" data-i18n="save">저장</button>
+        </div>
+      </div>
+      <div>
+        <div class="section-title" data-i18n="milestoneTitle">발달 기록</div>
+        <div class="weight-form" id="gday-mile-form" style="padding-top:2px">
+          <input type="text" id="gday-milestone" data-i18n-ph="milestonePh" maxlength="80" style="flex:1;min-width:0;" />
+          <button type="button" id="gday-milestone-add" data-i18n="add">추가</button>
+        </div>
+        <div id="gday-list"></div>
+      </div>
+      <div>
+        <div class="section-title" data-i18n="gDiaryTitle">육아일기</div>
+        <div class="gdiary-compose" id="gday-diary-form" style="border-top:0;padding-top:0;margin-top:0">
+          <textarea id="gday-diary" rows="3" data-i18n-ph="diaryPh" maxlength="4000"></textarea>
+          <div class="mp-strip" id="gday-photo-strip" hidden></div>
+          <div class="gdiary-actions">
+            <button type="button" class="text-btn" id="gday-photo-btn" data-i18n="photoAdd">사진</button>
+            <input type="file" id="gday-photo-input" accept="image/*" multiple hidden />
+            <button type="button" id="gday-diary-save" data-i18n="diarySave">일기 저장</button>
+          </div>
+        </div>
+        <div id="gday-diary-list"></div>
+      </div>
     </div>
   </div>
 
@@ -1777,7 +2082,7 @@
     <div class="sheet-head">
       <div class="grabber"></div>
       <button type="button" class="icon-btn" id="memo-compose-sheet-close">✕</button>
-      <h2 data-i18n="memoComposeTitle">메모 추가</h2>
+      <h2 id="memo-compose-title" data-i18n="memoComposeTitle">메모 추가</h2>
       <span style="width:30px"></span>
     </div>
     <div class="sheet-body">
@@ -1875,17 +2180,28 @@ ko: {
   whoAmITitle:"누구신가요?", whoAmIDesc:"기록에 표시할 이름을 골라주세요. 나중에 설정에서 바꿀 수 있어요.", orTypeName:"직접 입력",
   babyDefaultName:"아기", dDay:"D+",
   t_feed:"분유", t_diaper:"기저귀", t_bath:"목욕", t_sleep:"수면", t_med:"투약", t_probiotic:"유산균", t_play:"놀이",
-  t_tummy:"터미타임", t_nose:"콧물제거", t_nails:"손톱정리", t_temp:"체온", t_massage:"마사지", t_custom:"기타",
+  t_tummy:"터미타임", t_nose:"콧물제거", t_nails:"손톱정리", t_temp:"체온", t_massage:"마사지", t_outing:"외출", t_custom:"기타",
   addNew:"항목 추가",
   since_feed:"마지막 수유", since_sleep:"마지막 잠",
   since_poop:"마지막 똥", authorViPh:"베트남어 이름 (자동 번역)",
   nextFeedLabel:"다음 추천 수유", nextFeedValueTpl:"{time} · {remain} 후", nextFeedDueValueTpl:"시간이 지났어요 · {time}",
-  tabPattern:"패턴", patternTitle:"시간대 패턴", patternCaption:"세로축은 하루 24시간", patternEmpty:"이 기간엔 기록이 없어요",
-  pvClock:"시간대", pvFeed:"수유텀", pvSleep:"잠텀",
+  patternTitle:"시간대 패턴", patternCaption:"세로축은 하루 24시간", patternEmpty:"이 기간엔 기록이 없어요",
+  insAll:"일과", tabGrowth:"성장", gCal:"캘린더", gGraph:"그래프",
+  heightTitle:"키", milestoneTitle:"발달 기록", milestonePh:"뒤집기, 첫 웃음…",
+  gCalHint:"⚖️ 몸무게 · 📏 키 · ⭐ 발달 · 📝 일기 — 날짜를 누르면 입력",
+  feedSubTerm:"수유텀", feedSubStats:"수유량", pvSleepTerm:"잠텀", sleepSubStats:"수면 통계", gMeasures:"측정", gDiaryTitle:"육아일기",
+  gEdit:"수정", gDone:"완료", gNoMeasure:"기록 없음", memoEditTitle:"메모 수정",
+  diaryPh:"오늘의 육아일기…", diarySave:"일기 저장", diaryEmpty:"이 날의 일기가 아직 없어요",
+  weightTitle:"몸무게", weightCountTpl:"{n}회 측정",
+  weightLedeTpl:"지금 <b>{kg}kg</b> · 태어나서 +{gain}kg",
+  weightPrevTpl:"지난 측정({d})보다 +{diff}kg", weightPrevDownTpl:"지난 측정({d})보다 {diff}kg",
+  weightEmpty:"몸무게를 기록해 보세요", heightEmpty:"키를 기록해 보세요",
+  heightLedeTpl:"지금 <b>{cm}cm</b> · 태어나서 +{gain}cm", milestoneEmpty:"첫 뒤집기, 첫 웃음 — 처음들을 남겨 보세요",
+  termAvgNap:"평균 낮잠", termAvgNight:"평균 밤잠",
   termFeedTitle:"수유텀", termFeedCaption:"칩은 이전 수유부터 걸린 시간",
   termSleepTitle:"잠텀 · 깨시", termSleepCaption:"칩은 깨어 있던 시간",
   termAvgFeed:"평균 수유텀", termAvgWake:"평균 깨시", termAvgDay:"평균", termRangeTpl:"최근 {d}일",
-  reply:"답글", replyPh:"답글 입력…", replySend:"보내기",
+  reply:"답글", replyPh:"답글 입력…", replySend:"보내기", retranslate:"재번역",
   noRecordYet:"기록 없음", justNow:"방금", agoSuffix:"전", hrShort:"시간", minShort:"분",
   wet:"소변", dirty:"대변", both:"소변+대변", diaperKind:"종류",
   nap:"낮잠", night:"밤잠", auto:"자동판별", sleepKind:"수면 종류",
@@ -1902,8 +2218,7 @@ ko: {
   adjustStart:"시작 시간 조정", discardActive:"기록하지 않고 취소",
   pauseBtn:"일시정지", resumeBtn:"재생", pausedLabel:"일시정지",
   avgMlPerDay:"하루 평균", avgPerFeed:"1회 평균", avgFeedsPerDay:"하루 횟수",
-  permissionHint:"각자 자기가 적은 기록만 고치거나 지울 수 있어요. 엄마는 모든 기록을 고칠 수 있어요.",
-  lockedByTpl:"{who}이(가) 적은 기록이에요. 보기만 할 수 있어요.",
+  permissionHint:"기록은 누구나 고칠 수 있어요. 지우는 건 자기가 쓴 것만 — 엄마는 모두 지울 수 있어요.",
   masterTitle:"엄마 권한", masterPin:"엄마 전환 PIN",
   masterPinHint:"PIN을 걸어두면 다른 사람이 설정에서 '엄마'로 바꿀 수 없어요. 네 자리 숫자는 이 폰에서만 입력되고, 서버에는 알아볼 수 없는 형태로 저장돼요.",
   pinOn:"설정됨 · 눌러서 해제", pinOff:"없음 · 눌러서 설정", pinMasterOnlyShort:"엄마만 설정할 수 있어요",
@@ -1960,7 +2275,7 @@ vi: {
   whoAmITitle:"Bạn là ai?", whoAmIDesc:"Chọn tên hiển thị trên nhật ký. Bạn có thể đổi sau trong Cài đặt.", orTypeName:"Nhập tên khác",
   babyDefaultName:"Em bé", dDay:"D+",
   t_feed:"Bú sữa", t_diaper:"Tã", t_bath:"Tắm", t_sleep:"Ngủ", t_med:"Uống thuốc", t_probiotic:"Men vi sinh", t_play:"Chơi",
-  t_tummy:"Nằm sấp", t_nose:"Vệ sinh mũi", t_nails:"Cắt móng", t_temp:"Thân nhiệt", t_massage:"Mát-xa", t_custom:"Khác",
+  t_tummy:"Nằm sấp", t_nose:"Vệ sinh mũi", t_nails:"Cắt móng", t_temp:"Thân nhiệt", t_massage:"Mát-xa", t_outing:"Ra ngoài", t_custom:"Khác",
   addNew:"Thêm mục",
   /* THREE WORDS, NOT FOUR. "Lần bú gần nhất" wrapped in a 118px column and
      left "nhất" orphaned on a line of its own, while the third card fitted on
@@ -1970,12 +2285,23 @@ vi: {
   since_feed:"Bú gần nhất", since_sleep:"Ngủ gần nhất",
   since_poop:"Ị gần nhất", authorViPh:"Tên tiếng Việt (tự dịch)",
   nextFeedLabel:"Dự kiến bú tiếp theo", nextFeedValueTpl:"{time} · còn {remain}", nextFeedDueValueTpl:"Đã quá giờ · {time}",
-  tabPattern:"Mẫu hình", patternTitle:"Mẫu hình theo giờ", patternCaption:"Trục dọc là 24 giờ trong ngày", patternEmpty:"Chưa có nhật ký trong khoảng này",
-  pvClock:"Theo giờ", pvFeed:"Cữ bú", pvSleep:"Bé thức",
+  patternTitle:"Mẫu hình theo giờ", patternCaption:"Trục dọc là 24 giờ trong ngày", patternEmpty:"Chưa có nhật ký trong khoảng này",
+  insAll:"Sinh hoạt", tabGrowth:"Phát triển", gCal:"Lịch", gGraph:"Biểu đồ",
+  heightTitle:"Chiều cao", milestoneTitle:"Cột mốc phát triển", milestonePh:"Lật người, nụ cười đầu…",
+  gCalHint:"⚖️ Cân nặng · 📏 Chiều cao · ⭐ Cột mốc · 📝 Nhật ký — chạm vào ngày để nhập",
+  feedSubTerm:"Cữ bú", feedSubStats:"Lượng sữa", pvSleepTerm:"Bé thức", sleepSubStats:"Thống kê ngủ", gMeasures:"Đo lường", gDiaryTitle:"Nhật ký bé",
+  gEdit:"Sửa", gDone:"Xong", gNoMeasure:"Chưa có ghi chép", memoEditTitle:"Sửa ghi chú",
+  diaryPh:"Nhật ký hôm nay…", diarySave:"Lưu nhật ký", diaryEmpty:"Chưa có nhật ký cho ngày này",
+  weightTitle:"Cân nặng", weightCountTpl:"Đo {n} lần",
+  weightLedeTpl:"Hiện tại <b>{kg}kg</b> · tăng {gain}kg từ khi sinh",
+  weightPrevTpl:"Tăng {diff}kg so với lần trước ({d})", weightPrevDownTpl:"{diff}kg so với lần trước ({d})",
+  weightEmpty:"Hãy ghi lại cân nặng của bé", heightEmpty:"Hãy ghi lại chiều cao của bé",
+  heightLedeTpl:"Hiện tại <b>{cm}cm</b> · tăng {gain}cm từ khi sinh", milestoneEmpty:"Lần lật đầu tiên, nụ cười đầu tiên — hãy ghi lại",
+  termAvgNap:"Ngủ ngày TB", termAvgNight:"Ngủ đêm TB",
   termFeedTitle:"Khoảng cách cữ bú", termFeedCaption:"Nhãn là thời gian từ cữ bú trước",
   termSleepTitle:"Thời gian bé thức", termSleepCaption:"Nhãn là thời gian bé thức giữa hai giấc",
   termAvgFeed:"Cữ bú trung bình", termAvgWake:"Thức trung bình", termAvgDay:"TB", termRangeTpl:"{d} ngày qua",
-  reply:"Trả lời", replyPh:"Nhập trả lời…", replySend:"Gửi",
+  reply:"Trả lời", replyPh:"Nhập trả lời…", replySend:"Gửi", retranslate:"Dịch lại",
   noRecordYet:"Chưa có dữ liệu", justNow:"Vừa xong", agoSuffix:"", hrShort:" giờ", minShort:" phút",
   wet:"Nước tiểu", dirty:"Phân", both:"Cả hai", diaperKind:"Loại",
   nap:"Ngủ ngày", night:"Ngủ đêm", auto:"Tự nhận diện", sleepKind:"Loại giấc ngủ",
@@ -1992,8 +2318,7 @@ vi: {
   adjustStart:"Chỉnh giờ bắt đầu", discardActive:"Hủy, không lưu",
   pauseBtn:"Tạm dừng", resumeBtn:"Tiếp tục", pausedLabel:"Tạm dừng",
   avgMlPerDay:"TB mỗi ngày", avgPerFeed:"TB mỗi lần", avgFeedsPerDay:"Lần/ngày",
-  permissionHint:"Mỗi người chỉ sửa hoặc xoá được ghi chép của mình. Mẹ sửa được tất cả.",
-  lockedByTpl:"Mục này do {who} ghi. Bạn chỉ có thể xem.",
+  permissionHint:"Ai cũng có thể sửa mọi ghi chép. Chỉ được xoá ghi chép của mình — Mẹ xoá được tất cả.",
   masterTitle:"Quyền của mẹ", masterPin:"Mã PIN để chuyển sang Mẹ",
   masterPinHint:"Đặt mã PIN thì người khác không thể tự đổi tên thành 'Mẹ' trong cài đặt. Bốn chữ số chỉ nhập trên máy này; máy chủ chỉ lưu dạng đã mã hoá.",
   pinOn:"Đã đặt · chạm để gỡ", pinOff:"Chưa đặt · chạm để đặt", pinMasterOnlyShort:"Chỉ Mẹ mới đặt được",
@@ -2053,6 +2378,7 @@ var BUILT_IN = [
   {id:'tummy',     emoji:'🤸', color:'var(--c-tummy)'},
   {id:'massage',   emoji:'💆', color:'var(--c-massage)'},
   {id:'bath',      emoji:'🛁', color:'var(--c-bath)'},
+  {id:'outing',    emoji:'🚗', color:'var(--c-outing)'},
   {id:'probiotic', emoji:'🧫', color:'var(--c-probiotic)'},
   {id:'nose',      emoji:'🤧', color:'var(--c-nose)'},
   {id:'nails',     emoji:'💅', color:'var(--c-nails)'},
@@ -2082,7 +2408,13 @@ var state = {
   adjustOpen: false,
   statsFeedDays: 7,
   patternDays: 7,     // how far back the pattern chart looks (7/14/28)
-  patternView: 'clock', // 'clock' (24h columns) | 'feed' (수유텀) | 'sleep' (잠텀/깨시)
+  insTab: 'all',      // 통계 tab section: 'all' | 'feed' | 'poop' | 'sleep'
+  gTab: 'cal',        // 성장 tab view: 'cal' | 'graph'
+  gMonth: null,       // 'YYYY-MM' the calendar is showing (null = this month)
+  gDate: null,        // 'YYYY-MM-DD' selected on the calendar (null = today)
+  feedSub: 'term',    // 수유 section sub-screen: 'term' (수유텀) | 'stats' (수유량)
+  sleepSub: 'term',   // 수면 section sub-screen: 'term' (잠텀) | 'stats' (수면 통계)
+  gMode: 'view',      // the day page: 'view' (기록 보기) | 'edit' (입력·수정)
   logDate: null,      // 'YYYY-M-D' when a single day is being viewed
   logDays: 7,         // how many recent days the log is showing
   crossMidAsked: false,   // guards the "다음날 아침인가요?" question from re-asking
@@ -2144,8 +2476,11 @@ function sameAuthor(a, b){
   return !!String(a || '').trim() && String(a || '').trim() === String(b || '').trim();
 }
 function isMasterUser(){ return authorIndex(state.author) === MASTER_INDEX; }
-/* mine, or everything if I am 엄마. A record with no author at all is
-   mom's to sort out — those are the imported ones. */
+/* WHO MAY DELETE. Mine, or everything if I am 엄마. Editing is free for
+   everyone — the family hands care over mid-record all day (mom puts him
+   down, dad enters the wake-up), so only deletion, the one destructive
+   act, stays behind this. A record with no author at all is mom's to sort
+   out — those are the imported ones. */
 function canTouch(ownerName){
   return isMasterUser() || sameAuthor(ownerName, state.author);
 }
@@ -2519,6 +2854,66 @@ function getActive(){ return appState.active; }
    hers the pause was a hollow outline that didn't match anything else on
    the bar. Drawn, they are the right weight and the right size every time.
    Pause and play are solid — a control you press wants some mass to it. */
+/* small utility icon buttons — the pencil, the bin, the check. Text-label
+   버튼 대신 아이콘: one glyph reads faster than a word in either language,
+   and the two languages stop disagreeing about button width. */
+var UI_ICONS = {
+  pencil: '<path d="M12.5 4.9H6.4A1.5 1.5 0 0 0 4.9 6.4v11.2a1.5 1.5 0 0 0 1.5 1.5h11.2a1.5 1.5 0 0 0 1.5-1.5v-6.1"/>' +
+          '<path d="M17.1 3.9l3 3-7.1 7.1-3.7.7.7-3.7z"/>',
+  trash: '<path d="M4.5 6.5h15"/>' +
+         '<path d="M8.6 6.5V5a1.5 1.5 0 0 1 1.5-1.5h3.8A1.5 1.5 0 0 1 15.4 5v1.5"/>' +
+         '<path d="M6.6 6.5l.7 12a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9l.7-12"/>' +
+         '<path d="M10.1 10.6v5.8M13.9 10.6v5.8"/>',
+  check: '<path d="M5 12.6l4.6 4.6L19 7.4"/>',
+  kebab: '<circle class="kdot" cx="12" cy="5.4" r="1.75"/>' +
+         '<circle class="kdot" cx="12" cy="12" r="1.75"/>' +
+         '<circle class="kdot" cx="12" cy="18.6" r="1.75"/>',
+};
+function uiIconHtml(name){
+  return '<svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true">' + UI_ICONS[name] + '</svg>';
+}
+/* ⋯ opens a two-line menu where the row used to carry loose buttons. One
+   menu element for the whole app, torn down on any outside tap or scroll. */
+var kebabMenuEl = null;
+function closeKebabMenu(){
+  if (!kebabMenuEl) return;
+  kebabMenuEl.remove();
+  kebabMenuEl = null;
+  document.removeEventListener('click', closeKebabMenu, true);
+  window.removeEventListener('scroll', closeKebabMenu, true);
+}
+function openKebabMenu(anchor, items){
+  closeKebabMenu();
+  kebabMenuEl = document.createElement('div');
+  kebabMenuEl.className = 'kebab-menu';
+  kebabMenuEl.innerHTML = items.map(function(it, i){
+    return '<button type="button" data-k="' + i + '"' + (it.danger ? ' class="danger"' : '') + '>' +
+      uiIconHtml(it.icon) + esc(it.label) + '</button>';
+  }).join('');
+  document.body.appendChild(kebabMenuEl);
+  var r = anchor.getBoundingClientRect();
+  var mw = kebabMenuEl.offsetWidth, mh = kebabMenuEl.offsetHeight;
+  var top = r.bottom + 4;
+  if (top + mh > window.innerHeight - 8) top = r.top - mh - 4;
+  kebabMenuEl.style.top = Math.max(8, top) + 'px';
+  kebabMenuEl.style.left = Math.max(8, Math.min(window.innerWidth - mw - 8, r.right - mw)) + 'px';
+  $$('button', kebabMenuEl).forEach(function(b){
+    b.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var it = items[Number(b.dataset.k)];
+      closeKebabMenu();
+      it.fn();
+    });
+  });
+  setTimeout(function(){
+    document.addEventListener('click', closeKebabMenu, true);
+    window.addEventListener('scroll', closeKebabMenu, true);
+  }, 0);
+}
+function kebabBtnHtml(attrs){
+  return '<button type="button" class="ico-btn kebab-btn" ' + attrs + ' aria-label="⋯">' + uiIconHtml('kebab') + '</button>';
+}
+
 var AW_ICONS = {
   /* two bars, drawn as thick round-capped strokes rather than rectangles */
   pause: { d: '<rect x="8.1" y="6" width="3.3" height="12" rx="1.6"/>' +
@@ -2589,6 +2984,13 @@ var TYPE_ICONS = {
   /* a bath, with the tap and the feet */
   bath: '<path data-solid d="M3 12.6h18v2.6a4.2 4.2 0 0 1-4.2 4.2H7.2A4.2 4.2 0 0 1 3 15.2z"/>' +
         '<path d="M6.6 12.6V6.3a2.3 2.3 0 0 1 4.6 0"/><path d="M6.4 19.4v1.7M17.6 19.4v1.7"/>',
+  /* a pram, side on: soft-filled bassinet with its folded hood, the push
+     handle, and two wheels — read against the bath and the rattle on the
+     contact sheet so none of the three collide */
+  outing: '<path data-solid d="M3.6 9.2h13.2v2.2a5.4 5.4 0 0 1-5.4 5.4H9A5.4 5.4 0 0 1 3.6 11.2z"/>' +
+          '<path data-solid d="M3.6 9.2a6.6 6.6 0 0 1 6.6-6.6v6.6z"/>' +
+          '<path d="M16.8 9.2l2.6-3.1h1.4"/>' +
+          '<circle cx="7.6" cy="19.5" r="1.7"/><circle cx="14.6" cy="19.5" r="1.7"/>',
   /* drops */
   probiotic: '<path data-solid d="M12 3.4c0 0 5.6 6.1 5.6 9.8a5.6 5.6 0 1 1-11.2 0C6.4 9.5 12 3.4 12 3.4z"/>',
   /* the bulb aspirator, not a sneeze */
@@ -4177,7 +4579,7 @@ var TERM_ODD_WAKE_MS = 6 * 3600000;
 function renderTermView(kind){
   var listBox = document.getElementById('term-list');
   var avgBox = document.getElementById('term-avg');
-  var emptyEl = document.getElementById('pattern-empty');
+  var emptyEl = document.getElementById('term-empty');
   var cardEl = document.getElementById('term-card');
 
   var pDays = state.patternDays || 7;
@@ -4185,6 +4587,10 @@ function renderTermView(kind){
   var since = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - (pDays-1)*86400000;
 
   var isFeed = kind === 'feed';
+  var tt = document.getElementById('term-title');
+  var tc = document.getElementById('term-caption');
+  if (tt) tt.textContent = t(isFeed ? 'termFeedTitle' : 'termSleepTitle');
+  if (tc) tc.textContent = t(isFeed ? 'termFeedCaption' : 'termSleepCaption');
   var meta = typeMeta(isFeed ? 'feed' : 'sleep');
   var rows = readEntries().filter(function(e){
     if (e.type !== (isFeed ? 'feed' : 'sleep')) return false;
@@ -4222,10 +4628,32 @@ function renderTermView(kind){
     var dk = dayKey(rows[g+1].e.start);
     (byDay[dk] = byDay[dk] || []).push(gaps[g]);
   }
-  avgBox.innerHTML =
-    '<span class="ta-label">' + esc(t(isFeed ? 'termAvgFeed' : 'termAvgWake')) + '</span>' +
-    '<span class="ta-val">' + (n ? esc(fmtDur(sum/n)) : '–') + '</span>' +
-    '<span class="ta-range">' + esc(t('termRangeTpl').replace('{d}', pDays)) + '</span>';
+  if (isFeed){
+    avgBox.className = 'term-avg card';
+    avgBox.innerHTML =
+      '<span class="ta-label">' + esc(t('termAvgFeed')) + '</span>' +
+      '<span class="ta-val">' + (n ? esc(fmtDur(sum/n)) : '–') + '</span>' +
+      '<span class="ta-range">' + esc(t('termRangeTpl').replace('{d}', pDays)) + '</span>';
+  } else {
+    /* wake window per gap; nap and night per SLEEP — the question a parent
+       asks is "how long is one nap running these days", not a daily total
+       the dashboard already carries */
+    var napSum = 0, napN = 0, nightSum = 0, nightN = 0;
+    rows.forEach(function(r2){
+      if (r2.end <= r2.start) return;
+      if (classifySleep(r2.e) === 'night'){ nightSum += r2.end - r2.start; nightN++; }
+      else { napSum += r2.end - r2.start; napN++; }
+    });
+    var cell = function(label, val){
+      return '<span class="ta-item"><span class="ta-label">' + esc(label) + '</span>' +
+             '<span class="ta-val">' + esc(val) + '</span></span>';
+    };
+    avgBox.className = 'term-avg card multi';
+    avgBox.innerHTML =
+      cell(t('termAvgWake'), n ? fmtDur(sum/n) : '–') +
+      cell(t('termAvgNap'), napN ? fmtDur(napSum/napN) : '–') +
+      cell(t('termAvgNight'), nightN ? fmtDur(nightSum/nightN) : '–');
+  }
 
   function dayAvgHtml(dk){
     var arr = byDay[dk];
@@ -4258,7 +4686,10 @@ function renderTermView(kind){
       val = row.e.amount != null ? (row.e.amount + t('ml')) : '';
       sub = hasSpan ? fmtDur(row.end - row.start) : '';
     } else {
-      name = row.e.sleepKind ? t(row.e.sleepKind === 'night' ? 'night' : 'nap') : meta.label;
+      /* the same rule the log and the stats use: an explicit kind wins, and
+         a sleep without one is judged by its clock time — never shown as a
+         bare "수면", which says nothing on a screen about sleep rhythm */
+      name = t(classifySleep(row.e) === 'night' ? 'night' : 'nap');
       val = hasSpan ? fmtDur(row.end - row.start) : '';
       sub = '';
     }
@@ -4288,24 +4719,56 @@ function renderTermView(kind){
   }
 }
 
-function renderPattern(){
-  var view = state.patternView || 'clock';
-  var chartCard = document.getElementById('pattern-chart-card');
-  var legendBox0 = document.getElementById('pattern-legend');
-  var termCard = document.getElementById('term-card');
-  var termAvg = document.getElementById('term-avg');
-  var titleEl = document.getElementById('pattern-title');
-  var captionEl = document.getElementById('pattern-caption');
-  if (titleEl) titleEl.textContent = t(view === 'feed' ? 'termFeedTitle' : view === 'sleep' ? 'termSleepTitle' : 'patternTitle');
-  if (captionEl) captionEl.textContent = t(view === 'feed' ? 'termFeedCaption' : view === 'sleep' ? 'termSleepCaption' : 'patternCaption');
-  if (view !== 'clock'){
-    if (chartCard) chartCard.hidden = true;
-    if (legendBox0) legendBox0.hidden = true;
-    renderTermView(view);
-    return;
+/* the 통계 tab's four sections share one machine: 일과 draws the 24h chart,
+   수유/수면 point the term block at their own records (it is MOVED into the
+   open section, since one DOM node cannot be in two), 배변 is all
+   renderStats(). */
+function syncInsight(){
+  var ins = state.insTab || 'all';
+  $$('#insight-tabs button').forEach(function(b){
+    b.setAttribute('aria-pressed', String(b.dataset.ins === ins));
+  });
+  $$('[data-ins-panel]').forEach(function(pnl){
+    pnl.hidden = pnl.dataset.insPanel !== ins;
+  });
+  var block = document.getElementById('term-block');
+  var feedStats = document.getElementById('feed-stats-wrap');
+  if (ins === 'feed'){
+    /* 수유 is two screens of its own — the interval timeline and the
+       volumes — not a pile; the small seg above decides which */
+    var fs = state.feedSub || 'term';
+    $$('#feed-sub button').forEach(function(b){
+      b.setAttribute('aria-pressed', String(b.dataset.fs === fs));
+    });
+    feedStats.hidden = fs !== 'stats';
+    if (fs === 'term'){
+      var anchorF = document.getElementById('term-anchor-feed');
+      if (block.parentElement !== anchorF) anchorF.appendChild(block);
+      block.hidden = false;
+      renderTermView('feed');
+    } else {
+      block.hidden = true;
+    }
+  } else if (ins === 'sleep'){
+    var ss = state.sleepSub || 'term';
+    $$('#sleep-sub button').forEach(function(b){
+      b.setAttribute('aria-pressed', String(b.dataset.ss === ss));
+    });
+    document.getElementById('sleep-stats-wrap').hidden = ss !== 'stats';
+    if (ss === 'term'){
+      var anchorS = document.getElementById('term-anchor-sleep');
+      if (block.parentElement !== anchorS) anchorS.appendChild(block);
+      block.hidden = false;
+      renderTermView('sleep');
+    } else {
+      block.hidden = true;
+    }
+  } else {
+    block.hidden = true;
   }
-  if (termCard) termCard.hidden = true;
-  if (termAvg) termAvg.hidden = true;
+  if (ins === 'all') renderPattern();
+}
+function renderPattern(){
   var colsBox = document.getElementById('pattern-cols');
   var legendBox = document.getElementById('pattern-legend');
   var cardEl = document.getElementById('pattern-chart-card');
@@ -4405,6 +4868,544 @@ function renderPattern(){
   if (cardEl) cardEl.hidden = !anyMark;
   legendBox.hidden = !anyMark;
   if (emptyEl) emptyEl.hidden = anyMark;
+}
+
+/* ================================================================
+   RENDER: WEIGHT — the growth curve since birth.
+   The measurements arrive every week or two, so unlike every other chart
+   here the x axis is TIME, not equal slots: two weigh-ins close together
+   sit close together, a three-week gap looks like a three-week gap. That
+   is the honest shape of a growth curve.
+   ================================================================ */
+function readWeights(){
+  return (appState.weights || []).slice().sort(function(a, b){
+    return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+  });
+}
+function fmtKgDiff(d){
+  var r = Math.round(d * 100) / 100;
+  return (r > 0 ? '+' : '') + r;
+}
+/* one curve for both growth numbers — weight in kg, height in cm. The x
+   axis is TIME, not equal slots: a three-week gap looks like a three-week
+   gap, which is the honest shape of a growth curve. */
+function growthCurveSvg(list, unit, gridStep){
+  var W = 340, H = 150, padL = 34, padR = 14, padT = 12, padB = 22;
+  var first = list[0], last = list[list.length - 1];
+  var t0 = new Date(first.date + 'T00:00:00').getTime();
+  var t1 = new Date(last.date + 'T00:00:00').getTime();
+  if (t1 <= t0) t1 = t0 + 86400000;
+  var vMin = Math.min.apply(null, list.map(function(w){ return w.v; }));
+  var vMax = Math.max.apply(null, list.map(function(w){ return w.v; }));
+  var span = Math.max(vMax - vMin, gridStep);
+  vMin -= span * 0.10; vMax += span * 0.10;
+  var X = function(w){ return padL + (new Date(w.date + 'T00:00:00').getTime() - t0) / (t1 - t0) * (W - padL - padR); };
+  var Y = function(v){ return padT + (vMax - v) / (vMax - vMin) * (H - padT - padB); };
+  var pts = list.map(function(w){ return [X(w), Y(w.v)]; });
+  var line = pts.map(function(p, i){ return (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join('');
+  var area = line + 'L' + pts[pts.length-1][0].toFixed(1) + ' ' + (H - padB) + 'L' + pts[0][0].toFixed(1) + ' ' + (H - padB) + 'Z';
+  var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img">';
+  for (var g = Math.ceil(vMin / gridStep) * gridStep; g <= vMax; g += gridStep){
+    var gy = Y(g);
+    svg += '<line class="wc-grid" x1="' + padL + '" y1="' + gy.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + gy.toFixed(1) + '"/>' +
+           '<text class="wc-lbl" x="' + (padL - 5) + '" y="' + (gy + 3.5).toFixed(1) + '" text-anchor="end">' + (Math.round(g * 10) / 10) + '</text>';
+  }
+  svg += '<path class="wc-area" d="' + area + '"/><path class="wc-line" d="' + line + '"/>';
+  pts.forEach(function(p, i){
+    svg += '<circle class="wc-dot' + (i === pts.length - 1 ? ' last' : '') + '" cx="' + p[0].toFixed(1) + '" cy="' + p[1].toFixed(1) + '" r="3.1"/>';
+  });
+  var lp = pts[pts.length - 1];
+  var anchor = lp[0] > W - padR - 34 ? 'end' : 'middle';
+  svg += '<text class="wc-lbl val" x="' + lp[0].toFixed(1) + '" y="' + (lp[1] - 8).toFixed(1) + '" text-anchor="' + anchor + '">' + last.v + unit + '</text>';
+  var mmdd = function(d){ return Number(d.slice(5, 7)) + '/' + Number(d.slice(8, 10)); };
+  svg += '<text class="wc-lbl" x="' + padL + '" y="' + (H - 6) + '">' + mmdd(first.date) + '</text>' +
+         '<text class="wc-lbl" x="' + (W - padR) + '" y="' + (H - 6) + '" text-anchor="end">' + mmdd(last.date) + '</text>';
+  return svg + '</svg>';
+}
+function gMmdd(d){ return Number(d.slice(5, 7)) + '/' + Number(d.slice(8, 10)); }
+
+function renderWeightCard(){
+  var wrap = document.getElementById('weight-chart-wrap');
+  var lede = document.getElementById('weight-lede');
+  var badge = document.getElementById('weight-badge');
+  var listBox = document.getElementById('weight-list');
+  var dateEl = document.getElementById('weight-date');
+  if (!wrap) return;
+  if (dateEl && !dateEl.value) dateEl.value = toDateValue();
+
+  var ws = readWeights();
+  if (badge) badge.textContent = ws.length ? t('weightCountTpl').replace('{n}', ws.length) : '';
+  if (!ws.length){
+    if (lede) lede.textContent = '';
+    wrap.innerHTML = '<div class="empty-note" style="padding:18px 0">'+esc(t('weightEmpty'))+'</div>';
+    listBox.innerHTML = '';
+    return;
+  }
+
+  var last = ws[ws.length - 1], first = ws[0];
+  var html = t('weightLedeTpl')
+    .replace('{kg}', last.kg)
+    .replace('{gain}', Math.round((last.kg - first.kg) * 100) / 100);
+  if (ws.length > 1){
+    var prev = ws[ws.length - 2];
+    var diff = Math.round((last.kg - prev.kg) * 100) / 100;
+    html += '<br>' + esc(t(diff >= 0 ? 'weightPrevTpl' : 'weightPrevDownTpl')
+      .replace('{d}', gMmdd(prev.date)).replace('{diff}', String(Math.abs(diff))));
+  }
+  lede.innerHTML = html;
+
+  wrap.innerHTML = growthCurveSvg(ws.map(function(w){ return { date: w.date, v: w.kg }; }), 'kg', 0.5);
+
+  var recent = ws.slice(-5).reverse();
+  listBox.innerHTML = recent.map(function(w){
+    var idx = ws.indexOf(w);
+    var prev2 = idx > 0 ? ws[idx - 1] : null;
+    return '<div class="weight-row">' +
+      '<span class="wr-date">' + esc(gMmdd(w.date)) + '</span>' +
+      '<span class="wr-kg">' + w.kg + 'kg</span>' +
+      (prev2 ? '<span class="wr-diff">' + esc(fmtKgDiff(w.kg - prev2.kg)) + '</span>' : '') +
+      kebabBtnHtml('data-kb-weight="' + esc(w.id) + '" style="margin-left:auto;"') +
+    '</div>';
+  }).join('');
+  $$('[data-kb-weight]', listBox).forEach(function(btn){
+    btn.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var w2 = ws.filter(function(x){ return x.id === btn.dataset.kbWeight; })[0];
+      if (!w2) return;
+      var items = [{ label: t('gEdit'), icon: 'pencil', fn: function(){
+        /* the card's own form, prefilled — saving the same date replaces */
+        document.getElementById('weight-date').value = w2.date;
+        var kgEl2 = document.getElementById('weight-kg');
+        kgEl2.value = w2.kg;
+        try{ kgEl2.focus(); }catch(e){}
+      } }];
+      if (canTouch(w2.author)) items.push({ label: t('delete'), icon: 'trash', danger: true, fn: function(){
+        apiMutate('deleteWeight', { id: w2.id }).then(function(){
+          renderGrowth(); toast(t('deletedToast'));
+        }).catch(function(err){ toast(err.message); });
+      } });
+      openKebabMenu(btn, items);
+    });
+  });
+}
+
+function readHeights(){
+  return (appState.heights || []).slice().sort(function(a, b){
+    return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+  });
+}
+function readDiaries(){
+  return (appState.diaries || []).map(function(d){
+    var out = Object.assign({}, d);
+    out.translated = glossaryFix(d.text || '', d.lang || '', d.translation || '');
+    return out;
+  }).sort(function(a, b){
+    return new Date(b.ts || 0) - new Date(a.ts || 0);
+  });
+}
+function readMilestones(){
+  return (appState.milestones || []).slice().sort(function(a, b){
+    return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+  });
+}
+function renderHeightCard(){
+  var wrap = document.getElementById('height-chart-wrap');
+  var lede = document.getElementById('height-lede');
+  var badge = document.getElementById('height-badge');
+  if (!wrap) return;
+  var hs = readHeights();
+  if (badge) badge.textContent = hs.length ? t('weightCountTpl').replace('{n}', hs.length) : '';
+  if (!hs.length){
+    lede.textContent = '';
+    wrap.innerHTML = '<div class="empty-note" style="padding:18px 0">'+esc(t('heightEmpty'))+'</div>';
+    return;
+  }
+  var last = hs[hs.length - 1], first = hs[0];
+  lede.innerHTML = t('heightLedeTpl')
+    .replace('{cm}', last.cm)
+    .replace('{gain}', Math.round((last.cm - first.cm) * 10) / 10);
+  wrap.innerHTML = growthCurveSvg(hs.map(function(h){ return { date: h.date, v: h.cm }; }), 'cm', 2);
+}
+function renderMilestoneCard(){
+  var listBox = document.getElementById('milestone-list');
+  var badge = document.getElementById('milestone-badge');
+  if (!listBox) return;
+  var ms = readMilestones().slice().reverse();
+  if (badge) badge.textContent = ms.length ? t('weightCountTpl').replace('{n}', ms.length) : '';
+  listBox.innerHTML = ms.length ? ms.map(function(m){
+    return '<div class="gday-row"><b>' + esc(gMmdd(m.date)) + '</b><span>' + esc(m.text) + '</span>' +
+      kebabBtnHtml('data-kb-gmile="' + esc(m.id) + '" style="margin-left:auto;"') +
+    '</div>';
+  }).join('') : '<div class="empty-note" style="padding:14px 0">' + esc(t('milestoneEmpty')) + '</div>';
+  $$('[data-kb-gmile]', listBox).forEach(function(btn){
+    btn.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var m2 = ms.filter(function(x){ return x.id === btn.dataset.kbGmile; })[0];
+      if (!m2) return;
+      var items = [{ label: t('gEdit'), icon: 'pencil', fn: function(){
+        /* jump to that day's page with the words back in the box */
+        state.gDate = m2.date;
+        openGrowthDay('edit');
+        gPendingMile = m2.id;
+        var inp2 = document.getElementById('gday-milestone');
+        inp2.value = m2.text;
+        setTimeout(function(){ try{ inp2.focus(); }catch(e){} }, 60);
+      } }];
+      if (canTouch(m2.author)) items.push({ label: t('delete'), icon: 'trash', danger: true, fn: function(){
+        apiMutate('deleteMilestone', { id: m2.id }).then(function(){
+          renderGrowth(); toast(t('deletedToast'));
+        }).catch(function(err){ toast(err.message); });
+      } });
+      openKebabMenu(btn, items);
+    });
+  });
+}
+
+/* ---- the calendar ------------------------------------------------------ */
+function gShiftMonth(delta){
+  var mk = gMonthKey();
+  var d = new Date(Number(mk.slice(0, 4)), Number(mk.slice(5, 7)) - 1 + delta, 1);
+  state.gMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+  renderGrowth();
+}
+function gMonthKey(){
+  if (state.gMonth) return state.gMonth;
+  var n = new Date();
+  return n.getFullYear() + '-' + String(n.getMonth() + 1).padStart(2, '0');
+}
+function gSelectedDate(){
+  return state.gDate || toDateValue();
+}
+function renderGrowthCalendar(){
+  var grid = document.getElementById('gcal-grid');
+  var titleEl = document.getElementById('gcal-title');
+  var dowEl = document.getElementById('gcal-dow');
+  if (!grid) return;
+  var mk = gMonthKey();
+  var y = Number(mk.slice(0, 4)), mo = Number(mk.slice(5, 7));
+  titleEl.textContent = state.lang === 'vi' ? (mo + '/' + y) : (y + '년 ' + mo + '월');
+  dowEl.innerHTML = t('weekday_short').map(function(w){ return '<span>' + esc(w) + '</span>'; }).join('');
+
+  /* which KINDS of record each day carries — the row of micro-icons under
+     the number is the month's index */
+  var marked = {};
+  function markDay(d, k){ (marked[d] = marked[d] || {})[k] = true; }
+  readWeights().forEach(function(w){ markDay(w.date, 'w'); });
+  readHeights().forEach(function(h){ markDay(h.date, 'h'); });
+  readMilestones().forEach(function(m){ markDay(m.date, 'm'); });
+  readDiaries().forEach(function(d){ markDay(d.date, 'd'); });
+  var MARK_ICONS = { w: '\u2696\uFE0F', h: '\uD83D\uDCCF', m: '\u2B50', d: '\uD83D\uDCDD' };
+
+  var firstDow = new Date(y, mo - 1, 1).getDay();
+  var daysInMonth = new Date(y, mo, 0).getDate();
+  var todayStr = toDateValue();
+  var sel = gSelectedDate();
+  var cells = [];
+  for (var b2 = 0; b2 < firstDow; b2++) cells.push('<span class="gcal-day"></span>');
+  for (var d = 1; d <= daysInMonth; d++){
+    var ds = mk + '-' + String(d).padStart(2, '0');
+    var flags = marked[ds];
+    var cls = 'gcal-day' + (flags ? ' has-data' : '') +
+      (ds === todayStr ? ' today' : '') + (ds === sel ? ' selected' : '');
+    var marks = flags ? '<span class="gcal-marks">' +
+      ['w','h','m','d'].filter(function(k){ return flags[k]; })
+        .map(function(k){ return MARK_ICONS[k]; }).join('') + '</span>' : '';
+    cells.push('<button type="button" class="' + cls + '" data-gday="' + ds + '">' + d + marks + '</button>');
+  }
+  grid.innerHTML = cells.join('');
+  $$('[data-gday]', grid).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      state.gDate = btn.dataset.gday;
+      openGrowthDay();
+    });
+  });
+}
+function openGrowthDay(mode){
+  state.gMode = mode || 'view';
+  gPendingMile = null; gPendingDiary = null;
+  renderGrowthDay();
+  openFullpage('fp-gday');
+}
+function closeGrowthDay(){
+  gPendingMile = null; gPendingDiary = null;
+  closeFullpage('fp-gday');
+  /* the month behind may have gained a mark while the page was open */
+  renderGrowth();
+}
+function renderGrowthDay(){
+  var card = document.getElementById('fp-gday-body');
+  if (!card) return;
+  var ds = gSelectedDate();
+  document.getElementById('fp-gday-title').textContent =
+    dayHeading(new Date(ds + 'T00:00:00').toISOString());
+  var w = readWeights().filter(function(x){ return x.date === ds; })[0];
+  var h = readHeights().filter(function(x){ return x.date === ds; })[0];
+  var kgEl = document.getElementById('gday-kg');
+  var cmEl = document.getElementById('gday-cm');
+  if (document.activeElement !== kgEl) kgEl.value = w ? w.kg : '';
+  if (document.activeElement !== cmEl) cmEl.value = h ? h.cm : '';
+
+  /* TWO FACES OF THE SAME PAGE. Tapping a date is for READING — the day's
+     records as rows, each with its delete, and 수정 in the corner when a
+     form is wanted. The + button (and 수정) opens the WRITING face: the
+     input forms. The lists and diary pages themselves show on both. */
+  var editing = state.gMode === 'edit';
+  var modeBtn = document.getElementById('fp-gday-mode');
+  modeBtn.innerHTML = uiIconHtml(editing ? 'check' : 'pencil');
+  modeBtn.setAttribute('aria-label', t(editing ? 'gDone' : 'gEdit'));
+  document.getElementById('gday-measure-form').hidden = !editing;
+  document.getElementById('gday-mile-form').hidden = !editing;
+  document.getElementById('gday-diary-form').hidden = !editing;
+  var mv = document.getElementById('gday-measure-view');
+  mv.hidden = editing;
+  if (!editing){
+    var mrows = [];
+    if (w) mrows.push('<div class="gday-row"><span>\u2696\uFE0F</span><span>' + esc(t('weightTitle')) + '</span><b>' + w.kg + 'kg</b>' +
+      kebabBtnHtml('data-kb-gw="' + esc(w.id) + '"') + '</div>');
+    if (h) mrows.push('<div class="gday-row"><span>\uD83D\uDCCF</span><span>' + esc(t('heightTitle')) + '</span><b>' + h.cm + 'cm</b>' +
+      kebabBtnHtml('data-kb-gh="' + esc(h.id) + '"') + '</div>');
+    mv.innerHTML = mrows.length ? mrows.join('') :
+      '<div class="empty-note" style="padding:6px 0;font-size:var(--fs-caption)">' + esc(t('gNoMeasure')) + '</div>';
+    /* ⋯ → 수정 (the writing face, cursor in the right box) / 삭제. Everyone
+       may edit; delete follows the owner-or-mom rule, so it is simply absent
+       from the menu when it would be refused. */
+    function measureMenu(btn, rec, focusId, delType){
+      var items = [{ label: t('gEdit'), icon: 'pencil', fn: function(){
+        state.gMode = 'edit'; renderGrowthDay();
+        setTimeout(function(){ try{ document.getElementById(focusId).focus(); }catch(e){} }, 60);
+      } }];
+      if (canTouch(rec.author)) items.push({ label: t('delete'), icon: 'trash', danger: true, fn: function(){
+        apiMutate(delType, { id: rec.id }).then(function(){
+          renderGrowth(); toast(t('deletedToast'));
+        }).catch(function(err){ toast(err.message); });
+      } });
+      openKebabMenu(btn, items);
+    }
+    $$('[data-kb-gw]', mv).forEach(function(btn){
+      btn.addEventListener('click', function(ev){ ev.stopPropagation(); measureMenu(btn, w, 'gday-kg', 'deleteWeight'); });
+    });
+    $$('[data-kb-gh]', mv).forEach(function(btn){
+      btn.addEventListener('click', function(ev){ ev.stopPropagation(); measureMenu(btn, h, 'gday-cm', 'deleteHeight'); });
+    });
+  }
+  var ms = readMilestones().filter(function(m){ return m.date === ds; });
+  var rows = [];
+  ms.forEach(function(m){
+    rows.push('<div class="gday-row"><span>' + esc(m.text) + '</span>' +
+      kebabBtnHtml('data-kb-mile="' + esc(m.id) + '"') +
+    '</div>');
+  });
+  document.getElementById('gday-list').innerHTML = rows.join('');
+  $$('[data-kb-mile]', card).forEach(function(btn){
+    btn.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var m = ms.filter(function(x){ return x.id === btn.dataset.kbMile; })[0];
+      if (!m) return;
+      var items = [{ label: t('gEdit'), icon: 'pencil', fn: function(){
+        /* the words go back into the box; 추가 becomes save-the-change */
+        gPendingMile = m.id;
+        state.gMode = 'edit'; renderGrowthDay();
+        var inp = document.getElementById('gday-milestone');
+        inp.value = m.text;
+        setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 60);
+      } }];
+      if (canTouch(m.author)) items.push({ label: t('delete'), icon: 'trash', danger: true, fn: function(){
+        apiMutate('deleteMilestone', { id: m.id }).then(function(){
+          renderGrowth(); toast(t('deletedToast'));
+        }).catch(function(err){ toast(err.message); });
+      } });
+      openKebabMenu(btn, items);
+    });
+  });
+
+  /* the day's diary pages, newest first — words, pictures, whoever wrote it */
+  var diaries = readDiaries().filter(function(d2){ return d2.date === ds; });
+  var dl = document.getElementById('gday-diary-list');
+  dl.innerHTML = !diaries.length
+    ? '<div class="empty-note" style="padding:10px 0 4px;font-size:var(--fs-caption)">' + esc(t('diaryEmpty')) + '</div>'
+    : diaries.map(function(d2){
+    var photos = Array.isArray(d2.photos) ? d2.photos : [];
+    return '<div class="gdiary-entry">' +
+      '<div class="gd-head"><span>' + esc(localizeAuthorName(d2.author)) + '</span>' +
+        '<span>' + esc(fmtTime(d2.ts)) + '</span>' +
+        kebabBtnHtml('data-kb-diary="' + esc(d2.id) + '"') +
+      '</div>' +
+      (d2.text ? '<div class="gd-text">' + esc(d2.text) + '</div>' : '') +
+      (d2.translated ? '<div class="gd-trans">' + esc(d2.translated) + '</div>' : '') +
+      (photos.length ? '<div class="m-photos' + (photos.length === 1 ? ' one' : '') + '">' +
+        photos.map(function(ph, i){
+          var ratio = (ph.w && ph.h) ? (ph.h / ph.w) : 1;
+          return '<button type="button" class="m-photo" data-diary-photo="' + esc(d2.id) + '" data-photo-i="' + i + '"' +
+            ' style="--ar:' + (Math.round(Math.min(1.6, Math.max(0.6, ratio)) * 1000) / 1000) + '">' +
+            '<img src="' + esc(displayPhotoUrl(ph.id, true)) + '" alt="" loading="lazy" /></button>';
+        }).join('') + '</div>' : '') +
+    '</div>';
+  }).join('');
+  $$('[data-kb-diary]', dl).forEach(function(btn){
+    btn.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var d3 = diaries.filter(function(x){ return x.id === btn.dataset.kbDiary; })[0];
+      if (!d3) return;
+      var items = [{ label: t('gEdit'), icon: 'pencil', fn: function(){
+        gPendingDiary = d3.id;
+        state.gMode = 'edit'; renderGrowthDay();
+        var ta = document.getElementById('gday-diary');
+        ta.value = d3.text || '';
+        setTimeout(function(){ try{ ta.focus(); }catch(e){} }, 60);
+      } }];
+      if (canTouch(d3.author)) items.push({ label: t('delete'), icon: 'trash', danger: true, fn: function(){
+        apiMutate('deleteDiary', { id: d3.id }).then(function(){
+          renderGrowth(); toast(t('deletedToast'));
+        }).catch(function(err){ toast(err.message); });
+      } });
+      openKebabMenu(btn, items);
+    });
+  });
+  $$('[data-diary-photo]', dl).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var d3 = readDiaries().filter(function(x){ return x.id === btn.dataset.diaryPhoto; })[0];
+      if (!d3 || !d3.photos) return;
+      openPhotoViewer(d3.photos.map(function(ph){ return ph.id; }), Number(btn.dataset.photoI) || 0);
+    });
+  });
+}
+
+/* an item being EDITED via its ⋯ menu: the words go back into the input
+   and the save button writes an update instead of a new record */
+var gPendingMile = null, gPendingDiary = null;
+
+/* ---- diary photos: same pipeline as memo photos, their own staging ---- */
+var diaryPhotos = [];
+function renderDiaryPhotoStrip(){
+  var strip = document.getElementById('gday-photo-strip');
+  if (!strip) return;
+  strip.hidden = !diaryPhotos.length;
+  strip.innerHTML = diaryPhotos.map(function(p){
+    return '<div class="mp-chip"><img src="' + esc(localPhotoUrl(p.id) || '') + '" alt="" />' +
+      '<button type="button" class="mp-x" data-drop-dphoto="' + esc(p.id) + '">✕</button></div>';
+  }).join('');
+  $$('[data-drop-dphoto]', strip).forEach(function(b){
+    b.addEventListener('click', function(){
+      diaryPhotos = diaryPhotos.filter(function(x){ return x.id !== b.dataset.dropDphoto; });
+      renderDiaryPhotoStrip();
+    });
+  });
+}
+function attachDiaryPhotos(diaryId, pending){
+  toast(t('photoUploading'));
+  var landed = [], failed = 0, full = false;
+  return pending.reduce(function(chain, p){
+    return chain.then(function(){
+      return uploadPhoto(p)
+        .then(function(){ landed.push({ id: p.id, w: p.w, h: p.h }); })
+        .catch(function(err){ failed++; if (err && err.status === 507) full = true; });
+    });
+  }, Promise.resolve()).then(function(){
+    var d = (appState.diaries || []).filter(function(x){ return x.id === diaryId; })[0];
+    if (d){
+      if (landed.length) d.photos = landed; else delete d.photos;
+      if (state.tab === 'growth') renderGrowth();
+    }
+    if (failed) toast(full ? t('photoStorageFull') : t('photoFailed'));
+    if (!landed.length) return;
+    return apiMutate('updateDiary', { id: diaryId, photos: landed });
+  }).catch(function(){ toast(t('photoFailed')); });
+}
+function submitDiary(){
+  var ta = document.getElementById('gday-diary');
+  var text = ta.value.trim();
+  var pending = diaryPhotos.slice();
+  if (!text && !pending.length) return;
+  /* editing an existing page: the same box, but the save is an update — the
+     photos already on the page stay, staged ones are added, and the
+     translation is redone for the new words */
+  if (gPendingDiary){
+    var editId = gPendingDiary;
+    gPendingDiary = null;
+    var lang2 = detectLang(text);
+    var d0 = (appState.diaries || []).filter(function(x){ return x.id === editId; })[0];
+    if (d0){ d0.text = text; d0.lang = lang2; d0.translation = ''; }
+    ta.value = '';
+    diaryPhotos = [];
+    renderDiaryPhotoStrip();
+    renderGrowth();
+    toast(t('savedToast'));
+    apiMutate('updateDiary', { id: editId, text: text, lang: lang2 })
+      .then(function(){
+        renderGrowth();
+        if (pending.length){
+          var existing = (d0 && d0.photos) ? d0.photos.slice() : [];
+          return pending.reduce(function(chain, p2){
+            return chain.then(function(){ return uploadPhoto(p2).then(function(){
+              existing.push({ id: p2.id, w: p2.w, h: p2.h });
+            }).catch(function(){}); });
+          }, Promise.resolve()).then(function(){
+            return apiMutate('updateDiary', { id: editId, photos: existing });
+          }).then(function(){ renderGrowth(); });
+        }
+      })
+      .then(function(){
+        if (text && (lang2 === 'ko' || lang2 === 'vi')){
+          apiTranslate(text, lang2 === 'ko' ? 'vi' : 'ko').then(function(tr){
+            if (!tr) return;
+            var d4 = (appState.diaries || []).filter(function(x){ return x.id === editId; })[0];
+            if (d4){ d4.translation = tr; renderGrowth(); }
+            return apiMutate('updateDiary', { id: editId, translation: tr });
+          }).catch(function(){});
+        }
+      })
+      .catch(function(err){ toast(err.message || 'error'); renderGrowth(); });
+    return;
+  }
+  var refs = pending.map(function(p){ return { id: p.id, w: p.w, h: p.h }; });
+  /* the page appears NOW, from this phone's own blobs; the server hears
+     about the words first and the pictures land as a second write */
+  var lang = detectLang(text);
+  var tempId = 'tmpd_' + Date.now();
+  appState.diaries = (appState.diaries || []).concat([{ id: tempId, date: gSelectedDate(),
+    text: text, lang: lang, author: state.author, ts: new Date().toISOString(),
+    photos: refs.length ? refs : undefined }]);
+  ta.value = '';
+  diaryPhotos = [];
+  renderDiaryPhotoStrip();
+  renderGrowth();
+  toast(t('savedToast'));
+  apiMutate('addDiary', { date: gSelectedDate(), text: text, lang: lang, author: state.author })
+    .then(function(res){
+      renderGrowth();
+      var newId = res && res.diary && res.diary.id;
+      if (pending.length && newId) attachDiaryPhotos(newId, pending);
+      /* translated for the other reader, after the post — never before it */
+      if (newId && text && (lang === 'ko' || lang === 'vi')){
+        apiTranslate(text, lang === 'ko' ? 'vi' : 'ko').then(function(tr){
+          if (!tr) return;
+          var d = (appState.diaries || []).filter(function(x){ return x.id === newId; })[0];
+          if (d){ d.translation = tr; renderGrowth(); }
+          return apiMutate('updateDiary', { id: newId, translation: tr });
+        }).catch(function(){ /* an untranslated page is better than no page */ });
+      }
+    })
+    .catch(function(err){
+      appState.diaries = (appState.diaries || []).filter(function(d){ return d.id !== tempId; });
+      renderGrowth();
+      toast(err.message || 'error');
+    });
+}
+function renderGrowth(){
+  var gv = state.gTab || 'cal';
+  $$('#growth-tabs button').forEach(function(b){
+    b.setAttribute('aria-pressed', String(b.dataset.gv === gv));
+  });
+  $$('[data-gv-panel]').forEach(function(pnl){ pnl.hidden = pnl.dataset.gvPanel !== gv; });
+  if (gv === 'cal'){
+    renderGrowthCalendar();
+  } else {
+    renderWeightCard();
+    renderHeightCard();
+    renderMilestoneCard();
+  }
+  /* the day page is its own depth; keep it fresh while it is open */
+  if (document.getElementById('fp-gday').classList.contains('show')) renderGrowthDay();
 }
 
 /* ================================================================
@@ -4703,30 +5704,19 @@ function openEntryDetail(entryId){
   if (!meta) return;
   document.getElementById('fp-entry-title').innerHTML =
     typeIconHtml(meta, 'ty-inline', 'color:'+meta.color) + esc(meta.label);
-  /* Somebody else's record opens to be READ, not edited: every control is
-     disabled and the save and delete buttons are gone. This is what stops a
-     mis-tap on a busy morning from rewriting a feed nobody else saw. */
-  var locked = !canTouch(raw.author);
+  /* Anyone may edit — the person closing a record is routinely not the one
+     who opened it (mom puts him down, dad enters the wake-up). Only DELETE
+     stays owner-or-mom: it is the one act that destroys information. */
   var panel = document.getElementById('fp-entry');
-  panel.classList.toggle('is-locked', locked);
+  panel.classList.toggle('is-locked', false);
   var body = document.getElementById('fp-entry-body');
-  body.innerHTML = (locked ? lockedNoticeHtml(raw.author) : '') + buildEntryFields(meta, e);
+  body.innerHTML = buildEntryFields(meta, e);
   wireEntryFields(meta);
-  if (locked){
-    $$('input, button, textarea, select', body).forEach(function(el){
-      if (el.closest('.lock-note')) return;
-      el.disabled = true;
-      el.setAttribute('tabindex', '-1');
-    });
-  }
-  document.getElementById('fp-entry-delete').hidden = locked;
-  document.getElementById('fp-entry-save').hidden = locked;
+  document.getElementById('fp-entry-delete').hidden = !canTouch(raw.author);
+  document.getElementById('fp-entry-save').hidden = false;
   openFullpage('fp-entry');
 }
 function closeEntryDetail(){ closeFullpage('fp-entry'); state.entryId = null; }
-function lockedNoticeHtml(owner){
-  return '<div class="lock-note">' + esc(t('lockedByTpl').replace('{who}', localizeAuthorName(owner) || '?')) + '</div>';
-}
 
 /* ================================================================
    SCRUB CONTROLS — the entry-detail time and amount inputs.
@@ -5457,19 +6447,21 @@ function renderMemoList(){
         }).join('') + '</div>' : '') +
       '<div class="m-meta">' +
         '<span>'+esc(fmtDateTime(m.time))+'</span>' +
-        '<span style="display:flex;gap:14px;">' +
+        '<span style="display:flex;gap:10px;align-items:center;">' +
           '<button type="button" class="text-btn" data-reply-open="'+esc(m.id)+'" style="padding:0;">'+esc(t('reply'))+'</button>' +
-          (canTouch(m.author) ? '<button type="button" class="text-btn danger-btn" data-del-memo="'+esc(m.id)+'" style="padding:0;">'+esc(t('delete'))+'</button>' : '') +
+          kebabBtnHtml('data-kb-memo-row="'+esc(m.id)+'"') +
         '</span>' +
       '</div>' +
       (m.replies.length ? '<div class="m-replies">' + m.replies.map(function(r){
         var rNew = !!memoUnreadShown[r.id];
-        return '<div class="m-reply">' +
+        var mine = isSameAuthorName(r.author, state.author);
+        /* my own bubble does not need my name on it — its side says that */
+        return '<div class="m-reply'+(mine ? ' mine' : '')+'">' +
           '<div class="mr-head">' +
             (rNew ? '<span class="m-new-dot" aria-hidden="true"></span>' : '') +
-            '<span class="mr-author">'+esc(localizeAuthorName(r.author))+'</span>' +
+            (mine ? '' : '<span class="mr-author">'+esc(localizeAuthorName(r.author))+'</span>') +
             '<span class="mr-time">'+esc(fmtDateTime(r.time))+'</span>' +
-            (canTouch(r.author) ? '<button type="button" class="text-btn danger-btn mr-del" data-del-reply="'+esc(m.id)+'|'+esc(r.id)+'" style="padding:0;">'+esc(t('delete'))+'</button>' : '') +
+            kebabBtnHtml('class="ico-btn kebab-btn mr-del" data-kb-reply="'+esc(m.id)+'|'+esc(r.id)+'"').replace('class="ico-btn kebab-btn" ', '') +
           '</div>' +
           '<div class="m-bilingual">' +
             '<div class="m-orig">'+esc(r.text)+'</div>' +
@@ -5490,12 +6482,57 @@ function renderMemoList(){
       openPhotoViewer(m.photos.map(function(p){ return p.id; }), Number(btn.dataset.photoI) || 0);
     });
   });
-  $$('[data-del-memo]', box).forEach(function(btn){
-    btn.addEventListener('click', function(){
-      apiMutate('deleteMemo', { id: btn.dataset.delMemo }).then(function(){
-        renderMemoList(); updateMemoPreview();
-        toast(t('deletedToast'));
-      }).catch(function(err){ toast(err.message); });
+  $$('[data-kb-memo-row]', box).forEach(function(btn){
+    btn.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var m = readMemos().filter(function(x){ return x.id === btn.dataset.kbMemoRow; })[0];
+      if (!m) return;
+      var items = [{ label: t('gEdit'), icon: 'pencil', fn: function(){ openMemoEditor(m); } }];
+      /* only when the server holds a DeepL key: memos written before the key
+         existed still carry whatever the free translator said at the time */
+      if (serverHasGoodTranslator && (m.lang === 'ko' || m.lang === 'vi')){
+        items.push({ label: t('retranslate'), icon: 'check', fn: function(){
+          apiTranslate(m.text, m.lang === 'ko' ? 'vi' : 'ko').then(function(tr){
+            if (!tr) throw new Error('translate failed');
+            return apiMutate('updateMemo', { id: m.id, translation: tr });
+          }).then(function(){
+            renderMemoList(); updateMemoPreview(); toast(t('savedToast'));
+          }).catch(function(err){ toast(err.message || 'error'); });
+        } });
+      }
+      if (canTouch(m.author)) items.push({ label: t('delete'), icon: 'trash', danger: true, fn: function(){
+        apiMutate('deleteMemo', { id: m.id }).then(function(){
+          renderMemoList(); updateMemoPreview();
+          toast(t('deletedToast'));
+        }).catch(function(err){ toast(err.message); });
+      } });
+      openKebabMenu(btn, items);
+    });
+  });
+  $$('[data-kb-reply]', box).forEach(function(btn){
+    btn.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      var parts = btn.dataset.kbReply.split('|');
+      var m2 = readMemos().filter(function(x){ return x.id === parts[0]; })[0];
+      var r2 = m2 && m2.replies.filter(function(x){ return x.id === parts[1]; })[0];
+      if (!r2) return;
+      var items = [{ label: t('gEdit'), icon: 'pencil', fn: function(){
+        /* the words go back into that memo's reply box; send = save the edit */
+        pendingReplyEdit = { memoId: parts[0], id: parts[1] };
+        var form = box.querySelector('[data-reply-form="' + parts[0] + '"]');
+        if (form){
+          form.hidden = false;
+          var inp = form.querySelector('input');
+          inp.value = r2.text;
+          try{ inp.focus(); }catch(e){}
+        }
+      } }];
+      if (canTouch(r2.author)) items.push({ label: t('delete'), icon: 'trash', danger: true, fn: function(){
+        apiMutate('deleteMemoReply', { memoId: parts[0], id: parts[1] }).then(function(){
+          renderMemoList(); updateMemoPreview(); toast(t('deletedToast'));
+        }).catch(function(err){ toast(err.message); });
+      } });
+      openKebabMenu(btn, items);
     });
   });
   $$('[data-reply-open]', box).forEach(function(btn){
@@ -5510,6 +6547,29 @@ function renderMemoList(){
     var text = inputEl.value.trim();
     if (!text) return;
     var lang = detectLang(text);
+    /* editing an existing reply via its ⋯: the send becomes an update, the
+       translation is redone for the new words */
+    if (pendingReplyEdit && pendingReplyEdit.memoId === memoId){
+      var pe = pendingReplyEdit;
+      pendingReplyEdit = null;
+      var raw0 = (appState.memos || []).filter(function(x){ return x.id === memoId; })[0];
+      var r0 = raw0 && (raw0.replies || []).filter(function(x){ return x.id === pe.id; })[0];
+      if (r0){ r0.text = text; r0.lang = lang; r0.translation = ''; }
+      inputEl.value = '';
+      renderMemoList();
+      apiMutate('updateMemoReply', { memoId: memoId, id: pe.id, text: text, lang: lang })
+        .then(function(){
+          renderMemoList();
+          if (lang === 'ko' || lang === 'vi'){
+            apiTranslate(text, lang === 'ko' ? 'vi' : 'ko').then(function(tr){
+              if (!tr) return;
+              return apiMutate('updateMemoReply', { memoId: memoId, id: pe.id, translation: tr });
+            }).then(function(){ renderMemoList(); }).catch(function(){});
+          }
+        })
+        .catch(function(err){ toast(err.message || 'error'); renderMemoList(); });
+      return;
+    }
     /* same shape as posting a memo: it appears under the thumb NOW, the
        server hears about it second, and the translation is filled in third —
        a reply must never sit behind a translation service */
@@ -5805,6 +6865,22 @@ function stepPhotoViewer(d){
   renderPhotoViewer();
 }
 
+/* a memo being edited via its ⋯: the compose sheet reopens with the words,
+   and 등록 becomes save-the-change */
+var memoEditId = null;
+var pendingReplyEdit = null;   // {memoId, id} while a reply is being edited
+function openMemoEditor(m){
+  memoEditId = m.id;
+  var ta = document.getElementById('memo-compose-text');
+  ta.value = m.text;
+  document.getElementById('memo-compose-title').textContent = t('memoEditTitle');
+  document.getElementById('memo-compose-submit').textContent = t('save');
+  memoTranslateCache = { text: m.text, lang: m.lang, translation: m.translated || '' };
+  document.getElementById('memo-compose-translate-preview').textContent = m.translated || '';
+  document.getElementById('memo-compose-translate-wrap').hidden = !m.translated;
+  clearComposePhotos();
+  openSheet('memo-compose-sheet');
+}
 function submitMemo(){
   var textEl = document.getElementById('memo-compose-text');
   var text = textEl.value.trim();
@@ -5817,6 +6893,32 @@ function submitMemo(){
      behind a translation service, or behind a server that is still waking. */
   var cached = (translatable && memoTranslateCache.text === text && memoTranslateCache.lang === lang)
     ? (memoTranslateCache.translation || '') : '';
+
+  /* EDITING an existing memo: same sheet, but the save is an update — the
+     photos already on the memo stay, staged ones are added */
+  if (memoEditId){
+    var editId = memoEditId;
+    memoEditId = null;
+    var raw0 = (appState.memos || []).filter(function(x){ return x.id === editId; })[0];
+    var baseRefs = (raw0 && raw0.photos) ? raw0.photos.slice() : [];
+    if (raw0){ raw0.text = text; raw0.lang = lang; raw0.translation = cached; }
+    var pendingE = composePhotos.slice();
+    textEl.value = '';
+    memoTranslateCache = { text: '', lang: '', translation: '' };
+    composePhotos = [];
+    renderComposePhotos();
+    closeSheet('memo-compose-sheet');
+    renderMemoList(); updateMemoPreview();
+    toast(t('savedToast'));
+    apiMutate('updateMemo', { id: editId, text: text, lang: lang, translation: cached })
+      .then(function(){
+        renderMemoList(); updateMemoPreview();
+        if (translatable && !cached) fillInMemoTranslation(editId, text, lang);
+        if (pendingE.length) attachMemoPhotos(editId, pendingE, baseRefs);
+      })
+      .catch(function(err){ toast(err.message || 'error'); renderMemoList(); });
+    return;
+  }
 
   /* THE PICTURES DO NOT HOLD UP THE MEMO. The text is posted immediately —
      it is what the other phone needs to read — and the photographs, which
@@ -5860,9 +6962,9 @@ function submitMemo(){
 /* Upload each picture, then tell the memo which ones made it. A photo that
    fails is dropped from the memo rather than left as a broken square, and
    the memo itself — the words somebody wrote — is never lost to it. */
-function attachMemoPhotos(memoId, pending){
+function attachMemoPhotos(memoId, pending, baseRefs){
   toast(t('photoUploading'));
-  var landed = [];
+  var landed = (baseRefs || []).slice();
   var failed = 0, full = false;
   return pending.reduce(function(chain, p){
     return chain.then(function(){
@@ -5994,10 +7096,17 @@ function syncLangPills(){
 /* pulled out of openProfilePicker so a language switch made INSIDE the sheet
    can redraw the name chips — they're built from t('authorPresets'), which
    applyI18n() can't reach because they're generated, not data-i18n markup. */
+/* THE CHIP TAP MUST NOT BECOME 엄마 YET. It used to write state.author
+   directly, so by the time 저장 ran the PIN check, the page already WAS
+   엄마 — clearedForAuthor saw isMasterUser() true and waved itself
+   through. The tap now only marks a pending choice; the PIN pad stands
+   between that choice and it taking effect. */
+var pickerPending = null;
 function renderProfilePickerChips(){
+  pickerPending = state.author;
   renderAuthorChips('profile-chip-row', state.author, function(name){
     document.getElementById('profile-custom-input').value = '';
-    state.author = name;
+    pickerPending = name;
     $$('.chip', document.getElementById('profile-chip-row')).forEach(function(c){
       c.setAttribute('aria-pressed', String(c.dataset.name===name));
     });
@@ -6010,7 +7119,7 @@ function openProfilePicker(){
 }
 function saveProfilePicker(){
   var custom = document.getElementById('profile-custom-input').value.trim();
-  var picked = custom || state.author;
+  var picked = custom || pickerPending || state.author;
   if (!picked){ toast(state.lang==='vi'?'Vui lòng chọn hoặc nhập tên':'이름을 선택하거나 입력해 주세요'); return; }
   clearedForAuthor(picked).then(function(ok){
     if (!ok) return;
@@ -6099,7 +7208,8 @@ function switchTab(name){
   window.scrollTo(0,0);
   if (name === 'stats') renderStats();
   if (name === 'memo') renderMemoList();
-  if (name === 'pattern') renderPattern();
+  if (name === 'stats') syncInsight();
+  if (name === 'growth') renderGrowth();
   if (name === 'settings') renderSettings();
   if (state.adjustOpen){ state.adjustOpen = false; var panel = document.getElementById('aw-adjust-panel'); if (panel) panel.hidden = true; }
 }
@@ -6143,6 +7253,112 @@ function wireEvents(){
 
 
   // stats: feed range toggle (7/14/30 days)
+  // 수유/수면 section sub-screens
+  $$('#feed-sub button').forEach(function(b){
+    b.addEventListener('click', function(){
+      state.feedSub = b.dataset.fs;
+      syncInsight();
+    });
+  });
+  $$('#sleep-sub button').forEach(function(b){
+    b.addEventListener('click', function(){
+      state.sleepSub = b.dataset.ss;
+      syncInsight();
+    });
+  });
+
+  // diary: photos and save
+  var dPhotoInput = document.getElementById('gday-photo-input');
+  document.getElementById('gday-photo-btn').addEventListener('click', function(){ dPhotoInput.click(); });
+  dPhotoInput.addEventListener('change', function(){
+    if (dPhotoInput.files && dPhotoInput.files.length){
+      var room = PHOTO_MAX - diaryPhotos.length;
+      if (room <= 0){ toast(t('photoMaxTpl').replace('{n}', PHOTO_MAX)); }
+      else {
+        Array.prototype.slice.call(dPhotoInput.files, 0, room).forEach(function(f){
+          compressPhoto(f).then(function(p){
+            rememberLocalPhoto(p.id, p.blob);
+            diaryPhotos.push(p);
+            renderDiaryPhotoStrip();
+          }).catch(function(){ toast(t('photoTooBig')); });
+        });
+      }
+    }
+    dPhotoInput.value = '';
+  });
+  document.getElementById('gday-diary-save').addEventListener('click', submitDiary);
+
+  document.getElementById('fp-gday-back').addEventListener('click', closeGrowthDay);
+  document.getElementById('fp-gday-mode').addEventListener('click', function(){
+    state.gMode = state.gMode === 'edit' ? 'view' : 'edit';
+    renderGrowthDay();
+  });
+  /* the + on the calendar: today's page, pen already in hand */
+  document.getElementById('gcal-fab').addEventListener('click', function(){
+    state.gDate = toDateValue();
+    openGrowthDay('edit');
+  });
+
+  // growth tab: calendar/graph switch, month nav, day inputs
+  $$('#growth-tabs button').forEach(function(b){
+    b.addEventListener('click', function(){ state.gTab = b.dataset.gv; renderGrowth(); });
+  });
+  document.getElementById('gcal-prev').addEventListener('click', function(){ gShiftMonth(-1); });
+  document.getElementById('gcal-next').addEventListener('click', function(){ gShiftMonth(1); });
+  document.getElementById('gday-save').addEventListener('click', function(){
+    var ds = gSelectedDate();
+    var kg = parseFloat(document.getElementById('gday-kg').value);
+    var cm = parseFloat(document.getElementById('gday-cm').value);
+    var jobs = [];
+    if (isFinite(kg) && kg >= 0.3 && kg <= 30) jobs.push(['addWeight', { date: ds, kg: Math.round(kg*100)/100, author: state.author }]);
+    if (isFinite(cm) && cm >= 20 && cm <= 130) jobs.push(['addHeight', { date: ds, cm: Math.round(cm*10)/10, author: state.author }]);
+    if (!jobs.length) return;
+    var chain = Promise.resolve();
+    jobs.forEach(function(j){ chain = chain.then(function(){ return apiMutate(j[0], j[1]); }); });
+    chain.then(function(){ renderGrowth(); toast(t('savedToast')); })
+         .catch(function(err){ toast(err.message || 'error'); });
+  });
+  document.getElementById('gday-milestone-add').addEventListener('click', function(){
+    var inp = document.getElementById('gday-milestone');
+    var text = inp.value.trim();
+    if (!text) return;
+    inp.value = '';
+    var op = gPendingMile
+      ? apiMutate('updateMilestone', { id: gPendingMile, text: text })
+      : apiMutate('addMilestone', { date: gSelectedDate(), text: text, author: state.author });
+    gPendingMile = null;
+    op.then(function(){ renderGrowth(); toast(t('savedToast')); })
+      .catch(function(err){ toast(err.message || 'error'); });
+  });
+
+  // weight: save (optimistic — the free-tier server may be waking up)
+  document.getElementById('weight-save').addEventListener('click', function(){
+    var kgEl = document.getElementById('weight-kg');
+    var dateEl = document.getElementById('weight-date');
+    var kg = parseFloat(kgEl.value);
+    var date = dateEl.value || toDateValue();
+    if (!isFinite(kg) || kg < 0.3 || kg > 30){ kgEl.focus(); return; }
+    kg = Math.round(kg * 100) / 100;
+    var snapshot = (appState.weights || []).slice();
+    appState.weights = snapshot.slice();
+    var ex = appState.weights.filter(function(w){ return w.date === date; })[0];
+    if (ex){ ex = JSON.parse(JSON.stringify(ex)); ex.kg = kg;
+      appState.weights = appState.weights.map(function(w){ return w.date === date ? ex : w; });
+    } else {
+      appState.weights = appState.weights.concat([{ id: 'tmpw_' + Date.now(), date: date, kg: kg, author: state.author }]);
+    }
+    kgEl.value = '';
+    renderWeightCard();
+    toast(t('savedToast'));
+    apiMutate('addWeight', { date: date, kg: kg, author: state.author })
+      .then(function(){ renderGrowth(); })
+      .catch(function(err){
+        appState.weights = snapshot;
+        renderWeightCard();
+        toast(err.message || 'error');
+      });
+  });
+
   $$('#stats-feed-range button').forEach(function(b){
     b.addEventListener('click', function(){
       state.statsFeedDays = Number(b.dataset.range);
@@ -6151,27 +7367,37 @@ function wireEvents(){
     });
   });
 
-  // pattern: which view — 24h columns, feed intervals, wake windows
-  $$('#pattern-view button').forEach(function(b){
+  // 통계 tab: which subject — 일과 / 수유 / 배변 / 수면
+  $$('#insight-tabs button').forEach(function(b){
     b.addEventListener('click', function(){
-      state.patternView = b.dataset.view;
-      $$('#pattern-view button').forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); });
-      renderPattern();
+      state.insTab = b.dataset.ins;
+      syncInsight();
     });
   });
 
-  // pattern: how far back the chart looks (7/14/28 days)
-  $$('#pattern-range button').forEach(function(b){
-    b.addEventListener('click', function(){
-      state.patternDays = Number(b.dataset.days);
-      $$('#pattern-range button').forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); });
-      renderPattern();
+  // how far back the charts look (7/14/28 days) — two segs, one setting:
+  // the 24h chart carries one and the term block carries its own, so the
+  // control is wherever the eye already is
+  function wireRangeSeg(id){
+    $$('#' + id + ' button').forEach(function(b){
+      b.addEventListener('click', function(){
+        state.patternDays = Number(b.dataset.days);
+        $$('#pattern-range button, #term-range button').forEach(function(x){
+          x.setAttribute('aria-pressed', String(Number(x.dataset.days) === state.patternDays));
+        });
+        syncInsight();
+      });
     });
-  });
+  }
+  wireRangeSeg('pattern-range');
+  wireRangeSeg('term-range');
 
   // memo tab
   document.getElementById('memo-open-btn').addEventListener('click', function(){ switchTab('memo'); });
   document.getElementById('memo-fab').addEventListener('click', function(){
+    memoEditId = null;
+    document.getElementById('memo-compose-title').textContent = t('memoComposeTitle');
+    document.getElementById('memo-compose-submit').textContent = t('memoSubmit');
     document.getElementById('memo-compose-text').value = '';
     document.getElementById('memo-compose-translate-preview').textContent = '';
     document.getElementById('memo-compose-translate-wrap').hidden = true;

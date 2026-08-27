@@ -214,6 +214,9 @@ async function sweepOrphanPhotos() {
     const { data } = await db.getState();
     const referenced = [];
     (data.memos || []).forEach((m) => (m.photos || []).forEach((p) => referenced.push(p.id)));
+    /* diary pages carry photos through the same store — anything the sweep
+       does not know about, it deletes, so this list must name them too */
+    (data.diaries || []).forEach((d) => (d.photos || []).forEach((p) => referenced.push(p.id)));
     const gone = await photos.sweepOrphans(referenced, 60);
     if (gone) console.log('[baby-log] swept ' + gone + ' orphaned photo(s)');
   } catch (err) { console.error('[baby-log] orphan sweep', err); }

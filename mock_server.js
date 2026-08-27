@@ -8,7 +8,7 @@ const glossary = require('./server/glossary');
 const { applyMutation } = require('./server/mutations');
 
 const EMPTY_STATE = {
-  entries: [], trash: [], active: null, customTypes: [], memos: [], typeOrder: [],
+  entries: [], trash: [], active: null, customTypes: [], memos: [], typeOrder: [], weights: [], heights: [], milestones: [], diaries: [],
   customAuthors: [], quickWords: [],
   profile: { nameKo: '지오', nameVi: 'Zio', birth: '2026-05-11' },
 };

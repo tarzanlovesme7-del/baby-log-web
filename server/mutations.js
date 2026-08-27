@@ -18,13 +18,14 @@ function clone(x) { return JSON.parse(JSON.stringify(x)); }
 const ALLOWED_ENTRY_FIELDS = ['type', 'start', 'end', 'amount', 'diaper', 'temp', 'note', 'noteLang', 'noteTranslated', 'author', 'sleepKind'];
 
 /* ---------------------------------------------------------------
-   WHO MAY CHANGE WHAT
+   WHO MAY DELETE WHAT
 
    The nanny started using the app and deleted one of mom's records
    by accident on her first day. There are no accounts here — a phone
    is whoever it says it is in settings — so this is not security, it
-   is a guard rail: you can change what you wrote, and mom can change
-   anything.
+   is a guard rail. It guards DELETION only: anyone may edit any
+   record (the family hands care over mid-record all day), you may
+   delete what you wrote, and mom may delete anything.
 
    Names are compared by WHICH of the three presets they are, not by
    their letters: the same person is '내니' on a Korean screen and
@@ -86,7 +87,12 @@ function applyMutation(prevState, type, payload) {
       const idx = state.entries.findIndex((e) => e.id === payload.id);
       if (idx === -1) throw httpError(404, 'entry not found');
       const entry = state.entries[idx];
-      assertMayTouch(payload.actor, entry.author, 'entry');
+      /* EDITS ARE FREE, DELETES ARE NOT. The care hands over mid-record all
+         day — mom starts the sleep, dad is holding him when he wakes, and
+         the person closing the record is routinely not the person who
+         opened it. Locking edits to the author made the app fight the
+         handover. Deleting is the one thing that destroys information, so
+         it alone stays owner-or-mom (see deleteEntry below). */
       ALLOWED_ENTRY_FIELDS.forEach((f) => { if (payload[f] !== undefined) entry[f] = payload[f]; });
       return { state, result: { entry } };
     }
@@ -230,6 +236,16 @@ function applyMutation(prevState, type, payload) {
     case 'updateMemo': {
       const memo = state.memos.find((m) => m.id === payload.id);
       if (!memo) throw httpError(404, 'memo not found');
+      /* a PERSON editing their words is allowed (text present) — what stays
+         forbidden is a background job rewriting them; machine writes only
+         ever carry translation/photos */
+      if (payload.text !== undefined) {
+        const text = String(payload.text || '').trim();
+        if (!text && !(memo.photos || []).length) throw httpError(400, 'memo text required');
+        memo.text = text;
+        memo.lang = payload.lang || memo.lang || 'other';
+        memo.translation = payload.translation || '';
+      }
       if (payload.translation !== undefined) memo.translation = payload.translation;
       if (payload.photos !== undefined) {
         const photos = normalizePhotos(payload.photos);
@@ -265,6 +281,13 @@ function applyMutation(prevState, type, payload) {
       if (!memo) throw httpError(404, 'memo not found');
       const reply = (memo.replies || []).find((r) => r.id === payload.id);
       if (!reply) throw httpError(404, 'reply not found');
+      if (payload.text !== undefined) {
+        const text = String(payload.text || '').trim().slice(0, 2000);
+        if (!text) throw httpError(400, 'reply text required');
+        reply.text = text;
+        reply.lang = payload.lang || reply.lang || 'other';
+        reply.translation = payload.translation || '';
+      }
       if (payload.translation !== undefined) reply.translation = payload.translation;
       return { state, result: { reply } };
     }
@@ -288,6 +311,156 @@ function applyMutation(prevState, type, payload) {
       /* the caller deletes the bytes once this write has actually landed —
          doing it first would lose the pictures on a version conflict */
       return { state, result: { removedPhotos: (memo.photos || []).map((p) => p.id) } };
+    }
+
+    /* WEIGHT — one number per day, so a second measurement on the same date
+       REPLACES the first rather than drawing a zigzag through the chart.
+       Kilograms, one decimal in practice; the range guard is generous
+       (0.3–30) because it only exists to reject typos like 76 for 7.6. */
+    case 'addWeight': {
+      const kg = Number(payload.kg);
+      if (!isFinite(kg) || kg < 0.3 || kg > 30) throw httpError(400, 'weight out of range');
+      const date = String(payload.date || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw httpError(400, 'bad date');
+      state.weights = state.weights || [];
+      const existing = state.weights.find((w) => w.date === date);
+      let weight;
+      if (existing) {
+        existing.kg = Math.round(kg * 100) / 100;
+        existing.author = payload.author || existing.author || '';
+        weight = existing;
+      } else {
+        weight = { id: uid('w_'), date, kg: Math.round(kg * 100) / 100, author: payload.author || '' };
+        state.weights.push(weight);
+      }
+      state.weights.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+      return { state, result: { weight } };
+    }
+
+    case 'deleteWeight': {
+      state.weights = state.weights || [];
+      const w = state.weights.find((x) => x.id === payload.id);
+      if (!w) throw httpError(404, 'weight not found');
+      assertMayTouch(payload.actor, w.author, 'weight');
+      state.weights = state.weights.filter((x) => x.id !== payload.id);
+      return { state, result: {} };
+    }
+
+    /* height: same contract as weight — one number per day, replace on the
+       same date, a range guard that only exists to catch typos (665 for
+       66.5). Centimetres. */
+    case 'addHeight': {
+      const cm = Number(payload.cm);
+      if (!isFinite(cm) || cm < 20 || cm > 130) throw httpError(400, 'height out of range');
+      const date = String(payload.date || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw httpError(400, 'bad date');
+      state.heights = state.heights || [];
+      const existing = state.heights.find((h) => h.date === date);
+      let height;
+      if (existing) {
+        existing.cm = Math.round(cm * 10) / 10;
+        existing.author = payload.author || existing.author || '';
+        height = existing;
+      } else {
+        height = { id: uid('h_'), date, cm: Math.round(cm * 10) / 10, author: payload.author || '' };
+        state.heights.push(height);
+      }
+      state.heights.sort((a, b) => a.date < b.date ? -1 : a.date > b.date ? 1 : 0);
+      return { state, result: { height } };
+    }
+
+    case 'deleteHeight': {
+      state.heights = state.heights || [];
+      const h = state.heights.find((x) => x.id === payload.id);
+      if (!h) throw httpError(404, 'height not found');
+      assertMayTouch(payload.actor, h.author, 'height');
+      state.heights = state.heights.filter((x) => x.id !== payload.id);
+      return { state, result: {} };
+    }
+
+    /* milestones: the firsts — 뒤집기, 첫 웃음. Free text, several may share
+       a day, and they are never overwritten, only added and deleted. */
+    case 'addMilestone': {
+      const text = String(payload.text || '').trim().slice(0, 120);
+      if (!text) throw httpError(400, 'milestone text required');
+      const date = String(payload.date || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw httpError(400, 'bad date');
+      state.milestones = state.milestones || [];
+      const milestone = { id: uid('g_'), date, text, author: payload.author || '' };
+      state.milestones.push(milestone);
+      return { state, result: { milestone } };
+    }
+
+    /* the diary: a day's page — text and up to a few photos, several
+       entries a day allowed (two parents write about the same afternoon).
+       Photos ride the same store as memo photos; the text is posted first
+       and the pictures attached by a second write, exactly like a memo. */
+    case 'addDiary': {
+      const text = String(payload.text || '').trim().slice(0, 4000);
+      const date = String(payload.date || '').slice(0, 10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw httpError(400, 'bad date');
+      if (!text && !normalizePhotos(payload.photos).length) throw httpError(400, 'diary needs text or a photo');
+      state.diaries = state.diaries || [];
+      const diary = { id: uid('d_'), date, text, lang: payload.lang || 'other',
+        translation: payload.translation || '', author: payload.author || '', ts: new Date().toISOString() };
+      const photos = normalizePhotos(payload.photos);
+      if (photos.length) diary.photos = photos;
+      state.diaries.push(diary);
+      return { state, result: { diary } };
+    }
+
+    /* only the machine-written part — the uploaded photo refs — may be
+       filled in afterwards; the words a person wrote are never rewritten
+       by a background job */
+    case 'updateDiary': {
+      state.diaries = state.diaries || [];
+      const diary = state.diaries.find((d) => d.id === payload.id);
+      if (!diary) throw httpError(404, 'diary not found');
+      /* a PERSON editing their words (text present) is allowed — what stays
+         forbidden is a background job rewriting them; machine writes only
+         ever carry translation/photos */
+      if (payload.text !== undefined) {
+        const text = String(payload.text || '').trim().slice(0, 4000);
+        if (!text && !(diary.photos || []).length) throw httpError(400, 'diary needs text or a photo');
+        diary.text = text;
+        diary.lang = payload.lang || diary.lang || 'other';
+        diary.translation = payload.translation || '';
+      }
+      if (payload.translation !== undefined) diary.translation = payload.translation;
+      if (payload.photos !== undefined) {
+        const photos = normalizePhotos(payload.photos);
+        if (photos.length) diary.photos = photos; else delete diary.photos;
+      }
+      return { state, result: { diary } };
+    }
+
+    case 'deleteDiary': {
+      state.diaries = state.diaries || [];
+      const diary = state.diaries.find((d) => d.id === payload.id);
+      if (!diary) throw httpError(404, 'diary not found');
+      assertMayTouch(payload.actor, diary.author, 'diary');
+      state.diaries = state.diaries.filter((d) => d.id !== payload.id);
+      return { state, result: { removedPhotos: (diary.photos || []).map((p) => p.id) } };
+    }
+
+    case 'updateMilestone': {
+      state.milestones = state.milestones || [];
+      const m = state.milestones.find((x) => x.id === payload.id);
+      if (!m) throw httpError(404, 'milestone not found');
+      const text = String(payload.text || '').trim().slice(0, 120);
+      if (!text) throw httpError(400, 'milestone text required');
+      /* edits are free, like entries — the guard is on deletion only */
+      m.text = text;
+      return { state, result: { milestone: m } };
+    }
+
+    case 'deleteMilestone': {
+      state.milestones = state.milestones || [];
+      const m = state.milestones.find((x) => x.id === payload.id);
+      if (!m) throw httpError(404, 'milestone not found');
+      assertMayTouch(payload.actor, m.author, 'milestone');
+      state.milestones = state.milestones.filter((x) => x.id !== payload.id);
+      return { state, result: {} };
     }
 
     case 'addCustomType': {
