@@ -300,7 +300,11 @@
      display:contents, so the labels, the numbers and the sub-lines line up
      whatever any of them wraps to. */
   .dashboard{
-    display:grid; grid-template-columns:repeat(3,1fr); gap:0 4px; padding:4px 2px 6px;
+    /* minmax(0,…), not plain 1fr: a grid track's automatic minimum is its
+       content's min-content width, and the numbers below are white-space:
+       nowrap — so plain 1fr let a long "11시간 59분 전" widen its own column
+       past the screen instead of being shrunk to fit it. */
+    display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:0 4px; padding:4px 2px 6px;
     align-items:start; text-align:center;
   }
   .dash-item{ display:contents; }
@@ -309,24 +313,53 @@
   .dash-item:nth-child(2) > *{ grid-column:2; }
   .dash-item:nth-child(3) > *{ grid-column:3; }
   .dash-item .d-emoji{ grid-row:1; font-size:20px; line-height:1; margin-bottom:7px; }
-  .dash-item .d-label{ grid-row:2; font-size:var(--fs-caption); color:var(--muted-2); margin-bottom:4px; font-weight:var(--fw-medium); align-self:end; }
-  .dash-item .d-val{ grid-row:3; font-size:var(--fs-display); font-weight:var(--fw-display); font-variant-numeric:tabular-nums; letter-spacing:-.3px; text-wrap:balance; }
-  .dash-item .d-sub{ grid-row:4; font-size:var(--fs-caption); color:var(--muted); margin-top:3px; }
+  /* align-self:end keeps the label directly above its number whether it is
+     one line or two; text-wrap:balance means a label that does wrap splits
+     evenly instead of dropping a single word onto the second line */
+  .dash-item .d-label{
+    grid-row:2; font-size:var(--fs-caption); color:var(--muted-2);
+    margin-bottom:4px; font-weight:var(--fw-medium); align-self:end;
+    text-wrap:balance;
+  }
+  /* ONE LINE, ALWAYS, ALL THREE THE SAME SIZE. "11시간 59분 전" needs 118px
+     and a column on a 320px phone is 92px, so the number used to wrap while
+     its shorter neighbour stayed on one line — three tiles at two different
+     heights, which is the thing that looked broken. fitDashValues() below
+     picks the one size at which the longest of the three fits, and gives it
+     to all three; nowrap is what makes a miss show up as a test failure
+     rather than as a quiet second line. */
+  .dash-item .d-val{ grid-row:3; font-size:var(--fs-display); font-weight:var(--fw-display); font-variant-numeric:tabular-nums; letter-spacing:-.3px; white-space:nowrap; }
+  /* On a 320px phone each of these three columns is 97px wide, and Vietnamese
+     needs about 110 for "Ngủ gần nhất". One step down is the difference
+     between three labels on one line and one of them wrapping — which is what
+     made this row look ragged in the first place. */
+  @media (max-width: 360px){
+    .dash-item .d-label{ font-size:12.5px; }
+  }
 
   /* wraps the memo band + next-feed band as one flex child of .panel, so the
      panel's own `gap` doesn't insert a sliver between the two stacked bands */
-  .announce-stack{ display:flex; flex-direction:column; }
+  /* Wraps the memo band + next-feed band as one flex child of .panel, so the
+     panel's own `gap` doesn't insert a sliver between the two stacked bands.
+     THE PULL LIVES HERE, not on the first row: the memo band is hidden
+     whenever there is nothing unread, and a pull that belonged to it would
+     leave a grey sliver above whichever band was left. */
+  .announce-stack{ display:flex; flex-direction:column; margin-top:-16px; }
 
   /* memo preview — no box: a full-bleed color band, tap jumps to the memo tab */
   .announce-row{
-    /* negative top margin cancels the panel's own top padding so this sits flush
-       against the header, with no gray sliver between them */
-    width:calc(100% + 32px); margin:-16px -16px 0; display:flex; align-items:flex-start; gap:10px;
+    width:calc(100% + 32px); margin:0 -16px; display:flex; align-items:flex-start; gap:10px;
     padding:13px 16px; text-align:left; background:var(--memo-bg); border-radius:0;
   }
   .announce-row .a-emoji{ font-size:17px; flex:0 0 auto; margin-top:1px; }
   .announce-row .a-body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
-  .announce-row .a-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .announce-row .a-top{ display:flex; align-items:center; gap:8px; }
+  .announce-row .a-chev{ margin-left:auto; }
+  /* how many are waiting, when it is more than one */
+  .announce-row .a-count{
+    font-size:var(--fs-micro); font-weight:var(--fw-strong); color:var(--memo-bg);
+    background:var(--memo-fg); border-radius:999px; padding:1px 7px; flex:0 0 auto;
+  }
   .announce-row .a-label{ font-size:var(--fs-caption); font-weight:var(--fw-strong); color:var(--memo-fg); }
   .announce-row .a-chev{ flex:0 0 auto; color:var(--memo-fg); opacity:.6; font-size:17px; font-weight:var(--fw-strong); }
   /* original line at full emphasis, translated line a touch quieter (opacity, not
@@ -340,7 +373,7 @@
      preview above, stacked directly under it (margin-top:0 instead of the
      -16px header-flush pull, so the two bands read as one continuous strip)
      with its own peach tint instead of the memo's amber */
-  .announce-row.next-feed-row{ margin-top:0; background:var(--nf-bg); }
+  .announce-row.next-feed-row{ background:var(--nf-bg); }
   .announce-row.next-feed-row .a-label,
   .announce-row.next-feed-row .a-orig{ color:var(--nf-fg); }
   .announce-row.next-feed-row .a-orig{ font-variant-numeric:tabular-nums; white-space:normal; }
@@ -584,6 +617,17 @@
      line runs edge-to-edge instead of stopping short within the card */
   .memo-row{ margin:0 -18px; padding:16px 18px; display:flex; flex-direction:column; gap:8px; border-bottom:1px solid var(--border); }
   .memo-row:last-child{ border-bottom:0; }
+  /* one somebody else left that this phone has not looked at yet — a tinted
+     ground and a dot, cleared when she leaves the tab */
+  .memo-row.unread{ background:var(--memo-bg); }
+  /* --danger-text, not --danger: it is the red each theme already uses for
+     something that has to READ against its own background (deep red on
+     light, a lighter one on dark). The flat --danger is tuned for white text
+     sitting on top of it, and goes muddy on the dark memo band. */
+  .memo-row .m-new-dot{
+    width:7px; height:7px; border-radius:50%; background:var(--danger-text);
+    flex:0 0 auto; margin-right:auto;
+  }
   .memo-row .m-row-head{ display:flex; align-items:center; justify-content:flex-end; gap:7px; }
   .memo-row .m-author{ font-size:var(--fs-micro); color:var(--muted-2); font-weight:var(--fw-strong); }
   .memo-row .m-bilingual{ display:flex; flex-direction:column; gap:5px; }
@@ -648,6 +692,24 @@
   .memo-row .m-orig{ font-size:var(--fs-body); font-weight:var(--fw-body); line-height:1.5; color:var(--fg); white-space:pre-wrap; word-break:break-word; }
   .memo-row .m-trans{ font-size:var(--fs-body); font-weight:var(--fw-body); line-height:1.5; color:var(--primary); white-space:pre-wrap; word-break:break-word; }
   .memo-row .m-meta{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  /* replies: the thread hangs off the memo's left edge behind one rule, so a
+     glance separates "what she wrote" from "what was said back" */
+  .m-replies{ display:flex; flex-direction:column; gap:10px; margin:2px 0 0 6px;
+    padding-left:12px; border-left:2px solid var(--border); }
+  .m-reply .mr-head{ display:flex; align-items:center; gap:7px; }
+  /* the memo head is right-justified and its dot uses margin-right:auto to
+     sit alone on the left; a reply head reads left-to-right, so the dot
+     stays in flow beside the author */
+  .m-reply .m-new-dot{ margin-right:0; }
+  .m-reply .mr-author{ font-size:var(--fs-caption); font-weight:var(--fw-strong); color:var(--muted); }
+  .m-reply .mr-time{ font-size:var(--fs-micro); color:var(--muted-2); }
+  .m-reply .mr-del{ margin-left:auto; }
+  .m-reply .m-orig, .m-reply .m-trans{ font-size:var(--fs-label); }
+  .m-reply-form{ display:flex; gap:8px; margin-top:2px; }
+  .m-reply-form input{ flex:1; min-width:0; border:1px solid var(--border); background:var(--surface);
+    color:var(--fg); border-radius:12px; padding:9px 12px; font-size:var(--fs-label); }
+  .m-reply-form button{ flex:0 0 auto; border:0; border-radius:12px; padding:9px 14px;
+    background:var(--primary); color:#fff; font-size:var(--fs-label); font-weight:var(--fw-strong); }
   .memo-row .m-meta span{ font-size:var(--fs-caption); color:var(--muted-2); }
   .memo-row .m-lang-tag{ font-size:var(--fs-micro); font-weight:var(--fw-strong); border-radius:6px; padding:2px 6px; }
   .memo-row .m-lang-tag.lang-ko{ color:var(--primary-weak-fg); background:var(--primary-weak-bg); }
@@ -844,6 +906,79 @@
      icon alone (no swatch behind it), so color and icon never both appear
      on the same legend key */
   .pattern-legend-swatch{ width:20px; height:10px; flex:0 0 auto; }
+
+  /* term views (수유텀 / 잠텀·깨시) — a vertical timeline, newest at the top
+     like the log. Events sit to the right of a thin spine; the intervals —
+     which are the actual subject of this screen — are chips hanging on the
+     LEFT of the spine, so the eye can run straight down the chip column and
+     read the rhythm without touching the events at all. */
+  .term-avg{
+    display:flex; align-items:baseline; gap:8px; padding:12px 16px;
+  }
+  .term-avg .ta-label{ font-size:var(--fs-caption); color:var(--muted-2); font-weight:var(--fw-medium); }
+  .term-avg .ta-val{ font-size:var(--fs-title); font-weight:var(--fw-display); font-variant-numeric:tabular-nums; letter-spacing:-.3px; }
+  .term-avg .ta-range{ font-size:var(--fs-caption); color:var(--muted-2); margin-left:auto; }
+  .term-card{ padding:8px 16px 12px; }
+  /* time | spine | body: one shared grid so the spine is a straight line.
+     The columns are proportional, not fixed — with a 96px time gutter the
+     spine sat a third of the way in and the right half of the screen was
+     dead air. 5:6 puts the spine near the middle, the chips get room on the
+     left, the events get room on the right, and nothing is squashed into
+     one edge. */
+  .term-row{ display:grid; grid-template-columns:minmax(0,5fr) 14px minmax(0,6fr); column-gap:10px; }
+  .term-spine{ position:relative; }
+  .term-spine::before{
+    content:''; position:absolute; left:50%; top:0; bottom:0; width:2px;
+    margin-left:-1px; background:var(--border);
+  }
+  .term-row.is-first .term-spine::before{ top:12px; }
+  .term-row.is-last .term-spine::before{ bottom:auto; height:12px; }
+  .term-dot{
+    position:absolute; left:50%; top:10px; width:9px; height:9px;
+    margin-left:-4.5px; border-radius:50%; background:var(--term-color, var(--muted-2));
+  }
+  /* ONE QUIET VOICE FOR EVERYTHING THAT ISN'T THE POINT. Times and
+     durations all sit at the same small grey size — a start time being
+     bolder than its own end time was hierarchy nobody asked for. The chips
+     read first not by shouting (no bold, the palest grey fill on the page)
+     but because they are the only pill-shaped thing on it; the type words
+     keep their color and that is all the emphasis the events get. */
+  .term-time{
+    text-align:right; padding:8px 0 2px; font-size:var(--fs-micro);
+    color:var(--muted-2); font-variant-numeric:tabular-nums; line-height:1.4;
+    font-weight:var(--fw-body);
+  }
+  .term-time b{ font-weight:inherit; }
+  .term-time .tt-end{ display:block; }
+  .term-main{ padding:7px 0 22px; min-width:0; display:flex; align-items:baseline; gap:7px; flex-wrap:wrap; }
+  .term-name{ font-weight:var(--fw-strong); font-size:var(--fs-caption); color:var(--term-color, var(--fg)); }
+  /* same size and weight as the ~end time across the spine, one shade darker */
+  .term-val{ font-weight:var(--fw-body); font-size:var(--fs-micro); color:var(--muted); font-variant-numeric:tabular-nums; }
+  .term-sub{ font-size:var(--fs-micro); color:var(--muted-2); }
+  /* the interval chip: in the time column, tight against the spine */
+  .term-gap-row .term-time{ padding:6px 0; }
+  .term-gap{
+    display:inline-block; padding:5px 13px; border-radius:999px;
+    background:color-mix(in srgb, var(--surface-2) 55%, var(--surface));
+    border:1px solid var(--border);
+    font-size:var(--fs-label); font-weight:var(--fw-body);
+    color:var(--fg); font-variant-numeric:tabular-nums; white-space:nowrap;
+    letter-spacing:-.2px;
+  }
+  /* an interval too long to be a real rhythm — almost always a stretch
+     nobody logged — stays visible but drops its emphasis, and is left out
+     of the averages for the same reason */
+  .term-gap.is-odd{ color:var(--muted-2); font-weight:var(--fw-medium); }
+  .term-day{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    margin:6px -16px; padding:8px 16px;
+    background:var(--surface-2);
+    font-size:var(--fs-caption); font-weight:var(--fw-strong); color:var(--muted);
+  }
+  .term-day .td-avg{ font-weight:var(--fw-medium); color:var(--muted-2); font-variant-numeric:tabular-nums; }
+  @media (max-width: 360px){
+    .term-row{ column-gap:8px; }
+  }
 
   /* settings — rows separated by spacing, not rule lines */
   .row-item{ display:flex; align-items:center; justify-content:space-between; padding:15px 16px; gap:12px; }
@@ -1208,6 +1343,7 @@
         <div class="a-body">
           <div class="a-top">
             <span class="a-label" data-i18n="memoLabel">메모</span>
+            <span class="a-count" id="memo-unread-count" hidden></span>
             <span class="a-chev">›</span>
           </div>
           <div class="a-orig" id="memo-preview-orig"></div>
@@ -1272,12 +1408,23 @@
 
   <!-- ============ TAB: PATTERN ============ -->
   <section class="panel" id="tab-pattern" data-tab-panel hidden>
-    <!-- how far back the chart looks. Seven days is the everyday view; 28 is
-         where a habit that has been forming for a month becomes visible. -->
+    <!-- Three ways of looking at the same records, each answering a different
+         question. 시간대: WHEN in the day things happen (the 24h columns).
+         수유텀: how far apart the feeds are. 잠텀: how long he stays awake
+         between sleeps — asked for as "깨시", which is what parents of a
+         four-month-old actually track, because the wake window is what
+         decides when the next nap should start. -->
+    <div class="seg" id="pattern-view">
+      <button type="button" data-view="clock" aria-pressed="true" data-i18n="pvClock">시간대</button>
+      <button type="button" data-view="feed" aria-pressed="false" data-i18n="pvFeed">수유텀</button>
+      <button type="button" data-view="sleep" aria-pressed="false" data-i18n="pvSleep">잠텀</button>
+    </div>
+    <!-- how far back it looks. Seven days is the everyday view; 28 is where
+         a habit that has been forming for a month becomes visible. -->
     <div class="pattern-head">
       <div class="pattern-head-text">
-        <div class="section-title" style="margin-bottom:2px" data-i18n="patternTitle">시간대 패턴</div>
-        <div class="pattern-caption" data-i18n="patternCaption">세로축은 하루 24시간</div>
+        <div class="section-title" style="margin-bottom:2px" id="pattern-title" data-i18n="patternTitle">시간대 패턴</div>
+        <div class="pattern-caption" id="pattern-caption" data-i18n="patternCaption">세로축은 하루 24시간</div>
       </div>
       <div class="seg seg-sm" id="pattern-range">
         <button type="button" data-days="7" aria-pressed="true" data-i18n="range7">7일</button>
@@ -1292,6 +1439,8 @@
       </div>
     </div>
     <div class="pattern-legend" id="pattern-legend"></div>
+    <div class="term-avg card" id="term-avg" hidden></div>
+    <div class="card term-card" id="term-card" hidden><div id="term-list"></div></div>
     <div class="empty-note" id="pattern-empty" hidden data-i18n="patternEmpty">이 기간엔 기록이 없어요</div>
   </section>
 
@@ -1709,12 +1858,12 @@
    ================================================================ */
 var I18N = {
 ko: {
-  memoLabel:"메모", memoEmpty:"아직 메모가 없어요", memoComposeTitle:"메모 추가", memoComposePh:"메모를 입력하세요",
+  memoLabel:"메모", memoComposeTitle:"메모 추가", memoComposePh:"메모를 입력하세요",
   memoSubmit:"등록", memoTranslateToVi:"베트남어 번역 (선택)", memoTranslateToKo:"한국어 번역 (선택)",
   photoAdd:"사진", photoRemove:"사진 빼기", photoMaxTpl:"사진은 {n}장까지 넣을 수 있어요",
   photoTooBig:"이 사진은 열 수 없어요", photoUploading:"사진 올리는 중...",
   photoFailed:"사진을 올리지 못했어요", photoStorageFull:"사진 저장 공간이 가득 찼어요",
-  photoClose:"닫기", photoOf:"{i}/{n}",
+  photoClose:"닫기", photoOf:"{i}/{n}", memoUnreadTpl:"새 메모 {n}개",
   memoNoMemos:"아직 등록된 메모가 없어요.", tabMemo:"메모", typeOrder:"항목 순서",
   quickAdd:"빠른 기록", timeline:"기록", loadMore:"이전 기록 더 보기", emptyDay:"이 날은 기록이 없어요", todayBtn:"오늘", babyInfo:"아기 정보", babyNameKo:"이름 (한국어)", babyNameVi:"이름 (베트남어)", babyBirth:"태어난 날",
   whoAmI:"나는 누구", customTypes:"커스텀 항목 관리",
@@ -1729,9 +1878,14 @@ ko: {
   t_tummy:"터미타임", t_nose:"콧물제거", t_nails:"손톱정리", t_temp:"체온", t_massage:"마사지", t_custom:"기타",
   addNew:"항목 추가",
   since_feed:"마지막 수유", since_sleep:"마지막 잠",
-  since_poop:"마지막 똥", prevPoopTpl:"그 전 {t}", authorViPh:"베트남어 이름 (자동 번역)",
+  since_poop:"마지막 똥", authorViPh:"베트남어 이름 (자동 번역)",
   nextFeedLabel:"다음 추천 수유", nextFeedValueTpl:"{time} · {remain} 후", nextFeedDueValueTpl:"시간이 지났어요 · {time}",
   tabPattern:"패턴", patternTitle:"시간대 패턴", patternCaption:"세로축은 하루 24시간", patternEmpty:"이 기간엔 기록이 없어요",
+  pvClock:"시간대", pvFeed:"수유텀", pvSleep:"잠텀",
+  termFeedTitle:"수유텀", termFeedCaption:"칩은 이전 수유부터 걸린 시간",
+  termSleepTitle:"잠텀 · 깨시", termSleepCaption:"칩은 깨어 있던 시간",
+  termAvgFeed:"평균 수유텀", termAvgWake:"평균 깨시", termAvgDay:"평균", termRangeTpl:"최근 {d}일",
+  reply:"답글", replyPh:"답글 입력…", replySend:"보내기",
   noRecordYet:"기록 없음", justNow:"방금", agoSuffix:"전", hrShort:"시간", minShort:"분",
   wet:"소변", dirty:"대변", both:"소변+대변", diaperKind:"종류",
   nap:"낮잠", night:"밤잠", auto:"자동판별", sleepKind:"수면 종류",
@@ -1789,12 +1943,12 @@ ko: {
   translating:"번역 중...", translateFailed:"번역을 못 가져왔어요", dayShort:"일", poopRecentTpl:"최근 {n}개"
 },
 vi: {
-  memoLabel:"Ghi chú", memoEmpty:"Chưa có ghi chú nào", memoComposeTitle:"Thêm ghi chú", memoComposePh:"Nhập ghi chú",
+  memoLabel:"Ghi chú", memoComposeTitle:"Thêm ghi chú", memoComposePh:"Nhập ghi chú",
   memoSubmit:"Đăng", memoTranslateToVi:"Dịch tiếng Việt (tùy chọn)", memoTranslateToKo:"Dịch tiếng Hàn (tùy chọn)",
   photoAdd:"Ảnh", photoRemove:"Bỏ ảnh", photoMaxTpl:"Chỉ thêm được tối đa {n} ảnh",
   photoTooBig:"Không mở được ảnh này", photoUploading:"Đang tải ảnh lên...",
   photoFailed:"Không tải được ảnh lên", photoStorageFull:"Hết dung lượng lưu ảnh",
-  photoClose:"Đóng", photoOf:"{i}/{n}",
+  photoClose:"Đóng", photoOf:"{i}/{n}", memoUnreadTpl:"{n} ghi chú mới",
   memoNoMemos:"Chưa có ghi chú nào được đăng.", tabMemo:"Ghi chú", typeOrder:"Thứ tự mục",
   quickAdd:"Ghi nhanh", timeline:"Nhật ký", loadMore:"Xem ngày trước đó", emptyDay:"Ngày này chưa có ghi chép", todayBtn:"Hôm nay", babyInfo:"Thông tin bé", babyNameKo:"Tên (Tiếng Hàn)", babyNameVi:"Tên (Tiếng Việt)", babyBirth:"Ngày sinh",
   whoAmI:"Bạn là ai", customTypes:"Quản lý mục tùy chỉnh",
@@ -1808,10 +1962,20 @@ vi: {
   t_feed:"Bú sữa", t_diaper:"Tã", t_bath:"Tắm", t_sleep:"Ngủ", t_med:"Uống thuốc", t_probiotic:"Men vi sinh", t_play:"Chơi",
   t_tummy:"Nằm sấp", t_nose:"Vệ sinh mũi", t_nails:"Cắt móng", t_temp:"Thân nhiệt", t_massage:"Mát-xa", t_custom:"Khác",
   addNew:"Thêm mục",
-  since_feed:"Lần bú gần nhất", since_sleep:"Giấc ngủ gần nhất",
-  since_poop:"Lần ị gần nhất", prevPoopTpl:"trước đó {t}", authorViPh:"Tên tiếng Việt (tự dịch)",
+  /* THREE WORDS, NOT FOUR. "Lần bú gần nhất" wrapped in a 118px column and
+     left "nhất" orphaned on a line of its own, while the third card fitted on
+     one line — so the row of labels came out ragged even though the grid rows
+     themselves were aligned. The classifier (Lần/Giấc) is what got dropped:
+     "Bú gần nhất" says the same thing. */
+  since_feed:"Bú gần nhất", since_sleep:"Ngủ gần nhất",
+  since_poop:"Ị gần nhất", authorViPh:"Tên tiếng Việt (tự dịch)",
   nextFeedLabel:"Dự kiến bú tiếp theo", nextFeedValueTpl:"{time} · còn {remain}", nextFeedDueValueTpl:"Đã quá giờ · {time}",
   tabPattern:"Mẫu hình", patternTitle:"Mẫu hình theo giờ", patternCaption:"Trục dọc là 24 giờ trong ngày", patternEmpty:"Chưa có nhật ký trong khoảng này",
+  pvClock:"Theo giờ", pvFeed:"Cữ bú", pvSleep:"Bé thức",
+  termFeedTitle:"Khoảng cách cữ bú", termFeedCaption:"Nhãn là thời gian từ cữ bú trước",
+  termSleepTitle:"Thời gian bé thức", termSleepCaption:"Nhãn là thời gian bé thức giữa hai giấc",
+  termAvgFeed:"Cữ bú trung bình", termAvgWake:"Thức trung bình", termAvgDay:"TB", termRangeTpl:"{d} ngày qua",
+  reply:"Trả lời", replyPh:"Nhập trả lời…", replySend:"Gửi",
   noRecordYet:"Chưa có dữ liệu", justNow:"Vừa xong", agoSuffix:"", hrShort:" giờ", minShort:" phút",
   wet:"Nước tiểu", dirty:"Phân", both:"Cả hai", diaperKind:"Loại",
   nap:"Ngủ ngày", night:"Ngủ đêm", auto:"Tự nhận diện", sleepKind:"Loại giấc ngủ",
@@ -1902,6 +2066,11 @@ var EMOJI_CHOICES = ['⭐','🎵','🚗','🦷','🧴','👀','✏️','❤️']
    STATE / STORAGE KEYS
    ================================================================ */
 var LS_LANG='bbl_lang', LS_AUTHOR='bbl_author', LS_THEME='bbl_theme';
+/* WHO HAS READ WHAT IS NOT SHARED DATA. 아빠 reading a memo says nothing
+   about whether 내니 has, so "read" is a fact about this phone and lives on
+   it. Putting it in the shared document would also mean every glance at the
+   memo tab rewrote the whole 55KB record and pushed it to all three phones. */
+var LS_MEMO_SEEN='bbl_memo_seen';
 /* where the amount scale opens for a feed nobody has filled in yet */
 var FEED_DEFAULT_ML = 150;
 var state = {
@@ -1913,6 +2082,7 @@ var state = {
   adjustOpen: false,
   statsFeedDays: 7,
   patternDays: 7,     // how far back the pattern chart looks (7/14/28)
+  patternView: 'clock', // 'clock' (24h columns) | 'feed' (수유텀) | 'sleep' (잠텀/깨시)
   logDate: null,      // 'YYYY-M-D' when a single day is being viewed
   logDays: 7,         // how many recent days the log is showing
   crossMidAsked: false,   // guards the "다음날 아침인가요?" question from re-asking
@@ -2007,11 +2177,19 @@ function cssEsc(s){ return String(s).replace(/["\\]/g, '\\$&'); }
 var appState = { entries: [], active: null, customTypes: [], memos: [], typeOrder: [], profile: {} };
 var appVersion = -1;
 
+/* the server says whether it holds a DeepL key. When it does, ITS
+   translation is better than the free endpoint this phone can reach, and
+   the chain below flips to server-first. */
+var serverHasGoodTranslator = false;
 function apiGetState(){
   return fetch('/api/state').then(function(res){
     if (!res.ok) throw new Error('failed to load');
     return res.json();
-  }).then(function(json){ appState = json.data; appVersion = json.version; return json; });
+  }).then(function(json){
+    appState = json.data; appVersion = json.version;
+    if (json.goodTranslator !== undefined) serverHasGoodTranslator = !!json.goodTranslator;
+    return json;
+  });
 }
 var mutationsInFlight = 0;
 function apiMutate(type, payload){
@@ -2055,6 +2233,102 @@ function withTimeout(promise, ms){
     promise.then(function(v){ if (!done){ done = true; clearTimeout(timer); resolve(v); } },
                  function(e){ if (!done){ done = true; clearTimeout(timer); reject(e); } });
   });
+}
+/* THE PHRASES THIS APP IS ACTUALLY MADE OF.
+   The memo "Đi phân lỏng" reached her phone as "루즈 스툴" — not Korean at
+   all, but the English "loose stool" spelled out in Hangul. That is what a
+   translation-MEMORY service returns when it has no Vietnamese→Korean
+   segment on file: it pivots through English and hands back whatever its
+   Korean side made of the English words.
+   A nanny writing about a baby uses the same thirty-odd expressions over and
+   over, and several of them are medical, where a near-miss changes what the
+   mother does:
+       phân lỏng   loose stool   묽은 변    ordinary enough on formula
+       tiêu chảy   diarrhoea     설사      the one you act on
+   Nothing should be guessing between those, so they are answered from the
+   table below — before any network call, so it is also instant and works
+   with no signal. Anything not in the table still goes to the providers. */
+/* GLOSSARY-TABLE-START — generated from server/glossary.js, do not edit by hand */
+var GLOSSARY = [
+  {ko:"묽은 변",vi:["đi phân lỏng","phân lỏng","đi ngoài phân lỏng","đi ngoài lỏng","ị lỏng"]},
+  {ko:"설사",vi:["tiêu chảy","bị tiêu chảy"]},
+  {ko:"변비",vi:["táo bón","bị táo bón"]},
+  {ko:"아직 변 안 봄",vi:["chưa đi ngoài","chưa ị","chưa đi ị"]},
+  {ko:"대변 양 많음",vi:["đi ngoài nhiều","phân nhiều","ị nhiều"]},
+  {ko:"초록색 변",vi:["phân xanh","phân màu xanh"]},
+  {ko:"변에 점액",vi:["phân có nhầy","phân nhầy"]},
+  {ko:"기저귀 발진",vi:["hăm tã","bị hăm tã","hăm"]},
+  {ko:"잘 먹었어요",vi:["bú tốt","bú ngoan","ăn tốt","bú giỏi"]},
+  {ko:"잘 안 먹었어요",vi:["bú ít","biếng bú","ăn ít","bú kém"]},
+  {ko:"토했어요",vi:["nôn","bị nôn","ói","bị ói"]},
+  {ko:"게웠어요",vi:["trớ","trớ sữa","ọc sữa","bị trớ"]},
+  {ko:"트림했어요",vi:["ợ hơi","đã ợ hơi"]},
+  {ko:"배에 가스 참",vi:["đầy hơi","chướng bụng","bị đầy hơi"]},
+  {ko:"잘 잤어요",vi:["ngủ ngon","ngủ tốt"]},
+  {ko:"잠을 설쳤어요",vi:["ngủ không ngon","ngủ ít","khó ngủ"]},
+  {ko:"많이 보챘어요",vi:["quấy khóc","quấy","hay quấy"]},
+  {ko:"많이 울었어요",vi:["khóc nhiều"]},
+  {ko:"기분 좋아요",vi:["vui vẻ","ngoan"]},
+  {ko:"열이 나요",vi:["sốt","bị sốt"]},
+  {ko:"미열",vi:["sốt nhẹ"]},
+  {ko:"체온 정상",vi:["thân nhiệt bình thường","nhiệt độ bình thường"]},
+  {ko:"기침",vi:["ho","bị ho"]},
+  {ko:"콧물",vi:["sổ mũi","chảy nước mũi"]},
+  {ko:"발진",vi:["nổi mẩn","phát ban","nổi mẩn đỏ"]},
+  {ko:"약 먹였어요",vi:["đã cho uống thuốc","cho uống thuốc"]},
+  {ko:"목욕시켰어요",vi:["đã tắm","tắm cho bé","tắm rồi"]},
+  {ko:"손톱 정리했어요",vi:["đã cắt móng tay","cắt móng tay"]},
+  {ko:"산책했어요",vi:["đi dạo","đã đi dạo"]}
+];
+/* GLOSSARY-TABLE-END */
+/* lower-case, single spaces, no trailing full stop, and NFC — the Vietnamese
+   keyboard does not always compose the diacritics the way the page does, and
+   two strings that look identical otherwise miss each other */
+function glossaryNorm(s){
+  return String(s).normalize('NFC').toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/^[\s"\'`~]+|[\s"\'`~.!\u3002\uff01]+$/g, '')
+    .trim();
+}
+var GLOSS_KO = null, GLOSS_VI = null;
+function glossaryLookup(text, target){
+  if (!GLOSS_KO){
+    GLOSS_KO = {}; GLOSS_VI = {};
+    for (var i = 0; i < GLOSSARY.length; i++){
+      var e = GLOSSARY[i];
+      GLOSS_VI[glossaryNorm(e.ko)] = e.vi[0];
+      for (var j = 0; j < e.vi.length; j++) GLOSS_KO[glossaryNorm(e.vi[j])] = e.ko;
+    }
+  }
+  var table = (target === 'ko') ? GLOSS_KO : GLOSS_VI;
+  var whole = table[glossaryNorm(text)];
+  if (whole) return whole;
+  /* a memo is often two known phrases with a comma between them. EVERY part
+     has to be known — half a translation reads as a bug, not a translation */
+  var parts = String(text).split(/\s*[,;\/\u00b7\u3001]\s*|\s+[-\u2013\u2014]\s+/);
+  var out = [];
+  for (var k = 0; k < parts.length; k++){
+    var p = parts[k].trim();
+    if (!p) continue;
+    var hit = table[glossaryNorm(p)];
+    if (!hit) return null;
+    out.push(hit);
+  }
+  return out.length > 1 ? out.join(', ') : null;
+}
+/* Translations are stored with the record, so the notes already written are
+   still carrying whatever the translator said at the time — including the
+   "루즈 스툴" that started all this. Rather than rewrite the log, every note
+   is passed through the table on the way to the screen: a phrase the table
+   knows is shown the table's answer, and everything else is shown exactly
+   what was stored. Nothing is written back, so the same correction reaches
+   all three phones with no migration and no risk to the record. */
+function glossaryFix(source, sourceLang, stored){
+  if (!source) return stored;
+  var target = sourceLang === 'ko' ? 'vi' : sourceLang === 'vi' ? 'ko' : '';
+  if (!target) return stored;
+  var known = glossaryLookup(source, target);
+  return known || stored;
 }
 function clientTranslate(text, target){
   var source = (target === 'ko') ? 'vi' : 'ko';
@@ -2130,12 +2404,24 @@ function fixBabyName(text, target){
   return text;
 }
 function apiTranslate(text, target){
+  /* known phrase → answered here, with no network call at all */
+  var known = glossaryLookup(text, target);
+  if (known) return Promise.resolve(known);
   var src = swapBabyName(text, target);
-  return withTimeout(
-    clientTranslate(src, target)
-      .catch(function(){ return clientMyMemory(src, target); })
-      .catch(function(){ return serverTranslate(src, target); }),
-    TRANSLATE_TOTAL_MS).then(function(out){ return fixBabyName(out, target); });
+  /* which door to knock on first depends on what is behind it. With a DeepL
+     key on the server, the server IS the good translator — ask it first and
+     use the phone's free endpoints only as fallback. Without one, the server
+     could only offer the same free services through a rate-limited shared
+     IP, so the phone asks directly. */
+  var chain = serverHasGoodTranslator
+    ? serverTranslate(src, target)
+        .catch(function(){ return clientTranslate(src, target); })
+        .catch(function(){ return clientMyMemory(src, target); })
+    : clientTranslate(src, target)
+        .catch(function(){ return clientMyMemory(src, target); })
+        .catch(function(){ return serverTranslate(src, target); });
+  return withTimeout(chain, TRANSLATE_TOTAL_MS)
+    .then(function(out){ return fixBabyName(out, target); });
 }
 /* POLLING FOR OTHER PEOPLE'S WRITES.
    Three phones write into this log, so every open copy checks for changes
@@ -2178,7 +2464,8 @@ function readEntries(){
       amount: e.amount !== undefined && e.amount !== null && e.amount !== '' ? Number(e.amount) : null,
       diaper: e.diaper || '',
       temp: e.temp !== undefined && e.temp !== null && e.temp !== '' ? Number(e.temp) : null,
-      note: e.note || '', noteLang: e.noteLang || '', noteTranslated: e.noteTranslated || '',
+      note: e.note || '', noteLang: e.noteLang || '',
+      noteTranslated: glossaryFix(e.note || '', e.noteLang || '', e.noteTranslated || ''),
       author: e.author || '', sleepKind: e.sleepKind || ''
     };
   });
@@ -2572,9 +2859,9 @@ function renderActiveBar(){
   /* the slot only exists in the DOM (inside today's day-group) while something
      is running — renderTimeline() is what creates/removes it. */
   if (!slot) return;
-  if (!type){ if (slot.innerHTML) slot.innerHTML=''; return; }
+  if (!type){ if (slot.innerHTML) slot.innerHTML=''; syncAnnounceStack(); return; }
   var meta = typeMeta(type);
-  if (!meta){ slot.innerHTML=''; return; }
+  if (!meta){ slot.innerHTML=''; syncAnnounceStack(); return; }
   var start = new Date(a.start);
   var paused = !!a.paused;
   var elapsed = paused ? (new Date(a.pausedAt) - start) : (Date.now() - start.getTime());
@@ -2599,6 +2886,7 @@ function renderActiveBar(){
     document.getElementById('aw-pause').addEventListener('click', togglePauseActive);
     document.getElementById('aw-adjust').addEventListener('click', toggleAdjustPanel);
     document.getElementById('aw-finish').addEventListener('click', finishActive);
+    syncAnnounceStack();
   }
   bar.style.setProperty('--active-color', meta.color);
   bar.classList.toggle('paused', paused);
@@ -2837,24 +3125,18 @@ function renderSinceLast(){
   var sleep = lastOfType(entries, function(e){ return e.type==='sleep'; }, 'end');
   /* WEE IS NOT WORTH A THIRD OF THIS SCREEN. Nobody logs every wet nappy, so
      "마지막 기저귀" was usually answering a question nobody asked. A poo is
-     the one that gets watched — and watched over days, not hours, which is
-     why the line underneath is the poo BEFORE the last one: two numbers
-     together say whether he is on his usual rhythm or overdue. */
+     the one that gets watched, so that is what this third of the row shows. */
   var poops = entries.filter(function(e){
     return e.type === 'diaper' && (e.diaper === 'dirty' || e.diaper === 'both');
   }).sort(function(a, b){
     return new Date(refTimeOf(b, 'end')) - new Date(refTimeOf(a, 'end'));
   });
   var poop = poops[0] || null;
-  var prevPoop = poops[1] || null;
   var now = Date.now();
   var cards = [
-    {key:'since_feed', emoji:'🍼', e:feed, basis:'start', sub: feed ? (feed.amount!=null ? feed.amount+t('ml') : '') : ''},
-    {key:'since_sleep', emoji:'😴', e:sleep, basis:'end', sub: sleep ? (sleep.sleepKind ? t(sleep.sleepKind==='night'?'night':'nap') : '') : ''},
-    {key:'since_poop', emoji:'💩', e:poop, basis:'end',
-     sub: prevPoop
-       ? t('prevPoopTpl').replace('{t}', fmtElapsed(now - new Date(refTimeOf(prevPoop, 'end')).getTime()))
-       : ''}
+    {key:'since_feed', emoji:'🍼', e:feed, basis:'start'},
+    {key:'since_sleep', emoji:'😴', e:sleep, basis:'end'},
+    {key:'since_poop', emoji:'💩', e:poop, basis:'end'}
   ];
   var row = document.getElementById('since-row');
   /* This runs once a SECOND. Rebuilding innerHTML each tick threw away and
@@ -2864,20 +3146,73 @@ function renderSinceLast(){
   if (row.childElementCount !== cards.length){
     row.innerHTML = cards.map(function(){
       return '<div class="dash-item"><div class="d-emoji"></div><div class="d-label"></div>' +
-             '<div class="d-val"></div><div class="d-sub"></div></div>';
+             '<div class="d-val"></div></div>';
     }).join('');
   }
   var items = row.children;
   cards.forEach(function(c, i){
     var el = items[i];
     var ms = c.e ? (now - new Date(refTimeOf(c.e, c.basis)).getTime()) : null;
-    var vals = [c.emoji, t(c.key), fmtElapsed(ms), c.sub || ''];
+    var vals = [c.emoji, t(c.key), fmtElapsed(ms)];
     var nodes = el.children;
-    for (var k = 0; k < 4; k++){
+    for (var k = 0; k < 3; k++){
       if (nodes[k].textContent !== vals[k]) nodes[k].textContent = vals[k];
     }
-    nodes[3].hidden = !c.sub;
   });
+  fitDashValues(row);
+}
+
+/* The three numbers are sized together: whichever of them is widest decides
+   the size, and all three get it, so the row never mixes two sizes. Measured
+   against a probe drawn at 100px and scaled, which costs one layout read and
+   only when the strings or the column width actually changed — this is called
+   once a second. */
+var dashFitKey = '', dashProbe = null;
+function fitDashValues(row){
+  var vals = row.querySelectorAll('.d-val');
+  if (!vals.length) return;
+  var texts = [];
+  for (var i = 0; i < vals.length; i++) texts.push(vals[i].textContent);
+  var cs = getComputedStyle(vals[0]);
+  var avail = vals[0].getBoundingClientRect().width
+            - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  if (!(avail > 0)) return;
+  var key = texts.join('\u0001') + '|' + Math.round(avail) + '|' + cs.fontFamily;
+  if (key === dashFitKey) return;
+  dashFitKey = key;
+  if (!dashProbe){
+    dashProbe = document.createElement('span');
+    dashProbe.setAttribute('aria-hidden', 'true');
+    dashProbe.style.cssText = 'position:absolute;left:-9999px;top:0;white-space:nowrap;visibility:hidden;';
+    document.body.appendChild(dashProbe);
+  }
+  dashProbe.style.fontFamily = cs.fontFamily;
+  dashProbe.style.fontWeight = cs.fontWeight;
+  dashProbe.style.letterSpacing = cs.letterSpacing;
+  dashProbe.style.fontVariantNumeric = cs.fontVariantNumeric;
+  function widestAt(px){
+    dashProbe.style.fontSize = px + 'px';
+    var w = 0;
+    for (var j = 0; j < texts.length; j++){
+      dashProbe.textContent = texts[j];
+      var x = dashProbe.getBoundingClientRect().width;
+      if (x > w) w = x;
+    }
+    return w;
+  }
+  var base = parseFloat(getComputedStyle(document.documentElement)
+    .getPropertyValue('--fs-display')) || 18;
+  var px = base;
+  var full = widestAt(base);
+  if (full > avail){
+    /* letter-spacing is an absolute -0.3px per character and does NOT scale
+       with the font, so width is not proportional to size — a single ratio
+       lands a little wide. Estimate, then step down until it really fits. */
+    px = Math.max(12, Math.floor(base * avail / full * 10) / 10);
+    var guard = 0;
+    while (px > 12 && widestAt(px) > avail && guard++ < 20) px = Math.round((px - 0.2) * 10) / 10;
+  }
+  for (var n = 0; n < vals.length; n++) vals[n].style.fontSize = px + 'px';
 }
 
 /* ================================================================
@@ -2897,8 +3232,9 @@ function renderNextFeed(){
   var box = document.getElementById('next-feed-row');
   if (!box) return;
   var nextMs = estimateNextFeedMs(readEntries());
-  if (nextMs == null){ box.hidden = true; return; }
+  if (nextMs == null){ box.hidden = true; syncAnnounceStack(); return; }
   box.hidden = false;
+  syncAnnounceStack();
   var diffMin = Math.round((nextMs - Date.now()) / 60000);
   var timeStr = fmtTime(new Date(nextMs).toISOString());
   var text;
@@ -3821,7 +4157,155 @@ function patternShows(e){
    as a point instead */
 var PATTERN_MIN_MS = 60000;
 
+/* ---- the term views: 수유텀 and 잠텀(깨시) ------------------------------
+   The 24h chart says WHEN things happen; these say HOW FAR APART. Same
+   records, opposite question — and the second one is what actually runs a
+   day with a four-month-old: the wake window decides when the next nap
+   starts, and the feed interval decides whether 16:00 crying is hunger.
+
+   The interval is start→start for feeds (a feed "every 4 hours" is measured
+   bottle to bottle) and end→start for sleep (the wake window starts when he
+   wakes UP). An implausibly long interval is drawn but dimmed and left out
+   of the averages: it is almost always a stretch nobody logged, and one of
+   those would quietly double a day's "average". The bar is different per
+   view — a 9-hour FEED gap is real information (he slept through), but a
+   9-hour WAKE window does not happen to a four-month-old; past ~6h it can
+   only be an unlogged night. */
+var TERM_ODD_FEED_MS = 12 * 3600000;
+var TERM_ODD_WAKE_MS = 6 * 3600000;
+
+function renderTermView(kind){
+  var listBox = document.getElementById('term-list');
+  var avgBox = document.getElementById('term-avg');
+  var emptyEl = document.getElementById('pattern-empty');
+  var cardEl = document.getElementById('term-card');
+
+  var pDays = state.patternDays || 7;
+  var now = new Date();
+  var since = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() - (pDays-1)*86400000;
+
+  var isFeed = kind === 'feed';
+  var meta = typeMeta(isFeed ? 'feed' : 'sleep');
+  var rows = readEntries().filter(function(e){
+    if (e.type !== (isFeed ? 'feed' : 'sleep')) return false;
+    var st = new Date(e.start).getTime();
+    return !isNaN(st) && st >= since;
+  }).map(function(e){
+    var st = new Date(e.start).getTime();
+    var en = e.end ? new Date(e.end).getTime() : st;
+    if (isNaN(en) || en < st) en = st;
+    return { e: e, start: st, end: en };
+  }).sort(function(a, b){ return a.start - b.start; });
+
+  var any = rows.length > 0;
+  cardEl.hidden = !any;
+  avgBox.hidden = !any;
+  if (emptyEl) emptyEl.hidden = any;
+  if (!any){ listBox.innerHTML = ''; avgBox.innerHTML = ''; return; }
+
+  /* the gap ABOVE row i (between row i and row i+1 chronologically) —
+     computed oldest→newest, rendered newest-first */
+  var gaps = [];   // gaps[i] = ms between rows[i] and rows[i+1], or null
+  for (var i = 0; i < rows.length - 1; i++){
+    var from = isFeed ? rows[i].start : rows[i].end;
+    var ms = rows[i+1].start - from;
+    gaps.push(ms > 0 ? ms : null);
+  }
+
+  /* averages skip the dimmed outliers. Per-day, a gap belongs to the day the
+     LATER event starts on — the day you were living when the wait ended. */
+  var oddMs = isFeed ? TERM_ODD_FEED_MS : TERM_ODD_WAKE_MS;
+  var sum = 0, n = 0, byDay = {};
+  for (var g = 0; g < gaps.length; g++){
+    if (gaps[g] == null || gaps[g] > oddMs) continue;
+    sum += gaps[g]; n++;
+    var dk = dayKey(rows[g+1].e.start);
+    (byDay[dk] = byDay[dk] || []).push(gaps[g]);
+  }
+  avgBox.innerHTML =
+    '<span class="ta-label">' + esc(t(isFeed ? 'termAvgFeed' : 'termAvgWake')) + '</span>' +
+    '<span class="ta-val">' + (n ? esc(fmtDur(sum/n)) : '–') + '</span>' +
+    '<span class="ta-range">' + esc(t('termRangeTpl').replace('{d}', pDays)) + '</span>';
+
+  function dayAvgHtml(dk){
+    var arr = byDay[dk];
+    if (!arr || !arr.length) return '';
+    var a = 0; arr.forEach(function(x){ a += x; });
+    return '<span class="td-avg">' + esc(t('termAvgDay')) + ' ' + esc(fmtDur(a/arr.length)) + '</span>';
+  }
+
+  var html = [];
+  var lastDay = null;
+  /* newest first, like the log. The chip between two events is printed
+     BELOW the later one — reading down the page, you pass an event, then
+     the wait that led to it, then the event before. */
+  for (var r = rows.length - 1; r >= 0; r--){
+    var row = rows[r];
+    var dk2 = dayKey(row.e.start);
+    if (dk2 !== lastDay){
+      lastDay = dk2;
+      html.push('<div class="term-day"><span>' + esc(dayHeading(row.e.start)) + '</span>' + dayAvgHtml(dk2) + '</div>');
+    }
+    var hasSpan = row.end > row.start;
+    /* Three voices, quietest last: the type word in its color (분유, or
+       낮잠/밤잠 — which says more than 수면 would), then the value a reader
+       actually compares (the ml, the length of the sleep), then any leftover
+       detail in grey. Every row of the feed view is a bottle, so the word is
+       the same each time — it stays because it is what carries the color. */
+    var name, val, sub;
+    if (isFeed){
+      name = meta.label;
+      val = row.e.amount != null ? (row.e.amount + t('ml')) : '';
+      sub = hasSpan ? fmtDur(row.end - row.start) : '';
+    } else {
+      name = row.e.sleepKind ? t(row.e.sleepKind === 'night' ? 'night' : 'nap') : meta.label;
+      val = hasSpan ? fmtDur(row.end - row.start) : '';
+      sub = '';
+    }
+    html.push(
+      '<div class="term-row" style="--term-color:' + meta.color + '">' +
+        '<div class="term-time"><b>' + esc(fmtTime(row.e.start)) + '</b>' +
+          (hasSpan ? '<span class="tt-end">~' + esc(fmtTime(row.e.end)) + '</span>' : '') + '</div>' +
+        '<div class="term-spine"><span class="term-dot"></span></div>' +
+        '<div class="term-main"><span class="term-name">' + esc(name) + '</span>' +
+          (val ? '<span class="term-val">' + esc(val) + '</span>' : '') +
+          (sub ? '<span class="term-sub">' + esc(sub) + '</span>' : '') + '</div>' +
+      '</div>');
+    if (r > 0 && gaps[r-1] != null){
+      var odd = gaps[r-1] > oddMs;
+      html.push(
+        '<div class="term-row term-gap-row">' +
+          '<div class="term-time"><span class="term-gap' + (odd ? ' is-odd' : '') + '">' + esc(fmtDur(gaps[r-1])) + '</span></div>' +
+          '<div class="term-spine"></div><div></div>' +
+        '</div>');
+    }
+  }
+  listBox.innerHTML = html.join('');
+  var termRows = listBox.querySelectorAll('.term-row');
+  if (termRows.length){
+    termRows[0].classList.add('is-first');
+    termRows[termRows.length-1].classList.add('is-last');
+  }
+}
+
 function renderPattern(){
+  var view = state.patternView || 'clock';
+  var chartCard = document.getElementById('pattern-chart-card');
+  var legendBox0 = document.getElementById('pattern-legend');
+  var termCard = document.getElementById('term-card');
+  var termAvg = document.getElementById('term-avg');
+  var titleEl = document.getElementById('pattern-title');
+  var captionEl = document.getElementById('pattern-caption');
+  if (titleEl) titleEl.textContent = t(view === 'feed' ? 'termFeedTitle' : view === 'sleep' ? 'termSleepTitle' : 'patternTitle');
+  if (captionEl) captionEl.textContent = t(view === 'feed' ? 'termFeedCaption' : view === 'sleep' ? 'termSleepCaption' : 'patternCaption');
+  if (view !== 'clock'){
+    if (chartCard) chartCard.hidden = true;
+    if (legendBox0) legendBox0.hidden = true;
+    renderTermView(view);
+    return;
+  }
+  if (termCard) termCard.hidden = true;
+  if (termAvg) termAvg.hidden = true;
   var colsBox = document.getElementById('pattern-cols');
   var legendBox = document.getElementById('pattern-legend');
   var cardEl = document.getElementById('pattern-chart-card');
@@ -4783,8 +5267,14 @@ function readMemos(){
   return (appState.memos || []).map(function(m){
     return {
       id: m.id, text: m.text || '', lang: m.lang || 'other',
-      translated: m.translation || '', author: m.author || '', time: m.ts || '',
-      photos: Array.isArray(m.photos) ? m.photos : []
+      translated: glossaryFix(m.text || '', m.lang || '', m.translation || ''),
+      author: m.author || '', time: m.ts || '',
+      photos: Array.isArray(m.photos) ? m.photos : [],
+      replies: (m.replies || []).map(function(r){
+        return { id: r.id, text: r.text || '', lang: r.lang || 'other',
+                 translated: glossaryFix(r.text || '', r.lang || '', r.translation || ''),
+                 author: r.author || '', time: r.ts || '' };
+      })
     };
   }).sort(function(a,b){ return new Date(b.time) - new Date(a.time); });
 }
@@ -4795,25 +5285,126 @@ function detectLang(text){
   if (VI_DIACRITIC_RE.test(text)) return 'vi';
   return 'other';
 }
+/* ================================================================
+   READ AND UNREAD
+
+   A watermark, not a list: every memo newer than the moment this phone last
+   looked at the memo tab is unread. That is one short string in
+   localStorage instead of a growing set, and it cannot drift out of step
+   with a list that gets things deleted from it.
+
+   Your own memos are never unread — you wrote them.
+
+   A phone opening the app for the first time starts its watermark at NOW, so
+   a new device does not greet whoever picked it up with three months of
+   unread memos.
+   ================================================================ */
+function memoSeenAt(){
+  var v = localStorage.getItem(LS_MEMO_SEEN);
+  if (!v){
+    v = new Date().toISOString();
+    try { localStorage.setItem(LS_MEMO_SEEN, v); } catch(e){}
+  }
+  return v;
+}
+function isUnreadItem(x, seen){
+  if (isSameAuthorName(x.author, state.author)) return false;
+  var ts = new Date(x.time).getTime();
+  return !isNaN(ts) && ts > seen;
+}
+/* a memo counts as unread when the memo itself is new to this phone OR
+   someone else has replied on it since this phone last looked — a thread
+   with a fresh answer is exactly as much "somebody left you something" as a
+   fresh memo */
+function unreadMemos(){
+  var seen = new Date(memoSeenAt()).getTime();
+  return readMemos().filter(function(m){
+    return isUnreadItem(m, seen) || m.replies.some(function(r){ return isUnreadItem(r, seen); });
+  });
+}
+function unreadReplyIds(){
+  var seen = new Date(memoSeenAt()).getTime();
+  var ids = {};
+  readMemos().forEach(function(m){
+    m.replies.forEach(function(r){ if (isUnreadItem(r, seen)) ids[r.id] = true; });
+  });
+  return ids;
+}
+/* The dots stay put for as long as she is on the memo tab, and are cleared
+   when she leaves it. Clearing them the instant the tab opens would make
+   them vanish under her thumb on the next four-second poll — and the marks
+   are the whole point of having opened it. */
+var memoUnreadShown = {};
+function noteUnreadOnScreen(list){
+  list.forEach(function(m){ memoUnreadShown[m.id] = true; });
+  var rids = unreadReplyIds();
+  Object.keys(rids).forEach(function(id){ memoUnreadShown[id] = true; });
+}
+function markMemosRead(){
+  memoUnreadShown = {};
+  try { localStorage.setItem(LS_MEMO_SEEN, new Date().toISOString()); } catch(e){}
+  updateMemoPreview();
+}
+
+/* The banner is the app's way of saying "somebody left you something". With
+   nothing unread it has nothing to say, so it goes away rather than sitting
+   at the top of every screen restating a memo that has already been read. */
 function updateMemoPreview(){
+  var row = document.getElementById('memo-open-btn');
   var origEl = document.getElementById('memo-preview-orig');
   var transEl = document.getElementById('memo-preview-trans');
-  if (!origEl || !transEl) return;
-  var latest = readMemos()[0];
-  if (!latest){
-    origEl.textContent = t('memoEmpty');
-    transEl.hidden = true;
-    transEl.textContent = '';
-    return;
+  var countEl = document.getElementById('memo-unread-count');
+  if (!row || !origEl || !transEl) return;
+
+  var unread = unreadMemos();
+  row.hidden = !unread.length;
+  syncAnnounceStack();
+  if (!unread.length) return;
+
+  /* the newest unread THING — when the fresh part of a thread is a reply,
+     the banner previews the reply, not the months-old memo above it */
+  var seen = new Date(memoSeenAt()).getTime();
+  var latest = unread[0];
+  var newest = isUnreadItem(latest, seen) ? latest : null;
+  unread.forEach(function(m){
+    m.replies.forEach(function(r){
+      if (isUnreadItem(r, seen) && (!newest || new Date(r.time) > new Date(newest.time))) newest = r;
+    });
+  });
+  if (!newest) newest = latest;
+  if (countEl){
+    countEl.textContent = unread.length > 1 ? t('memoUnreadTpl').replace('{n}', unread.length) : '';
+    countEl.hidden = unread.length < 2;
   }
-  origEl.textContent = latest.text.split('\n')[0];
-  if (latest.translated){
-    transEl.textContent = latest.translated.split('\n')[0];
+  origEl.textContent = newest.text.split('\n')[0];
+  if (newest.translated){
+    transEl.textContent = newest.translated.split('\n')[0];
     transEl.hidden = false;
   } else {
     transEl.hidden = true;
     transEl.textContent = '';
   }
+}
+/* The stack carries the pull that tucks it under the header, so when
+   everything inside it is hidden the stack itself has to go — otherwise its
+   negative margin eats the top of the screen below it.
+
+   THREE things live in here, not two. The running stopwatch is the third,
+   and it is an empty <div> rather than a hidden one when nothing is running
+   — so "does any child lack the hidden attribute" answers yes forever, and
+   would also have hidden a running stopwatch along with the stack the moment
+   that question was answered correctly. Each of the three is asked about in
+   the way that is true of it. */
+function syncAnnounceStack(){
+  var stack = document.querySelector('.announce-stack');
+  if (!stack) return;
+  var memoRow = document.getElementById('memo-open-btn');
+  var feedRow = document.getElementById('next-feed-row');
+  var slot = document.getElementById('active-bar-slot');
+  var anyVisible = (memoRow && !memoRow.hidden) ||
+                   (feedRow && !feedRow.hidden) ||
+                   !!(slot && slot.firstElementChild);
+  stack.hidden = !anyVisible;
 }
 function renderMemoList(){
   var box = document.getElementById('memo-list');
@@ -4823,11 +5414,29 @@ function renderMemoList(){
     box.innerHTML = '<div class="empty-note">'+esc(t('memoNoMemos'))+'</div>';
     return;
   }
+  /* Anything unread when the tab was opened STAYS marked for the whole
+     visit. Recomputing it on every four-second poll would clear the marks
+     out from under her while she is still reading them. */
+  if (state.tab === 'memo') noteUnreadOnScreen(unreadMemos());
+  /* this list is rebuilt by every 4-second poll, and a reply being TYPED
+     lives inside it — capture the half-written text (and where the cursor
+     was) before the rebuild, put it back after, or the poll eats her reply
+     mid-sentence */
+  var openForm = null;
+  var liveInput = box.querySelector('[data-reply-form]:not([hidden]) input');
+  if (liveInput){
+    var liveForm = liveInput.closest('[data-reply-form]');
+    openForm = { id: liveForm.dataset.replyForm, value: liveInput.value,
+                 focused: document.activeElement === liveInput,
+                 selStart: liveInput.selectionStart, selEnd: liveInput.selectionEnd };
+  }
   box.innerHTML = memos.map(function(m){
     var tag = m.lang === 'ko' ? '🇰🇷 KO' : (m.lang === 'vi' ? '🇻🇳 VI' : '');
     var tagClass = m.lang === 'ko' ? 'lang-ko' : (m.lang === 'vi' ? 'lang-vi' : '');
-    return '<div class="memo-row">' +
+    var isNew = !!memoUnreadShown[m.id];
+    return '<div class="memo-row'+(isNew ? ' unread' : '')+'">' +
       '<div class="m-row-head">' +
+        (isNew ? '<span class="m-new-dot" aria-hidden="true"></span>' : '') +
         (tag ? '<span class="m-lang-tag '+tagClass+'">'+tag+'</span>' : '') +
         '<span class="m-author">'+esc(localizeAuthorName(m.author))+'</span>' +
       '</div>' +
@@ -4848,7 +5457,29 @@ function renderMemoList(){
         }).join('') + '</div>' : '') +
       '<div class="m-meta">' +
         '<span>'+esc(fmtDateTime(m.time))+'</span>' +
-        (canTouch(m.author) ? '<button type="button" class="text-btn danger-btn" data-del-memo="'+esc(m.id)+'" style="padding:0;">'+esc(t('delete'))+'</button>' : '') +
+        '<span style="display:flex;gap:14px;">' +
+          '<button type="button" class="text-btn" data-reply-open="'+esc(m.id)+'" style="padding:0;">'+esc(t('reply'))+'</button>' +
+          (canTouch(m.author) ? '<button type="button" class="text-btn danger-btn" data-del-memo="'+esc(m.id)+'" style="padding:0;">'+esc(t('delete'))+'</button>' : '') +
+        '</span>' +
+      '</div>' +
+      (m.replies.length ? '<div class="m-replies">' + m.replies.map(function(r){
+        var rNew = !!memoUnreadShown[r.id];
+        return '<div class="m-reply">' +
+          '<div class="mr-head">' +
+            (rNew ? '<span class="m-new-dot" aria-hidden="true"></span>' : '') +
+            '<span class="mr-author">'+esc(localizeAuthorName(r.author))+'</span>' +
+            '<span class="mr-time">'+esc(fmtDateTime(r.time))+'</span>' +
+            (canTouch(r.author) ? '<button type="button" class="text-btn danger-btn mr-del" data-del-reply="'+esc(m.id)+'|'+esc(r.id)+'" style="padding:0;">'+esc(t('delete'))+'</button>' : '') +
+          '</div>' +
+          '<div class="m-bilingual">' +
+            '<div class="m-orig">'+esc(r.text)+'</div>' +
+            (r.translated ? '<div class="m-trans">'+esc(r.translated)+'</div>' : '') +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>' : '') +
+      '<div class="m-reply-form" data-reply-form="'+esc(m.id)+'" hidden>' +
+        '<input type="text" maxlength="500" placeholder="'+esc(t('replyPh'))+'" />' +
+        '<button type="button" data-reply-send="'+esc(m.id)+'">'+esc(t('replySend'))+'</button>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -4867,6 +5498,75 @@ function renderMemoList(){
       }).catch(function(err){ toast(err.message); });
     });
   });
+  $$('[data-reply-open]', box).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var form = box.querySelector('[data-reply-form="'+btn.dataset.replyOpen+'"]');
+      if (!form) return;
+      form.hidden = !form.hidden;
+      if (!form.hidden) form.querySelector('input').focus();
+    });
+  });
+  function sendReply(memoId, inputEl){
+    var text = inputEl.value.trim();
+    if (!text) return;
+    var lang = detectLang(text);
+    /* same shape as posting a memo: it appears under the thumb NOW, the
+       server hears about it second, and the translation is filled in third —
+       a reply must never sit behind a translation service */
+    var tempId = 'tmpr_' + Date.now();
+    var raw = (appState.memos || []).find(function(x){ return x.id === memoId; });
+    if (raw){
+      raw.replies = raw.replies || [];
+      raw.replies.push({ id: tempId, text: text, lang: lang, translation: '',
+                         author: state.author, ts: new Date().toISOString() });
+    }
+    inputEl.value = '';
+    renderMemoList();
+    apiMutate('addMemoReply', { memoId: memoId, text: text, lang: lang, translation: '', author: state.author })
+      .then(function(res){
+        renderMemoList(); updateMemoPreview();
+        var rid = res && res.reply && res.reply.id;
+        if (rid && (lang === 'ko' || lang === 'vi')){
+          apiTranslate(text, lang === 'ko' ? 'vi' : 'ko').then(function(tr){
+            if (!tr) return;
+            return apiMutate('updateMemoReply', { memoId: memoId, id: rid, translation: tr });
+          }).then(function(){ renderMemoList(); }).catch(function(){ /* untranslated is fine */ });
+        }
+      })
+      .catch(function(err){
+        var raw2 = (appState.memos || []).find(function(x){ return x.id === memoId; });
+        if (raw2 && raw2.replies) raw2.replies = raw2.replies.filter(function(r){ return r.id !== tempId; });
+        renderMemoList();
+        toast(err.message || 'error');
+      });
+  }
+  $$('[data-reply-send]', box).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var form = box.querySelector('[data-reply-form="'+btn.dataset.replySend+'"]');
+      if (form) sendReply(btn.dataset.replySend, form.querySelector('input'));
+    });
+  });
+  $$('[data-reply-form] input', box).forEach(function(inp){
+    inp.addEventListener('keydown', function(ev){
+      if (ev.key === 'Enter'){
+        ev.preventDefault();
+        var form = inp.closest('[data-reply-form]');
+        sendReply(form.dataset.replyForm, inp);
+      }
+    });
+  });
+  if (openForm){
+    var restored = box.querySelector('[data-reply-form="'+openForm.id+'"]');
+    if (restored){
+      restored.hidden = false;
+      var ri = restored.querySelector('input');
+      ri.value = openForm.value;
+      if (openForm.focused){
+        ri.focus();
+        try { ri.setSelectionRange(openForm.selStart, openForm.selEnd); } catch(e){}
+      }
+    }
+  }
 }
 /* live preview of the auto-translation while composing, debounced so every
    keystroke doesn't fire a request — the same translation is reused at
@@ -5390,6 +6090,9 @@ function renderAll(){
    EVENT WIRING
    ================================================================ */
 function switchTab(name){
+  /* leaving the memo tab is what marks its memos read: she has had them in
+     front of her, and nothing disappeared while she was looking */
+  if (state.tab === 'memo' && name !== 'memo') markMemosRead();
   state.tab = name;
   $$('.tab-btn').forEach(function(x){ x.setAttribute('aria-current', String(x.dataset.tab===name)); });
   $$('[data-tab-panel]').forEach(function(p){ p.hidden = (p.id !== 'tab-'+name); });
@@ -5438,12 +6141,22 @@ function wireEvents(){
   if (trashBack) trashBack.addEventListener('click', function(){ closeFullpage('fp-trash'); });
   wireLogNav();
 
+
   // stats: feed range toggle (7/14/30 days)
   $$('#stats-feed-range button').forEach(function(b){
     b.addEventListener('click', function(){
       state.statsFeedDays = Number(b.dataset.range);
       $$('#stats-feed-range button').forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); });
       renderStats();
+    });
+  });
+
+  // pattern: which view — 24h columns, feed intervals, wake windows
+  $$('#pattern-view button').forEach(function(b){
+    b.addEventListener('click', function(){
+      state.patternView = b.dataset.view;
+      $$('#pattern-view button').forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); });
+      renderPattern();
     });
   });
 

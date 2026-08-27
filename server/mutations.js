@@ -238,6 +238,48 @@ function applyMutation(prevState, type, payload) {
       return { state, result: { memo } };
     }
 
+    /* Replies live INSIDE their memo — one thread, one place. They ride the
+       same document as everything else, so a reply is a few hundred bytes,
+       and deleting the memo takes its thread with it with no orphan hunt. */
+    case 'addMemoReply': {
+      const memo = state.memos.find((m) => m.id === payload.memoId);
+      if (!memo) throw httpError(404, 'memo not found');
+      if (!payload.text || !payload.text.trim()) throw httpError(400, 'reply text required');
+      const reply = {
+        id: uid('r_'),
+        text: String(payload.text).trim().slice(0, 2000),
+        lang: payload.lang || 'other',
+        translation: payload.translation || '',
+        author: payload.author || '',
+        ts: new Date().toISOString(),
+      };
+      memo.replies = memo.replies || [];
+      memo.replies.push(reply);
+      return { state, result: { reply } };
+    }
+
+    /* same contract as updateMemo: only the machine-written part (the
+       translation) may be filled in afterwards — never the typed text */
+    case 'updateMemoReply': {
+      const memo = state.memos.find((m) => m.id === payload.memoId);
+      if (!memo) throw httpError(404, 'memo not found');
+      const reply = (memo.replies || []).find((r) => r.id === payload.id);
+      if (!reply) throw httpError(404, 'reply not found');
+      if (payload.translation !== undefined) reply.translation = payload.translation;
+      return { state, result: { reply } };
+    }
+
+    case 'deleteMemoReply': {
+      const memo = state.memos.find((m) => m.id === payload.memoId);
+      if (!memo) throw httpError(404, 'memo not found');
+      const reply = (memo.replies || []).find((r) => r.id === payload.id);
+      if (!reply) throw httpError(404, 'reply not found');
+      assertMayTouch(payload.actor, reply.author, 'reply');
+      memo.replies = memo.replies.filter((r) => r.id !== payload.id);
+      if (!memo.replies.length) delete memo.replies;
+      return { state, result: {} };
+    }
+
     case 'deleteMemo': {
       const memo = state.memos.find((m) => m.id === payload.id);
       if (!memo) throw httpError(404, 'memo not found');

@@ -1,8 +1,17 @@
 // translate.js — server-side memo translation (Korean <-> Vietnamese).
 //
-// Primary: MyMemory (api.mymemory.translated.net) — free, keyless, documented.
-// Fallback: the unofficial Google Translate endpoint, for when MyMemory is
-// down or the daily quota is spent.
+// Order: the glossary (see glossary.js) answers the everyday baby-care
+// phrases outright, then DeepL if a key is configured, then Google, then
+// MyMemory.
+//
+// MYMEMORY IS LAST, AND THAT IS THE POINT. It is a translation MEMORY: it
+// looks the text up in a store of segments other people have translated. For
+// a pair as thin as Vietnamese→Korean it usually has nothing, so it pivots
+// through English and returns whatever its Korean side made of the English —
+// which is how the memo "Đi phân lỏng" reached her phone as "루즈 스툴", the
+// English "loose stool" spelled out in Hangul. It stays in the chain because
+// it is keyless and documented and beats showing nothing, but it should only
+// ever be reached when both real engines have refused.
 //
 // Two things this module has to defend against, both of which showed up in
 // real use as a memo preview stuck on "번역중…" forever:
@@ -24,6 +33,8 @@
 //   MYMEMORY_EMAIL     free and signup-free: MyMemory meters by EMAIL when the
 //                      `de` parameter is present, which sidesteps the shared IP
 // With neither set the app still tries anonymously, which is what fails today.
+const { lookup } = require('./glossary');
+
 const DEEPL_API_KEY = process.env.DEEPL_API_KEY || '';
 const MYMEMORY_EMAIL = process.env.MYMEMORY_EMAIL || '';
 
@@ -144,7 +155,8 @@ async function translatePiece(text, targetLang) {
   const errs = [];
   const chain = [];
   if (DEEPL_API_KEY) chain.push(['deepl', deeplOnce]);
-  chain.push(['mymemory', myMemoryOnce], ['google', googleOnce]);
+  /* real engines first, translation memory last — see the note at the top */
+  chain.push(['google', googleOnce], ['mymemory', myMemoryOnce]);
 
   for (const [name, fn] of chain) {
     try {
@@ -162,9 +174,14 @@ async function translatePiece(text, targetLang) {
 async function translateText(text, targetLang) {
   if (!text || !text.trim()) return '';
 
-  // Google has no comparable length limit, so for long text try it first as a
-  // single request — one call beats eight, and only if it fails do we fall
-  // back to chunking through MyMemory.
+  /* the phrases this app is actually made of: answered from the table,
+     instantly, offline, and identically every time */
+  const known = lookup(text, targetLang);
+  if (known) return known;
+
+  // Google has no comparable length limit, so for long text try it whole —
+  // one call beats eight, and only if it fails do we fall back to chunking
+  // through MyMemory.
   if (byteLen(text) > MYMEMORY_MAX_BYTES) {
     // neither of these has MyMemory's length limit, so try them whole first
     if (DEEPL_API_KEY) {
@@ -192,4 +209,5 @@ async function translateText(text, targetLang) {
   }
 }
 
-module.exports = { translateText, chunkByBytes, MYMEMORY_MAX_BYTES };
+module.exports = { translateText, chunkByBytes, MYMEMORY_MAX_BYTES,
+  hasGoodEngine: () => !!DEEPL_API_KEY };

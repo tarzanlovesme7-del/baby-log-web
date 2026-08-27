@@ -4,6 +4,7 @@
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
+const glossary = require('./server/glossary');
 const { applyMutation } = require('./server/mutations');
 
 const EMPTY_STATE = {
@@ -33,7 +34,10 @@ const server = http.createServer((req, res) => {
     return send(res, 200, { version });
   }
   if (req.method === 'GET' && u.pathname === '/api/state'){
-    return send(res, 200, { data: state, version });
+    /* MOCK_GOOD_TRANSLATOR=1 plays a server that has a DeepL key, so the
+       suites can check the phones switch to server-first translation */
+    return send(res, 200, { data: state, version,
+      goodTranslator: process.env.MOCK_GOOD_TRANSLATOR === '1' });
   }
   if (req.method === 'POST' && u.pathname === '/api/photo'){
     let body = '';
@@ -111,9 +115,12 @@ const server = http.createServer((req, res) => {
     req.on('data', c => body += c);
     req.on('end', () => {
       try {
-        const { text } = JSON.parse(body || '{}');
-        // stub: no network in this sandbox, just echo with a marker
-        send(res, 200, { translated: '[VI] ' + text });
+        const { text, target } = JSON.parse(body || '{}');
+        /* the glossary is the real module, so the browser suites exercise the
+           path a known phrase actually takes; everything else has no network
+           in this sandbox and is echoed with a marker */
+        const known = glossary.lookup(text || '', target === 'ko' ? 'ko' : 'vi');
+        send(res, 200, { translated: known || ('[VI] ' + text) });
       } catch (e) { send(res, 500, { error: e.message }); }
     });
     return;

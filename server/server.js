@@ -6,7 +6,7 @@ const express = require('express');
 const db = require('./db');
 const photos = require('./photos');
 const { applyMutation } = require('./mutations');
-const { translateText } = require('./translate');
+const { translateText, hasGoodEngine } = require('./translate');
 
 const app = express();
 /* 256kb is generous for a nappy change and far too small for a photograph.
@@ -87,7 +87,11 @@ app.get('/api/version', async (req, res, next) => {
 app.get('/api/state', async (req, res, next) => {
   try {
     const { data, version } = await db.getState();
-    res.json({ data, version });
+    /* goodTranslator: a DeepL key is configured, so the SERVER now gives a
+       better translation than the free endpoint a phone can reach on its
+       own — the phones read this flag and put the server first. Rides the
+       state response because every phone already fetches it at boot. */
+    res.json({ data, version, goodTranslator: hasGoodEngine() });
   } catch (err) { next(err); }
 });
 
