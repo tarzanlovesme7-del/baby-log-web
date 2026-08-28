@@ -5998,8 +5998,33 @@ function submitDiary(){
       toast(err.message || 'error');
     });
 }
+/* A schedule whose translation never arrived (the writing phone's provider
+   failed, or the app was closed before the background write went out) used
+   to stay Korean on the nanny's screen forever. Any phone that NOTICES the
+   gap now fills it: translate, show it at once, write it back for everyone.
+   One per render, once per schedule per session — a healing trickle, not a
+   burst racing the reducer. */
+var schedTranslateTried = {};
+function backfillScheduleTranslations(){
+  var s = (appState.schedules || []).filter(function(x){
+    return !x.translation && x.text && (x.lang === 'ko' || x.lang === 'vi') &&
+      !schedTranslateTried[x.id] && !/^tmp/.test(x.id);
+  })[0];
+  if (!s) return;
+  schedTranslateTried[s.id] = true;
+  apiTranslate(s.text, s.lang === 'ko' ? 'vi' : 'ko').then(function(tr){
+    if (!tr) return;
+    var cur = (appState.schedules || []).filter(function(x){ return x.id === s.id; })[0];
+    if (cur && !cur.translation){
+      cur.translation = tr;
+      if (state.tab === 'growth') renderGrowth();
+    }
+    return apiMutate('updateSchedule', { id: s.id, translation: tr });
+  }).catch(function(){ /* the next session tries again */ });
+}
 function renderGrowth(){
   var gv = state.gTab || 'cal';
+  backfillScheduleTranslations();
   $$('#growth-tabs button').forEach(function(b){
     b.setAttribute('aria-pressed', String(b.dataset.gv === gv));
   });
