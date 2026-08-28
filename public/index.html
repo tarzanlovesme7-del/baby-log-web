@@ -1027,11 +1027,16 @@
   .gcal-card{ padding:14px 12px 12px; }
   .gcal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
   .gcal-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); font-variant-numeric:tabular-nums; }
-  .gcal-dow{ display:grid; grid-template-columns:repeat(7,1fr); text-align:center;
+  /* minmax(0,1fr), NOT 1fr: a plain 1fr is minmax(auto,1fr), so a column is
+     never allowed to be narrower than the longest unbreakable thing inside
+     it — one long schedule title ("Ngày nghỉ của chồng") then widened its
+     own column and squeezed the other six out of true. Zero as the floor
+     lets the pill be clipped instead of the grid being bent. */
+  .gcal-dow{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); text-align:center;
     font-size:var(--fs-micro); color:var(--muted-2); padding-bottom:4px; }
-  .gcal-grid{ display:grid; grid-template-columns:repeat(7,1fr); row-gap:6px; }
+  .gcal-grid{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); row-gap:6px; }
   .gcal-day{
-    position:relative; border:0; background:transparent; border-radius:10px;
+    position:relative; border:0; background:transparent; border-radius:10px; min-width:0;
     padding:7px 0 12px; font-size:var(--fs-caption); font-variant-numeric:tabular-nums;
     color:var(--muted-2); font-weight:var(--fw-body);
   }
@@ -1063,11 +1068,21 @@
   }
   .gcal-evt.cont-l{ border-top-left-radius:0; border-bottom-left-radius:0; }
   .gcal-evt.cont-r{ border-top-right-radius:0; border-bottom-right-radius:0; }
+  /* a bar's title belongs to the WHOLE bar, not to the one cell it starts
+     in: the label is allowed to run across the cells the bar covers in this
+     week row (--span of them), lifted above the later cells so their
+     backgrounds do not paint over it. Clipping still happens — at the end
+     of the bar, not at the end of the first day. */
+  .gcal-evt.has-span{ overflow:visible; position:relative; z-index:1; }
+  .gcal-evt .ge-t{
+    display:block; width:calc(var(--span, 1) * 100%);
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
   .gcal-evt.ghost{ visibility:hidden; }
   .gcal-evt.more{ background:transparent; color:var(--muted-2); height:auto; }
   /* the pills sit in aligned lanes at the bottom of every cell, so a bar
      stays level as it crosses days whose numbers carry different marks */
-  .gcal-lanes{ margin-top:auto; width:100%; display:flex; flex-direction:column; gap:2px; }
+  .gcal-lanes{ margin-top:auto; width:100%; min-width:0; display:flex; flex-direction:column; gap:2px; }
   .evc-sky{ background:var(--ev-sky-bg); color:var(--ev-sky-fg); }
   .evc-mint{ background:var(--ev-mint-bg); color:var(--ev-mint-fg); }
   .evc-peach{ background:var(--ev-peach-bg); color:var(--ev-peach-fg); }
@@ -1273,6 +1288,9 @@
   .row-item .author-vi::placeholder{ color:var(--muted-2); }
   .row-item .r-chev{ color:var(--muted-2); font-size:var(--fs-title); flex:0 0 auto; }
   .hint-line{ font-size:var(--fs-caption); color:var(--muted); margin:8px 2px 0; line-height:1.55; }
+  /* the floating + sits over this corner: the legend keeps clear of it
+     rather than running underneath (Vietnamese wraps to two lines) */
+  [data-gv-panel="cal"] .hint-line{ padding-right:72px; }
 
   /* a record this phone may not change: it opens to be read, and says why */
   .fullpage.is-locked .fp-body{ opacity:.96; }
@@ -5373,7 +5391,8 @@ function renderGrowthCalendar(){
           ev: ev,
           contL: ds2 !== ev.date,
           contR: ds2 !== ev.endDate,
-          text: ds2 === ev.date || c === c1,
+          text: c === c1,              /* titled once per week row, at its left end */
+          span: c2 - c1 + 1,           /* ...and the title may run this many cells */
         };
       }
     }
@@ -5402,9 +5421,12 @@ function renderGrowthCalendar(){
       for (var ln = 0; ln <= rowMax; ln++){
         var seg = lanesHere && lanesHere[ln];
         if (!seg){ lane_html.push('<span class="gcal-evt ghost"> </span>'); continue; }
+        var wide = seg.text && seg.span > 1;
         lane_html.push('<span class="gcal-evt evc-' + seg.ev.color +
-          (seg.contL ? ' cont-l' : '') + (seg.contR ? ' cont-r' : '') + '">' +
-          (seg.text ? esc(schedShownText(seg.ev)) : ' ') + '</span>');
+          (seg.contL ? ' cont-l' : '') + (seg.contR ? ' cont-r' : '') + (wide ? ' has-span' : '') + '"' +
+          (wide ? ' style="--span:' + seg.span + '"' : '') + '>' +
+          (seg.text ? '<span class="ge-t">' + esc(schedShownText(seg.ev)) + '</span>' : ' ') +
+        '</span>');
       }
       if (dayExtra[ds]) lane_html.push('<span class="gcal-evt more">+' + dayExtra[ds] + '</span>');
       pills = '<span class="gcal-lanes">' + lane_html.join('') + '</span>';
