@@ -1087,9 +1087,28 @@
     border-radius:10px; padding:7px 9px; font-size:var(--fs-caption); min-width:0; }
   .sched-opts .so-sep{ color:var(--muted-2); font-size:var(--fs-caption); }
   .sched-colors{ display:flex; gap:7px; align-items:center; }
-  .sc-dot{ width:21px; height:21px; border-radius:50%; border:0; padding:0;
+  .sc-dot{ width:21px; height:21px; border-radius:50%; border:0; padding:0; flex:0 0 auto;
     box-shadow:inset 0 0 0 1px rgba(0,0,0,.08); }
   .sc-dot[aria-pressed="true"]{ box-shadow:0 0 0 2px var(--surface), 0 0 0 3.5px var(--fg); }
+  /* bulk-edit rows on the day page: everything editable at once, ✕ marks a
+     row for removal, and the ✓ in the corner commits the whole page */
+  .gx-row{ display:flex; gap:8px; align-items:center; padding:5px 0; }
+  .gx-row input[type="text"]{ flex:1; min-width:0; border:1px solid var(--border); background:var(--surface);
+    color:var(--fg); border-radius:10px; padding:8px 10px; font-size:var(--fs-caption); }
+  .gx-x{ flex:0 0 auto; width:26px; height:26px; border:0; border-radius:50%;
+    background:var(--surface-2); color:var(--muted); font-size:13px; line-height:1; }
+  .is-removed{ opacity:.38; }
+  .is-removed input{ text-decoration:line-through; }
+  .sched-edit{ padding:7px 0 5px; border-top:1px solid var(--border); }
+  .sched-edit:first-of-type{ border-top:0; }
+  .sched-edit .se-top{ display:flex; gap:8px; align-items:center; }
+  .sched-edit .se-top input{ flex:1; min-width:0; border:1px solid var(--border); background:var(--surface);
+    color:var(--fg); border-radius:10px; padding:8px 10px; font-size:var(--fs-caption); }
+  .sched-edit .se-dates{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:6px 0 0 29px; }
+  .sched-edit .se-dates input{ border:1px solid var(--border); background:var(--surface); color:var(--fg);
+    border-radius:9px; padding:5px 7px; font-size:var(--fs-micro); min-width:0; }
+  .gdiary-entry.is-removed .gd-text{ text-decoration:line-through; }
+  .gdiary-entry .gd-head .gx-x{ margin-left:auto; }
   /* ---------- the week view: same card, readable lines ---------- */
   .gweek-day{ display:flex; gap:12px; padding:11px 2px; border-top:1px solid var(--border);
     align-items:flex-start; width:100%; border-left:0; border-right:0; border-bottom:0;
@@ -2033,12 +2052,12 @@
       <div>
         <div class="section-title" data-i18n="gMeasures">측정</div>
         <div id="gday-measure-view"></div>
+        <!-- no 저장 of its own: the ✓ in the corner saves the whole page -->
         <div class="weight-form" id="gday-measure-form">
           <input type="number" id="gday-kg" inputmode="decimal" step="0.01" min="0.3" max="30" placeholder="7.6" />
           <span class="w-unit">kg</span>
           <input type="number" id="gday-cm" inputmode="decimal" step="0.1" min="20" max="130" placeholder="66.5" />
           <span class="w-unit">cm</span>
-          <button type="button" id="gday-save" data-i18n="save">저장</button>
         </div>
       </div>
       <div>
@@ -2051,15 +2070,21 @@
       </div>
       <div>
         <div class="section-title" data-i18n="schedTitle">일정</div>
+        <!-- start AND end date are always filled in (they prefill to the open
+             day) — the + button opens this form, and the dates here are where
+             the day is chosen -->
         <div id="gday-sched-form">
           <div class="weight-form" style="padding-top:2px">
             <input type="text" id="gday-sched-text" data-i18n-ph="schedPh" maxlength="120" style="flex:1;min-width:0;" />
             <button type="button" id="gday-sched-add" data-i18n="add">추가</button>
           </div>
           <div class="sched-opts">
-            <input type="time" id="gday-sched-time" />
+            <input type="date" id="gday-sched-start" title="시작일 · Ngày bắt đầu" />
             <span class="so-sep">~</span>
             <input type="date" id="gday-sched-end" title="종료일 · Ngày kết thúc" />
+            <input type="time" id="gday-sched-time" />
+          </div>
+          <div class="sched-opts" style="padding-top:2px">
             <div class="sched-colors" id="gday-sched-colors"></div>
           </div>
         </div>
@@ -5228,13 +5253,10 @@ function renderMilestoneCard(){
       var m2 = ms.filter(function(x){ return x.id === btn.dataset.kbGmile; })[0];
       if (!m2) return;
       var items = [{ label: t('gEdit'), icon: 'pencil', fn: function(){
-        /* jump to that day's page with the words back in the box */
+        /* jump to that day's page, already open for editing — the milestone
+           sits there as its own editable row */
         state.gDate = m2.date;
         openGrowthDay('edit');
-        gPendingMile = m2.id;
-        var inp2 = document.getElementById('gday-milestone');
-        inp2.value = m2.text;
-        setTimeout(function(){ try{ inp2.focus(); }catch(e){} }, 60);
       } }];
       if (canTouch(m2.author)) items.push({ label: t('delete'), icon: 'trash', danger: true, fn: function(){
         apiMutate('deleteMilestone', { id: m2.id }).then(function(){
@@ -5460,16 +5482,47 @@ function renderGrowthWeek(){
 }
 function openGrowthDay(mode){
   state.gMode = mode || 'view';
-  gPendingMile = null; gPendingDiary = null; gPendingSched = null;
+  gPendingDiary = null;
+  gDraft = null;
   resetSchedForm();
   renderGrowthDay();
   openFullpage('fp-gday');
 }
 function closeGrowthDay(){
-  gPendingMile = null; gPendingDiary = null; gPendingSched = null;
+  gPendingDiary = null;
+  gDraft = null;
   closeFullpage('fp-gday');
   /* the month behind may have gained a mark while the page was open */
   renderGrowth();
+}
+/* ============ the day page: two faces ============
+   VIEW — clean read-only rows, nothing to press on them.
+   EDIT (연필) — the WHOLE page becomes editable at once: measures as
+   inputs, every milestone and schedule as its own editable row (✕ marks a
+   row for removal, the color dot cycles the pastels), every diary page
+   removable. The ✓ in the corner is the page's single save: it commits
+   every change together. No per-item 수정/삭제 buttons anywhere. */
+var gDraft = null;
+function buildGrowthDraft(){
+  var ds = gSelectedDate();
+  var w = readWeights().filter(function(x){ return x.date === ds; })[0];
+  var h = readHeights().filter(function(x){ return x.date === ds; })[0];
+  gDraft = {
+    w: w || null, h: h || null,
+    kg: w ? String(w.kg) : '', cm: h ? String(h.cm) : '',
+    miles: readMilestones().filter(function(m){ return m.date === ds; }).map(function(m){
+      return { id: m.id, text: m.text, orig: m.text, author: m.author, removed: false };
+    }),
+    scheds: schedulesOnDay(ds).map(function(s){
+      return { id: s.id, text: s.text, time: s.time || '', date: s.date,
+               endDate: s.endDate, color: s.color, author: s.author,
+               orig: { text: s.text, time: s.time || '', date: s.date, endDate: s.endDate, color: s.color },
+               removed: false };
+    }),
+    newMiles: [],
+    newScheds: [],
+    diaryRemoved: {},
+  };
 }
 function renderGrowthDay(){
   var card = document.getElementById('fp-gday-body');
@@ -5477,18 +5530,16 @@ function renderGrowthDay(){
   var ds = gSelectedDate();
   document.getElementById('fp-gday-title').textContent =
     dayHeading(new Date(ds + 'T00:00:00').toISOString());
+  var editing = state.gMode === 'edit';
+  if (editing && !gDraft) buildGrowthDraft();
   var w = readWeights().filter(function(x){ return x.date === ds; })[0];
   var h = readHeights().filter(function(x){ return x.date === ds; })[0];
   var kgEl = document.getElementById('gday-kg');
   var cmEl = document.getElementById('gday-cm');
-  if (document.activeElement !== kgEl) kgEl.value = w ? w.kg : '';
-  if (document.activeElement !== cmEl) cmEl.value = h ? h.cm : '';
-
-  /* TWO FACES OF THE SAME PAGE. Tapping a date is for READING — the day's
-     records as rows, each with its delete, and 수정 in the corner when a
-     form is wanted. The + button (and 수정) opens the WRITING face: the
-     input forms. The lists and diary pages themselves show on both. */
-  var editing = state.gMode === 'edit';
+  if (editing){
+    if (document.activeElement !== kgEl) kgEl.value = gDraft.kg;
+    if (document.activeElement !== cmEl) cmEl.value = gDraft.cm;
+  }
   var modeBtn = document.getElementById('fp-gday-mode');
   modeBtn.innerHTML = uiIconHtml(editing ? 'check' : 'pencil');
   modeBtn.setAttribute('aria-label', t(editing ? 'gDone' : 'gEdit'));
@@ -5500,124 +5551,153 @@ function renderGrowthDay(){
   mv.hidden = editing;
   if (!editing){
     var mrows = [];
-    if (w) mrows.push('<div class="gday-row"><span>\u2696\uFE0F</span><span>' + esc(t('weightTitle')) + '</span><b>' + w.kg + 'kg</b>' +
-      kebabBtnHtml('data-kb-gw="' + esc(w.id) + '"') + '</div>');
-    if (h) mrows.push('<div class="gday-row"><span>\uD83D\uDCCF</span><span>' + esc(t('heightTitle')) + '</span><b>' + h.cm + 'cm</b>' +
-      kebabBtnHtml('data-kb-gh="' + esc(h.id) + '"') + '</div>');
+    if (w) mrows.push('<div class="gday-row"><span>\u2696\uFE0F</span><span>' + esc(t('weightTitle')) + '</span><b>' + w.kg + 'kg</b></div>');
+    if (h) mrows.push('<div class="gday-row"><span>\uD83D\uDCCF</span><span>' + esc(t('heightTitle')) + '</span><b>' + h.cm + 'cm</b></div>');
     mv.innerHTML = mrows.length ? mrows.join('') :
       '<div class="empty-note" style="padding:6px 0;font-size:var(--fs-caption)">' + esc(t('gNoMeasure')) + '</div>';
-    /* ⋯ → 수정 (the writing face, cursor in the right box) / 삭제. Everyone
-       may edit; delete follows the owner-or-mom rule, so it is simply absent
-       from the menu when it would be refused. */
-    function measureMenu(btn, rec, focusId, delType){
-      var items = [{ label: t('gEdit'), icon: 'pencil', fn: function(){
-        state.gMode = 'edit'; renderGrowthDay();
-        setTimeout(function(){ try{ document.getElementById(focusId).focus(); }catch(e){} }, 60);
-      } }];
-      if (canTouch(rec.author)) items.push({ label: t('delete'), icon: 'trash', danger: true, fn: function(){
-        apiMutate(delType, { id: rec.id }).then(function(){
-          renderGrowth(); toast(t('deletedToast'));
-        }).catch(function(err){ toast(err.message); });
-      } });
-      openKebabMenu(btn, items);
-    }
-    $$('[data-kb-gw]', mv).forEach(function(btn){
-      btn.addEventListener('click', function(ev){ ev.stopPropagation(); measureMenu(btn, w, 'gday-kg', 'deleteWeight'); });
-    });
-    $$('[data-kb-gh]', mv).forEach(function(btn){
-      btn.addEventListener('click', function(ev){ ev.stopPropagation(); measureMenu(btn, h, 'gday-cm', 'deleteHeight'); });
-    });
   }
-  var ms = readMilestones().filter(function(m){ return m.date === ds; });
-  var rows = [];
-  ms.forEach(function(m){
-    rows.push('<div class="gday-row"><span>' + esc(m.text) + '</span>' +
-      kebabBtnHtml('data-kb-mile="' + esc(m.id) + '"') +
-    '</div>');
-  });
-  document.getElementById('gday-list').innerHTML = rows.join('');
-  $$('[data-kb-mile]', card).forEach(function(btn){
-    btn.addEventListener('click', function(ev){
-      ev.stopPropagation();
-      var m = ms.filter(function(x){ return x.id === btn.dataset.kbMile; })[0];
-      if (!m) return;
-      var items = [{ label: t('gEdit'), icon: 'pencil', fn: function(){
-        /* the words go back into the box; 추가 becomes save-the-change */
-        gPendingMile = m.id;
-        state.gMode = 'edit'; renderGrowthDay();
-        var inp = document.getElementById('gday-milestone');
-        inp.value = m.text;
-        setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 60);
-      } }];
-      if (canTouch(m.author)) items.push({ label: t('delete'), icon: 'trash', danger: true, fn: function(){
-        apiMutate('deleteMilestone', { id: m.id }).then(function(){
-          renderGrowth(); toast(t('deletedToast'));
-        }).catch(function(err){ toast(err.message); });
-      } });
-      openKebabMenu(btn, items);
-    });
-  });
 
-  /* the day's schedule — its color, the hour, the words (and the words in
-     the other language, so 엄마 writes 예방접종 and the nanny reads Tiêm
-     chủng), which day of a longer stay this is, and who put it there */
-  var scheds = schedulesOnDay(ds);
+  /* ---- milestones: read rows, or one editable row each ---- */
+  var listEl = document.getElementById('gday-list');
+  if (editing){
+    listEl.innerHTML = gDraft.miles.map(function(m, i){
+      return '<div class="gx-row' + (m.removed ? ' is-removed' : '') + '">' +
+        '<span>\u2B50</span>' +
+        '<input type="text" maxlength="80" data-gmi="' + i + '" value="' + esc(m.text) + '" />' +
+        ((canTouch(m.author) || m.removed) ? '<button type="button" class="gx-x" data-gmi-x="' + i + '">' + (m.removed ? '\u21BA' : '\u2715') + '</button>' : '') +
+      '</div>';
+    }).concat(gDraft.newMiles.map(function(tx, i){
+      return '<div class="gx-row"><span>\u2B50</span>' +
+        '<input type="text" maxlength="80" data-gni="' + i + '" value="' + esc(tx) + '" />' +
+        '<button type="button" class="gx-x" data-gni-x="' + i + '">\u2715</button></div>';
+    })).join('');
+    $$('[data-gmi]', listEl).forEach(function(inp){
+      inp.addEventListener('input', function(){ gDraft.miles[Number(inp.dataset.gmi)].text = inp.value; });
+    });
+    $$('[data-gni]', listEl).forEach(function(inp){
+      inp.addEventListener('input', function(){ gDraft.newMiles[Number(inp.dataset.gni)] = inp.value; });
+    });
+    $$('[data-gmi-x]', listEl).forEach(function(b){
+      b.addEventListener('click', function(){
+        var m = gDraft.miles[Number(b.dataset.gmiX)];
+        m.removed = !m.removed;
+        renderGrowthDay();
+      });
+    });
+    $$('[data-gni-x]', listEl).forEach(function(b){
+      b.addEventListener('click', function(){
+        gDraft.newMiles.splice(Number(b.dataset.gniX), 1);
+        renderGrowthDay();
+      });
+    });
+  } else {
+    var ms = readMilestones().filter(function(m){ return m.date === ds; });
+    listEl.innerHTML = ms.map(function(m){
+      return '<div class="gday-row"><span>\u2B50</span><span style="flex:1;min-width:0;">' + esc(m.text) + '</span>' +
+        '<span class="gweek-sub" style="flex:0 0 auto">' + esc(localizeAuthorName(m.author)) + '</span></div>';
+    }).join('');
+  }
+
+  /* ---- the day's schedule: read rows, or fully editable rows ---- */
   var sl = document.getElementById('gday-sched-list');
-  sl.innerHTML = !scheds.length
-    ? (editing ? '' : '<div class="empty-note" style="padding:6px 0;font-size:var(--fs-caption)">' + esc(t('schedEmpty')) + '</div>')
-    : scheds.map(function(s){
-        var shown = schedShownText(s);
-        /* the other language underneath, quietly, when there is one */
-        var second = (s.translated && s.translated !== s.text)
-          ? (shown === s.text ? s.translated : s.text) : '';
-        var n = schedNights(s);
-        return '<div class="gday-row"><i class="evd evd-' + s.color + '"></i>' +
-          (s.time ? '<span style="color:var(--muted-2);font-size:var(--fs-micro);font-variant-numeric:tabular-nums;flex:0 0 auto;">' + esc(s.time) + '</span>' : '') +
-          '<span style="flex:1;min-width:0;">' + esc(shown) +
-            (n > 1 ? ' <span class="nth">' + schedDayIndex(s, ds) + '/' + n + '</span>' : '') +
-            (second ? '<span class="gweek-sub" style="display:block">' + esc(second) + '</span>' : '') +
-          '</span>' +
-          '<span class="gweek-sub" style="flex:0 0 auto">' + esc(localizeAuthorName(s.author)) + '</span>' +
-          kebabBtnHtml('data-kb-sched="' + esc(s.id) + '"') +
-        '</div>';
-      }).join('');
-  $$('[data-kb-sched]', sl).forEach(function(btn){
-    btn.addEventListener('click', function(ev){
-      ev.stopPropagation();
-      var s = scheds.filter(function(x){ return x.id === btn.dataset.kbSched; })[0];
-      if (!s) return;
-      var items = [{ label: t('gEdit'), icon: 'pencil', fn: function(){
-        gPendingSched = s.id;
-        state.gMode = 'edit'; renderGrowthDay();
-        document.getElementById('gday-sched-time').value = s.time || '';
-        document.getElementById('gday-sched-end').value = (s.endDate > s.date) ? s.endDate : '';
-        gSchedColor = s.color; renderSchedColorDots();
-        var inp = document.getElementById('gday-sched-text');
-        inp.value = s.text;
-        setTimeout(function(){ try{ inp.focus(); }catch(e){} }, 60);
-      } }];
-      if (canTouch(s.author)) items.push({ label: t('delete'), icon: 'trash', danger: true, fn: function(){
-        apiMutate('deleteSchedule', { id: s.id }).then(function(){
-          renderGrowth(); toast(t('deletedToast'));
-        }).catch(function(err){ toast(err.message); });
-      } });
-      openKebabMenu(btn, items);
-    });
-  });
+  if (editing){
+    var schedRowHtml = function(s, kind, i){
+      var removable = kind === 'gsn' || canTouch(s.author) || s.removed;
+      return '<div class="sched-edit' + (s.removed ? ' is-removed' : '') + '">' +
+        '<div class="se-top">' +
+          '<button type="button" class="sc-dot" data-' + kind + '-c="' + i + '" style="background:var(--ev-' + s.color + '-bg)" aria-label="' + s.color + '"></button>' +
+          '<input type="text" maxlength="120" data-' + kind + '-t="' + i + '" value="' + esc(s.text) + '" />' +
+          (removable ? '<button type="button" class="gx-x" data-' + kind + '-x="' + i + '">' + (s.removed ? '\u21BA' : '\u2715') + '</button>' : '') +
+        '</div>' +
+        '<div class="se-dates">' +
+          '<input type="date" data-' + kind + '-d1="' + i + '" value="' + esc(s.date) + '" />' +
+          '<span class="so-sep">~</span>' +
+          '<input type="date" data-' + kind + '-d2="' + i + '" value="' + esc(s.endDate) + '" />' +
+          '<input type="time" data-' + kind + '-tm="' + i + '" value="' + esc(s.time) + '" />' +
+        '</div>' +
+      '</div>';
+    };
+    sl.innerHTML = gDraft.scheds.map(function(s, i){ return schedRowHtml(s, 'gse', i); }).join('') +
+      gDraft.newScheds.map(function(s, i){ return schedRowHtml(s, 'gsn', i); }).join('');
+    var wireSchedRows = function(kind, arr){
+      var at = function(el, key){ return arr[Number(el.getAttribute('data-' + kind + '-' + key))]; };
+      $$('[data-' + kind + '-t]', sl).forEach(function(inp){
+        inp.addEventListener('input', function(){ at(inp, 't').text = inp.value; });
+      });
+      $$('[data-' + kind + '-d1]', sl).forEach(function(inp){
+        inp.addEventListener('change', function(){
+          var s = at(inp, 'd1');
+          if (inp.value) s.date = inp.value;
+          if (s.endDate < s.date) s.endDate = s.date;
+          renderGrowthDay();
+        });
+      });
+      $$('[data-' + kind + '-d2]', sl).forEach(function(inp){
+        inp.addEventListener('change', function(){
+          var s = at(inp, 'd2');
+          s.endDate = (inp.value && inp.value > s.date) ? inp.value : s.date;
+          if (inp.value !== s.endDate) inp.value = s.endDate;
+        });
+      });
+      $$('[data-' + kind + '-tm]', sl).forEach(function(inp){
+        inp.addEventListener('change', function(){ at(inp, 'tm').time = inp.value || ''; });
+      });
+      /* tapping the dot walks through the six pastels */
+      $$('[data-' + kind + '-c]', sl).forEach(function(b){
+        b.addEventListener('click', function(){
+          var s = at(b, 'c');
+          s.color = SCHED_COLOR_IDS[(SCHED_COLOR_IDS.indexOf(s.color) + 1) % SCHED_COLOR_IDS.length];
+          b.style.background = 'var(--ev-' + s.color + '-bg)';
+          b.setAttribute('aria-label', s.color);
+        });
+      });
+      $$('[data-' + kind + '-x]', sl).forEach(function(b){
+        b.addEventListener('click', function(){
+          var idx = Number(b.getAttribute('data-' + kind + '-x'));
+          if (kind === 'gsn') arr.splice(idx, 1);
+          else arr[idx].removed = !arr[idx].removed;
+          renderGrowthDay();
+        });
+      });
+    };
+    wireSchedRows('gse', gDraft.scheds);
+    wireSchedRows('gsn', gDraft.newScheds);
+  } else {
+    var scheds = schedulesOnDay(ds);
+    sl.innerHTML = !scheds.length
+      ? '<div class="empty-note" style="padding:6px 0;font-size:var(--fs-caption)">' + esc(t('schedEmpty')) + '</div>'
+      : scheds.map(function(s){
+          var shown = schedShownText(s);
+          var second = (s.translated && s.translated !== s.text)
+            ? (shown === s.text ? s.translated : s.text) : '';
+          var n = schedNights(s);
+          return '<div class="gday-row"><i class="evd evd-' + s.color + '"></i>' +
+            (s.time ? '<span style="color:var(--muted-2);font-size:var(--fs-micro);font-variant-numeric:tabular-nums;flex:0 0 auto;">' + esc(s.time) + '</span>' : '') +
+            '<span style="flex:1;min-width:0;">' + esc(shown) +
+              (n > 1 ? ' <span class="nth">' + schedDayIndex(s, ds) + '/' + n + '</span>' : '') +
+              (second ? '<span class="gweek-sub" style="display:block">' + esc(second) + '</span>' : '') +
+            '</span>' +
+            '<span class="gweek-sub" style="flex:0 0 auto">' + esc(localizeAuthorName(s.author)) + '</span>' +
+          '</div>';
+        }).join('');
+  }
 
-  /* the day's diary pages, newest first — words, pictures, whoever wrote it */
+  /* ---- the day's diary pages, newest first. In edit mode each page gets
+     its \u2715 (removal committed by the \u2713), and tapping its words pulls
+     them into the compose box below for rewriting. ---- */
   var diaries = readDiaries().filter(function(d2){ return d2.date === ds; });
   var dl = document.getElementById('gday-diary-list');
   dl.innerHTML = !diaries.length
     ? '<div class="empty-note" style="padding:10px 0 4px;font-size:var(--fs-caption)">' + esc(t('diaryEmpty')) + '</div>'
     : diaries.map(function(d2){
     var photos = Array.isArray(d2.photos) ? d2.photos : [];
-    return '<div class="gdiary-entry">' +
+    var removed = editing && gDraft.diaryRemoved[d2.id];
+    return '<div class="gdiary-entry' + (removed ? ' is-removed' : '') + '">' +
       '<div class="gd-head"><span>' + esc(localizeAuthorName(d2.author)) + '</span>' +
         '<span>' + esc(fmtTime(d2.ts)) + '</span>' +
-        kebabBtnHtml('data-kb-diary="' + esc(d2.id) + '"') +
+        ((editing && (canTouch(d2.author) || removed)) ? '<button type="button" class="gx-x" data-gdx="' + esc(d2.id) + '">' + (removed ? '\u21BA' : '\u2715') + '</button>' : '') +
       '</div>' +
-      (d2.text ? '<div class="gd-text">' + esc(d2.text) + '</div>' : '') +
+      (d2.text ? '<div class="gd-text"' + (editing ? ' data-gde="' + esc(d2.id) + '"' : '') + '>' + esc(d2.text) + '</div>' : '') +
       (d2.translated ? '<div class="gd-trans">' + esc(d2.translated) + '</div>' : '') +
       (photos.length ? '<div class="m-photos' + (photos.length === 1 ? ' one' : '') + '">' +
         photos.map(function(ph, i){
@@ -5628,26 +5708,26 @@ function renderGrowthDay(){
         }).join('') + '</div>' : '') +
     '</div>';
   }).join('');
-  $$('[data-kb-diary]', dl).forEach(function(btn){
-    btn.addEventListener('click', function(ev){
-      ev.stopPropagation();
-      var d3 = diaries.filter(function(x){ return x.id === btn.dataset.kbDiary; })[0];
-      if (!d3) return;
-      var items = [{ label: t('gEdit'), icon: 'pencil', fn: function(){
+  if (editing){
+    $$('[data-gdx]', dl).forEach(function(b){
+      b.addEventListener('click', function(){
+        var id = b.dataset.gdx;
+        if (gDraft.diaryRemoved[id]) delete gDraft.diaryRemoved[id];
+        else gDraft.diaryRemoved[id] = true;
+        renderGrowthDay();
+      });
+    });
+    $$('[data-gde]', dl).forEach(function(el){
+      el.addEventListener('click', function(){
+        var d3 = diaries.filter(function(x){ return x.id === el.dataset.gde; })[0];
+        if (!d3) return;
         gPendingDiary = d3.id;
-        state.gMode = 'edit'; renderGrowthDay();
         var ta = document.getElementById('gday-diary');
         ta.value = d3.text || '';
-        setTimeout(function(){ try{ ta.focus(); }catch(e){} }, 60);
-      } }];
-      if (canTouch(d3.author)) items.push({ label: t('delete'), icon: 'trash', danger: true, fn: function(){
-        apiMutate('deleteDiary', { id: d3.id }).then(function(){
-          renderGrowth(); toast(t('deletedToast'));
-        }).catch(function(err){ toast(err.message); });
-      } });
-      openKebabMenu(btn, items);
+        try{ ta.focus(); }catch(e){}
+      });
     });
-  });
+  }
   $$('[data-diary-photo]', dl).forEach(function(btn){
     btn.addEventListener('click', function(){
       var d3 = readDiaries().filter(function(x){ return x.id === btn.dataset.diaryPhoto; })[0];
@@ -5657,9 +5737,113 @@ function renderGrowthDay(){
   });
 }
 
-/* an item being EDITED via its ⋯ menu: the words go back into the input
-   and the save button writes an update instead of a new record */
-var gPendingMile = null, gPendingDiary = null, gPendingSched = null;
+/* a diary page being rewritten: its words sit in the compose box and the
+   save becomes an update instead of a new page */
+var gPendingDiary = null;
+
+/* the corner ✓ — one save for the whole page. Everything the draft holds
+   is diffed against what the server knew and committed as one ordered
+   chain of writes (ordered, not parallel: racing them is how "too many
+   concurrent writes" happens). */
+function commitGrowthDay(){
+  var ds = gSelectedDate();
+  var d = gDraft || { miles: [], scheds: [], newMiles: [], newScheds: [], diaryRemoved: {} };
+  var chain = Promise.resolve();
+  var q = function(fn){ chain = chain.then(fn); };
+
+  /* measures: a changed number writes, an emptied box deletes (when allowed) */
+  var kgRaw = document.getElementById('gday-kg').value.trim();
+  var kg = parseFloat(kgRaw);
+  if (kgRaw && isFinite(kg) && kg >= 0.3 && kg <= 30 && (!d.w || Math.round(kg * 100) / 100 !== d.w.kg))
+    q(function(){ return apiMutate('addWeight', { date: ds, kg: Math.round(kg * 100) / 100, author: state.author }); });
+  else if (!kgRaw && d.w && canTouch(d.w.author))
+    q(function(){ return apiMutate('deleteWeight', { id: d.w.id }); });
+  var cmRaw = document.getElementById('gday-cm').value.trim();
+  var cm = parseFloat(cmRaw);
+  if (cmRaw && isFinite(cm) && cm >= 20 && cm <= 130 && (!d.h || Math.round(cm * 10) / 10 !== d.h.cm))
+    q(function(){ return apiMutate('addHeight', { date: ds, cm: Math.round(cm * 10) / 10, author: state.author }); });
+  else if (!cmRaw && d.h && canTouch(d.h.author))
+    q(function(){ return apiMutate('deleteHeight', { id: d.h.id }); });
+
+  /* milestones */
+  d.miles.forEach(function(m){
+    if (m.removed){ q(function(){ return apiMutate('deleteMilestone', { id: m.id }); }); return; }
+    var tx = (m.text || '').trim();
+    if (tx && tx !== m.orig) q(function(){ return apiMutate('updateMilestone', { id: m.id, text: tx }); });
+  });
+  d.newMiles.forEach(function(tx){
+    tx = (tx || '').trim();
+    if (tx) q(function(){ return apiMutate('addMilestone', { date: ds, text: tx, author: state.author }); });
+  });
+  var mform = document.getElementById('gday-milestone');
+  var mtx = mform.value.trim();
+  if (mtx) q(function(){ return apiMutate('addMilestone', { date: ds, text: mtx, author: state.author }); });
+
+  /* schedules — edits, removals, staged new ones, and whatever sits typed
+     in the form but never got its 추가. Text changes re-translate. */
+  d.scheds.forEach(function(s){
+    if (s.removed){ q(function(){ return apiMutate('deleteSchedule', { id: s.id }); }); return; }
+    var tx = (s.text || '').trim();
+    if (!tx) return;
+    var endOut = (s.endDate && s.endDate > s.date) ? s.endDate : '';
+    var origEnd = (s.orig.endDate && s.orig.endDate > s.orig.date) ? s.orig.endDate : '';
+    if (tx === s.orig.text && s.time === s.orig.time && s.date === s.orig.date &&
+        endOut === origEnd && s.color === s.orig.color) return;
+    var lang = detectLang(tx);
+    q(function(){ return apiMutate('updateSchedule', { id: s.id, text: tx, time: s.time,
+      date: s.date, endDate: endOut, color: s.color, lang: lang }); });
+    if (tx !== s.orig.text && (lang === 'ko' || lang === 'vi')){
+      q(function(){
+        return apiTranslate(tx, lang === 'ko' ? 'vi' : 'ko').then(function(tr){
+          if (tr) return apiMutate('updateSchedule', { id: s.id, translation: tr });
+        }).catch(function(){});
+      });
+    }
+  });
+  var addSched = function(s){
+    var tx = (s.text || '').trim();
+    if (!tx) return;
+    var date = s.date || ds;
+    var endOut = (s.endDate && s.endDate > date) ? s.endDate : '';
+    var lang = detectLang(tx);
+    q(function(){
+      return apiMutate('addSchedule', { date: date, endDate: endOut, time: s.time || '',
+        color: s.color || 'sky', text: tx, lang: lang, author: state.author })
+        .then(function(res){
+          var id = res && res.schedule && res.schedule.id;
+          if (id && (lang === 'ko' || lang === 'vi')){
+            return apiTranslate(tx, lang === 'ko' ? 'vi' : 'ko').then(function(tr){
+              if (tr) return apiMutate('updateSchedule', { id: id, translation: tr });
+            }).catch(function(){});
+          }
+        });
+    });
+  };
+  d.newScheds.forEach(addSched);
+  var ftx = document.getElementById('gday-sched-text').value.trim();
+  if (ftx) addSched({ text: ftx,
+    date: document.getElementById('gday-sched-start').value || ds,
+    endDate: document.getElementById('gday-sched-end').value || '',
+    time: document.getElementById('gday-sched-time').value || '',
+    color: gSchedColor });
+
+  /* diary removals; a composed-but-unsent page goes too — ✓ saves EVERYTHING */
+  Object.keys(d.diaryRemoved).forEach(function(id){
+    q(function(){ return apiMutate('deleteDiary', { id: id }); });
+  });
+  if (document.getElementById('gday-diary').value.trim() || diaryPhotos.length) submitDiary();
+
+  chain
+    .then(function(){ toast(t('savedToast')); })
+    .catch(function(err){ toast(err.message || 'error'); })
+    .then(function(){
+      gDraft = null;
+      state.gMode = 'view';
+      mform.value = '';
+      resetSchedForm();
+      renderGrowth();
+    });
+}
 
 /* the schedule pastels — ids shared with the server's allowlist */
 var SCHED_COLOR_IDS = ['sky', 'mint', 'peach', 'lilac', 'lemon', 'rose'];
@@ -5677,12 +5861,17 @@ function renderSchedColorDots(){
 }
 function resetSchedForm(){
   gSchedColor = 'sky';
+  var ds = gSelectedDate();
   var tEl = document.getElementById('gday-sched-text');
   var tmEl = document.getElementById('gday-sched-time');
+  var sEl = document.getElementById('gday-sched-start');
   var eEl = document.getElementById('gday-sched-end');
   if (tEl) tEl.value = '';
   if (tmEl) tmEl.value = '';
-  if (eEl) eEl.value = '';
+  /* start AND end are always filled: they prefill to the open day, and the
+     + button's "pick a date" is exactly these two boxes */
+  if (sEl) sEl.value = ds;
+  if (eEl) eEl.value = ds;
   renderSchedColorDots();
 }
 
@@ -5717,6 +5906,7 @@ function attachDiaryPhotos(diaryId, pending){
     if (d){
       if (landed.length) d.photos = landed; else delete d.photos;
       if (state.tab === 'growth') renderGrowth();
+      if (state.gMode === 'edit') renderGrowthDay();
     }
     if (failed) toast(full ? t('photoStorageFull') : t('photoFailed'));
     if (!landed.length) return;
@@ -5741,6 +5931,7 @@ function submitDiary(){
     diaryPhotos = [];
     renderDiaryPhotoStrip();
     renderGrowth();
+    if (state.gMode === 'edit') renderGrowthDay();
     toast(t('savedToast'));
     apiMutate('updateDiary', { id: editId, text: text, lang: lang2 })
       .then(function(){
@@ -5761,7 +5952,7 @@ function submitDiary(){
           apiTranslate(text, lang2 === 'ko' ? 'vi' : 'ko').then(function(tr){
             if (!tr) return;
             var d4 = (appState.diaries || []).filter(function(x){ return x.id === editId; })[0];
-            if (d4){ d4.translation = tr; renderGrowth(); }
+            if (d4){ d4.translation = tr; renderGrowth(); if (state.gMode === 'edit') renderGrowthDay(); }
             return apiMutate('updateDiary', { id: editId, translation: tr });
           }).catch(function(){});
         }
@@ -5781,10 +5972,14 @@ function submitDiary(){
   diaryPhotos = [];
   renderDiaryPhotoStrip();
   renderGrowth();
+  /* mid-edit the poll-driven renders stand back (see renderGrowth) — a page
+     she just SAVED must still appear under her thumb at once */
+  if (state.gMode === 'edit') renderGrowthDay();
   toast(t('savedToast'));
   apiMutate('addDiary', { date: gSelectedDate(), text: text, lang: lang, author: state.author })
     .then(function(res){
       renderGrowth();
+      if (state.gMode === 'edit') renderGrowthDay();
       var newId = res && res.diary && res.diary.id;
       if (pending.length && newId) attachDiaryPhotos(newId, pending);
       /* translated for the other reader, after the post — never before it */
@@ -5792,7 +5987,7 @@ function submitDiary(){
         apiTranslate(text, lang === 'ko' ? 'vi' : 'ko').then(function(tr){
           if (!tr) return;
           var d = (appState.diaries || []).filter(function(x){ return x.id === newId; })[0];
-          if (d){ d.translation = tr; renderGrowth(); }
+          if (d){ d.translation = tr; renderGrowth(); if (state.gMode === 'edit') renderGrowthDay(); }
           return apiMutate('updateDiary', { id: newId, translation: tr });
         }).catch(function(){ /* an untranslated page is better than no page */ });
       }
@@ -5816,8 +6011,10 @@ function renderGrowth(){
     renderHeightCard();
     renderMilestoneCard();
   }
-  /* the day page is its own depth; keep it fresh while it is open */
-  if (document.getElementById('fp-gday').classList.contains('show')) renderGrowthDay();
+  /* the day page is its own depth; keep it fresh while it is open — but
+     NEVER re-render mid-edit: the draft (and half-typed rows) live in the
+     DOM, and the 4s poll must not eat them. The commit refreshes at the end. */
+  if (document.getElementById('fp-gday').classList.contains('show') && state.gMode !== 'edit') renderGrowthDay();
 }
 
 /* ================================================================
@@ -7723,8 +7920,13 @@ function wireEvents(){
   document.getElementById('gday-diary-save').addEventListener('click', submitDiary);
 
   document.getElementById('fp-gday-back').addEventListener('click', closeGrowthDay);
+  /* 연필 opens the whole page for editing; the ✓ is the page's ONE save —
+     it commits every change on the page together */
   document.getElementById('fp-gday-mode').addEventListener('click', function(){
-    state.gMode = state.gMode === 'edit' ? 'view' : 'edit';
+    if (state.gMode === 'edit'){ commitGrowthDay(); return; }
+    state.gMode = 'edit';
+    buildGrowthDraft();
+    resetSchedForm();
     renderGrowthDay();
   });
   /* the + on the calendar: today's page, pen already in hand */
@@ -7739,30 +7941,32 @@ function wireEvents(){
   });
   document.getElementById('gcal-prev').addEventListener('click', function(){ gShiftMonth(-1); });
   document.getElementById('gcal-next').addEventListener('click', function(){ gShiftMonth(1); });
-  document.getElementById('gday-save').addEventListener('click', function(){
-    var ds = gSelectedDate();
-    var kg = parseFloat(document.getElementById('gday-kg').value);
-    var cm = parseFloat(document.getElementById('gday-cm').value);
-    var jobs = [];
-    if (isFinite(kg) && kg >= 0.3 && kg <= 30) jobs.push(['addWeight', { date: ds, kg: Math.round(kg*100)/100, author: state.author }]);
-    if (isFinite(cm) && cm >= 20 && cm <= 130) jobs.push(['addHeight', { date: ds, cm: Math.round(cm*10)/10, author: state.author }]);
-    if (!jobs.length) return;
-    var chain = Promise.resolve();
-    jobs.forEach(function(j){ chain = chain.then(function(){ return apiMutate(j[0], j[1]); }); });
-    chain.then(function(){ renderGrowth(); toast(t('savedToast')); })
-         .catch(function(err){ toast(err.message || 'error'); });
-  });
+  /* what she types into the measure boxes lives in the draft too, so a
+     staging re-render never wipes a half-entered number */
+  document.getElementById('gday-kg').addEventListener('input', function(){ if (gDraft) gDraft.kg = this.value; });
+  document.getElementById('gday-cm').addEventListener('input', function(){ if (gDraft) gDraft.cm = this.value; });
+  /* 추가 buttons STAGE a row into the draft — nothing reaches the server
+     until the ✓ commits the page */
   document.getElementById('gday-milestone-add').addEventListener('click', function(){
     var inp = document.getElementById('gday-milestone');
     var text = inp.value.trim();
     if (!text) return;
+    if (!gDraft) buildGrowthDraft();
+    gDraft.newMiles.push(text);
     inp.value = '';
-    var op = gPendingMile
-      ? apiMutate('updateMilestone', { id: gPendingMile, text: text })
-      : apiMutate('addMilestone', { date: gSelectedDate(), text: text, author: state.author });
-    gPendingMile = null;
-    op.then(function(){ renderGrowth(); toast(t('savedToast')); })
-      .catch(function(err){ toast(err.message || 'error'); });
+    renderGrowthDay();
+  });
+  /* keeping the pair of date boxes honest: end never earlier than start */
+  document.getElementById('gday-sched-start').addEventListener('change', function(){
+    var sEl = document.getElementById('gday-sched-start');
+    var eEl = document.getElementById('gday-sched-end');
+    if (!sEl.value) sEl.value = gSelectedDate();
+    if (!eEl.value || eEl.value < sEl.value) eEl.value = sEl.value;
+  });
+  document.getElementById('gday-sched-end').addEventListener('change', function(){
+    var sEl = document.getElementById('gday-sched-start');
+    var eEl = document.getElementById('gday-sched-end');
+    if (!eEl.value || eEl.value < sEl.value) eEl.value = sEl.value;
   });
   // month ⇄ week on the growth calendar
   $$('#gcal-sub button').forEach(function(b){
@@ -7778,31 +7982,14 @@ function wireEvents(){
     var inp = document.getElementById('gday-sched-text');
     var text = inp.value.trim();
     if (!text) return;
-    var time = document.getElementById('gday-sched-time').value || '';
-    var endDate = document.getElementById('gday-sched-end').value || '';
-    var color = gSchedColor;
+    var start = document.getElementById('gday-sched-start').value || gSelectedDate();
+    var end = document.getElementById('gday-sched-end').value || start;
+    if (end < start) end = start;
+    if (!gDraft) buildGrowthDraft();
+    gDraft.newScheds.push({ text: text, date: start, endDate: end,
+      time: document.getElementById('gday-sched-time').value || '', color: gSchedColor });
     resetSchedForm();
-    var lang = detectLang(text);
-    var editId = gPendingSched;
-    gPendingSched = null;
-    /* a new schedule starts on the open day; an edit keeps its own start,
-       so the guard against a backwards range belongs to the server there */
-    if (!editId && endDate && endDate <= gSelectedDate()) endDate = '';
-    var op = editId
-      ? apiMutate('updateSchedule', { id: editId, text: text, time: time, endDate: endDate, color: color, lang: lang })
-      : apiMutate('addSchedule', { date: gSelectedDate(), text: text, time: time, endDate: endDate, color: color, lang: lang, author: state.author });
-    op.then(function(res){
-      renderGrowth(); toast(t('savedToast'));
-      var id = editId || (res && res.schedule && res.schedule.id);
-      if (id && (lang === 'ko' || lang === 'vi')){
-        apiTranslate(text, lang === 'ko' ? 'vi' : 'ko').then(function(tr){
-          if (!tr) return;
-          var s = (appState.schedules || []).filter(function(x){ return x.id === id; })[0];
-          if (s){ s.translation = tr; if (state.tab === 'growth') renderGrowth(); }
-          return apiMutate('updateSchedule', { id: id, translation: tr });
-        }).catch(function(){ /* an untranslated schedule still keeps the date */ });
-      }
-    }).catch(function(err){ toast(err.message || 'error'); });
+    renderGrowthDay();
   });
 
   // weight: save (optimistic — the free-tier server may be waking up)
