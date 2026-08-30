@@ -643,7 +643,9 @@
   .e-sub{ font-size:var(--fs-label); color:var(--muted); font-weight:var(--fw-body); }
   /* per-entry note — same detect+mock-translate treatment as the memo tab */
   .e-note{ font-size:var(--fs-caption); color:var(--fg); margin-top:3px; white-space:pre-wrap; word-break:break-word; }
-  .e-note-trans{ font-size:var(--fs-caption); color:var(--primary); margin-top:2px; white-space:pre-wrap; word-break:break-word; }
+  /* the colour is written on the element by typeInkColor — this is only the
+     fallback for a row whose type somehow has none */
+  .e-note-trans{ font-size:var(--fs-caption); color:var(--muted); margin-top:2px; white-space:pre-wrap; word-break:break-word; }
   .empty-note{ padding:50px 16px; text-align:center; color:var(--muted); font-size:var(--fs-label); }
 
   /* memo tab — list-only now: composing moved to its own bottom sheet
@@ -1124,18 +1126,23 @@
      record speak up — dark number, dot under it — and the rest stay pale */
   .gcal-card{ --pad:12px; padding:14px 12px 12px; }
   .gcal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
-  .gcal-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); font-variant-numeric:tabular-nums; }
+  /* THE CALENDAR IS READ, NOT SCANNED. Every size on this screen was set
+     for density — 9px event pills, a 12px weekday strip, 14px date numbers —
+     which is fine at a desk and no use at all to someone holding a phone
+     over a cot at 3am ("노안와서 읽기 너무 힘들단다"). Each steps up one
+     notch of the scale, and the cells grow to pay for it. */
+  .gcal-title{ font-size:var(--fs-title); font-weight:var(--fw-strong); font-variant-numeric:tabular-nums; }
   /* minmax(0,1fr), NOT 1fr: a plain 1fr is minmax(auto,1fr), so a column is
      never allowed to be narrower than the longest unbreakable thing inside
      it — one long schedule title ("Ngày nghỉ của chồng") then widened its
      own column and squeezed the other six out of true. Zero as the floor
      lets the pill be clipped instead of the grid being bent. */
   .gcal-dow{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); text-align:center;
-    font-size:var(--fs-micro); color:var(--muted-2); padding-bottom:4px; }
+    font-size:var(--fs-caption); color:var(--muted-2); padding-bottom:6px; }
   .gcal-grid{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); row-gap:6px; }
   .gcal-day{
     position:relative; border:0; background:transparent; border-radius:10px; min-width:0;
-    padding:7px 0 12px; font-size:var(--fs-caption); font-variant-numeric:tabular-nums;
+    padding:7px 0 12px; font-size:var(--fs-body); font-variant-numeric:tabular-nums;
     color:var(--muted-2); font-weight:var(--fw-body);
   }
   .gcal-day.has-data{ color:var(--fg); font-weight:var(--fw-strong); }
@@ -1143,8 +1150,8 @@
      ruler, star, page — big enough to read without squinting. The cells are
      tall (the calendar IS this screen now; the day itself opens on tap), so
      the icons get a real row of their own and wrap to a second one. */
-  .gcal-day{ padding:8px 0 6px; min-height:58px; display:flex;
-    flex-direction:column; align-items:center; gap:4px; }
+  .gcal-day{ padding:8px 0 7px; min-height:66px; display:flex;
+    flex-direction:column; align-items:center; gap:5px; }
   /* AT TEN PIXELS A DRAWING IS A SMUDGE. On the month grid the four marks
      are dots in the same four colours the drawn glyphs wear everywhere
      else — the grid already speaks in dots for schedules, and the legend
@@ -1153,7 +1160,7 @@
     display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:3px;
     line-height:1; max-width:50px; min-height:6px;
   }
-  .gcal-marks .gm{ width:5px; height:5px; border-radius:50%; display:block; flex:0 0 auto; }
+  .gcal-marks .gm{ width:6px; height:6px; border-radius:50%; display:block; flex:0 0 auto; }
   /* the same glyph at three sizes: a day row, a week line, a legend key */
   .g-ico{ width:19px; height:19px; flex:0 0 auto; display:block; }
   .gweek-evt .g-ico, .gweek-sub .g-ico{ width:14px; height:14px; }
@@ -1171,7 +1178,7 @@
      rest become "+n". */
   .gcal-evt{
     display:block; width:100%; box-sizing:border-box; padding:1px 3px;
-    border-radius:5px; font-size:9px; line-height:1.4; height:14.6px;
+    border-radius:5px; font-size:11px; line-height:1.45; height:17px;
     font-weight:var(--fw-body);
     background:var(--ev-sky-bg); color:var(--ev-sky-fg);
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center;
@@ -1189,10 +1196,13 @@
     overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
   }
   .gcal-evt.ghost{ visibility:hidden; }
-  .gcal-evt.more{ background:transparent; color:var(--muted-2); height:auto; }
+  /* "+1" IS A LANE LIKE ANY OTHER. Letting it size itself made it a pixel
+     shorter than the pills above it, which lifted that one cell's whole
+     stack — and a bar crossing into it stopped lining up with itself. */
+  .gcal-evt.more{ background:transparent; color:var(--muted-2); }
   /* the pills sit in aligned lanes at the bottom of every cell, so a bar
      stays level as it crosses days whose numbers carry different marks */
-  .gcal-lanes{ margin-top:auto; width:100%; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .gcal-lanes{ margin-top:auto; width:100%; min-width:0; display:flex; flex-direction:column; gap:3px; }
   .evc-sky{ background:var(--ev-sky-bg); color:var(--ev-sky-fg); }
   .evc-mint{ background:var(--ev-mint-bg); color:var(--ev-mint-fg); }
   .evc-peach{ background:var(--ev-peach-bg); color:var(--ev-peach-fg); }
@@ -1205,7 +1215,7 @@
   .evd-peach{ background:var(--ev-peach-fg); } .evd-lilac{ background:var(--ev-lilac-fg); }
   .evd-lemon{ background:var(--ev-lemon-fg); } .evd-rose{ background:var(--ev-rose-fg); }
   /* "2/3" on a multi-day schedule in the week list */
-  .nth{ font-size:var(--fs-micro); color:var(--muted-2); font-variant-numeric:tabular-nums; flex:0 0 auto; }
+  .nth{ font-size:var(--fs-caption); color:var(--muted-2); font-variant-numeric:tabular-nums; flex:0 0 auto; }
   /* the schedule form's second row: hour, end date, colors */
   .sched-opts{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding:4px 0 2px; }
   .sched-opts input{ border:1px solid var(--border); background:var(--surface); color:var(--fg);
@@ -1242,16 +1252,16 @@
   .gweek-date{ flex:0 0 40px; text-align:center; }
   .gweek-date b{ display:block; font-size:var(--fs-title); font-weight:var(--fw-display);
     font-variant-numeric:tabular-nums; color:var(--fg); line-height:1.2; }
-  .gweek-date span{ font-size:var(--fs-micro); color:var(--muted-2); }
+  .gweek-date span{ font-size:var(--fs-caption); color:var(--muted-2); }
   .gweek-day.today .gweek-date b{ color:var(--primary-weak-fg); }
   .gweek-day.dim .gweek-date b{ color:var(--muted-2); font-weight:var(--fw-body); }
   .gweek-body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; padding-top:2px; }
-  .gweek-evt{ display:flex; gap:7px; align-items:baseline; font-size:var(--fs-caption);
+  .gweek-evt{ display:flex; gap:7px; align-items:baseline; font-size:var(--fs-label);
     color:var(--fg); min-width:0; }
-  .gweek-evt .tm{ flex:0 0 auto; font-size:var(--fs-micro); color:var(--muted-2);
+  .gweek-evt .tm{ flex:0 0 auto; font-size:var(--fs-caption); color:var(--muted-2);
     font-variant-numeric:tabular-nums; }
   .gweek-evt .tx{ min-width:0; overflow:hidden; text-overflow:ellipsis; }
-  .gweek-sub{ font-size:var(--fs-micro); color:var(--muted); }
+  .gweek-sub{ font-size:var(--fs-caption); color:var(--muted); }
   .gweek-empty{ font-size:var(--fs-micro); color:var(--muted-2); padding-top:4px; }
   /* two number boxes, two unit labels and a button on one 320px row: the
      boxes give, everything else keeps its size */
@@ -1397,7 +1407,7 @@
   }
   .row-item .author-vi::placeholder{ color:var(--muted-2); }
   .row-item .r-chev{ color:var(--muted-2); font-size:var(--fs-title); flex:0 0 auto; }
-  .hint-line{ font-size:var(--fs-caption); color:var(--muted); margin:8px 2px 0; line-height:1.55; }
+  .hint-line{ font-size:var(--fs-label); color:var(--muted); margin:10px 2px 0; line-height:1.55; }
   /* the floating + sits over this corner: the legend keeps clear of it
      rather than running underneath (Vietnamese wraps to two lines) */
   [data-gv-panel="cal"] .hint-line{ padding-right:72px; }
@@ -3625,6 +3635,18 @@ function applyTheme(){
     b.setAttribute('aria-pressed', String(b.dataset.themeOpt === state.theme));
   });
 }
+/* EVERY COMPUTED INK IS A FACT ABOUT A SHEET. The type colours on the rows
+   are worked out against the card they sit on and then written onto the
+   elements, so the moment the sheet changes colour every one of them is a
+   lie — a light-mode ink stays on a dark card and vice versa. Changing the
+   theme therefore throws the caches away and repaints, and 자동 mode listens
+   for the phone going dark at sunset and does the same. */
+function repaintForTheme(){
+  _surfaceRgb = null;
+  TEXT_COLOR_CACHE = {};
+  INK_COLOR_CACHE = {};
+  renderAll();
+}
 
 /* ================================================================
    RENDER: HEADER (name / D-day) — reads shared inputs, local paint
@@ -4512,6 +4534,61 @@ function typeTextColor(colorCss){
   return hex;
 }
 
+/* ---- THE TRANSLATION SPEAKS IN THE ITEM'S OWN VOICE -------------------
+   A row already carries a colour — the icon, the title on a dark sheet —
+   and the translated note used to add the app blue on top of it, so every
+   row with a note wore two colours that meant two different things
+   ("컬러 너무 많으니까 정신사나워서"). Giving the second line the item's own
+   hue puts the row back to one colour: 수면 is violet all the way down,
+   분유 amber. Only in the record tab — a memo has no type, so its
+   translation keeps the blue.
+
+   It cannot simply BE the item's colour, though. #ff9f0a on a white card is
+   2.1:1 — a caption nobody can read. typeTextColor mixes toward black or
+   white, which is right for a name but turns amber to mud on the way. This
+   one holds the hue and the saturation and moves only the LIGHTNESS, down
+   on a light sheet and up on a dark one, until the line clears 4.2:1. Amber
+   lands on a deep amber, violet stays violet. */
+var INK_COLOR_CACHE = {};
+function _rgbToHsl(c){
+  var r=c[0]/255, g=c[1]/255, b=c[2]/255;
+  var mx=Math.max(r,g,b), mn=Math.min(r,g,b), d=mx-mn, h=0, l=(mx+mn)/2;
+  var s = d === 0 ? 0 : d / (1 - Math.abs(2*l - 1));
+  if (d !== 0){
+    h = mx === r ? ((g-b)/d + (g < b ? 6 : 0)) : mx === g ? ((b-r)/d + 2) : ((r-g)/d + 4);
+    h /= 6;
+  }
+  return [h, s, l];
+}
+function _hslToRgb(x){
+  var h=x[0], s=x[1], l=x[2];
+  var c = (1 - Math.abs(2*l - 1)) * s, hp = h*6, m = l - c/2;
+  var xx = c * (1 - Math.abs(hp % 2 - 1));
+  var r=0,g=0,b=0;
+  if (hp < 1){ r=c; g=xx; } else if (hp < 2){ r=xx; g=c; }
+  else if (hp < 3){ g=c; b=xx; } else if (hp < 4){ g=xx; b=c; }
+  else if (hp < 5){ r=xx; b=c; } else { r=c; b=xx; }
+  return [(r+m)*255, (g+m)*255, (b+m)*255];
+}
+function typeInkColor(colorCss){
+  var bg = _surfaceRgb || (_surfaceRgb = resolveColor('var(--surface)'));
+  var key = colorCss + '|' + bg.join(',');
+  if (INK_COLOR_CACHE[key]) return INK_COLOR_CACHE[key];
+  var base = resolveColor(colorCss);
+  var hsl = _rgbToHsl(base);
+  var step = _lum(bg) > 0.35 ? -0.01 : 0.01;   /* light sheet: go darker */
+  var out = base, l = hsl[2];
+  for (var i = 0; i < 120; i++){
+    out = _hslToRgb([hsl[0], hsl[1], l]);
+    if (_contrast(out, bg) >= 4.2) break;
+    l += step;
+    if (l < 0 || l > 1) break;
+  }
+  var hex = _toHex(out);
+  INK_COLOR_CACHE[key] = hex;
+  return hex;
+}
+
 /* an inline color only where there is one to apply — light mode leaves the
    attribute off entirely so the stylesheet's own --fg wins */
 function colorAttr(colorCss){
@@ -4567,7 +4644,8 @@ function entryRowHtml(e, isCont){
   var noteHtml = '';
   if (e.note){
     noteHtml = '<div class="e-note">'+esc(e.note)+'</div>' +
-      (e.noteTranslated ? '<div class="e-note-trans">'+esc(e.noteTranslated)+'</div>' : '');
+      (e.noteTranslated ? '<div class="e-note-trans" style="color:'+typeInkColor(meta.color)+'">' +
+        esc(e.noteTranslated)+'</div>' : '');
   }
   var locked = !canTouch(e.author);
   return '<div class="entry-swipe'+(locked?' is-locked':'')+'" data-id="'+esc(e.id)+'"'+(locked?' data-locked="1"':'')+'>' +
@@ -5867,6 +5945,15 @@ function renderGrowthCalendar(){
       }
     }
   });
+  /* IF ANY DAY IN A WEEK ROW OVERFLOWS, EVERY CELL IN THAT ROW RESERVES THE
+     "+N" LINE. The lane stack is bottom-aligned, so one cell being a line
+     taller than its neighbours lifts that cell's whole stack — and a bar
+     crossing into it stopped meeting itself. A ghost costs a blank line;
+     a bar that does not line up costs the reader the bar. */
+  var rowExtra = {};
+  Object.keys(dayExtra).forEach(function(ds2){
+    rowExtra[Math.floor((firstDow + Number(ds2.slice(8)) - 1) / 7)] = true;
+  });
   var cells = [];
   for (var b2 = 0; b2 < firstDow; b2++) cells.push('<span class="gcal-day"></span>');
   for (var d = 1; d <= daysInMonth; d++){
@@ -5899,7 +5986,9 @@ function renderGrowthCalendar(){
           (seg.text ? '<span class="ge-t">' + esc(schedShownText(seg.ev)) + '</span>' : ' ') +
         '</span>');
       }
-      if (dayExtra[ds]) lane_html.push('<span class="gcal-evt more">+' + dayExtra[ds] + '</span>');
+      if (rowExtra[row3]) lane_html.push(dayExtra[ds]
+        ? '<span class="gcal-evt more">+' + dayExtra[ds] + '</span>'
+        : '<span class="gcal-evt ghost"> </span>');
       pills = '<span class="gcal-lanes">' + lane_html.join('') + '</span>';
     }
     cells.push('<button type="button" class="' + cls + '" data-gday="' + ds + '">' + d + marks + pills + '</button>');
@@ -8437,6 +8526,7 @@ function wireEvents(){
       state.theme = b.dataset.themeOpt;
       localStorage.setItem(LS_THEME, state.theme);
       applyTheme();
+      repaintForTheme();
     });
   });
 
@@ -8887,6 +8977,12 @@ function init(){
     toast(err.message || 'failed to load');
     renderAll();
   });
+  try{
+    var darkQ = window.matchMedia('(prefers-color-scheme: dark)');
+    var onScheme = function(){ if (state.theme === 'system') repaintForTheme(); };
+    if (darkQ.addEventListener) darkQ.addEventListener('change', onScheme);
+    else if (darkQ.addListener) darkQ.addListener(onScheme);
+  }catch(e){}
   setInterval(function(){ renderActiveBar(); renderSinceLast(); renderNextFeed(); positionPatternNow(); }, 1000);
   setInterval(pollState, 4000);
 }
