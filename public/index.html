@@ -251,6 +251,20 @@
     background:color-mix(in srgb, var(--active-color, var(--c-feed)) 22%, var(--surface-2));
     color:var(--fg); padding:13px 16px; display:flex; align-items:center; gap:10px;
   }
+  #aw-adjust-panel{ width:calc(100% + 32px); margin:0 -16px; }
+  /* inside the log sheet the side padding is 18, not the panel's 16 — and
+     the bar rides directly under the date band, stuck to the top with it.
+     --dayband-h is measured at runtime (the band's height moves with the
+     type size and the language), so the two never overlap. */
+  /* the SLOT is what sticks, not the bar inside it: a sticky element can
+     only travel within its own parent's box, and the bar's parent is the
+     slot — exactly the bar's height, so it had nowhere to go and scrolled
+     away. The slot's parent is the day-group, which is as tall as the day. */
+  .timeline-section #active-bar-slot{
+    position:sticky; top:calc(var(--header-h, 64px) + var(--dayband-h, 56px)); z-index:9;
+  }
+  .timeline-section .active-bar,
+  .timeline-section #aw-adjust-panel{ width:calc(100% + 36px); margin:0 -18px; }
   .active-bar.paused{ opacity:.72; }
   .active-bar .aw-emoji{ width:19px; height:19px; flex:0 0 auto; color:var(--active-color); display:block; }
   .active-bar .aw-meta{ flex:1 1 auto; min-width:0; }
@@ -1657,18 +1671,13 @@
         </div>
       </div>
 
-      <!-- the running stopwatch. It used to live inside today's group down in
-           the log, which meant it vanished entirely while an older date was
-           being viewed — and it was a rounded card floating in a list of flat
-           rows. Same full-width band as the memo and the next-feed line. -->
-      <div id="active-bar-slot"></div>
     </div>
 
     <!-- dashboard: last feed / diaper / sleep, plain text, no card -->
     <div class="dashboard" id="since-row"></div>
 
+    <!-- no heading over these: a row of labelled icons says what it is -->
     <div>
-      <div class="section-title" data-i18n="quickAdd">빠른 기록</div>
       <div class="qa-grid" id="qa-grid"></div>
     </div>
 
@@ -1685,6 +1694,14 @@
           <button type="button" class="log-arrow" id="log-next" title="다음 날">›</button>
         </div>
       </div>
+      <!-- The running stopwatch lives HERE, not up in the announce strip.
+           Appearing at the top of the page pushed the whole screen down at
+           the exact moment a finger was still holding the quick-record
+           button that started it, and the button slid out from under it.
+           Down here nothing above it moves; renderTimeline() slides this
+           slot under the first date band, where it sticks to the top with
+           the band while the day scrolls past. -->
+      <div id="active-bar-slot"></div>
       <div id="timeline" style="display:flex;flex-direction:column;gap:14px;"></div>
       <button type="button" class="btn ghost" id="log-more" hidden data-i18n="loadMore">이전 기록 더 보기</button>
     </div>
@@ -3423,8 +3440,8 @@ function renderActiveBar(){
   var slot = document.getElementById('active-bar-slot');
   var a = getActive();
   var type = a ? a.type : '';
-  /* the slot only exists in the DOM (inside today's day-group) while something
-     is running — renderTimeline() is what creates/removes it. */
+  /* the slot is a permanent element in the log sheet; it is EMPTY while
+     nothing is running, and renderTimeline() slides it under the date band */
   if (!slot) return;
   if (!type){ if (slot.innerHTML) slot.innerHTML=''; syncAnnounceStack(); return; }
   var meta = typeMeta(type);
@@ -3448,7 +3465,7 @@ function renderActiveBar(){
           '<button type="button" class="aw-round confirm" id="aw-finish" title="'+esc(t('save'))+'">'+awIcon('check')+'</button>' +
         '</div>' +
       '</div>' +
-      '<div id="aw-adjust-panel" hidden style="width:calc(100% + 32px);margin:0 -16px;padding:12px 16px;background:var(--surface-2);"></div>';
+      '<div id="aw-adjust-panel" hidden style="padding:12px 16px;background:var(--surface-2);"></div>';
     bar = slot.querySelector('.active-bar');
     document.getElementById('aw-pause').addEventListener('click', togglePauseActive);
     document.getElementById('aw-adjust').addEventListener('click', toggleAdjustPanel);
@@ -4087,8 +4104,43 @@ function wireLogNav(){
   renderLogNav();
 }
 
+/* The stopwatch slot is a long-lived element (its buttons carry listeners and
+   its clock is mid-tick), so it is lifted out of #timeline before the list is
+   rebuilt and slid back under the first date band afterwards — rebuilding the
+   list around it would destroy it. */
+function parkActiveSlot(){
+  var slot = document.getElementById('active-bar-slot');
+  var container = document.getElementById('timeline');
+  var section = document.querySelector('.timeline-section');
+  if (slot && section && container && container.contains(slot)) section.insertBefore(slot, container);
+  return slot;
+}
+function tuckActiveSlotUnderBand(){
+  var slot = document.getElementById('active-bar-slot');
+  var container = document.getElementById('timeline');
+  if (!slot || !container) return;
+  var band = container.querySelector('.day-head');
+  if (band) band.insertAdjacentElement('afterend', slot);
+  measureDayBand();
+}
+/* the band's height decides where the bar sticks; it moves with the type
+   size, the language and the safe-area inset, so it is measured, not assumed */
+function measureDayBand(){
+  var band = document.querySelector('#timeline .day-head');
+  var bar = document.querySelector('#active-bar-slot .active-bar');
+  var r = document.documentElement;
+  if (band){
+    var h = Math.round(band.getBoundingClientRect().height);
+    if (h > 0) r.style.setProperty('--dayband-h', h + 'px');
+  }
+  if (bar){
+    var bh = Math.round(bar.getBoundingClientRect().height);
+    if (bh > 0) r.style.setProperty('--aw-h', bh + 'px');
+  }
+}
 function renderTimeline(){
   var container = document.getElementById('timeline');
+  parkActiveSlot();
   _surfaceRgb = null;   /* the theme may have changed since the last render */
   var entries = readEntries().slice().sort(function(a,b){ return new Date(b.start) - new Date(a.start); });
   var nowIso = new Date().toISOString();
@@ -4146,6 +4198,7 @@ function renderTimeline(){
   });
   container.innerHTML = html;
   $$('.entry-swipe', container).forEach(function(wrap){ wireEntrySwipe(wrap); });
+  tuckActiveSlotUnderBand();
 }
 /* ================================================================
    TYPE COLOR AS TEXT — dark mode only
@@ -7049,21 +7102,18 @@ function updateMemoPreview(){
    everything inside it is hidden the stack itself has to go — otherwise its
    negative margin eats the top of the screen below it.
 
-   THREE things live in here, not two. The running stopwatch is the third,
-   and it is an empty <div> rather than a hidden one when nothing is running
-   — so "does any child lack the hidden attribute" answers yes forever, and
-   would also have hidden a running stopwatch along with the stack the moment
-   that question was answered correctly. Each of the three is asked about in
-   the way that is true of it. */
+   Two rows live in here — the memo preview and the next-feed estimate — and
+   each is asked about in the way that is true of it. (The stopwatch used to
+   be a third; it now rides under the date band in the log sheet instead.) */
 function syncAnnounceStack(){
   var stack = document.querySelector('.announce-stack');
   if (!stack) return;
   var memoRow = document.getElementById('memo-open-btn');
   var feedRow = document.getElementById('next-feed-row');
-  var slot = document.getElementById('active-bar-slot');
-  var anyVisible = (memoRow && !memoRow.hidden) ||
-                   (feedRow && !feedRow.hidden) ||
-                   !!(slot && slot.firstElementChild);
+  /* TWO things live in here now. The stopwatch moved down into the log
+     sheet — appearing up here shoved the quick-record buttons out from
+     under the finger that was still holding one. */
+  var anyVisible = (memoRow && !memoRow.hidden) || (feedRow && !feedRow.hidden);
   stack.hidden = !anyVisible;
 }
 function renderMemoList(){
@@ -7834,9 +7884,14 @@ function measureHeaderHeight(){
   if (h > 0) document.documentElement.style.setProperty('--header-h', h + 'px');
 }
 window.addEventListener('resize', measureHeaderHeight);
+window.addEventListener('resize', measureDayBand);
 if (typeof ResizeObserver === 'function'){
   var __hdr = document.querySelector('header.top');
   if (__hdr) new ResizeObserver(measureHeaderHeight).observe(__hdr);
+  /* the slot's own height changes when the stopwatch appears, is paused, or
+     opens its adjust panel — the band offsets below it follow */
+  var __slot = document.getElementById('active-bar-slot');
+  if (__slot) new ResizeObserver(measureDayBand).observe(__slot);
 }
 
 function renderAll(){
@@ -7847,9 +7902,10 @@ function renderAll(){
   renderSinceLast();
   renderNextFeed();
   renderQuickActions();
-  renderTimeline();   /* builds #active-bar-slot inside today's group */
+  renderTimeline();   /* slides #active-bar-slot under the first date band */
   renderLogNav();     /* the date button's label follows the language */
   renderActiveBar();  /* ...then fills/updates it */
+  measureDayBand();   /* ...and the sticky offsets follow its height */
   /* only the visible tab gets rebuilt. renderAll() runs after every write and
      on every poll that sees a change, and rebuilding the stats SVG plus the
      whole settings tab each time was work nobody could see — it just made the
