@@ -962,10 +962,10 @@
   .pattern-head-text{ min-width:0; }
   .pattern-head .seg{ flex:0 0 auto; width:150px; margin-top:1px; }
   .pattern-chart-card{ padding:16px 14px 14px; display:flex; flex-direction:column; gap:12px; }
-  .pattern-chart-inner{ display:flex; gap:10px; }
+  .pattern-chart-inner{ display:flex; gap:10px; --ptrack-h:456px; }
   .pattern-axis-v{
     flex:0 0 22px; display:flex; flex-direction:column; justify-content:space-between;
-    height:456px; padding:1px 0; text-align:right;
+    height:var(--ptrack-h); padding:1px 0; text-align:right;
   }
   .pattern-axis-v span{ font-size:var(--fs-micro); color:var(--muted-2); font-variant-numeric:tabular-nums; }
   /* The week DIVIDES the card's width rather than each day being a fixed 50px
@@ -976,6 +976,7 @@
      what is there, at any screen size, with nothing to scroll and nothing
      left over. */
   .pattern-cols{
+    position:relative;
     display:flex; flex:1 1 auto; min-width:0; overflow:visible; padding-bottom:1px;
   }
   .pattern-col{
@@ -984,7 +985,7 @@
   /* the day separator belongs to the TRACK, not the whole column — run it
      down the label row too and it draws a line through the dates */
   .pattern-col-track{
-    position:relative; width:100%; height:456px; background:var(--surface-2);
+    position:relative; width:100%; height:var(--ptrack-h); background:var(--surface-2);
     border-left:1px solid var(--bg);
   }
   .pattern-col:first-child .pattern-col-track{ border-left:0; }
@@ -1001,6 +1002,26 @@
   .pattern-mark-band.is-point{ height:4px; margin-top:-2px; left:0; right:0; }
   .pattern-grid-line-h{ z-index:0; }
   .pattern-mark-band{ z-index:1; }
+  /* ---- WHERE WE ARE IN THE DAY. The chart's question is "what does a day
+     look like", and a day you are standing in the middle of reads better
+     with the standing point drawn on it: above the line is what has
+     happened, below it is the rest of today. It crosses every column
+     because the comparison being made is against this same hour on the
+     other days — weighted over today, with a dot on it. It sits over the
+     bands and under nothing, so it never hides a mark. ---- */
+  .pattern-now-wrap{
+    position:absolute; left:0; right:0; top:0; height:var(--ptrack-h);
+    pointer-events:none; z-index:4;
+  }
+  .pattern-now{ position:absolute; left:0; right:0; height:1px; background:var(--primary); opacity:.28; }
+  .pattern-now-today{
+    position:absolute; right:0; height:2px; margin-top:-.5px;
+    background:var(--primary); border-radius:1px;
+  }
+  .pattern-now-today::before{
+    content:''; position:absolute; left:0; top:50%; width:6px; height:6px;
+    margin:-3px 0 0 -3px; border-radius:50%; background:var(--primary);
+  }
   .pattern-col-label{
     font-size:var(--fs-micro); font-weight:var(--fw-medium); color:var(--muted); text-align:center; line-height:1.3;
     white-space:nowrap;
@@ -1054,16 +1075,35 @@
      read the rhythm without touching the events at all. */
   /* header tabs — her spec: bare labels on a hairline, the chosen one in
      the app color with a thick underline riding the line. No boxes. */
-  .htabs{ display:flex; gap:26px; border-bottom:2px solid var(--border); padding:0 2px; }
+  /* THESE ARE THE TOP OF THE PAGE'S HIERARCHY — they switch the whole
+     view, so they are set a step ABOVE the 15px section titles beneath
+     them, not level with them. The gap comes in a little to pay for the
+     bigger words, which matters in Vietnamese ("Sinh hoạt · Bú · Đi phân ·
+     Giấc ngủ" is half again as wide as the Korean). */
+  .htabs{ display:flex; gap:22px; border-bottom:3px solid var(--border); padding:0 2px; }
+  /* THE TAB IS A SECTION HEADING, so it is sized like one and sits square
+     on its line: 12 above, 12 below, the 2px underline riding the rule
+     rather than eating into the space under the word. It read lopsided
+     because the top and bottom padding were never the same number. */
   .htabs button{
-    border:0; background:transparent; padding:11px 1px 9px; margin-bottom:-2px;
-    font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted);
-    border-bottom:2.5px solid transparent;
+    border:0; background:transparent; padding:12px 1px; margin-bottom:-3px;
+    font-size:var(--fs-title); font-weight:var(--fw-strong); color:var(--muted); white-space:nowrap;
+    /* the underline is 3px sitting ON the 2px rule — pulled down by its own
+       height so its bottom edge and the rule's are the same line, which is
+       what keeps the 12px above the word equal to the 12px below it */
+    border-bottom:3px solid transparent;
   }
   /* the label uses the darker text-grade blue (the same one link text and
      the weak-button foreground use) — raw --primary is a BUTTON-FILL blue
      and misses 4.5:1 as 15px text on the grey page */
   .htabs button[aria-pressed="true"]{ color:var(--primary-weak-fg, var(--primary)); border-bottom-color:var(--primary); }
+  /* on a 320px phone the Vietnamese four ("Sinh hoạt · Bú · Đi phân · Giấc
+     ngủ") no longer fit at 18px — they step down one, keeping the hierarchy
+     over the section titles, which step down with them */
+  @media (max-width: 360px){
+    .htabs{ gap:15px; }
+    .htabs button{ font-size:var(--fs-body); }
+  }
   .ins-panel{ display:flex; flex-direction:column; gap:18px; }
   /* sub-screen chips: soft pills, the chosen one filled with the app's weak
      tint — not another boxed radio group. Idle chips keep a hairline so
@@ -1105,10 +1145,22 @@
      the icons get a real row of their own and wrap to a second one. */
   .gcal-day{ padding:8px 0 6px; min-height:58px; display:flex;
     flex-direction:column; align-items:center; gap:4px; }
+  /* AT TEN PIXELS A DRAWING IS A SMUDGE. On the month grid the four marks
+     are dots in the same four colours the drawn glyphs wear everywhere
+     else — the grid already speaks in dots for schedules, and the legend
+     under it pairs each dot with its word. */
   .gcal-marks{
-    display:flex; flex-wrap:wrap; justify-content:center; gap:1px;
-    font-size:10.5px; line-height:1.2; max-width:50px;
+    display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:3px;
+    line-height:1; max-width:50px; min-height:6px;
   }
+  .gcal-marks .gm{ width:5px; height:5px; border-radius:50%; display:block; flex:0 0 auto; }
+  /* the same glyph at three sizes: a day row, a week line, a legend key */
+  .g-ico{ width:19px; height:19px; flex:0 0 auto; display:block; }
+  .gweek-evt .g-ico, .gweek-sub .g-ico{ width:14px; height:14px; }
+  .gweek-sub{ display:inline-flex; align-items:center; gap:4px; flex-wrap:wrap; }
+  .gcal-legend{ display:flex; flex-wrap:wrap; justify-content:center; gap:4px 13px; }
+  .gcal-legend span{ display:inline-flex; align-items:center; gap:5px; }
+  .gcal-legend i{ width:5px; height:5px; border-radius:50%; display:block; }
   .gcal-day.today{ box-shadow:inset 0 0 0 1.5px var(--primary); }
   .gcal-day.selected{ background:color-mix(in srgb, var(--primary) 10%, var(--surface)); }
   .gcal-day:empty{ visibility:hidden; }
@@ -1636,12 +1688,40 @@
   .sheet-body{ padding:16px; display:flex; flex-direction:column; gap:20px; }
   .sheet-foot{ display:flex; gap:10px; padding:4px 16px 18px; }
   .sheet-foot .btn{ flex:1; }
-  .swatches{ display:flex; gap:10px; flex-wrap:wrap; }
-  .swatch{ width:34px; height:34px; border-radius:50%; border:0; }
-  .swatch[aria-pressed="true"]{ box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px var(--fg); }
-  .emoji-pick{ display:flex; gap:8px; flex-wrap:wrap; }
-  .emoji-pick button{ width:44px; height:44px; border-radius:14px; background:var(--surface-2); border:0; font-size:19px; }
-  .emoji-pick button[aria-pressed="true"]{ background:var(--primary-weak-bg); }
+  /* A SWATCH SHOWS BOTH HALVES OF WHAT IT DOES. The value picked is a
+     mid-tone, but what the app mostly paints with it is the 16%-of-surface
+     wash — the chip behind an icon, the band on the pattern chart. So the
+     swatch is that wash, with a core dot of the true colour inside it: the
+     row reads as a pastel row, and no two pastels are confusable because
+     each carries its own hue at full strength in the middle. */
+  .swatches{ display:grid; grid-template-columns:repeat(5, minmax(0,1fr)); gap:14px 10px; justify-items:center; padding:3px 0; }
+  .swatch{
+    width:36px; height:36px; border-radius:50%; border:0; padding:0;
+    display:flex; align-items:center; justify-content:center;
+    background:color-mix(in srgb, var(--sw) 26%, var(--surface));
+    box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--sw) 38%, var(--surface));
+  }
+  .swatch::after{ content:''; width:11px; height:11px; border-radius:50%; background:var(--sw); }
+  /* the ring is the swatch's OWN colour — a black ring on a row of pastels
+     was the loudest thing in the sheet */
+  .swatch[aria-pressed="true"]{
+    box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--sw) 38%, var(--surface)),
+               0 0 0 2.5px var(--surface), 0 0 0 4.5px var(--sw);
+  }
+  /* the icon row wears the chosen colour: the picked glyph sits on that
+     colour's own wash, so the two fields are one decision seen twice
+     rather than two settings to reconcile in your head */
+  .emoji-pick{ display:grid; grid-template-columns:repeat(6, minmax(0,1fr)); gap:8px; justify-items:center; }
+  .emoji-pick button{
+    width:44px; height:44px; border-radius:14px; background:var(--surface-2); border:0;
+    font-size:19px; color:var(--muted-2);
+    display:flex; align-items:center; justify-content:center; padding:0;
+  }
+  .emoji-pick button .ty-ico{ width:23px; height:23px; }
+  .emoji-pick button[aria-pressed="true"]{
+    background:color-mix(in srgb, var(--pick, var(--primary)) 16%, var(--surface-2));
+    color:var(--pick, var(--primary));
+  }
 
   .field-hint{ margin-top:8px; font-size:var(--fs-caption); color:var(--primary); font-weight:var(--fw-strong); }
 
@@ -1951,7 +2031,9 @@
         <div class="gcal-grid" id="gcal-grid"></div>
         <div id="gweek-list" hidden></div>
       </div>
-      <div class="hint-line" data-i18n="gCalHint">⚖️ 몸무게 · 📏 키 · ⭐ 발달 · 📝 일기</div>
+      <!-- built in renderGrowthCalendar: a dot and its word, so the grid's
+           marks can actually be read -->
+      <div class="hint-line gcal-legend" id="gcal-legend"></div>
       <div class="memo-fab-wrap">
         <button type="button" class="fab" id="gcal-fab" aria-label="growth add">+</button>
       </div>
@@ -2165,7 +2247,13 @@
       <button type="button" class="ico-btn" id="fp-gday-mode" style="margin-left:auto;color:var(--link)"></button>
     </div>
     <div class="fp-body" id="fp-gday-body">
-      <div>
+      <!-- READING A DAY SHOWS WHAT THE DAY HAS. Four headings with "기록
+           없음" under three of them is a form, not a record: it tells you
+           what the app can hold rather than what happened. So in read mode
+           a section with nothing in it goes away, heading and all, and a
+           day with nothing at all says so once. Edit mode keeps all four —
+           there the headings are where you add things. -->
+      <div id="gday-sec-measure">
         <div class="section-title" data-i18n="gMeasures">측정</div>
         <div id="gday-measure-view"></div>
         <!-- no 저장 of its own: the ✓ in the corner saves the whole page -->
@@ -2176,7 +2264,7 @@
           <span class="w-unit">cm</span>
         </div>
       </div>
-      <div>
+      <div id="gday-sec-mile">
         <div class="section-title" data-i18n="milestoneTitle">발달 기록</div>
         <div class="weight-form" id="gday-mile-form" style="padding-top:2px">
           <input type="text" id="gday-milestone" data-i18n-ph="milestonePh" maxlength="80" style="flex:1;min-width:0;" />
@@ -2184,7 +2272,7 @@
         </div>
         <div id="gday-list"></div>
       </div>
-      <div>
+      <div id="gday-sec-sched">
         <div class="section-title" data-i18n="schedTitle">일정</div>
         <!-- start AND end date are always filled in (they prefill to the open
              day) — the + button opens this form, and the dates here are where
@@ -2206,7 +2294,7 @@
         </div>
         <div id="gday-sched-list"></div>
       </div>
-      <div>
+      <div id="gday-sec-diary">
         <div class="section-title" data-i18n="gDiaryTitle">육아일기</div>
         <div class="gdiary-compose" id="gday-diary-form" style="border-top:0;padding-top:0;margin-top:0">
           <textarea id="gday-diary" rows="3" data-i18n-ph="diaryPh" maxlength="4000"></textarea>
@@ -2219,6 +2307,7 @@
         </div>
         <div id="gday-diary-list"></div>
       </div>
+      <div class="empty-note" id="gday-empty" hidden data-i18n="emptyDay">이 날은 기록이 없어요</div>
     </div>
   </div>
 
@@ -2427,6 +2516,8 @@ ko: {
   memoNoMemos:"아직 등록된 메모가 없어요.", tabMemo:"메모", typeOrder:"항목 순서",
   quickAdd:"빠른 기록", timeline:"기록", loadMore:"이전 기록 더 보기", emptyDay:"이 날은 기록이 없어요", todayBtn:"오늘", babyInfo:"아기 정보", babyNameKo:"이름 (한국어)", babyNameVi:"이름 (베트남어)", babyBirth:"태어난 날",
   whoAmI:"나는 누구", customTypes:"커스텀 항목 관리",
+  icoNames:{ heart:"하트", pencil:"연필", food:"이유식", water:"물", star:"별", music:"노래",
+             sun:"햇빛", book:"책", camera:"사진", tooth:"치아", cross:"병원", smile:"기분" },
   appearance:"화면", theme:"테마", themeAuto:"자동", themeLight:"라이트", themeDark:"다크",
   shareHint:'가족 모두와 함께 쓰려면 이 링크를 공유해 주세요. 기록은 이 페이지를 여는 모든 사람과 실시간으로 공유됩니다.',
   tabRecord:"기록", tabStats:"통계", tabSettings:"설정",
@@ -2443,7 +2534,6 @@ ko: {
   patternTitle:"시간대 패턴", patternCaption:"세로축은 하루 24시간 · 항목을 눌러 켜고 끄세요", patternEmpty:"이 기간엔 기록이 없어요",
   insAll:"일과", tabGrowth:"성장", gCal:"캘린더", gGraph:"그래프",
   heightTitle:"키", milestoneTitle:"발달 기록", milestonePh:"뒤집기, 첫 웃음…",
-  gCalHint:"⚖️ 몸무게 · 📏 키 · ⭐ 발달 · 📝 일기",
   feedSubTerm:"수유텀", feedSubStats:"수유량", pvSleepTerm:"잠텀", sleepSubStats:"수면 통계", gMeasures:"측정", gDiaryTitle:"육아일기",
   gEdit:"수정", gDone:"완료", gNoMeasure:"기록 없음", memoEditTitle:"메모 수정",
   diaryPh:"오늘의 육아일기…", diarySave:"일기 저장", diaryEmpty:"이 날의 일기가 아직 없어요",
@@ -2525,6 +2615,8 @@ vi: {
   memoNoMemos:"Chưa có ghi chú nào được đăng.", tabMemo:"Ghi chú", typeOrder:"Thứ tự mục",
   quickAdd:"Ghi nhanh", timeline:"Nhật ký", loadMore:"Xem ngày trước đó", emptyDay:"Ngày này chưa có ghi chép", todayBtn:"Hôm nay", babyInfo:"Thông tin bé", babyNameKo:"Tên (Tiếng Hàn)", babyNameVi:"Tên (Tiếng Việt)", babyBirth:"Ngày sinh",
   whoAmI:"Bạn là ai", customTypes:"Quản lý mục tùy chỉnh",
+  icoNames:{ heart:"Trái tim", pencil:"Bút chì", food:"Ăn dặm", water:"Nước", star:"Ngôi sao", music:"Bài hát",
+             sun:"Nắng", book:"Sách", camera:"Ảnh", tooth:"Răng", cross:"Bệnh viện", smile:"Tâm trạng" },
   appearance:"Giao diện", theme:"Chủ đề", themeAuto:"Tự động", themeLight:"Sáng", themeDark:"Tối",
   shareHint:'Để cả nhà cùng dùng, hãy chia sẻ đường link này. Nhật ký sẽ được đồng bộ theo thời gian thực với mọi người mở trang này.',
   tabRecord:"Nhật ký", tabStats:"Thống kê", tabSettings:"Cài đặt",
@@ -2546,7 +2638,6 @@ vi: {
   patternTitle:"Mẫu hình theo giờ", patternCaption:"Trục dọc là 24 giờ · chạm để bật/tắt từng mục", patternEmpty:"Chưa có nhật ký trong khoảng này",
   insAll:"Sinh hoạt", tabGrowth:"Phát triển", gCal:"Lịch", gGraph:"Biểu đồ",
   heightTitle:"Chiều cao", milestoneTitle:"Cột mốc phát triển", milestonePh:"Lật người, nụ cười đầu…",
-  gCalHint:"⚖️ Cân nặng · 📏 Chiều cao · ⭐ Cột mốc · 📝 Nhật ký",
   feedSubTerm:"Cữ bú", feedSubStats:"Lượng sữa", pvSleepTerm:"Bé thức", sleepSubStats:"Thống kê ngủ", gMeasures:"Đo lường", gDiaryTitle:"Nhật ký bé",
   gEdit:"Sửa", gDone:"Xong", gNoMeasure:"Chưa có ghi chép", memoEditTitle:"Sửa ghi chú",
   diaryPh:"Nhật ký hôm nay…", diarySave:"Lưu nhật ký", diaryEmpty:"Chưa có nhật ký cho ngày này",
@@ -2646,8 +2737,89 @@ var BUILT_IN = [
   {id:'temp',      emoji:'🌡️', color:'var(--c-temp)',      hasTemp:true},
   {id:'med',       emoji:'💊', color:'var(--c-med)',       noteKey:'medNote'}
 ];
-var SWATCHES = ['#ff9f0a','#30d158','#0a84ff','#bf5af2','#ff375f','#64d2ff','#ffd60a','#8e8e93'];
-var EMOJI_CHOICES = ['⭐','🎵','🚗','🦷','🧴','👀','✏️','❤️'];
+/* THE SWATCHES BELONGED TO A DIFFERENT APP. They were the iOS system
+   colours — neon green, electric blue, hot pink — sitting next to thirteen
+   built-in types drawn in a softer, warmer family (#ff9f0a, #8b5cf6,
+   #3182f6, #f472b6, #1ec8d8). A custom item picked from the old set never
+   looked like it belonged. These ten are the same voice as the schedule
+   pastels' darker halves: muted mid-tones, one clearly separate hue each,
+   every one of which washes down to a pastel through the 16%-of-surface
+   tint the chips and the pattern chart already use. The value stored is
+   the mid-tone, not the pastel — the pastel is what the app derives from
+   it, and a pastel stroke on a white card would be invisible. */
+/* ten hues, each far enough from its neighbours to be named out loud —
+   coral, apricot, gold, olive, mint, teal, sky, lilac, orchid, rose. Brown
+   and grey are deliberately absent: 기저귀 already owns the brown, and grey
+   is what an item with no colour at all falls back to. */
+var SWATCHES = ['#e0685c','#e8873c','#c39320','#8a9a4e','#2f9d68','#2f9fae','#3f7fc4','#8f6ad4','#b465b8','#d2547f'];
+/* ICONS, NOT EMOJI. A custom item used to be an emoji among thirteen drawn
+   glyphs — a different weight, a different palette, and on the nanny's
+   Android a different picture altogether. These are drawn in the same hand
+   as the built-ins: 24-grid, 1.7 stroke, the mass washed in at a fifth. */
+var CUSTOM_ICONS = {
+  heart: '<path data-solid d="M12 20.6S3.6 15.6 3.6 9.8A4.6 4.6 0 0 1 12 7.2 4.6 4.6 0 0 1 20.4 9.8c0 5.8-8.4 10.8-8.4 10.8z"/>',
+  /* a pencil: body, the collar at the ferrule end, the cut at the point */
+  pencil: '<path data-solid d="M3.8 20.2l1.1-4.3L15.6 5.2l3.2 3.2L8.1 19.1z"/>' +
+          '<path d="M14.3 6.5l3.2 3.2"/><path d="M4.9 15.9l3.2 3.2"/>',
+  /* a bowl with the spoon beside it. Kept narrow and deep so it cannot be
+     read as the bath two tiles away, which is wide and has a tap. */
+  food: '<path data-solid d="M3.4 11.8h10.6v.3a5.3 5.3 0 0 1-10.6 0z"/>' +
+        '<path d="M2.7 11.8h12"/>' +
+        '<path data-solid d="M18.6 3.6c1.5 0 2.5 1.6 2.5 3.7s-1 3.7-2.5 3.7-2.5-1.6-2.5-3.7 1-3.7 2.5-3.7z"/>' +
+        '<path d="M18.6 11v9.4"/>',
+  /* a cup with a waterline — a drop was taken by 유산균 */
+  water: '<path data-solid d="M5.8 4h12.4l-1.6 15.2a2 2 0 0 1-2 1.8H9.4a2 2 0 0 1-2-1.8z"/>' +
+         '<path d="M7.3 11.3c1.2 0 1.2 1 2.4 1s1.2-1 2.4-1 1.2 1 2.4 1 1.2-1 2.4-1"/>',
+  star: '<path data-solid d="M12 3.4l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/>',
+  music: '<path d="M9.4 18V5.6l9.2-2v12.4"/>' +
+         '<circle data-solid cx="6.6" cy="18" r="2.8"/><circle data-solid cx="15.8" cy="16" r="2.8"/>',
+  sun: '<circle data-solid cx="12" cy="12" r="4.4"/>' +
+       '<path d="M12 2.6v2.4M12 19v2.4M2.6 12h2.4M19 12h2.4M5.4 5.4l1.7 1.7M16.9 16.9l1.7 1.7M18.6 5.4l-1.7 1.7M7.1 16.9l-1.7 1.7"/>',
+  book: '<path data-solid d="M3.4 4.6h5.4A3.2 3.2 0 0 1 12 7.8v12a2.7 2.7 0 0 0-2.7-2.4H3.4z"/>' +
+        '<path data-solid d="M20.6 4.6h-5.4A3.2 3.2 0 0 0 12 7.8v12a2.7 2.7 0 0 1 2.7-2.4h5.9z"/>' +
+        '<path d="M12 7.8v12"/>',
+  camera: '<path data-solid d="M3.4 8h3.9l1.5-2.4h6.4L16.7 8h3.9a1.6 1.6 0 0 1 1.6 1.6v8.2a1.6 1.6 0 0 1-1.6 1.6H3.4a1.6 1.6 0 0 1-1.6-1.6V9.6A1.6 1.6 0 0 1 3.4 8z"/>' +
+          '<circle cx="12" cy="13.7" r="3.4"/>',
+  tooth: '<path data-solid d="M12 3.8c2 0 2.8 1 4.4 1 1.6 0 3 .6 3 3.1 0 3.3-1.2 4.5-1.7 7.4-.5 2.5-.9 4.9-2.3 4.9-1.7 0-1.6-4.3-3.4-4.3s-1.7 4.3-3.4 4.3c-1.4 0-1.8-2.4-2.3-4.9C5.8 12.4 4.6 11.2 4.6 7.9c0-2.5 1.4-3.1 3-3.1 1.6 0 2.4-1 4.4-1z"/>',
+  /* a plus with equal arms — 병원, 접종, 약속 */
+  cross: '<path data-solid d="M9.6 3.6h4.8v6h6v4.8h-6v6H9.6v-6h-6V9.6h6z"/>',
+  smile: '<circle data-solid cx="12" cy="12" r="8.8"/>' +
+         '<circle class="dot" cx="9.1" cy="10.2" r="1"/><circle class="dot" cx="14.9" cy="10.2" r="1"/>' +
+         '<path d="M7.9 14.2a4.6 4.6 0 0 0 8.2 0"/>'
+};
+/* stored in the type's `emoji` field, prefixed so a custom type made before
+   this — which holds a real emoji there — still draws its emoji */
+var ICON_CHOICES = Object.keys(CUSTOM_ICONS).map(function(k){ return 'ico:' + k; });
+
+/* THE FOUR THINGS A DAY CAN HOLD, in the same hand as everything else.
+   ⚖️ 📏 ⭐ 📝 were the last emoji left in the growth screens, and they sat
+   directly beside drawn glyphs — different weight, different palette, and a
+   different picture on the nanny's Android. Each carries a colour from the
+   same ten the custom items pick from, so a mark means the same thing
+   whether it appears on the month grid, in the week list or on a day. */
+var GROWTH_ICONS = {
+  /* a balance: post, beam, and a pan hanging off each end */
+  w: { color:'#3f7fc4', label:'weightTitle',
+       g: '<path d="M12 5.2v13.6"/><path d="M7.8 19.6h8.4"/><path d="M4.6 8.4h14.8"/>' +
+          '<path data-solid d="M4.6 8.4L2 14a2.9 2.9 0 0 0 5.2 0z"/>' +
+          '<path data-solid d="M19.4 8.4L16.8 14a2.9 2.9 0 0 0 5.2 0z"/>' +
+          '<circle class="dot" cx="12" cy="8.4" r="1.15"/>' },
+  /* a ruler stood on end — height is measured up, not across */
+  h: { color:'#2f9d68', label:'heightTitle',
+       g: '<path data-solid d="M8.4 3h7.2v18H8.4z"/>' +
+          '<path d="M8.4 6.6h3M8.4 10.2h4.4M8.4 13.8h3M8.4 17.4h4.4"/>' },
+  m: { color:'#c39320', label:'milestoneTitle', g: CUSTOM_ICONS.star },
+  /* a written page, corner turned */
+  d: { color:'#8f6ad4', label:'gDiaryTitle',
+       g: '<path data-solid d="M5.4 3h8l5.2 5.2V21H5.4z"/><path d="M13.4 3v5.2h5.2"/>' +
+          '<path d="M8.6 12.8h6.6M8.6 16.4h4.6"/>' }
+};
+function growthIconHtml(k, cls, extra){
+  var it = GROWTH_ICONS[k];
+  if (!it) return '';
+  return '<span class="' + (cls || 'g-ico') + '" style="color:' + it.color + (extra ? ';' + extra : '') + '">' +
+    '<svg class="ty-ico" viewBox="0 0 24 24" aria-hidden="true">' + it.g + '</svg></span>';
+}
 
 /* ================================================================
    STATE / STORAGE KEYS
@@ -3274,6 +3446,9 @@ function typeIconHtml(meta, cls, styleAttr){
   var box = cls ? ' class="'+cls+'"' : '';
   var sty = styleAttr ? ' style="'+styleAttr+'"' : '';
   var g = meta && TYPE_ICONS[meta.id];
+  /* a custom type carries its glyph key where an emoji used to live */
+  if (!g && meta && typeof meta.emoji === 'string' && meta.emoji.indexOf('ico:') === 0)
+    g = CUSTOM_ICONS[meta.emoji.slice(4)];
   if (!g) return '<span'+box+sty+'><span class="ico-emoji">'+(meta ? meta.emoji : '')+'</span></span>';
   return '<span'+box+sty+'><svg class="ty-ico" viewBox="0 0 24 24" aria-hidden="true">'+g+'</svg></span>';
 }
@@ -5319,6 +5494,17 @@ function renderPattern(){
   }
   colsBox.className = 'pattern-cols';
   colsBox.innerHTML = colsHtml;
+  /* the now-line is a sibling of the columns, not a child of one: it has to
+     cross all of them. Its day is stamped on it so the ticker can tell when
+     midnight has moved the chart out from under it. */
+  var nowWrap = document.createElement('div');
+  nowWrap.className = 'pattern-now-wrap';
+  nowWrap.id = 'pattern-now-wrap';
+  nowWrap.dataset.day = String(todayStart.getTime());
+  nowWrap.innerHTML = '<span class="pattern-now"></span>' +
+    '<span class="pattern-now-today" style="left:' + ((pDays - 1) / pDays * 100).toFixed(4) + '%"></span>';
+  colsBox.appendChild(nowWrap);
+  positionPatternNow();
   /* nothing to scroll any more — the whole week is on screen by construction */
 
   /* the switch row IS the key now — a colour item wears its swatch, an icon
@@ -5327,6 +5513,22 @@ function renderPattern(){
   if (togBox) togBox.hidden = !presentIds.length;
   if (cardEl) cardEl.hidden = !anyMark;
   if (emptyEl) emptyEl.hidden = anyMark;
+}
+
+/* Moving the line is not re-rendering the chart: it is two style writes,
+   which is why it can run on the same one-second tick as the stopwatch. It
+   does nothing at all while the tab is not on screen. */
+function positionPatternNow(){
+  var wrap = document.getElementById('pattern-now-wrap');
+  if (!wrap || !wrap.offsetParent) return;
+  var now = new Date();
+  var dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  /* past midnight the COLUMNS are a day stale, not just the line — redraw
+     rather than slide the marker onto yesterday */
+  if (String(dayStart) !== wrap.dataset.day){ renderPattern(); return; }
+  var pct = (now.getTime() - dayStart) / 86400000 * 100;
+  for (var i = 0; i < wrap.children.length; i++)
+    wrap.children[i].style.top = pct.toFixed(3) + '%';
 }
 
 /* ================================================================
@@ -5580,6 +5782,14 @@ function gSelectedDate(){
 function renderGrowthCalendar(){
   var grid = document.getElementById('gcal-grid');
   var titleEl = document.getElementById('gcal-title');
+  /* the legend: one dot, one word — the only way the grid's dots mean
+     anything. Rebuilt here rather than held as a data-i18n string, because
+     it is now markup and not a sentence. */
+  var legEl = document.getElementById('gcal-legend');
+  if (legEl) legEl.innerHTML = ['w','h','m','d'].map(function(k){
+    return '<span><i style="background:' + GROWTH_ICONS[k].color + '"></i>' +
+      esc(t(GROWTH_ICONS[k].label)) + '</span>';
+  }).join('');
   var dowEl = document.getElementById('gcal-dow');
   var weekEl = document.getElementById('gweek-list');
   if (!grid) return;
@@ -5604,7 +5814,7 @@ function renderGrowthCalendar(){
   readHeights().forEach(function(h){ markDay(h.date, 'h'); });
   readMilestones().forEach(function(m){ markDay(m.date, 'm'); });
   readDiaries().forEach(function(d){ markDay(d.date, 'd'); });
-  var MARK_ICONS = { w: '\u2696\uFE0F', h: '\uD83D\uDCCF', m: '\u2B50', d: '\uD83D\uDCDD' };
+
 
   var firstDow = new Date(y, mo - 1, 1).getDay();
   var daysInMonth = new Date(y, mo, 0).getDate();
@@ -5666,7 +5876,8 @@ function renderGrowthCalendar(){
       (ds === todayStr ? ' today' : '') + (ds === sel ? ' selected' : '');
     var marks = flags ? '<span class="gcal-marks">' +
       ['w','h','m','d'].filter(function(k){ return flags[k]; })
-        .map(function(k){ return MARK_ICONS[k]; }).join('') + '</span>' : '';
+        .map(function(k){ return '<i class="gm" style="background:' + GROWTH_ICONS[k].color +
+          '" title="' + esc(t(GROWTH_ICONS[k].label)) + '"></i>'; }).join('') + '</span>' : '';
     /* the schedule's own words, right on the grid — lanes of pastel pills,
        a multi-day bar continuing seamlessly into the next cell. Every cell
        in a week row reserves the row's full lane count (ghosts fill the
@@ -5737,15 +5948,15 @@ function renderGrowthWeek(){
       '</span>');
     });
     mstones.filter(function(m){ return m.date === ds; }).forEach(function(m){
-      lines.push('<span class="gweek-evt"><span class="tm">⭐</span><span class="tx">' + esc(m.text) + '</span></span>');
+      lines.push('<span class="gweek-evt">' + growthIconHtml('m') + '<span class="tx">' + esc(m.text) + '</span></span>');
     });
     var subs = [];
     var w = weights.filter(function(x){ return x.date === ds; })[0];
     var h = heights.filter(function(x){ return x.date === ds; })[0];
-    if (w) subs.push('⚖️ ' + w.kg + 'kg');
-    if (h) subs.push('📏 ' + h.cm + 'cm');
-    if (diaries.some(function(x){ return x.date === ds; })) subs.push('📝');
-    if (subs.length) lines.push('<span class="gweek-sub">' + subs.join(' · ') + '</span>');
+    if (w) subs.push(growthIconHtml('w') + w.kg + 'kg');
+    if (h) subs.push(growthIconHtml('h') + h.cm + 'cm');
+    if (diaries.some(function(x){ return x.date === ds; })) subs.push(growthIconHtml('d'));
+    if (subs.length) lines.push('<span class="gweek-sub">' + subs.join('<span aria-hidden="true">·</span>') + '</span>');
     if (lines.length) anything = true;
     rows.push('<button type="button" class="gweek-day' + (ds === todayStr ? ' today' : '') +
       (lines.length ? '' : ' dim') + '" data-gday="' + ds + '">' +
@@ -5816,6 +6027,10 @@ function renderGrowthDay(){
   if (editing && !gDraft) buildGrowthDraft();
   var w = readWeights().filter(function(x){ return x.date === ds; })[0];
   var h = readHeights().filter(function(x){ return x.date === ds; })[0];
+  /* read once, up here: the same counts decide what the read view draws AND
+     which headings survive at the bottom of this function */
+  var dayMiles = readMilestones().filter(function(m){ return m.date === ds; });
+  var daySched = schedulesOnDay(ds);
   var kgEl = document.getElementById('gday-kg');
   var cmEl = document.getElementById('gday-cm');
   if (editing){
@@ -5833,10 +6048,9 @@ function renderGrowthDay(){
   mv.hidden = editing;
   if (!editing){
     var mrows = [];
-    if (w) mrows.push('<div class="gday-row"><span>\u2696\uFE0F</span><span>' + esc(t('weightTitle')) + '</span><b>' + w.kg + 'kg</b></div>');
-    if (h) mrows.push('<div class="gday-row"><span>\uD83D\uDCCF</span><span>' + esc(t('heightTitle')) + '</span><b>' + h.cm + 'cm</b></div>');
-    mv.innerHTML = mrows.length ? mrows.join('') :
-      '<div class="empty-note" style="padding:6px 0;font-size:var(--fs-caption)">' + esc(t('gNoMeasure')) + '</div>';
+    if (w) mrows.push('<div class="gday-row">' + growthIconHtml('w') + '<span>' + esc(t('weightTitle')) + '</span><b>' + w.kg + 'kg</b></div>');
+    if (h) mrows.push('<div class="gday-row">' + growthIconHtml('h') + '<span>' + esc(t('heightTitle')) + '</span><b>' + h.cm + 'cm</b></div>');
+    mv.innerHTML = mrows.join('');
   }
 
   /* ---- milestones: read rows, or one editable row each ---- */
@@ -5844,12 +6058,12 @@ function renderGrowthDay(){
   if (editing){
     listEl.innerHTML = gDraft.miles.map(function(m, i){
       return '<div class="gx-row' + (m.removed ? ' is-removed' : '') + '">' +
-        '<span>\u2B50</span>' +
+        growthIconHtml('m') +
         '<input type="text" maxlength="80" data-gmi="' + i + '" value="' + esc(m.text) + '" />' +
         ((canTouch(m.author) || m.removed) ? '<button type="button" class="gx-x" data-gmi-x="' + i + '">' + (m.removed ? '\u21BA' : '\u2715') + '</button>' : '') +
       '</div>';
     }).concat(gDraft.newMiles.map(function(tx, i){
-      return '<div class="gx-row"><span>\u2B50</span>' +
+      return '<div class="gx-row">' + growthIconHtml('m') +
         '<input type="text" maxlength="80" data-gni="' + i + '" value="' + esc(tx) + '" />' +
         '<button type="button" class="gx-x" data-gni-x="' + i + '">\u2715</button></div>';
     })).join('');
@@ -5873,9 +6087,8 @@ function renderGrowthDay(){
       });
     });
   } else {
-    var ms = readMilestones().filter(function(m){ return m.date === ds; });
-    listEl.innerHTML = ms.map(function(m){
-      return '<div class="gday-row"><span>\u2B50</span><span style="flex:1;min-width:0;">' + esc(m.text) + '</span>' +
+    listEl.innerHTML = dayMiles.map(function(m){
+      return '<div class="gday-row">' + growthIconHtml('m') + '<span style="flex:1;min-width:0;">' + esc(m.text) + '</span>' +
         '<span class="gweek-sub" style="flex:0 0 auto">' + esc(localizeAuthorName(m.author)) + '</span></div>';
     }).join('');
   }
@@ -5945,10 +6158,7 @@ function renderGrowthDay(){
     wireSchedRows('gse', gDraft.scheds);
     wireSchedRows('gsn', gDraft.newScheds);
   } else {
-    var scheds = schedulesOnDay(ds);
-    sl.innerHTML = !scheds.length
-      ? '<div class="empty-note" style="padding:6px 0;font-size:var(--fs-caption)">' + esc(t('schedEmpty')) + '</div>'
-      : scheds.map(function(s){
+    sl.innerHTML = daySched.map(function(s){
           var shown = schedShownText(s);
           var second = (s.translated && s.translated !== s.text)
             ? (shown === s.text ? s.translated : s.text) : '';
@@ -5969,9 +6179,7 @@ function renderGrowthDay(){
      them into the compose box below for rewriting. ---- */
   var diaries = readDiaries().filter(function(d2){ return d2.date === ds; });
   var dl = document.getElementById('gday-diary-list');
-  dl.innerHTML = !diaries.length
-    ? '<div class="empty-note" style="padding:10px 0 4px;font-size:var(--fs-caption)">' + esc(t('diaryEmpty')) + '</div>'
-    : diaries.map(function(d2){
+  dl.innerHTML = diaries.map(function(d2){
     var photos = Array.isArray(d2.photos) ? d2.photos : [];
     var removed = editing && gDraft.diaryRemoved[d2.id];
     return '<div class="gdiary-entry' + (removed ? ' is-removed' : '') + '">' +
@@ -6017,6 +6225,25 @@ function renderGrowthDay(){
       openPhotoViewer(d3.photos.map(function(ph){ return ph.id; }), Number(btn.dataset.photoI) || 0);
     });
   });
+
+  /* ---- what a reader is shown: the sections that HAVE something. Edit
+     mode keeps all four, because an empty section is exactly where you go
+     to fill it. ---- */
+  var has = {
+    'gday-sec-measure': !!(w || h),
+    'gday-sec-mile': dayMiles.length > 0,
+    'gday-sec-sched': daySched.length > 0,
+    'gday-sec-diary': diaries.length > 0
+  };
+  var anything = false;
+  Object.keys(has).forEach(function(id){
+    if (has[id]) anything = true;
+    var el = document.getElementById(id);
+    if (el) el.hidden = !editing && !has[id];
+  });
+  /* four headings collapse to one sentence when the day is simply empty */
+  var emptyEl = document.getElementById('gday-empty');
+  if (emptyEl) emptyEl.hidden = editing || anything;
 }
 
 /* a diary page being rewritten: its words sit in the compose box and the
@@ -8001,27 +8228,40 @@ function askConfirm(opts){
 /* ================================================================
    TYPE SHEET — create a reusable custom care type
    ================================================================ */
-var pickedSwatch = SWATCHES[0], pickedEmoji = EMOJI_CHOICES[0];
+var pickedSwatch = SWATCHES[0], pickedEmoji = ICON_CHOICES[0];
 function openTypeSheet(){
   document.getElementById('new-type-name').value = '';
   pickedSwatch = SWATCHES[Math.floor(Math.random()*SWATCHES.length)];
-  pickedEmoji = EMOJI_CHOICES[Math.floor(Math.random()*EMOJI_CHOICES.length)];
-  document.getElementById('new-type-swatches').innerHTML = SWATCHES.map(function(c){
-    return '<button type="button" class="swatch" style="background:'+c+'" data-swatch="'+c+'" aria-pressed="'+(c===pickedSwatch)+'"></button>';
+  pickedEmoji = ICON_CHOICES[Math.floor(Math.random()*ICON_CHOICES.length)];
+  var swBox = document.getElementById('new-type-swatches');
+  var icBox = document.getElementById('new-type-emojis');
+  var names = t('icoNames') || {};
+
+  swBox.innerHTML = SWATCHES.map(function(c){
+    return '<button type="button" class="swatch" style="--sw:'+c+'" data-swatch="'+c+
+      '" aria-pressed="'+(c===pickedSwatch)+'"></button>';
   }).join('');
-  document.getElementById('new-type-emojis').innerHTML = EMOJI_CHOICES.map(function(em){
-    return '<button type="button" data-emoji="'+em+'" aria-pressed="'+(em===pickedEmoji)+'">'+em+'</button>';
+  icBox.innerHTML = ICON_CHOICES.map(function(key){
+    var nm = names[key.slice(4)] || '';
+    return '<button type="button" data-emoji="'+key+'" aria-pressed="'+(key===pickedEmoji)+
+      '" aria-label="'+esc(nm)+'" title="'+esc(nm)+'">'+
+      typeIconHtml({ id: key, emoji: key }, '') + '</button>';
   }).join('');
-  $$('.swatch', document.getElementById('new-type-swatches')).forEach(function(b){
+  /* one variable carries the colour into the icon row — no second render */
+  function paint(){ icBox.style.setProperty('--pick', pickedSwatch); }
+  paint();
+
+  $$('.swatch', swBox).forEach(function(b){
     b.addEventListener('click', function(){
       pickedSwatch = b.dataset.swatch;
-      $$('.swatch', document.getElementById('new-type-swatches')).forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); });
+      $$('.swatch', swBox).forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); });
+      paint();
     });
   });
-  $$('button', document.getElementById('new-type-emojis')).forEach(function(b){
+  $$('button', icBox).forEach(function(b){
     b.addEventListener('click', function(){
       pickedEmoji = b.dataset.emoji;
-      $$('button', document.getElementById('new-type-emojis')).forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); });
+      $$('button', icBox).forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); });
     });
   });
   openSheet('type-sheet');
@@ -8647,7 +8887,7 @@ function init(){
     toast(err.message || 'failed to load');
     renderAll();
   });
-  setInterval(function(){ renderActiveBar(); renderSinceLast(); renderNextFeed(); }, 1000);
+  setInterval(function(){ renderActiveBar(); renderSinceLast(); renderNextFeed(); positionPatternNow(); }, 1000);
   setInterval(pollState, 4000);
 }
 
