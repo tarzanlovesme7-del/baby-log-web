@@ -266,7 +266,7 @@
   .timeline-section .active-bar,
   .timeline-section #aw-adjust-panel{ width:calc(100% + 36px); margin:0 -18px; }
   .active-bar.paused{ opacity:.72; }
-  .active-bar .aw-emoji{ width:19px; height:19px; flex:0 0 auto; color:var(--active-color); display:block; }
+  .active-bar .aw-emoji{ width:23px; height:23px; flex:0 0 auto; color:var(--active-color); display:block; }
   .active-bar .aw-meta{ flex:1 1 auto; min-width:0; }
   /* the name line stands 20px tall with 2px under it — the exact skeleton of
      the banner's .a-top + gap, so the two bands come out the same height */
@@ -301,12 +301,12 @@
   .active-bar .aw-time span.c{ width:.34em; }
   .active-bar .aw-actions{ display:flex; gap:6px; flex:0 0 auto; }
   .aw-round{
-    width:32px; height:32px; border-radius:50%; border:0; background:var(--surface);
-    display:flex; align-items:center; justify-content:center; color:var(--fg); font-size:15px; font-weight:var(--fw-strong);
+    width:36px; height:36px; border-radius:50%; border:0; background:var(--surface);
+    display:flex; align-items:center; justify-content:center; color:var(--fg); font-size:16px; font-weight:var(--fw-strong);
   }
   .aw-round.confirm{ background:var(--primary); color:var(--primary-fg); }
   .aw-ico{
-    width:17px; height:17px; display:block;
+    width:21px; height:21px; display:block;
     fill:none; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round;
   }
   .aw-ico.solid{ fill:currentColor; }
@@ -317,8 +317,8 @@
      The clock's box stays fixed at each step so the buttons never move as
      the seconds tick; it has to hold "1:05:22" once a nap passes an hour. */
   @media (max-width: 400px){
-    .active-bar .aw-round{ width:28px; height:28px; }
-    .active-bar .aw-ico{ width:15px; height:15px; }
+    .active-bar .aw-round{ width:33px; height:33px; }
+    .active-bar .aw-ico{ width:19px; height:19px; }
     .active-bar .aw-actions{ gap:4px; }
   }
   /* 360, not 340: at 341px an overnight sleep timer ("12:05:22") took just
@@ -329,12 +329,12 @@
   }
 
   /* ---------- section ---------- */
-  section.panel{ padding:16px 16px 8px; display:flex; flex-direction:column; gap:18px; flex:1; }
+  section.panel{ --pad:16px; padding:16px 16px 8px; display:flex; flex-direction:column; gap:18px; flex:1; }
   /* surfaces are told apart by flat color contrast against --bg, never a border/shadow —
      same full-bleed white-sheet language as .timeline-section/.memo-section: cancel the
      panel's own 16px side padding, then restore it as the card's own content padding,
      so stats/settings sit flush edge-to-edge instead of floating as rounded boxes. */
-  .card{ background:var(--surface); margin:0 -16px; padding:0 16px; }
+  .card{ --pad:16px; background:var(--surface); margin:0 -16px; padding:0 16px; }
   .row-item + .row-item{ border-top:1px solid var(--border); }
 
   /* dashboard (last-fed / last-diaper / last-sleep) — plain text on the page background */
@@ -453,24 +453,37 @@
      find a day. */
   .log-bar{ display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:18px; }
   .log-nav{ display:flex; align-items:center; gap:4px; }
-  /* no chips, no boxes — three flat controls that read as one line of text */
+  /* the growth calendar still steps a month at a time with these; the log
+     dropped its own pair when the date chip took over */
   .log-arrow{
     width:26px; height:30px; background:transparent; color:var(--muted-2);
     font-size:var(--fs-title); line-height:1; display:flex; align-items:center; justify-content:center;
     flex:0 0 auto; padding:0; touch-action:manipulation;
   }
   .log-arrow:disabled{ opacity:.28; }
+  /* ONE CHIP, NOT A BLUE WORD BETWEEN TWO ARROWS. As flat text in the app
+     colour it was the only blue thing on the record screen and read as an
+     alert rather than a control; the arrows were two more taps for
+     something the picker does in one. Same pill as .chips-nav uses, so it
+     is recognisably the app's own button — quiet on today, and wearing the
+     weak tint while an older day is being read, which is the one state
+     worth calling out. */
   .log-date{
     position:relative; display:flex; align-items:center; gap:6px;
-    padding:4px 2px; background:transparent;
-    font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--fg);
+    border:1px solid var(--border); background:var(--surface); color:var(--muted);
+    border-radius:var(--radius-pill); padding:7px 14px;
+    font-size:var(--fs-caption); font-weight:var(--fw-strong);
     touch-action:manipulation;
   }
   .log-date .cal-ico{
-    width:17px; height:17px; flex:0 0 auto; fill:none; stroke:currentColor; stroke-width:1.7;
-    stroke-linecap:round; stroke-linejoin:round; color:var(--primary);
+    width:16px; height:16px; flex:0 0 auto; fill:none; stroke:currentColor; stroke-width:1.7;
+    stroke-linecap:round; stroke-linejoin:round;
   }
-  .log-date.is-today{ color:var(--primary); }
+  /* not today: the chip lights up the way an active .chips-nav chip does */
+  .log-date:not(.is-today){
+    background:var(--primary-weak-bg); color:var(--primary-weak-fg);
+    border-color:color-mix(in srgb, var(--primary) 35%, var(--border));
+  }
   /* the native picker sits invisibly over the button, so tapping the label
      opens the phone's own calendar rather than a home-made one */
   .log-date input[type="date"]{
@@ -486,6 +499,7 @@
      sheet rides the panel's own 18, opens with 18, and the bar keeps 18
      below, so every seam on the way down is the same size. */
   .timeline-section{
+    --pad:18px;
     background:var(--surface); margin:0 -16px; flex:1;
     padding:18px 18px calc(96px + env(safe-area-inset-bottom)); min-height:38vh;
   }
@@ -642,6 +656,7 @@
     /* negative top margin cancels the panel's own top padding, same trick as
        .announce-row/.timeline-section, so this white sheet sits flush against
        the header instead of leaving a gray gap above it */
+    --pad:18px;
     background:var(--surface); margin:-16px -16px 0; flex:1;
     padding:0 18px calc(96px + env(safe-area-inset-bottom)); min-height:30vh;
   }
@@ -791,7 +806,7 @@
      is. Before this every label, every date and every value was strong,
      so the eye had nothing to land on. */
   .stats-panel{ gap:12px; }
-  .stat-card{ padding:16px 16px 18px; display:flex; flex-direction:column; gap:0; }
+  .stat-card{ --pad:16px; padding:16px 16px 18px; display:flex; flex-direction:column; gap:0; }
   .stat-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:14px; }
   .stat-h{ font-size:var(--fs-title); font-weight:var(--fw-strong); color:var(--fg); }
   .stat-badge{
@@ -977,11 +992,13 @@
   /* flat full-bleed stripes — edge to edge in the column, square corners,
      stacked like segments of a bar chart rather than floating pills */
   .pattern-mark-band{ position:absolute; left:0; right:0; }
-  /* A MOMENT, NOT A STRETCH. Drops at 8am and an hour of sleep were both
-     drawn as a full-width stripe, so the only difference was thickness —
-     which at this scale is a couple of pixels. A moment is drawn as a short
-     centred tick instead: different shape, not just a different size. */
-  .pattern-mark-band.is-point{ height:4px; margin-top:-2px; left:20%; right:20%; }
+  /* A MOMENT, NOT A STRETCH — but still the full width of its day. The
+     tick used to be inset to 60% of the column so its SHAPE said "this
+     happened at a moment"; against a column of edge-to-edge bands that
+     read as a row of gaps, like missing teeth. What tells the two apart
+     now is weight and colour: a moment is a 4px line at the item's own
+     colour, a stretch is a tall band of the pale wash of it. */
+  .pattern-mark-band.is-point{ height:4px; margin-top:-2px; left:0; right:0; }
   .pattern-grid-line-h{ z-index:0; }
   .pattern-mark-band{ z-index:1; }
   .pattern-col-label{
@@ -996,6 +1013,33 @@
      Only some columns get one, and that label is allowed to spill over its
      (10px-wide) neighbours — which are blank by construction. */
   .pattern-col.today .pattern-col-label{ color:var(--primary); font-weight:var(--fw-strong); }
+  /* ---- the item switches. They are the legend as well: a colour item
+     wears its swatch, an icon item wears its icon, so the row that turns
+     things on is also the row that says what everything means. ---- */
+  .pattern-toggles{ display:flex; flex-wrap:wrap; gap:6px; padding:0 2px; }
+  .pattern-toggles button{
+    display:inline-flex; align-items:center; gap:5px; border-radius:var(--radius-pill);
+    padding:6px 11px 6px 8px; font-size:var(--fs-micro); font-weight:var(--fw-strong);
+    border:1px solid var(--border); background:var(--surface); color:var(--muted);
+  }
+  .pattern-toggles .pt-sw{ width:9px; height:9px; border-radius:3px; flex:0 0 auto; }
+  .pattern-toggles .ty-ico{ width:16px; height:16px; stroke-width:1.7; }
+  .pattern-toggles button[aria-pressed="true"]{ color:var(--fg); border-color:transparent; }
+  .pattern-toggles button[aria-pressed="false"]{ opacity:.45; }
+  .pattern-toggles button[aria-pressed="false"] .pt-sw{ background:var(--muted-2) !important; }
+  .pattern-toggles button[aria-pressed="false"] .ty-ico{ color:var(--muted-2); }
+  /* ---- an icon item rides the track at the time it happened, in a little
+     disc so it stays readable on top of a coloured band. Bare icons were
+     tried and lost against the bands; the disc is what makes them legible.
+     ---- */
+  .pattern-ic{
+    position:absolute; width:21px; height:21px; margin-top:-10.5px; border-radius:50%;
+    background:var(--surface); box-shadow:0 0 0 1px rgba(20,30,50,.10), 0 1px 2px rgba(20,30,50,.12);
+    display:flex; align-items:center; justify-content:center; z-index:3;
+  }
+  /* the disc and the icon in it are sized in renderPattern from the width
+     of one column, so no size is written here */
+  .pattern-ic .ty-ico{ stroke-width:2; }
   .pattern-legend{ display:flex; flex-wrap:wrap; gap:10px 16px; padding:2px 4px 0; }
   .pattern-legend-item{ display:inline-flex; align-items:center; gap:6px; font-size:var(--fs-caption); color:var(--muted); }
   /* feed/sleep: a plain color swatch (no icon) — everything else: the bare
@@ -1038,7 +1082,7 @@
 
   /* growth calendar: a month at a glance, where only the days that carry a
      record speak up — dark number, dot under it — and the rest stay pale */
-  .gcal-card{ padding:14px 12px 12px; }
+  .gcal-card{ --pad:12px; padding:14px 12px 12px; }
   .gcal-head{ display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
   .gcal-title{ font-size:var(--fs-label); font-weight:var(--fw-strong); font-variant-numeric:tabular-nums; }
   /* minmax(0,1fr), NOT 1fr: a plain 1fr is minmax(auto,1fr), so a column is
@@ -1414,6 +1458,7 @@
      spare, or the last field — the 기록자 chips — sits behind it at the end
      of the scroll with no way to reach it */
   .fp-body{
+    --pad:16px;
     flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch;
     padding:20px 16px 24px; display:flex; flex-direction:column; gap:20px;
   }
@@ -1610,6 +1655,39 @@
     white-space:nowrap; max-width:88vw; overflow:hidden; text-overflow:ellipsis;
   }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  /* ================================================================
+     A RULE LINE RUNS THE FULL WIDTH OF WHAT IT DIVIDES.
+
+     Every hairline here — the header tabs' rail, the settings rows, the
+     day page's lists, the week list, the bin — sat inside a container
+     with side padding, so each line stopped short of the screen with a
+     stub of background either side and read as unfinished rather than as
+     a divider ("회색 선 양옆 끝까지 채워주면 안되니").
+
+     One rule for all of them: cancel the container's own gutter and put
+     it straight back as the row's padding. The line then reaches both
+     edges while the words stay exactly where they were, on the text
+     column. --pad is declared by each container (16px on a panel or a
+     card, 18px in the log and memo sheets, 12px on the calendar card);
+     .memo-row already did this by hand and keeps its own numbers.
+     ================================================================ */
+  .htabs,
+  .row-item,
+  .trash-row,
+  .weight-row,
+  .gday-row,
+  .sched-edit,
+  .gdiary-entry,
+  .gdiary-compose,
+  .gweek-day{
+    margin-left:calc(var(--pad, 16px) * -1);
+    margin-right:calc(var(--pad, 16px) * -1);
+    padding-left:var(--pad, 16px);
+    padding-right:var(--pad, 16px);
+    box-sizing:border-box;
+  }
+  /* the rows that carry a full-width button inside them must still fill it */
+  .gweek-day{ width:calc(100% + var(--pad, 16px) * 2); }
 </style>
 </head>
 <body>
@@ -1684,14 +1762,14 @@
     <div class="timeline-section">
       <div class="log-bar">
         <div class="section-title" data-i18n="timeline" style="margin:0">기록</div>
+        <!-- one control, not three: the chip opens the phone's own date
+             picker, and picking today comes back to the rolling view -->
         <div class="log-nav" id="log-nav">
-          <button type="button" class="log-arrow" id="log-prev" title="이전 날">‹</button>
           <button type="button" class="log-date" id="log-date-btn">
             <svg class="cal-ico" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5.5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3.5v4M16 3.5v4"/></svg>
             <span id="log-date-text"></span>
             <input type="date" id="log-date-input" />
           </button>
-          <button type="button" class="log-arrow" id="log-next" title="다음 날">›</button>
         </div>
       </div>
       <!-- The running stopwatch lives HERE, not up in the announce strip.
@@ -1743,13 +1821,16 @@
           <button type="button" data-days="28" aria-pressed="false" data-i18n="range28">28일</button>
         </div>
       </div>
+      <!-- every item, on or off, one tap. What the chart draws is whatever
+           is left switched on — with everything on it is a wall, and the
+           whole complaint was that nothing could be seen in it. -->
+      <div class="pattern-toggles" id="pattern-toggles"></div>
       <div class="card pattern-chart-card" id="pattern-chart-card">
         <div class="pattern-chart-inner">
           <div class="pattern-axis-v"><span>0</span><span>6</span><span>12</span><span>18</span><span>24</span></div>
           <div class="pattern-cols" id="pattern-cols"></div>
         </div>
       </div>
-      <div class="pattern-legend" id="pattern-legend"></div>
       <div class="empty-note" id="pattern-empty" hidden data-i18n="patternEmpty">이 기간엔 기록이 없어요</div>
     </div>
 
@@ -2359,7 +2440,7 @@ ko: {
   since_feed:"마지막 수유", since_sleep:"마지막 잠",
   since_poop:"마지막 똥", authorViPh:"베트남어 이름 (자동 번역)",
   nextFeedLabel:"다음 추천 수유", nextFeedValueTpl:"{time} · {remain} 후", nextFeedDueValueTpl:"시간이 지났어요 · {time}",
-  patternTitle:"시간대 패턴", patternCaption:"세로축은 하루 24시간", patternEmpty:"이 기간엔 기록이 없어요",
+  patternTitle:"시간대 패턴", patternCaption:"세로축은 하루 24시간 · 항목을 눌러 켜고 끄세요", patternEmpty:"이 기간엔 기록이 없어요",
   insAll:"일과", tabGrowth:"성장", gCal:"캘린더", gGraph:"그래프",
   heightTitle:"키", milestoneTitle:"발달 기록", milestonePh:"뒤집기, 첫 웃음…",
   gCalHint:"⚖️ 몸무게 · 📏 키 · ⭐ 발달 · 📝 일기",
@@ -2462,7 +2543,7 @@ vi: {
   since_feed:"Bú gần nhất", since_sleep:"Ngủ gần nhất",
   since_poop:"Ị gần nhất", authorViPh:"Tên tiếng Việt (tự dịch)",
   nextFeedLabel:"Dự kiến bú tiếp theo", nextFeedValueTpl:"{time} · còn {remain}", nextFeedDueValueTpl:"Đã quá giờ · {time}",
-  patternTitle:"Mẫu hình theo giờ", patternCaption:"Trục dọc là 24 giờ trong ngày", patternEmpty:"Chưa có nhật ký trong khoảng này",
+  patternTitle:"Mẫu hình theo giờ", patternCaption:"Trục dọc là 24 giờ · chạm để bật/tắt từng mục", patternEmpty:"Chưa có nhật ký trong khoảng này",
   insAll:"Sinh hoạt", tabGrowth:"Phát triển", gCal:"Lịch", gGraph:"Biểu đồ",
   heightTitle:"Chiều cao", milestoneTitle:"Cột mốc phát triển", milestonePh:"Lật người, nụ cười đầu…",
   gCalHint:"⚖️ Cân nặng · 📏 Chiều cao · ⭐ Cột mốc · 📝 Nhật ký",
@@ -3449,7 +3530,12 @@ function renderActiveBar(){
   var start = new Date(a.start);
   var paused = !!a.paused;
   var elapsed = paused ? (new Date(a.pausedAt) - start) : (Date.now() - start.getTime());
-  var name = a.name || meta.label;
+  /* THE NAME IS RESOLVED HERE, NOT READ BACK. startActive stores the label
+     as the starting phone saw it, so a sleep 엄마 began was called 수면 on
+     the nanny's Vietnamese screen for as long as it ran. The stored name is
+     only a fallback for a type this phone no longer knows; a type it does
+     know is named in the language of whoever is looking. */
+  var name = meta.label || a.name || '';
   var author = a.author || '';
 
   var bar = slot.querySelector('.active-bar');
@@ -4049,6 +4135,10 @@ function leaveOldDayView(){
   }
 }
 function setLogDate(key){
+  /* choosing today in the picker means 오늘 — the rolling recent view, not a
+     one-day filter that happens to be today. Stepping past today used to do
+     this; the picker is the only way in now, so it does it. */
+  if (key && key === dayKey(new Date().toISOString())) key = null;
   state.logDate = key;
   if (!key) state.logDays = LOG_PAGE_DAYS;   // back to the rolling view
   renderTimeline();
@@ -4059,7 +4149,6 @@ function renderLogNav(){
   var btn = document.getElementById('log-date-btn');
   var txt = document.getElementById('log-date-text');
   var input = document.getElementById('log-date-input');
-  var next = document.getElementById('log-next');
   if (!btn || !txt || !input) return;
   var todayK = dayKey(new Date().toISOString());
   if (state.logDate){
@@ -4067,35 +4156,17 @@ function renderLogNav(){
       state.logDate.split('-')[1]-1, state.logDate.split('-')[2]).toISOString());
     input.value = dayKeyToInput(state.logDate);
     btn.classList.remove('is-today');
-    /* there is nothing after today to look at */
-    if (next) next.disabled = false;
   } else {
     txt.textContent = t('todayBtn');
     input.value = dayKeyToInput(todayK);
     btn.classList.add('is-today');
-    if (next) next.disabled = true;
   }
-  var prev = document.getElementById('log-prev');
-  if (prev) prev.disabled = false;
 }
 function wireLogNav(){
   var input = document.getElementById('log-date-input');
-  var prev = document.getElementById('log-prev');
-  var next = document.getElementById('log-next');
   var more = document.getElementById('log-more');
   if (input) input.addEventListener('change', function(){
     setLogDate(inputToDayKey(input.value));
-  });
-  if (prev) prev.addEventListener('click', function(){
-    var from = state.logDate || dayKey(new Date().toISOString());
-    setLogDate(shiftDayKey(from, -1));
-  });
-  if (next) next.addEventListener('click', function(){
-    if (!state.logDate) return;
-    var todayK = dayKey(new Date().toISOString());
-    var nextK = shiftDayKey(state.logDate, 1);
-    /* stepping past today drops back to the rolling recent view */
-    setLogDate(nextK === todayK ? null : nextK);
   });
   if (more) more.addEventListener('click', function(){
     state.logDays = (state.logDays || LOG_PAGE_DAYS) + LOG_PAGE_DAYS;
@@ -4435,7 +4506,10 @@ function wireEntrySwipe(wrap){
 }
 function deleteEntryDirect(id){
   var target = (appState.entries || []).filter(function(e){ return e.id === id; })[0];
-  if (target && !canTouch(target.author)){ toast(t('notMine')); return; }
+  /* the row is already off this screen — a second tap, or another phone got
+     there first. Nothing to do, and nothing to complain about. */
+  if (!target) return;
+  if (!canTouch(target.author)){ toast(t('notMine')); return; }
   /* take the row out immediately. Waiting for the round trip made a swipe-
      delete feel like the slowest thing in the app — the red button stayed put
      with the row still under it until the server answered. */
@@ -4800,6 +4874,60 @@ function statTile(label, valHtml){
    too — for the flat stacked-bar-style marks. */
 function patternTint(color){ return 'color-mix(in srgb, '+color+' 46%, var(--surface-2))'; }
 
+/* ================================================================
+   WHAT THE 24-HOUR CHART DRAWS, AND HOW
+
+   Two kinds of item, because they answer two different questions.
+
+   · 분유 · 수면 · 놀이 are the SHAPE of the day — how long, and when.
+     They stay what they always were: a coloured band (or a tick, for a
+     feed, which happens at a moment rather than over one).
+   · 똥 · 터미타임 · 유산균 · 마사지 · 목욕 · 손톱 are things that either
+     happened or did not. Their length says nothing, so they are drawn as
+     their own icon at the hour they happened — 대변's timing is worth
+     reading, and so is the fact that the bath is always at eight.
+
+   Anything else logged (a custom item, 외출, 약, 체온…) keeps the old
+   coloured treatment, so nothing silently disappears from the chart.
+   ================================================================ */
+var PATTERN_ICON_TYPES = ['diaper', 'tummy', 'probiotic', 'massage', 'bath', 'nails'];
+function patternIsIconType(id){ return PATTERN_ICON_TYPES.indexOf(id) >= 0; }
+
+/* which items are switched off, kept per phone: 아빠 watching sleep and
+   엄마 watching feeds want different charts, and neither wants to set it
+   up again every time the tab opens */
+var LS_PATTERN_OFF = 'bbl_pattern_off';
+function patternOff(){
+  try { return JSON.parse(localStorage.getItem(LS_PATTERN_OFF) || '[]') || []; }
+  catch(e){ return []; }
+}
+function patternIsOn(id){ return patternOff().indexOf(id) < 0; }
+function patternToggle(id){
+  var off = patternOff();
+  var i = off.indexOf(id);
+  if (i >= 0) off.splice(i, 1); else off.push(id);
+  try { localStorage.setItem(LS_PATTERN_OFF, JSON.stringify(off)); } catch(e){}
+  renderPattern();
+}
+/* Two icons within about half an hour of each other would sit on top of one
+   another. The cluster is spread SIDEWAYS instead: the height — which is the
+   time, the whole point of the chart — never moves. */
+function patternSeats(list, step){
+  var out = [], cluster = [];
+  function flush(){
+    if (!cluster.length) return;
+    var n = cluster.length;
+    cluster.forEach(function(e, k){ e.dx = (k - (n - 1) / 2) * step; e.n = n; out.push(e); });
+    cluster = [];
+  }
+  list.slice().sort(function(a, b){ return a.ms - b.ms; }).forEach(function(e){
+    if (cluster.length && (e.ms - cluster[cluster.length - 1].ms) < 2100000) cluster.push(e);
+    else { flush(); cluster = [e]; }
+  });
+  flush();
+  return out;
+}
+
 /* Only a POO goes on the chart, not every nappy. A wet change happens all
    day and barely gets logged; drawing them made a brown stripe across every
    column that said nothing. The legend says 대변 for the same reason. */
@@ -5022,6 +5150,7 @@ function syncInsight(){
 }
 function renderPattern(){
   var colsBox = document.getElementById('pattern-cols');
+  var togBox = document.getElementById('pattern-toggles');
   var legendBox = document.getElementById('pattern-legend');
   var cardEl = document.getElementById('pattern-chart-card');
   var emptyEl = document.getElementById('pattern-empty');
@@ -5032,16 +5161,68 @@ function renderPattern(){
   var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   var DAY_MS = 86400000;
   var typeOrder = allTypesInOrder().map(function(x){ return x.id; });
-  var usedTypes = {};
-  var anyMark = false;
-  var colsHtml = '';
   var pDays = state.patternDays || 7;
+  var windowStart = todayStart.getTime() - (pDays - 1) * DAY_MS;
+
+  /* THE SWITCHES COME FROM THE RECORDS, not from a fixed list: an item
+     nobody has logged in this window has nothing to switch. */
+  var present = {};
+  entries.forEach(function(e){
+    if (!patternShows(e)) return;
+    var s = new Date(e.start).getTime();
+    if (isNaN(s) || s < windowStart || s >= todayStart.getTime() + DAY_MS) return;
+    var meta = typeMeta(e.type);
+    if (meta) present[e.type] = meta;
+  });
+  var presentIds = Object.keys(present).sort(function(a, b){
+    /* colours first, icons after: the row then reads as its own key —
+       "these three are the shape of the day, these six either happened or
+       did not" — instead of interleaving the two kinds */
+    var ka = patternIsIconType(a) ? 1 : 0, kb = patternIsIconType(b) ? 1 : 0;
+    if (ka !== kb) return ka - kb;
+    return typeOrder.indexOf(a) - typeOrder.indexOf(b);
+  });
+  if (togBox){
+    togBox.innerHTML = presentIds.map(function(id){
+      var m = present[id];
+      var on = patternIsOn(id);
+      /* 기저귀 is called 대변 here — a wet change is not drawn (see
+         patternShows), so calling the switch 기저귀 would promise more
+         than the chart delivers */
+      var label = id === 'diaper' ? t('dirty') : m.label;
+      var face = patternIsIconType(id)
+        ? typeIconHtml(m, '', on ? 'color:' + m.color : '')
+        : '<span class="pt-sw" style="background:' + m.color + '"></span>';
+      return '<button type="button" data-pt="' + esc(id) + '" aria-pressed="' + on + '">' +
+        face + esc(label) + '</button>';
+    }).join('');
+    $$('button[data-pt]', togBox).forEach(function(b){
+      b.addEventListener('click', function(){ patternToggle(b.dataset.pt); });
+    });
+  }
+
   /* Every column gets a label at a week; a month of them would be 28 dates
      drawn on top of each other. So: thin them out, and drop the weekday
      first — which day of the week it was matters less the further back you
      look, and the date is the part you navigate by. */
   var labelEvery = pDays > 20 ? 4 : (pDays > 9 ? 2 : 1);
   var showWeekday = pDays <= 14;
+
+  /* HOW BIG AN ICON MAY BE IS A QUESTION ABOUT THE COLUMN, and the column
+     is (screen − chrome) ÷ days: 43px across a week on a 390px phone, 33 on
+     a 320px one, 21 across a fortnight. A disc is drawn only where one can
+     be read AND two can sit side by side without leaving the column; below
+     that width the icon items fall back to a coloured tick, which is what
+     the chart used to draw for everything. The toggles still isolate one
+     item, and one item's ticks across 28 days is exactly the "when does it
+     happen" question at that range. */
+  var colsW = colsBox.clientWidth || (Math.min(560, window.innerWidth || 390) - 92);
+  var colW = Math.max(8, colsW / pDays);
+  var disc = Math.round(Math.max(12, Math.min(21, colW / 2 - 1)));
+  var iconMode = disc >= 14 ? 'disc' : 'tick';
+  var seatStep = disc;
+  var anyMark = false;
+  var colsHtml = '';
 
   for (var i = pDays - 1; i >= 0; i--){
     var dStart = new Date(todayStart.getTime() - i*DAY_MS);
@@ -5050,37 +5231,48 @@ function renderPattern(){
     // that when two entries land at (nearly) the same time, the one
     // earlier in the default item order ends up on top
     var dayMarks = [];
+    var dayIcons = [];
 
     entries.forEach(function(e){
       var meta = typeMeta(e.type);
       if (!meta || !patternShows(e)) return;
+      if (!patternIsOn(e.type)) return;      /* switched off in the row above */
       var s = new Date(e.start).getTime();
       if (isNaN(s)) return;
-      var tint = patternTint(meta.color);
       var rank = typeOrder.indexOf(e.type);
       if (rank < 0) rank = typeOrder.length;
 
-      /* COLOUR ONLY, NO ICONS. Seven columns of emoji — a bear, a bath, a
-         bottle of drops on every single day — was a wall of pictures with
-         the actual shape of the day hidden behind it. What the chart is for
-         is the shape: when he slept, when he ate, when he played. That is a
-         length, and a length is a coloured band. The legend is where the
-         colours get their names. */
+      /* AN ITEM THAT EITHER HAPPENED OR DID NOT gets its own icon at the
+         hour it happened. How long a nappy change or a bath took says
+         nothing worth charting; WHEN it happened does — the morning poo,
+         the bath always at eight. */
+      if (patternIsIconType(e.type)){
+        if (s < dStartMs || s >= dEndMs) return;
+        anyMark = true;
+        if (iconMode === 'disc'){ dayIcons.push({ ms: s, meta: meta, rank: rank }); return; }
+        var ipct = (s - dStartMs)/DAY_MS*100;
+        dayMarks.push({ rank: rank, html: '<span class="pattern-mark-band is-point" style="top:'+ipct.toFixed(2)+'%;background:'+meta.color+'" title="'+esc(meta.id === 'diaper' ? t('dirty') : meta.label)+' '+esc(fmtTime(e.start))+'"></span>' });
+        return;
+      }
+
+      /* the shape of the day — 분유, 수면, 놀이 and anything else logged:
+         a length is a coloured band, a moment is a tick */
+      var tint = patternTint(meta.color);
       var en = e.end ? new Date(e.end).getTime() : s;
       if (en - s >= PATTERN_MIN_MS){
         var os = Math.max(s, dStartMs), oe = Math.min(en, dEndMs);
         if (oe <= os) return;
         var topPct = (os - dStartMs)/DAY_MS*100;
         var hPct = Math.max((oe-os)/DAY_MS*100, 0.5);
-        usedTypes[e.type] = meta; anyMark = true;
+        anyMark = true;
         dayMarks.push({ rank: rank, html: '<span class="pattern-mark-band" style="top:'+topPct.toFixed(2)+'%;height:'+hPct.toFixed(2)+'%;background:'+tint+'" title="'+esc(meta.label)+' '+esc(fmtTime(e.start))+'"></span>' });
       } else {
         /* something that happened AT a moment rather than over one: a thin
            line, so a 30-second event never looks like an hour of sleep */
         if (s < dStartMs || s >= dEndMs) return;
         var pct = (s - dStartMs)/DAY_MS*100;
-        usedTypes[e.type] = meta; anyMark = true;
-        dayMarks.push({ rank: rank, html: '<span class="pattern-mark-band is-point" style="top:'+pct.toFixed(2)+'%;background:'+tint+'" title="'+esc(meta.label)+' '+esc(fmtTime(e.start))+'"></span>' });
+        anyMark = true;
+        dayMarks.push({ rank: rank, html: '<span class="pattern-mark-band is-point" style="top:'+pct.toFixed(2)+'%;background:'+meta.color+'" title="'+esc(meta.label)+' '+esc(fmtTime(e.start))+'"></span>' });
       }
     });
 
@@ -5090,6 +5282,20 @@ function renderPattern(){
                  '<span class="pattern-grid-line-h" style="top:50%"></span>',
                  '<span class="pattern-grid-line-h" style="top:75%"></span>']
       .concat(dayMarks.map(function(m){ return m.html; }));
+
+    /* the icons go on last, above every band, each seated so a cluster
+       spreads sideways instead of stacking */
+    patternSeats(dayIcons, seatStep).forEach(function(ic){
+      var pct = (ic.ms - dStartMs) / DAY_MS * 100;
+      /* three at once is rare and would not fit side by side at any width;
+         they close ranks rather than leave the column */
+      var dx = ic.n > 2 ? ic.dx * (2 / ic.n) : ic.dx;
+      marks.push('<span class="pattern-ic" style="top:' + pct.toFixed(2) +
+        '%;left:calc(50% + ' + dx.toFixed(1) + 'px);transform:translateX(-50%);color:' + ic.meta.color +
+        ';width:' + disc + 'px;height:' + disc + 'px;margin-top:' + (-disc / 2).toFixed(1) + 'px"' +
+        ' title="' + esc(ic.meta.id === 'diaper' ? t('dirty') : ic.meta.label) + ' ' + esc(fmtTime(new Date(ic.ms).toISOString())) + '">' +
+        typeIconHtml(ic.meta, '', 'width:' + (disc - 7) + 'px;height:' + (disc - 7) + 'px') + '</span>');
+    });
 
     /* counted back from today, so today always carries a label and the rest
        step away from it evenly */
@@ -5102,23 +5308,15 @@ function renderPattern(){
       '<div class="pattern-col-label">'+labelHtml+'</div>' +
     '</div>';
   }
+  colsBox.className = 'pattern-cols';
   colsBox.innerHTML = colsHtml;
   /* nothing to scroll any more — the whole week is on screen by construction */
 
-  var typeIds = Object.keys(usedTypes).sort(function(a,b){ return typeOrder.indexOf(a)-typeOrder.indexOf(b); });
-  /* one shape for every entry in the key, because the chart now has one
-     shape for everything: a colour and its name. 기저귀 is called 대변 here —
-     that is the only kind the chart draws. */
-  legendBox.innerHTML = typeIds.map(function(id){
-    var m = usedTypes[id];
-    var label = id === 'diaper' ? t('dirty') : m.label;
-    return '<span class="pattern-legend-item">' +
-      '<span class="pattern-legend-swatch" style="background:'+patternTint(m.color)+'"></span>' +
-      esc(label) + '</span>';
-  }).join('');
-
+  /* the switch row IS the key now — a colour item wears its swatch, an icon
+     item wears its icon — so there is no second legend under the chart */
+  if (legendBox){ legendBox.innerHTML = ''; legendBox.hidden = true; }
+  if (togBox) togBox.hidden = !presentIds.length;
   if (cardEl) cardEl.hidden = !anyMark;
-  legendBox.hidden = !anyMark;
   if (emptyEl) emptyEl.hidden = anyMark;
 }
 
@@ -5820,7 +6018,18 @@ var gPendingDiary = null;
    is diffed against what the server knew and committed as one ordered
    chain of writes (ordered, not parallel: racing them is how "too many
    concurrent writes" happens). */
+/* ONE TAP ON ✓ IS ONE SAVE. The writes go out as a chain of requests and
+   the page only leaves edit mode when the last of them answers — so a
+   second tap a moment later found the draft still there and sent the whole
+   lot again, and the day ended up with the schedule (and the milestone, and
+   the weigh-in) two or three times over. The button is shut for the
+   duration of its own save. */
+var gCommitting = false;
 function commitGrowthDay(){
+  if (gCommitting) return;
+  gCommitting = true;
+  var modeBtn = document.getElementById('fp-gday-mode');
+  if (modeBtn) modeBtn.disabled = true;
   var ds = gSelectedDate();
   var d = gDraft || { miles: [], scheds: [], newMiles: [], newScheds: [], diaryRemoved: {} };
   var chain = Promise.resolve();
@@ -5916,6 +6125,8 @@ function commitGrowthDay(){
       state.gMode = 'view';
       mform.value = '';
       resetSchedForm();
+      gCommitting = false;
+      if (modeBtn) modeBtn.disabled = false;
       renderGrowth();
     });
 }
@@ -6939,6 +7150,9 @@ function deleteEntryDetail(){
      looks broken. */
   var id = state.entryId;
   var prev = (appState.entries || []).slice();
+  /* a second tap on the same trash icon (the page is still on screen for a
+     beat after the first) has nothing left to delete */
+  if (!id || !prev.some(function(e){ return e.id === id; })){ closeEntryDetail(); return; }
   appState.entries = prev.filter(function(e){ return e.id !== id; });
   closeEntryDetail();
   renderAll();

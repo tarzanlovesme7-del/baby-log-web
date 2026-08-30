@@ -103,9 +103,17 @@ function applyMutation(prevState, type, payload) {
        app is one JSON document overwritten in place, so before this a delete
        was final everywhere at once — there was nothing left to restore from,
        not even in the database. */
+    /* DELETING SOMETHING ALREADY GONE IS NOT AN ERROR. Three phones share
+       this log: 엄마 deletes a record, 아빠's screen still shows it for up
+       to four seconds, he taps delete too — and used to be told "entry not
+       found", with the row springing back onto his screen as if the delete
+       had failed. It had not; it had already happened. The ask ("make this
+       record not exist") is satisfied either way, so a delete that finds
+       nothing to do answers quietly instead of raising. The same goes for a
+       tap that lands twice on one phone. */
     case 'deleteEntry': {
       const entry = state.entries.find((e) => e.id === payload.id);
-      if (!entry) throw httpError(404, 'entry not found');
+      if (!entry) return { state, result: { alreadyGone: true } };
       assertMayTouch(payload.actor, entry.author, 'entry');
       state.entries = state.entries.filter((e) => e.id !== payload.id);
       state.trash = state.trash || [];
@@ -305,9 +313,9 @@ function applyMutation(prevState, type, payload) {
 
     case 'deleteMemoReply': {
       const memo = state.memos.find((m) => m.id === payload.memoId);
-      if (!memo) throw httpError(404, 'memo not found');
+      if (!memo) return { state, result: { alreadyGone: true } };
       const reply = (memo.replies || []).find((r) => r.id === payload.id);
-      if (!reply) throw httpError(404, 'reply not found');
+      if (!reply) return { state, result: { alreadyGone: true } };
       assertMayTouch(payload.actor, reply.author, 'reply');
       memo.replies = memo.replies.filter((r) => r.id !== payload.id);
       if (!memo.replies.length) delete memo.replies;
@@ -316,7 +324,7 @@ function applyMutation(prevState, type, payload) {
 
     case 'deleteMemo': {
       const memo = state.memos.find((m) => m.id === payload.id);
-      if (!memo) throw httpError(404, 'memo not found');
+      if (!memo) return { state, result: { alreadyGone: true } };
       assertMayTouch(payload.actor, memo.author, 'memo');
       state.memos = state.memos.filter((m) => m.id !== payload.id);
       /* the caller deletes the bytes once this write has actually landed —
@@ -351,7 +359,7 @@ function applyMutation(prevState, type, payload) {
     case 'deleteWeight': {
       state.weights = state.weights || [];
       const w = state.weights.find((x) => x.id === payload.id);
-      if (!w) throw httpError(404, 'weight not found');
+      if (!w) return { state, result: { alreadyGone: true } };
       assertMayTouch(payload.actor, w.author, 'weight');
       state.weights = state.weights.filter((x) => x.id !== payload.id);
       return { state, result: {} };
@@ -383,7 +391,7 @@ function applyMutation(prevState, type, payload) {
     case 'deleteHeight': {
       state.heights = state.heights || [];
       const h = state.heights.find((x) => x.id === payload.id);
-      if (!h) throw httpError(404, 'height not found');
+      if (!h) return { state, result: { alreadyGone: true } };
       assertMayTouch(payload.actor, h.author, 'height');
       state.heights = state.heights.filter((x) => x.id !== payload.id);
       return { state, result: {} };
@@ -448,7 +456,7 @@ function applyMutation(prevState, type, payload) {
     case 'deleteDiary': {
       state.diaries = state.diaries || [];
       const diary = state.diaries.find((d) => d.id === payload.id);
-      if (!diary) throw httpError(404, 'diary not found');
+      if (!diary) return { state, result: { alreadyGone: true, removedPhotos: [] } };
       assertMayTouch(payload.actor, diary.author, 'diary');
       state.diaries = state.diaries.filter((d) => d.id !== payload.id);
       return { state, result: { removedPhotos: (diary.photos || []).map((p) => p.id) } };
@@ -526,7 +534,7 @@ function applyMutation(prevState, type, payload) {
     case 'deleteSchedule': {
       state.schedules = state.schedules || [];
       const s = state.schedules.find((x) => x.id === payload.id);
-      if (!s) throw httpError(404, 'schedule not found');
+      if (!s) return { state, result: { alreadyGone: true } };
       assertMayTouch(payload.actor, s.author, 'schedule');
       state.schedules = state.schedules.filter((x) => x.id !== payload.id);
       return { state, result: {} };
@@ -546,7 +554,7 @@ function applyMutation(prevState, type, payload) {
     case 'deleteMilestone': {
       state.milestones = state.milestones || [];
       const m = state.milestones.find((x) => x.id === payload.id);
-      if (!m) throw httpError(404, 'milestone not found');
+      if (!m) return { state, result: { alreadyGone: true } };
       assertMayTouch(payload.actor, m.author, 'milestone');
       state.milestones = state.milestones.filter((x) => x.id !== payload.id);
       return { state, result: {} };
@@ -573,7 +581,7 @@ function applyMutation(prevState, type, payload) {
     case 'deleteCustomType': {
       const before = state.customTypes.length;
       state.customTypes = state.customTypes.filter((c) => c.id !== payload.id);
-      if (state.customTypes.length === before) throw httpError(404, 'custom type not found');
+      if (state.customTypes.length === before) return { state, result: { alreadyGone: true } };
       state.typeOrder = state.typeOrder.filter((id) => id !== 'custom:' + payload.id);
       return { state, result: {} };
     }

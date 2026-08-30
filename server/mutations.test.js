@@ -42,12 +42,15 @@ r = applyMutation(s, 'deleteEntry', { id: entryId });
 s = r.state;
 assert.strictEqual(s.entries.length, 1);
 
-try {
-  applyMutation(s, 'deleteEntry', { id: 'nope' });
-  assert.fail('expected throw');
-} catch (e) {
-  assert.strictEqual(e.status, 404);
-}
+/* deleting what is already gone is a quiet no-op, not a 404: two phones
+   share this log, and the second one to tap delete was being told "entry
+   not found" while the record sprang back onto its screen */
+r = applyMutation(s, 'deleteEntry', { id: 'nope' });
+assert.strictEqual(r.result.alreadyGone, true);
+assert.strictEqual(r.state.entries.length, 1);
+/* the same record deleted twice: still one in the bin, not two */
+r = applyMutation(s, 'deleteEntry', { id: entryId });
+assert.strictEqual(r.state.trash.filter((x) => x.id === entryId).length, 1);
 
 r = applyMutation(s, 'addMemo', { text: '안녕하세요', lang: 'ko', translation: 'Xin chào', author: '엄마' });
 s = r.state;
