@@ -4935,9 +4935,18 @@ function patternShows(e){
   if (e.type === 'diaper') return e.diaper === 'dirty' || e.diaper === 'both';
   return true;
 }
-/* the shortest a band can be and still be seen — anything briefer is drawn
-   as a point instead */
-var PATTERN_MIN_MS = 60000;
+/* ONE ITEM, ONE LOOK. A tick is 4px; on a 456px day that is thirteen
+   minutes. Anything shorter drawn as a band came out THINNER than a tick
+   and, being the pale wash rather than the colour itself, paler too — so a
+   five-minute feed and a tapped feed sat in the same column looking like
+   two different things ("주황색은 뭐고 연한 노란색은 뭐냐"). Below the
+   height of a tick, a tick is the honest mark. */
+var PATTERN_MIN_MS = 13 * 60000;
+/* And some items are moments whatever their stopwatch says. A feed's
+   duration is not what this chart is read for — when he ate is — and half
+   the feeds are tapped (no duration) while half are timed, which is exactly
+   how one item ends up with two appearances. Feeds are always the tick. */
+var PATTERN_MOMENT_TYPES = ['feed'];
 
 /* ---- the term views: 수유텀 and 잠텀(깨시) ------------------------------
    The 24h chart says WHEN things happen; these say HOW FAR APART. Same
@@ -5259,7 +5268,7 @@ function renderPattern(){
          a length is a coloured band, a moment is a tick */
       var tint = patternTint(meta.color);
       var en = e.end ? new Date(e.end).getTime() : s;
-      if (en - s >= PATTERN_MIN_MS){
+      if (PATTERN_MOMENT_TYPES.indexOf(e.type) < 0 && en - s >= PATTERN_MIN_MS){
         var os = Math.max(s, dStartMs), oe = Math.min(en, dEndMs);
         if (oe <= os) return;
         var topPct = (os - dStartMs)/DAY_MS*100;
@@ -7094,10 +7103,15 @@ function saveEntryDetail(){
   if (tempEl) payload.temp = Number(tempEl.value);
   var noteVal = document.getElementById('f-note').value.trim();
   payload.note = noteVal;
+  /* WHO WROTE THE RECORD IS NOT WHO IS HOLDING THE PHONE. Correcting the
+     end time of a sleep 아빠 started keeps his name ON THE RECORD — that is
+     the point of the field — but it used to also make this phone BE 아빠,
+     silently swapping the identity in the corner and, with it, what this
+     phone is allowed to delete. The two were the same line of code.
+     They are not the same thing. */
   var authorChip = $('.chip[aria-pressed="true"]', document.getElementById('f-author'));
-  var authorVal = (authorChip ? authorChip.dataset.author : '') || state.author;
+  var authorVal = (authorChip ? authorChip.dataset.author : '') || raw.author || state.author;
   payload.author = authorVal;
-  if (authorVal && authorVal !== state.author){ state.author = authorVal; localStorage.setItem(LS_AUTHOR, authorVal); }
 
   /* A note in Korean or Vietnamese gets translated for the other reader — but
      the SAVE MUST NEVER WAIT FOR IT. This used to sit on the translation
