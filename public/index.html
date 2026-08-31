@@ -622,7 +622,7 @@
      set a step larger than the rest of the app rather than at the shared
      caption/body sizes. The time column widens to match — at 13px the longest
      string ("오후 08:37") no longer fits 66px and would wrap mid-time. */
-  .e-time{ flex:0 0 84px; width:84px; align-self:stretch; display:flex; flex-direction:column; font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; }
+  .e-time{ flex:0 0 84px; width:84px; display:flex; flex-direction:column; font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; }
   .e-time-main, .e-time-end{ white-space:nowrap; }
   /* "다음날 오전 06:00" is wider than the time column; it wraps onto its own
      second line rather than widening every row in the list */
@@ -649,7 +649,7 @@
   /* ---- REACTIONS. The row sits under the note, inside the record's own
      text column, so it lines up with the words it is answering. The marks
      are drawn glyphs in the app's own hand, never emoji. ---- */
-  .rx-row{ display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-top:6px; }
+  .rx-row{ display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-top:5px; }
   .rx-chip, .rx-add{
     display:inline-flex; align-items:center; gap:4px; flex:0 0 auto;
     border:1px solid var(--border); background:var(--surface-2); color:var(--muted);
@@ -662,19 +662,8 @@
     background:var(--primary-weak-bg); border-color:transparent; color:var(--primary-weak-fg);
   }
   .rx-add{ padding:3px 7px; color:var(--muted-2); }
-  /* IN THE TIME COLUMN there are 84 pixels and no more, so the marks travel
-     stripped: no name (it stays on the chip as a tooltip, and is printed in
-     full on a memo, where there is room) and no pill either — a row of bare
-     marks fits four across where four pills fit two. Only YOUR OWN marks
-     keep a tint, which is the one thing you need to see at a glance because
-     it is what you tap to take back. The row is pushed to the foot of the
-     column so it sits level with the last line of the record's own text. */
-  .e-time .rx-row{ margin-top:auto; padding-top:5px; gap:3px; }
-  .e-time .rx-chip{ padding:2px; border-color:transparent; background:transparent; }
-  .e-time .rx-chip.is-mine{ background:var(--primary-weak-bg); }
-  .e-time .rx-add{ padding:1px 5px; font-size:13px; }
-  .e-time .rx-ico{ font-size:15px; }
-  .e-time .rx-name{ display:none; }
+  /* tight under the last line of the record, not floated away from it */
+  .entry-row .rx-row{ margin-top:3px; }
   /* the one place emoji are the right answer — see REACTION_EMOJI. Sized in
      px rather than em so a chip is the same height whatever the row's type
      size, and given an explicit emoji stack so a phone that has a colour
@@ -4866,21 +4855,22 @@ function entryRowHtml(e, isCont){
   if (e.note){
     noteHtml = '<div class="e-note">'+esc(e.note)+'</div>' +
       (e.noteTranslated ? '<div class="e-note-trans" style="color:'+typeInkColor(meta.color)+'">' +
-        esc(e.noteTranslated)+'</div>' : '');
+        esc(e.noteTranslated)+'</div>' : '') +
+      /* under the words it is answering, tight against them */
+      reactionRowHtml('entry', e.id, e.reactions);
   }
   var locked = !canTouch(e.author);
   return '<div class="entry-swipe'+(locked?' is-locked':'')+'" data-id="'+esc(e.id)+'"'+(locked?' data-locked="1"':'')+'>' +
     (locked ? '' : '<div class="entry-delete-bg" data-swipe-del="'+esc(e.id)+'"><span>'+esc(t('deleteSwipeLabel'))+'</span></div>') +
     '<button type="button" class="entry-row" data-id="'+esc(e.id)+'">' +
-      /* THE MARKS RIDE IN THE TIME COLUMN. A record with a note is four
-         lines tall on the right and three on the left, so that column has a
-         line going spare — and marks are an aside about the record rather
-         than part of it, which is exactly what the quiet left column is
-         for. Too narrow for names, so they move to the chip's tooltip. */
+      /* THE MARKS TRIED THE TIME COLUMN and came back. There is a spare line
+         over there, but 84px only fits one named chip per line, so four marks
+         became four lines — and stripping the names to fit three across cost
+         the thing that makes a mark worth anything in a house of three.
+         Under the words, they cost one line however many there are. */
       '<div class="e-time"><span class="e-time-main">'+esc(timeMain)+'</span>' +
       (timeEnd ? '<span class="e-time-end'+(endNextDay?' wrap':'')+'">~'+esc(timeEnd)+'</span>' : '') +
-      (e.author?('<span class="e-author">'+esc(localizeAuthorName(e.author))+'</span>'):'') +
-      (e.note ? reactionRowHtml('entry', e.id, e.reactions) : '') + '</div>' +
+      (e.author?('<span class="e-author">'+esc(localizeAuthorName(e.author))+'</span>'):'') + '</div>' +
       typeIconHtml(meta, 'e-icon', 'color:'+meta.color) +
       '<div class="e-main"><div class="e-title-line"><span class="e-title"'+colorAttr(meta.color)+'>'+esc(title)+'</span>' +
       (subParts.length ? '<span class="e-sub">'+esc(subParts.join(' · '))+'</span>' : '') + '</div>' + noteHtml + '</div>' +
