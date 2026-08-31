@@ -462,6 +462,48 @@ function applyMutation(prevState, type, payload) {
       return { state, result: { removedPhotos: (diary.photos || []).map((p) => p.id) } };
     }
 
+    /* ---- REACTIONS -------------------------------------------------
+       The only message in this app that needs no translation. 엄마 can
+       read what the nanny wrote but cannot answer without composing text
+       that has to survive a round trip through a translator; a heart says
+       "I saw this, thank you" and arrives whole.
+
+       DELIBERATELY POSITIVE ONLY. A record with a thumbs-down is an
+       appraisal, and once one is possible, silence becomes one too —
+       every unreacted record starts to mean something. Four warm marks,
+       no cold ones, and no count that could be read as a score.
+
+       Anyone may react to anyone's record: acknowledging someone else's
+       work is the whole point, so this is NOT gated by assertMayTouch the
+       way editing and deleting are. Toggling is idempotent — two phones
+       racing on the same heart settle on the same answer — and a record
+       that has since been deleted reports alreadyGone rather than 404,
+       like every other write here. */
+    case 'toggleReaction': {
+      const KINDS = ['laugh', 'thumb', 'heart', 'clap', 'bow', 'fire', 'ok'];
+      if (KINDS.indexOf(payload.kind) < 0) throw httpError(400, 'unknown reaction');
+      const who = (payload.author || '').trim();
+      if (!who) throw httpError(400, 'reaction needs an author');
+      const list = payload.target === 'diary' ? (state.diaries || [])
+        : payload.target === 'memo' ? (state.memos || [])
+        : (state.entries || []);
+      const rec = list.find((x) => x.id === payload.id);
+      if (!rec) return { state, result: { alreadyGone: true } };
+      const rx = rec.reactions || {};
+      const had = (rx[payload.kind] || []).indexOf(who) >= 0;
+      /* one person, one mark per record: picking a second replaces the
+         first rather than stacking, which is what Zalo does and what stops
+         a row growing a wall of chips */
+      KINDS.forEach((k) => {
+        if (!rx[k]) return;
+        rx[k] = rx[k].filter((n) => n !== who);
+        if (!rx[k].length) delete rx[k];
+      });
+      if (!had) rx[payload.kind] = (rx[payload.kind] || []).concat([who]);
+      if (Object.keys(rx).length) rec.reactions = rx; else delete rec.reactions;
+      return { state, result: { reactions: rec.reactions || {}, on: !had } };
+    }
+
     /* schedules: appointments on the growth calendar — 예방접종, 검진,
        문화센터. A date, an optional time-of-day, free text. Translated in
        the background like memos and diary pages so the nanny can read

@@ -646,6 +646,50 @@
   /* the colour is written on the element by typeInkColor — this is only the
      fallback for a row whose type somehow has none */
   .e-note-trans{ font-size:var(--fs-caption); color:var(--muted); margin-top:2px; white-space:pre-wrap; word-break:break-word; }
+  /* ---- REACTIONS. The row sits under the note, inside the record's own
+     text column, so it lines up with the words it is answering. The marks
+     are drawn glyphs in the app's own hand, never emoji. ---- */
+  .rx-row{ display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-top:6px; }
+  .rx-chip, .rx-add{
+    display:inline-flex; align-items:center; gap:4px; flex:0 0 auto;
+    border:1px solid var(--border); background:var(--surface-2); color:var(--muted);
+    border-radius:var(--radius-pill); padding:3px 9px 3px 7px;
+    font-size:var(--fs-micro); font-weight:var(--fw-medium); line-height:1.5;
+  }
+  /* a mark this phone put there: filled in the app colour, so you can see at
+     a glance which one is yours and tap it again to take it back */
+  .rx-chip.is-mine{
+    background:var(--primary-weak-bg); border-color:transparent; color:var(--primary-weak-fg);
+  }
+  .rx-add{ padding:3px 7px; color:var(--muted-2); }
+  /* the one place emoji are the right answer — see REACTION_EMOJI. Sized in
+     px rather than em so a chip is the same height whatever the row's type
+     size, and given an explicit emoji stack so a phone that has a colour
+     font uses it instead of falling back to a mono outline. */
+  .rx-ico{
+    font-size:14px; line-height:1; flex:0 0 auto;
+    font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
+  }
+  /* the picker: the same floating card as the ⋯ menu, laid out in a row */
+  .rx-menu{
+    position:fixed; z-index:70; padding:6px; display:flex; gap:2px;
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-pill);
+    box-shadow:0 12px 32px rgba(15,23,42,.18);
+  }
+  .rx-menu button{
+    border:0; background:transparent; border-radius:50%; padding:8px;
+    display:flex; align-items:center; justify-content:center; color:var(--muted);
+  }
+  .rx-menu button .rx-ico{ font-size:25px; }
+  .rx-menu button[aria-pressed="true"]{ background:var(--primary-weak-bg); color:var(--primary-weak-fg); }
+  /* the row of marks is the widest thing this app ever floats, and it grows
+     every time she adds one. On a 320px phone it comes in a size so the
+     whole row still opens on screen rather than running off the edge. */
+  @media (max-width: 360px){
+    .rx-menu{ padding:5px; }
+    .rx-menu button{ padding:6px; }
+    .rx-menu button .rx-ico{ font-size:22px; }
+  }
   .empty-note{ padding:50px 16px; text-align:center; color:var(--muted); font-size:var(--fs-label); }
 
   /* memo tab — list-only now: composing moved to its own bottom sheet
@@ -2526,6 +2570,7 @@ ko: {
   memoNoMemos:"아직 등록된 메모가 없어요.", tabMemo:"메모", typeOrder:"항목 순서",
   quickAdd:"빠른 기록", timeline:"기록", loadMore:"이전 기록 더 보기", emptyDay:"이 날은 기록이 없어요", todayBtn:"오늘", babyInfo:"아기 정보", babyNameKo:"이름 (한국어)", babyNameVi:"이름 (베트남어)", babyBirth:"태어난 날",
   whoAmI:"나는 누구", customTypes:"커스텀 항목 관리",
+  rxAdd:"반응 남기기",
   icoNames:{ heart:"하트", pencil:"연필", food:"이유식", water:"물", star:"별", music:"노래",
              sun:"햇빛", book:"책", camera:"사진", tooth:"치아", cross:"병원", smile:"기분" },
   appearance:"화면", theme:"테마", themeAuto:"자동", themeLight:"라이트", themeDark:"다크",
@@ -2625,6 +2670,7 @@ vi: {
   memoNoMemos:"Chưa có ghi chú nào được đăng.", tabMemo:"Ghi chú", typeOrder:"Thứ tự mục",
   quickAdd:"Ghi nhanh", timeline:"Nhật ký", loadMore:"Xem ngày trước đó", emptyDay:"Ngày này chưa có ghi chép", todayBtn:"Hôm nay", babyInfo:"Thông tin bé", babyNameKo:"Tên (Tiếng Hàn)", babyNameVi:"Tên (Tiếng Việt)", babyBirth:"Ngày sinh",
   whoAmI:"Bạn là ai", customTypes:"Quản lý mục tùy chỉnh",
+  rxAdd:"Bày tỏ cảm xúc",
   icoNames:{ heart:"Trái tim", pencil:"Bút chì", food:"Ăn dặm", water:"Nước", star:"Ngôi sao", music:"Bài hát",
              sun:"Nắng", book:"Sách", camera:"Ảnh", tooth:"Răng", cross:"Bệnh viện", smile:"Tâm trạng" },
   appearance:"Giao diện", theme:"Chủ đề", themeAuto:"Tự động", themeLight:"Sáng", themeDark:"Tối",
@@ -2824,6 +2870,148 @@ var GROWTH_ICONS = {
        g: '<path data-solid d="M5.4 3h8l5.2 5.2V21H5.4z"/><path d="M13.4 3v5.2h5.2"/>' +
           '<path d="M8.6 12.8h6.6M8.6 16.4h4.6"/>' }
 };
+/* FOUR WARM MARKS — and these ARE emoji, deliberately, in an app that
+   spent a whole day taking emoji out of everything else.
+
+   The difference is who is speaking. Every other glyph here is the APP
+   talking — a bottle means "분유", a ruler means "키" — and those have to be
+   drawn, so they share one hand and look the same on the nanny's Android as
+   on an iPhone. A reaction is a PERSON talking. It is the content, not the
+   chrome, and it is the one message in this app that crosses the language
+   gap with no translation at all. Zalo and KakaoTalk both put emoji here,
+   so the gesture is already learned; ❤️‍🔥 in particular is a ZWJ sequence
+   no drawing would match. Hands at 15px were the deciding practicality —
+   two mitts and three sparks read as two rounded rectangles.
+
+   Still no cold one: a record with a thumbs-down is an appraisal, and once
+   one is possible, silence becomes one too. */
+var REACTION_KINDS = ['laugh', 'thumb', 'heart', 'clap', 'bow', 'fire', 'ok'];
+var REACTION_EMOJI = {
+  laugh: '\uD83D\uDE02',
+  thumb: '\uD83D\uDC4D',
+  heart: '\uD83D\uDC96',
+  clap: '\uD83D\uDC4F',
+  /* 🙇‍♀️ — person bowing, ZWJ, female sign, VS16. 고마워요 / 미안해요, and the
+     one gesture in the set that both households already make out loud. A
+     phone that does not know the sequence falls back to 🙇 followed by ♀,
+     which still reads as a bow. */
+  bow: '\uD83D\uDE47\u200D\u2640\uFE0F',
+  fire: '\uD83D\uDD25',
+  ok: '\uD83D\uDC4C'
+};
+function reactionIconHtml(k, cls){
+  return '<span class="' + (cls || 'rx-ico') + '" aria-hidden="true">' + (REACTION_EMOJI[k] || '') + '</span>';
+}
+/* A RECORD'S MARKS, and the button to add one. Rendered for records that
+   carry words or pictures — a note, a photo, a diary page. A nappy change
+   with nothing written on it has nothing to answer.
+
+   Names, not counts. There are three people in this house and knowing WHO
+   said "잘했어요" is the whole value; "2" is not. */
+function reactionRowHtml(target, id, reactions){
+  var rx = reactions || {};
+  var chips = REACTION_KINDS.filter(function(k){ return (rx[k] || []).length; }).map(function(k){
+    var who = rx[k];
+    var mine = who.indexOf(state.author) >= 0;
+    return '<span class="rx-chip' + (mine ? ' is-mine' : '') + '" role="button" tabindex="0"' +
+      ' data-rx-tog="' + esc(k) + '" data-rx-t="' + esc(target) + '" data-rx-id="' + esc(id) + '">' +
+      reactionIconHtml(k) + esc(who.map(localizeAuthorName).join(', ')) + '</span>';
+  });
+  /* the affordance is a bare +, not a sample mark: showing one of the four
+     here would read as "the app suggests this one" */
+  chips.push('<span class="rx-add" role="button" tabindex="0" aria-label="' + esc(t('rxAdd')) + '"' +
+    ' data-rx-open="1" data-rx-t="' + esc(target) + '" data-rx-id="' + esc(id) + '">+</span>');
+  return '<span class="rx-row">' + chips.join('') + '</span>';
+}
+
+/* the picker — one floating row of the four, the one you already chose lit */
+var rxMenuEl = null;
+function closeRxMenu(){
+  if (!rxMenuEl) return;
+  rxMenuEl.remove(); rxMenuEl = null;
+  document.removeEventListener('click', closeRxMenu, true);
+  window.removeEventListener('scroll', closeRxMenu, true);
+}
+function openRxMenu(anchor, target, id, current){
+  closeRxMenu();
+  rxMenuEl = document.createElement('div');
+  rxMenuEl.className = 'rx-menu';
+  rxMenuEl.innerHTML = REACTION_KINDS.map(function(k){
+    return '<button type="button" data-rk="' + k + '" aria-pressed="' + (k === current) + '">' +
+      reactionIconHtml(k) + '</button>';
+  }).join('');
+  document.body.appendChild(rxMenuEl);
+  var r = anchor.getBoundingClientRect();
+  var mw = rxMenuEl.offsetWidth, mh = rxMenuEl.offsetHeight;
+  var top = r.top - mh - 6;
+  if (top < 8) top = r.bottom + 6;
+  rxMenuEl.style.top = top + 'px';
+  rxMenuEl.style.left = Math.max(8, Math.min(r.left - 6, window.innerWidth - mw - 8)) + 'px';
+  $$('button', rxMenuEl).forEach(function(b){
+    b.addEventListener('click', function(ev){
+      ev.stopPropagation();
+      closeRxMenu();
+      sendReaction(target, id, b.dataset.rk);
+    });
+  });
+  setTimeout(function(){
+    document.addEventListener('click', closeRxMenu, true);
+    window.addEventListener('scroll', closeRxMenu, true);
+  }, 0);
+}
+
+/* OPTIMISTIC, like everything else here: the mark appears under the thumb
+   and the server is told second. One person holds one mark per record, so
+   choosing a second replaces the first — the same rule the server applies. */
+/* three kinds of thing can be reacted to; this is the only place that knows
+   which bag each of them lives in */
+function rxTargetList(target){
+  if (target === 'diary') return appState.diaries || [];
+  if (target === 'memo') return appState.memos || [];
+  return appState.entries || [];
+}
+function sendReaction(target, id, kind){
+  var list = rxTargetList(target);
+  var rec = list.filter(function(x){ return x.id === id; })[0];
+  if (!rec) return;
+  var rx = rec.reactions || {};
+  var had = (rx[kind] || []).indexOf(state.author) >= 0;
+  REACTION_KINDS.forEach(function(k){
+    if (!rx[k]) return;
+    rx[k] = rx[k].filter(function(n){ return n !== state.author; });
+    if (!rx[k].length) delete rx[k];
+  });
+  if (!had) rx[kind] = (rx[kind] || []).concat([state.author]);
+  if (Object.keys(rx).length) rec.reactions = rx; else delete rec.reactions;
+  renderAll();
+  apiMutate('toggleReaction', { target: target, id: id, kind: kind, author: state.author })
+    .catch(function(err){ toast(err.message); apiGetState().then(renderAll).catch(function(){}); });
+}
+
+/* One wiring pass for any container that draws reaction rows. The chips sit
+   INSIDE a record's own button, so every gesture on them has to be stopped
+   before it reaches the row — a tap would open the record and a drag would
+   start the swipe-to-delete. */
+function wireReactions(container){
+  $$('[data-rx-tog], [data-rx-open]', container).forEach(function(el){
+    ['pointerdown', 'touchstart', 'mousedown'].forEach(function(ev){
+      el.addEventListener(ev, function(e){ e.stopPropagation(); });
+    });
+    el.addEventListener('click', function(e){
+      e.stopPropagation(); e.preventDefault();
+      var target = el.dataset.rxT, id = el.dataset.rxId;
+      if (el.dataset.rxTog) { sendReaction(target, id, el.dataset.rxTog); return; }
+      var list = rxTargetList(target);
+      var rec = list.filter(function(x){ return x.id === id; })[0];
+      var mine = '';
+      REACTION_KINDS.forEach(function(k){
+        if (rec && ((rec.reactions || {})[k] || []).indexOf(state.author) >= 0) mine = k;
+      });
+      openRxMenu(el, target, id, mine);
+    });
+  });
+}
+
 function growthIconHtml(k, cls, extra){
   var it = GROWTH_ICONS[k];
   if (!it) return '';
@@ -3246,7 +3434,11 @@ function readEntries(){
       temp: e.temp !== undefined && e.temp !== null && e.temp !== '' ? Number(e.temp) : null,
       note: e.note || '', noteLang: e.noteLang || '',
       noteTranslated: glossaryFix(e.note || '', e.noteLang || '', e.noteTranslated || ''),
-      author: e.author || '', sleepKind: e.sleepKind || ''
+      author: e.author || '', sleepKind: e.sleepKind || '',
+      /* the marks other people left on this record — this normaliser lists
+         every field the screens are allowed to see, so a field left out here
+         simply does not exist as far as the UI is concerned */
+      reactions: e.reactions || null
     };
   });
 }
@@ -4466,6 +4658,7 @@ function renderTimeline(){
   });
   container.innerHTML = html;
   $$('.entry-swipe', container).forEach(function(wrap){ wireEntrySwipe(wrap); });
+  wireReactions(container);
   tuckActiveSlotUnderBand();
 }
 /* ================================================================
@@ -4645,7 +4838,10 @@ function entryRowHtml(e, isCont){
   if (e.note){
     noteHtml = '<div class="e-note">'+esc(e.note)+'</div>' +
       (e.noteTranslated ? '<div class="e-note-trans" style="color:'+typeInkColor(meta.color)+'">' +
-        esc(e.noteTranslated)+'</div>' : '');
+        esc(e.noteTranslated)+'</div>' : '') +
+      /* a record with something written on it can be answered without
+         writing back — see reactionRowHtml */
+      reactionRowHtml('entry', e.id, e.reactions);
   }
   var locked = !canTouch(e.author);
   return '<div class="entry-swipe'+(locked?' is-locked':'')+'" data-id="'+esc(e.id)+'"'+(locked?' data-locked="1"':'')+'>' +
@@ -6278,6 +6474,7 @@ function renderGrowthDay(){
       '</div>' +
       (d2.text ? '<div class="gd-text"' + (editing ? ' data-gde="' + esc(d2.id) + '"' : '') + '>' + esc(d2.text) + '</div>' : '') +
       (d2.translated ? '<div class="gd-trans">' + esc(d2.translated) + '</div>' : '') +
+      (editing ? '' : reactionRowHtml('diary', d2.id, d2.reactions)) +
       (photos.length ? '<div class="m-photos' + (photos.length === 1 ? ' one' : '') + '">' +
         photos.map(function(ph, i){
           var ratio = (ph.w && ph.h) ? (ph.h / ph.w) : 1;
@@ -6307,6 +6504,7 @@ function renderGrowthDay(){
       });
     });
   }
+  wireReactions(dl);
   $$('[data-diary-photo]', dl).forEach(function(btn){
     btn.addEventListener('click', function(){
       var d3 = readDiaries().filter(function(x){ return x.id === btn.dataset.diaryPhoto; })[0];
@@ -7513,6 +7711,7 @@ function readMemos(){
       translated: glossaryFix(m.text || '', m.lang || '', m.translation || ''),
       author: m.author || '', time: m.ts || '',
       photos: Array.isArray(m.photos) ? m.photos : [],
+      reactions: m.reactions || null,
       replies: (m.replies || []).map(function(r){
         return { id: r.id, text: r.text || '', lang: r.lang || 'other',
                  translated: glossaryFix(r.text || '', r.lang || '', r.translation || ''),
@@ -7712,6 +7911,10 @@ function renderMemoList(){
             '<img src="'+esc(displayPhotoUrl(ph.id, true))+'" alt="" loading="lazy" />' +
           '</button>';
         }).join('') + '</div>' : '') +
+      /* A MEMO IS WHERE THIS MATTERS MOST. It already has replies, but a
+         reply is a whole sentence that has to go through the translator and
+         come back; "봤어요, 고마워요" does not need any of that. */
+      reactionRowHtml('memo', m.id, m.reactions) +
       '<div class="m-meta">' +
         '<span>'+esc(fmtDateTime(m.time))+'</span>' +
         '<span style="display:flex;gap:10px;align-items:center;">' +
@@ -7743,6 +7946,7 @@ function renderMemoList(){
       '</div>' +
     '</div>';
   }).join('');
+  wireReactions(box);
   $$('[data-photo-memo]', box).forEach(function(btn){
     btn.addEventListener('click', function(){
       var m = readMemos().filter(function(x){ return x.id === btn.dataset.photoMemo; })[0];
