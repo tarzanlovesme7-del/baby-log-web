@@ -622,7 +622,7 @@
      set a step larger than the rest of the app rather than at the shared
      caption/body sizes. The time column widens to match — at 13px the longest
      string ("오후 08:37") no longer fits 66px and would wrap mid-time. */
-  .e-time{ flex:0 0 84px; width:84px; display:flex; flex-direction:column; font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; }
+  .e-time{ flex:0 0 84px; width:84px; align-self:stretch; display:flex; flex-direction:column; font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; }
   .e-time-main, .e-time-end{ white-space:nowrap; }
   /* "다음날 오전 06:00" is wider than the time column; it wraps onto its own
      second line rather than widening every row in the list */
@@ -662,6 +662,19 @@
     background:var(--primary-weak-bg); border-color:transparent; color:var(--primary-weak-fg);
   }
   .rx-add{ padding:3px 7px; color:var(--muted-2); }
+  /* IN THE TIME COLUMN there are 84 pixels and no more, so the marks travel
+     stripped: no name (it stays on the chip as a tooltip, and is printed in
+     full on a memo, where there is room) and no pill either — a row of bare
+     marks fits four across where four pills fit two. Only YOUR OWN marks
+     keep a tint, which is the one thing you need to see at a glance because
+     it is what you tap to take back. The row is pushed to the foot of the
+     column so it sits level with the last line of the record's own text. */
+  .e-time .rx-row{ margin-top:auto; padding-top:5px; gap:3px; }
+  .e-time .rx-chip{ padding:2px; border-color:transparent; background:transparent; }
+  .e-time .rx-chip.is-mine{ background:var(--primary-weak-bg); }
+  .e-time .rx-add{ padding:1px 5px; font-size:13px; }
+  .e-time .rx-ico{ font-size:15px; }
+  .e-time .rx-name{ display:none; }
   /* the one place emoji are the right answer — see REACTION_EMOJI. Sized in
      px rather than em so a chip is the same height whatever the row's type
      size, and given an explicit emoji stack so a phone that has a colour
@@ -2914,30 +2927,39 @@ function reactionRowHtml(target, id, reactions){
     var who = rx[k];
     var mine = who.indexOf(state.author) >= 0;
     return '<span class="rx-chip' + (mine ? ' is-mine' : '') + '" role="button" tabindex="0"' +
+      ' title="' + esc(who.map(localizeAuthorName).join(', ')) + '"' +
       ' data-rx-tog="' + esc(k) + '" data-rx-t="' + esc(target) + '" data-rx-id="' + esc(id) + '">' +
-      reactionIconHtml(k) + esc(who.map(localizeAuthorName).join(', ')) + '</span>';
+      reactionIconHtml(k) + '<span class="rx-name">' +
+      esc(who.map(localizeAuthorName).join(', ')) + '</span></span>';
   });
   /* the affordance is a bare +, not a sample mark: showing one of the four
      here would read as "the app suggests this one" */
   chips.push('<span class="rx-add" role="button" tabindex="0" aria-label="' + esc(t('rxAdd')) + '"' +
+    ' title="' + esc(t('rxAdd')) + '"' +
     ' data-rx-open="1" data-rx-t="' + esc(target) + '" data-rx-id="' + esc(id) + '">+</span>');
   return '<span class="rx-row">' + chips.join('') + '</span>';
 }
 
 /* the picker — one floating row of the four, the one you already chose lit */
 var rxMenuEl = null;
+/* a click anywhere BUT inside the picker puts it away; inside it, marks keep
+   toggling, because you may well want more than one */
+function rxOutsideClick(ev){
+  if (rxMenuEl && rxMenuEl.contains(ev.target)) return;
+  closeRxMenu();
+}
 function closeRxMenu(){
   if (!rxMenuEl) return;
   rxMenuEl.remove(); rxMenuEl = null;
-  document.removeEventListener('click', closeRxMenu, true);
+  document.removeEventListener('click', rxOutsideClick, true);
   window.removeEventListener('scroll', closeRxMenu, true);
 }
-function openRxMenu(anchor, target, id, current){
+function openRxMenu(anchor, target, id, mine){
   closeRxMenu();
   rxMenuEl = document.createElement('div');
   rxMenuEl.className = 'rx-menu';
   rxMenuEl.innerHTML = REACTION_KINDS.map(function(k){
-    return '<button type="button" data-rk="' + k + '" aria-pressed="' + (k === current) + '">' +
+    return '<button type="button" data-rk="' + k + '" aria-pressed="' + (mine.indexOf(k) >= 0) + '">' +
       reactionIconHtml(k) + '</button>';
   }).join('');
   document.body.appendChild(rxMenuEl);
@@ -2950,19 +2972,17 @@ function openRxMenu(anchor, target, id, current){
   $$('button', rxMenuEl).forEach(function(b){
     b.addEventListener('click', function(ev){
       ev.stopPropagation();
-      closeRxMenu();
-      sendReaction(target, id, b.dataset.rk);
+      /* the picker deliberately STAYS OPEN: making her reopen it for every
+         mark is exactly the friction that made one-per-person wrong */
+      b.setAttribute('aria-pressed', String(sendReaction(target, id, b.dataset.rk)));
     });
   });
   setTimeout(function(){
-    document.addEventListener('click', closeRxMenu, true);
+    document.addEventListener('click', rxOutsideClick, true);
     window.addEventListener('scroll', closeRxMenu, true);
   }, 0);
 }
 
-/* OPTIMISTIC, like everything else here: the mark appears under the thumb
-   and the server is told second. One person holds one mark per record, so
-   choosing a second replaces the first — the same rule the server applies. */
 /* three kinds of thing can be reacted to; this is the only place that knows
    which bag each of them lives in */
 function rxTargetList(target){
@@ -2970,22 +2990,31 @@ function rxTargetList(target){
   if (target === 'memo') return appState.memos || [];
   return appState.entries || [];
 }
+/* OPTIMISTIC, like everything else here: the mark appears under the thumb
+   and the server is told second.
+
+   EACH MARK TOGGLES ON ITS OWN. This began as one-per-person, the way Zalo
+   does it, and that was wrong for this app: a record can be funny AND worth
+   thanking someone for, and being made to choose between 😂 and 🙇‍♀️ loses
+   half of what she meant. Returns whether the mark is now on, so the picker
+   can light its own button without a re-render. */
 function sendReaction(target, id, kind){
   var list = rxTargetList(target);
   var rec = list.filter(function(x){ return x.id === id; })[0];
-  if (!rec) return;
+  if (!rec) return false;
   var rx = rec.reactions || {};
   var had = (rx[kind] || []).indexOf(state.author) >= 0;
-  REACTION_KINDS.forEach(function(k){
-    if (!rx[k]) return;
-    rx[k] = rx[k].filter(function(n){ return n !== state.author; });
-    if (!rx[k].length) delete rx[k];
-  });
-  if (!had) rx[kind] = (rx[kind] || []).concat([state.author]);
+  if (had){
+    rx[kind] = rx[kind].filter(function(n){ return n !== state.author; });
+    if (!rx[kind].length) delete rx[kind];
+  } else {
+    rx[kind] = (rx[kind] || []).concat([state.author]);
+  }
   if (Object.keys(rx).length) rec.reactions = rx; else delete rec.reactions;
   renderAll();
   apiMutate('toggleReaction', { target: target, id: id, kind: kind, author: state.author })
     .catch(function(err){ toast(err.message); apiGetState().then(renderAll).catch(function(){}); });
+  return !had;
 }
 
 /* One wiring pass for any container that draws reaction rows. The chips sit
@@ -3003,9 +3032,8 @@ function wireReactions(container){
       if (el.dataset.rxTog) { sendReaction(target, id, el.dataset.rxTog); return; }
       var list = rxTargetList(target);
       var rec = list.filter(function(x){ return x.id === id; })[0];
-      var mine = '';
-      REACTION_KINDS.forEach(function(k){
-        if (rec && ((rec.reactions || {})[k] || []).indexOf(state.author) >= 0) mine = k;
+      var mine = REACTION_KINDS.filter(function(k){
+        return rec && ((rec.reactions || {})[k] || []).indexOf(state.author) >= 0;
       });
       openRxMenu(el, target, id, mine);
     });
@@ -4838,18 +4866,21 @@ function entryRowHtml(e, isCont){
   if (e.note){
     noteHtml = '<div class="e-note">'+esc(e.note)+'</div>' +
       (e.noteTranslated ? '<div class="e-note-trans" style="color:'+typeInkColor(meta.color)+'">' +
-        esc(e.noteTranslated)+'</div>' : '') +
-      /* a record with something written on it can be answered without
-         writing back — see reactionRowHtml */
-      reactionRowHtml('entry', e.id, e.reactions);
+        esc(e.noteTranslated)+'</div>' : '');
   }
   var locked = !canTouch(e.author);
   return '<div class="entry-swipe'+(locked?' is-locked':'')+'" data-id="'+esc(e.id)+'"'+(locked?' data-locked="1"':'')+'>' +
     (locked ? '' : '<div class="entry-delete-bg" data-swipe-del="'+esc(e.id)+'"><span>'+esc(t('deleteSwipeLabel'))+'</span></div>') +
     '<button type="button" class="entry-row" data-id="'+esc(e.id)+'">' +
+      /* THE MARKS RIDE IN THE TIME COLUMN. A record with a note is four
+         lines tall on the right and three on the left, so that column has a
+         line going spare — and marks are an aside about the record rather
+         than part of it, which is exactly what the quiet left column is
+         for. Too narrow for names, so they move to the chip's tooltip. */
       '<div class="e-time"><span class="e-time-main">'+esc(timeMain)+'</span>' +
       (timeEnd ? '<span class="e-time-end'+(endNextDay?' wrap':'')+'">~'+esc(timeEnd)+'</span>' : '') +
-      (e.author?('<span class="e-author">'+esc(localizeAuthorName(e.author))+'</span>'):'') + '</div>' +
+      (e.author?('<span class="e-author">'+esc(localizeAuthorName(e.author))+'</span>'):'') +
+      (e.note ? reactionRowHtml('entry', e.id, e.reactions) : '') + '</div>' +
       typeIconHtml(meta, 'e-icon', 'color:'+meta.color) +
       '<div class="e-main"><div class="e-title-line"><span class="e-title"'+colorAttr(meta.color)+'>'+esc(title)+'</span>' +
       (subParts.length ? '<span class="e-sub">'+esc(subParts.join(' · '))+'</span>' : '') + '</div>' + noteHtml + '</div>' +

@@ -491,15 +491,16 @@ function applyMutation(prevState, type, payload) {
       if (!rec) return { state, result: { alreadyGone: true } };
       const rx = rec.reactions || {};
       const had = (rx[payload.kind] || []).indexOf(who) >= 0;
-      /* one person, one mark per record: picking a second replaces the
-         first rather than stacking, which is what Zalo does and what stops
-         a row growing a wall of chips */
-      KINDS.forEach((k) => {
-        if (!rx[k]) return;
-        rx[k] = rx[k].filter((n) => n !== who);
-        if (!rx[k].length) delete rx[k];
-      });
-      if (!had) rx[payload.kind] = (rx[payload.kind] || []).concat([who]);
+      /* ONE PERSON MAY LEAVE SEVERAL. It started as one-per-person, the way
+         Zalo does it, and that was wrong for this app: 웃기고 고맙고 대단한
+         기록 is one record, and being made to choose between 😂 and 🙇‍♀️
+         loses half of what she meant. Each mark toggles on its own. */
+      if (had) {
+        rx[payload.kind] = rx[payload.kind].filter((n) => n !== who);
+        if (!rx[payload.kind].length) delete rx[payload.kind];
+      } else {
+        rx[payload.kind] = (rx[payload.kind] || []).concat([who]);
+      }
       if (Object.keys(rx).length) rec.reactions = rx; else delete rec.reactions;
       return { state, result: { reactions: rec.reactions || {}, on: !had } };
     }
