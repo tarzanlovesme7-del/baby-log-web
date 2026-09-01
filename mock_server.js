@@ -21,6 +21,12 @@ let version = 1;
    thing being mirrored here is that contract: an id in the state, the bytes
    somewhere else, behind /api/photo. */
 const photoStore = new Map();
+/* clips live beside the pictures and answer to the same contract as
+   server/videos.js — poster first (it creates the row), bytes second, and
+   byte-range reads, because a <video> that cannot seek never plays */
+const videoStore = new Map();
+const VIDEO_ID_RE = /^v_[0-9a-f]{24,40}$/;
+const VIDEO_MIME = ['video/mp4', 'video/quicktime', 'video/webm'];
 const PHOTO_ID_RE = /^p_[0-9a-f]{24,40}$/;
 
 function send(res, status, body){
@@ -74,10 +80,79 @@ const server = http.createServer((req, res) => {
     });
     return res.end(buf);
   }
+  // ---- video: POST /api/video/:id/poster then /api/video/:id/bytes ----
+  const vm = /^\/api\/video\/([^/]+)(\/poster|\/bytes)?$/.exec(u.pathname);
+  if (vm && req.method === 'POST'){
+    const id = decodeURIComponent(vm[1]);
+    const chunks = [];
+    req.on('data', c => chunks.push(c));
+    req.on('end', () => {
+      const body = Buffer.concat(chunks);
+      if (!VIDEO_ID_RE.test(id)) return send(res, 400, { error: 'bad video id' });
+      if (vm[2] === '/poster'){
+        if (!body.length) return send(res, 400, { error: 'empty poster' });
+        if (body.length > 400 * 1024) return send(res, 413, { error: 'poster too large' });
+        const dur = Number(u.searchParams.get('dur'));
+        if (Number.isFinite(dur) && dur > 60) return send(res, 413, { error: 'video too long' });
+        const prev = videoStore.get(id) || {};
+        videoStore.set(id, Object.assign({}, prev, {
+          poster: body,
+          w: Number(u.searchParams.get('w')) || null,
+          h: Number(u.searchParams.get('h')) || null,
+          dur: Number.isFinite(dur) ? dur : null,
+        }));
+        return send(res, 200, { id });
+      }
+      if (vm[2] === '/bytes'){
+        const mime = u.searchParams.get('mime') || '';
+        if (!VIDEO_MIME.includes(mime)) return send(res, 400, { error: 'unsupported video type' });
+        if (!body.length) return send(res, 400, { error: 'empty video' });
+        if (body.length > 25 * 1024 * 1024) return send(res, 413, { error: 'video too large' });
+        const row = videoStore.get(id);
+        if (!row) return send(res, 409, { error: 'poster must be uploaded first' });
+        row.mime = mime; row.bytes = body;
+        return send(res, 200, { id, bytes: body.length });
+      }
+      return send(res, 404, { error: 'not found' });
+    });
+    return;
+  }
+  if (vm && req.method === 'GET'){
+    const id = decodeURIComponent(vm[1]);
+    const row = videoStore.get(id);
+    if (vm[2] === '/poster'){
+      if (!row || !row.poster) return send(res, 404, { error: 'poster not found' });
+      res.writeHead(200, { 'Content-Type': 'image/jpeg',
+        'Cache-Control': 'public, max-age=31536000, immutable', 'ETag': '"' + id + 'p"' });
+      return res.end(row.poster);
+    }
+    if (vm[2]) return send(res, 404, { error: 'not found' });
+    if (!row || !row.bytes) return send(res, 404, { error: 'video not found' });
+    const len = row.bytes.length;
+    const head = { 'Content-Type': row.mime || 'video/mp4', 'Accept-Ranges': 'bytes',
+      'Cache-Control': 'public, max-age=31536000, immutable', 'ETag': '"' + id + 'v"' };
+    const m = req.headers.range && /^bytes=(\d*)-(\d*)$/.exec(String(req.headers.range).trim());
+    if (!m){ res.writeHead(200, Object.assign({ 'Content-Length': String(len) }, head)); return res.end(row.bytes); }
+    let start = m[1] === '' ? null : Number(m[1]);
+    let end = m[2] === '' ? null : Number(m[2]);
+    if (start === null){ start = Math.max(0, len - (end === null ? 0 : end)); end = len - 1; }
+    else if (end === null){ end = len - 1; }
+    if (!(start >= 0 && end < len && start <= end)){
+      res.writeHead(416, Object.assign({ 'Content-Range': 'bytes */' + len }, head));
+      return res.end();
+    }
+    res.writeHead(206, Object.assign({
+      'Content-Range': 'bytes ' + start + '-' + end + '/' + len,
+      'Content-Length': String(end - start + 1) }, head));
+    return res.end(row.bytes.slice(start, end + 1));
+  }
   if (req.method === 'GET' && u.pathname === '/api/photo-usage'){
     let used = 0;
     photoStore.forEach(p => { used += p.bytes.length + p.thumb.length; });
-    return send(res, 200, { used, budget: 300 * 1024 * 1024 });
+    let vUsed = 0;
+    videoStore.forEach(v => { vUsed += (v.bytes ? v.bytes.length : 0) + (v.poster ? v.poster.length : 0); });
+    return send(res, 200, { used, budget: 300 * 1024 * 1024,
+      videoUsed: vUsed, videoBudget: 250 * 1024 * 1024 });
   }
   if (req.method === 'GET' && u.pathname === '/api/photo-count'){
     return send(res, 200, { count: photoStore.size, ids: [...photoStore.keys()] });
@@ -101,6 +176,9 @@ const server = http.createServer((req, res) => {
              orphaned them has landed */
           if (r.result && r.result.removedPhotos) {
             r.result.removedPhotos.forEach(id => photoStore.delete(id));
+          }
+          if (r.result && r.result.removedVideos) {
+            r.result.removedVideos.forEach(id => videoStore.delete(id));
           }
           send(res, 200, { data: state, version, result: r.result });
         } catch (e) {

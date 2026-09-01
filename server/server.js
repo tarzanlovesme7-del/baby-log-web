@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const express = require('express');
 const db = require('./db');
 const photos = require('./photos');
+const videos = require('./videos');
 const { applyMutation } = require('./mutations');
 const { translateText, hasGoodEngine } = require('./translate');
 
@@ -16,6 +17,8 @@ const app = express();
 const jsonSmall = express.json({ limit: '256kb' });
 app.use((req, res, next) => {
   if (req.path === '/api/photo' && req.method === 'POST') return next();
+  /* video bytes arrive raw, not as JSON at all — see the /api/video routes */
+  if (req.path.indexOf('/api/video/') === 0) return next();
   return jsonSmall(req, res, next);
 });
 
@@ -116,6 +119,10 @@ app.post('/api/mutate', async (req, res, next) => {
           photos.deletePhotos(result.removedPhotos)
             .catch((e) => console.error('[baby-log] photo cleanup', e));
         }
+        if (result && result.removedVideos && result.removedVideos.length) {
+          videos.deleteVideos(result.removedVideos)
+            .catch((e) => console.error('[baby-log] video cleanup', e));
+        }
         return res.json({ data: saved.data, version: saved.version, result });
       }
       // version conflict — someone else wrote in between; retry
@@ -163,12 +170,86 @@ app.get('/api/photo/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+/* ---- VIDEO. Two writes per clip, in this order: the poster (small, and it
+   creates the row) and then the bytes. Raw bodies, not base64 in JSON —
+   base64 would inflate a 25MB clip to 33MB of string and hold all of it in
+   memory twice. ---- */
+const posterBody = express.raw({ type: '*/*', limit: '512kb' });
+const videoBody = express.raw({ type: '*/*', limit: '26mb' });
+
+app.post('/api/video/:id/poster', posterBody, async (req, res, next) => {
+  try {
+    const q = req.query || {};
+    res.json(await videos.putPoster({
+      id: req.params.id, w: q.w, h: q.h, dur: q.dur, poster: req.body,
+    }));
+  } catch (err) { next(err); }
+});
+
+app.post('/api/video/:id/bytes', videoBody, async (req, res, next) => {
+  try {
+    res.json(await videos.putVideo({
+      id: req.params.id, mime: String((req.query || {}).mime || ''), bytes: req.body,
+    }));
+  } catch (err) { next(err); }
+});
+
+app.get('/api/video/:id/poster', async (req, res, next) => {
+  try {
+    const found = await videos.getPoster(req.params.id);
+    if (!found) return res.status(404).json({ error: 'poster not found' });
+    res.set('Content-Type', found.mime);
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.set('ETag', '"' + req.params.id + 'p"');
+    if (req.headers['if-none-match'] === res.get('ETag')) return res.status(304).end();
+    res.end(found.data);
+  } catch (err) { next(err); }
+});
+
+/* RANGE MATTERS HERE. <video> asks for byte ranges to seek, and Safari will
+   not play a source at all unless the server says it can serve them — the
+   clip simply never starts. A photo needs none of this; a video does. */
+app.get('/api/video/:id', async (req, res, next) => {
+  try {
+    const found = await videos.getVideo(req.params.id);
+    if (!found) return res.status(404).json({ error: 'video not found' });
+    res.set('Content-Type', found.mime);
+    res.set('Accept-Ranges', 'bytes');
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    res.set('ETag', '"' + req.params.id + 'v"');
+    const range = req.headers.range;
+    const m = range && /^bytes=(\d*)-(\d*)$/.exec(range.trim());
+    if (!m) {
+      res.set('Content-Length', String(found.len));
+      return res.end(found.data);
+    }
+    let start = m[1] === '' ? null : Number(m[1]);
+    let end = m[2] === '' ? null : Number(m[2]);
+    if (start === null) {            /* "bytes=-500": the last 500 bytes */
+      const tail = end === null ? 0 : end;
+      start = Math.max(0, found.len - tail);
+      end = found.len - 1;
+    } else if (end === null) {
+      end = found.len - 1;
+    }
+    if (!(start >= 0 && end < found.len && start <= end)) {
+      res.set('Content-Range', 'bytes */' + found.len);
+      return res.status(416).end();
+    }
+    res.status(206);
+    res.set('Content-Range', 'bytes ' + start + '-' + end + '/' + found.len);
+    res.set('Content-Length', String(end - start + 1));
+    res.end(found.data.slice(start, end + 1));
+  } catch (err) { next(err); }
+});
+
 /* how much room is left, for the settings screen to show before it runs out
    rather than after */
 app.get('/api/photo-usage', async (req, res, next) => {
   try {
     res.set('Cache-Control', 'no-store');
-    res.json({ used: await photos.usedBytes(), budget: photos.BUDGET_BYTES });
+    res.json({ used: await photos.usedBytes(), budget: photos.BUDGET_BYTES,
+               videoUsed: await videos.usedBytes(), videoBudget: videos.BUDGET_BYTES });
   } catch (err) { next(err); }
 });
 
@@ -219,11 +300,16 @@ async function sweepOrphanPhotos() {
     (data.diaries || []).forEach((d) => (d.photos || []).forEach((p) => referenced.push(p.id)));
     const gone = await photos.sweepOrphans(referenced, 60);
     if (gone) console.log('[baby-log] swept ' + gone + ' orphaned photo(s)');
+    const vids = [];
+    (data.diaries || []).forEach((d) => (d.videos || []).forEach((v) => vids.push(v.id)));
+    const goneV = await videos.sweepOrphans(vids, 60);
+    if (goneV) console.log('[baby-log] swept ' + goneV + ' orphaned video(s)');
   } catch (err) { console.error('[baby-log] orphan sweep', err); }
 }
 
 db.init()
   .then(() => photos.initPhotos())
+  .then(() => videos.initVideos())
   .then(() => {
     app.listen(PORT, () => console.log('baby-log listening on :' + PORT));
     sweepOrphanPhotos();
