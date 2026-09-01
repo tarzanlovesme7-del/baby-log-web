@@ -418,16 +418,12 @@ function applyMutation(prevState, type, payload) {
       const text = String(payload.text || '').trim().slice(0, 4000);
       const date = String(payload.date || '').slice(0, 10);
       if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw httpError(400, 'bad date');
-      if (!text && !normalizePhotos(payload.photos).length && !normalizeVideos(payload.videos).length) {
-        throw httpError(400, 'diary needs text, a photo or a video');
-      }
+      if (!text && !normalizePhotos(payload.photos).length) throw httpError(400, 'diary needs text or a photo');
       state.diaries = state.diaries || [];
       const diary = { id: uid('d_'), date, text, lang: payload.lang || 'other',
         translation: payload.translation || '', author: payload.author || '', ts: new Date().toISOString() };
       const photos = normalizePhotos(payload.photos);
       if (photos.length) diary.photos = photos;
-      const vids = normalizeVideos(payload.videos);
-      if (vids.length) diary.videos = vids;
       state.diaries.push(diary);
       return { state, result: { diary } };
     }
@@ -444,9 +440,7 @@ function applyMutation(prevState, type, payload) {
          ever carry translation/photos */
       if (payload.text !== undefined) {
         const text = String(payload.text || '').trim().slice(0, 4000);
-        if (!text && !(diary.photos || []).length && !(diary.videos || []).length) {
-          throw httpError(400, 'diary needs text, a photo or a video');
-        }
+        if (!text && !(diary.photos || []).length) throw httpError(400, 'diary needs text or a photo');
         diary.text = text;
         diary.lang = payload.lang || diary.lang || 'other';
         diary.translation = payload.translation || '';
@@ -456,28 +450,16 @@ function applyMutation(prevState, type, payload) {
         const photos = normalizePhotos(payload.photos);
         if (photos.length) diary.photos = photos; else delete diary.photos;
       }
-      /* a clip that has been dropped from the page frees its bytes, the same
-         way a dropped photo does */
-      let removedVideos = [];
-      if (payload.videos !== undefined) {
-        const vids = normalizeVideos(payload.videos);
-        const keep = new Set(vids.map((v) => v.id));
-        removedVideos = (diary.videos || []).map((v) => v.id).filter((id) => !keep.has(id));
-        if (vids.length) diary.videos = vids; else delete diary.videos;
-      }
-      return { state, result: { diary, removedVideos } };
+      return { state, result: { diary } };
     }
 
     case 'deleteDiary': {
       state.diaries = state.diaries || [];
       const diary = state.diaries.find((d) => d.id === payload.id);
-      if (!diary) return { state, result: { alreadyGone: true, removedPhotos: [], removedVideos: [] } };
+      if (!diary) return { state, result: { alreadyGone: true, removedPhotos: [] } };
       assertMayTouch(payload.actor, diary.author, 'diary');
       state.diaries = state.diaries.filter((d) => d.id !== payload.id);
-      return { state, result: {
-        removedPhotos: (diary.photos || []).map((p) => p.id),
-        removedVideos: (diary.videos || []).map((v) => v.id),
-      } };
+      return { state, result: { removedPhotos: (diary.photos || []).map((p) => p.id) } };
     }
 
     /* ---- REACTIONS -------------------------------------------------
@@ -749,29 +731,6 @@ function applyMutation(prevState, type, payload) {
    sends is dropped rather than trusted into the shared document. */
 const PHOTO_ID_RE = /^p_[0-9a-f]{24,40}$/;
 const MAX_PHOTOS_PER_MEMO = 4;
-/* the same shape as a photo ref, plus how long the clip runs — the list
-   draws a poster and a duration without touching the bytes */
-const VIDEO_ID_RE = /^v_[0-9a-f]{24,40}$/;
-function normalizeVideos(list) {
-  if (!Array.isArray(list)) return [];
-  const out = [];
-  const seen = new Set();
-  for (const raw of list) {
-    if (!raw || typeof raw !== 'object') continue;
-    const id = raw.id;
-    if (!VIDEO_ID_RE.test(id) || seen.has(id)) continue;
-    seen.add(id);
-    const w = Number(raw.w), h = Number(raw.h), dur = Number(raw.dur);
-    out.push({
-      id,
-      w: Number.isFinite(w) && w > 0 ? Math.round(w) : null,
-      h: Number.isFinite(h) && h > 0 ? Math.round(h) : null,
-      dur: Number.isFinite(dur) && dur > 0 ? Math.round(dur * 10) / 10 : null,
-    });
-    if (out.length >= 4) break;
-  }
-  return out;
-}
 function normalizePhotos(list) {
   if (!Array.isArray(list)) return [];
   const out = [];

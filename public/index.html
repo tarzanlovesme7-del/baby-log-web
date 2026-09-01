@@ -752,23 +752,6 @@
      a mess. One picture on its own is allowed to be taller, because then it
      IS the memo. Each box reserves its space before the image arrives so the
      list does not jump as the thumbnails load. */
-  /* a clip is drawn at its own shape, one per row — a video is watched, not
-     scanned, so it gets the width a photo grid would divide up */
-  .m-videos{ display:flex; flex-direction:column; gap:6px; margin-top:6px; }
-  .m-video{
-    display:block; width:100%; max-width:78%; border-radius:var(--radius-md, 12px);
-    background:#000; aspect-ratio:1 / var(--ar, 1); max-height:320px; object-fit:contain;
-  }
-  /* the staged clip in the compose strip: its poster, with a play badge over
-     it so it is never mistaken for one of the photographs beside it */
-  .mp-chip .mp-play{
-    position:absolute; left:50%; top:50%; width:20px; height:20px; margin:-10px 0 0 -10px;
-    border-radius:50%; background:rgba(0,0,0,.55); pointer-events:none;
-  }
-  .mp-chip .mp-play::after{
-    content:''; position:absolute; left:8px; top:6px;
-    border-left:7px solid #fff; border-top:4px solid transparent; border-bottom:4px solid transparent;
-  }
   .memo-row .m-photos, .gdiary-entry .m-photos{ display:grid; grid-template-columns:repeat(auto-fit, minmax(0, 1fr)); gap:5px; }
   .memo-row .m-photos.one, .gdiary-entry .m-photos.one{ grid-template-columns:1fr; max-width:62%; }
   .m-photo{
@@ -2373,8 +2356,8 @@
           <textarea id="gday-diary" rows="3" data-i18n-ph="diaryPh" maxlength="4000"></textarea>
           <div class="mp-strip" id="gday-photo-strip" hidden></div>
           <div class="gdiary-actions">
-            <button type="button" class="text-btn" id="gday-photo-btn" data-i18n="mediaAdd">사진·영상</button>
-            <input type="file" id="gday-photo-input" accept="image/*,video/*" multiple hidden />
+            <button type="button" class="text-btn" id="gday-photo-btn" data-i18n="photoAdd">사진</button>
+            <input type="file" id="gday-photo-input" accept="image/*" multiple hidden />
             <button type="button" id="gday-diary-save" data-i18n="diarySave">일기 저장</button>
           </div>
         </div>
@@ -2590,10 +2573,6 @@ ko: {
   quickAdd:"빠른 기록", timeline:"기록", loadMore:"이전 기록 더 보기", emptyDay:"이 날은 기록이 없어요", todayBtn:"오늘", babyInfo:"아기 정보", babyNameKo:"이름 (한국어)", babyNameVi:"이름 (베트남어)", babyBirth:"태어난 날",
   whoAmI:"나는 누구", customTypes:"커스텀 항목 관리",
   rxAdd:"반응 남기기",
-  videoTooBig:"동영상이 너무 커요 (25MB까지)", videoTooLong:"동영상이 너무 길어요 (1분까지)",
-  videoBadType:"지원하지 않는 동영상 형식이에요", videoUploading:"동영상 올리는 중…",
-  videoFailed:"동영상을 올리지 못했어요", videoStorageFull:"동영상 저장 공간이 가득 찼어요",
-  videoMaxTpl:"동영상은 {n}개까지예요", mediaAdd:"사진·영상",
   icoNames:{ heart:"하트", pencil:"연필", food:"이유식", water:"물", star:"별", music:"노래",
              sun:"햇빛", book:"책", camera:"사진", tooth:"치아", cross:"병원", smile:"기분" },
   appearance:"화면", theme:"테마", themeAuto:"자동", themeLight:"라이트", themeDark:"다크",
@@ -2694,10 +2673,6 @@ vi: {
   quickAdd:"Ghi nhanh", timeline:"Nhật ký", loadMore:"Xem ngày trước đó", emptyDay:"Ngày này chưa có ghi chép", todayBtn:"Hôm nay", babyInfo:"Thông tin bé", babyNameKo:"Tên (Tiếng Hàn)", babyNameVi:"Tên (Tiếng Việt)", babyBirth:"Ngày sinh",
   whoAmI:"Bạn là ai", customTypes:"Quản lý mục tùy chỉnh",
   rxAdd:"Bày tỏ cảm xúc",
-  videoTooBig:"Video quá lớn (tối đa 25MB)", videoTooLong:"Video quá dài (tối đa 1 phút)",
-  videoBadType:"Định dạng video không được hỗ trợ", videoUploading:"Đang tải video…",
-  videoFailed:"Không tải được video", videoStorageFull:"Hết dung lượng lưu video",
-  videoMaxTpl:"Tối đa {n} video", mediaAdd:"Ảnh · Video",
   icoNames:{ heart:"Trái tim", pencil:"Bút chì", food:"Ăn dặm", water:"Nước", star:"Ngôi sao", music:"Bài hát",
              sun:"Nắng", book:"Sách", camera:"Ảnh", tooth:"Răng", cross:"Bệnh viện", smile:"Tâm trạng" },
   appearance:"Giao diện", theme:"Chủ đề", themeAuto:"Tự động", themeLight:"Sáng", themeDark:"Tối",
@@ -6512,7 +6487,6 @@ function renderGrowthDay(){
   var dl = document.getElementById('gday-diary-list');
   dl.innerHTML = diaries.map(function(d2){
     var photos = Array.isArray(d2.photos) ? d2.photos : [];
-    var vids = Array.isArray(d2.videos) ? d2.videos : [];
     var removed = editing && gDraft.diaryRemoved[d2.id];
     return '<div class="gdiary-entry' + (removed ? ' is-removed' : '') + '">' +
       '<div class="gd-head"><span>' + esc(localizeAuthorName(d2.author)) + '</span>' +
@@ -6522,15 +6496,6 @@ function renderGrowthDay(){
       (d2.text ? '<div class="gd-text"' + (editing ? ' data-gde="' + esc(d2.id) + '"' : '') + '>' + esc(d2.text) + '</div>' : '') +
       (d2.translated ? '<div class="gd-trans">' + esc(d2.translated) + '</div>' : '') +
       (editing ? '' : reactionRowHtml('diary', d2.id, d2.reactions)) +
-      (vids.length ? '<div class="m-videos">' + vids.map(function(vv){
-        /* preload="none" — the poster is all that loads until it is tapped,
-           so a page with three clips costs three thumbnails, not 75MB */
-        var ratio = (vv.w && vv.h) ? (vv.h / vv.w) : 1;
-        return '<video class="m-video" controls preload="none" playsinline' +
-          ' poster="' + esc(videoPosterUrl(vv.id)) + '"' +
-          ' style="--ar:' + (Math.round(Math.min(1.6, Math.max(0.6, ratio)) * 1000) / 1000) + '"' +
-          ' src="' + esc(displayVideoUrl(vv.id)) + '"></video>';
-      }).join('') + '</div>' : '') +
       (photos.length ? '<div class="m-photos' + (photos.length === 1 ? ' one' : '') + '">' +
         photos.map(function(ph, i){
           var ratio = (ph.w && ph.h) ? (ph.h / ph.w) : 1;
@@ -6740,145 +6705,26 @@ function resetSchedForm(){
   renderSchedColorDots();
 }
 
-/* ================================================================
-   VIDEO ON A DIARY PAGE.
-
-   A photo is shrunk on the phone before it is uploaded. A video cannot be:
-   there is no way to re-encode one in a browser that works on both an
-   iPhone and the nanny's Android, so what goes up is whatever the camera
-   made. That leaves two defences, and both live here — a hard ceiling on
-   size and length, checked before a byte leaves the phone, and a POSTER
-   frame grabbed from the clip so that a diary page with videos on it draws
-   without downloading any of them.
-   ================================================================ */
-var VIDEO_MAX = 2;
-var VIDEO_MAX_BYTES = 25 * 1024 * 1024;
-var VIDEO_MAX_SECONDS = 60;
-var VIDEO_MIME = ['video/mp4', 'video/quicktime', 'video/webm'];
-function newVideoId(){
-  var s = '';
-  for (var i = 0; i < 28; i++) s += '0123456789abcdef'[Math.floor(Math.random() * 16)];
-  return 'v_' + s;
-}
-function videoUrl(id){ return '/api/video/' + encodeURIComponent(id); }
-function videoPosterUrl(id){ return '/api/video/' + encodeURIComponent(id) + '/poster'; }
-var localVideoUrls = {};
-function displayVideoUrl(id){ return localVideoUrls[id] || videoUrl(id); }
-
-/* Reads what the phone chose: checks it, measures it, and takes one frame a
-   fraction of a second in — at 0 the frame is often still black. */
-function readVideo(file){
-  return new Promise(function(resolve, reject){
-    if (VIDEO_MIME.indexOf(file.type) < 0) return reject(new Error('type'));
-    if (file.size > VIDEO_MAX_BYTES) return reject(new Error('size'));
-    var url = URL.createObjectURL(file);
-    var v = document.createElement('video');
-    v.preload = 'metadata'; v.muted = true; v.playsInline = true;
-    v.setAttribute('playsinline', '');
-    var done = false, timer = null;
-    function fail(kind){
-      if (done) return; done = true;
-      if (timer) clearTimeout(timer);
-      URL.revokeObjectURL(url);
-      reject(new Error(kind));
-    }
-    function grab(){
-      if (done) return;
-      var w = v.videoWidth, h = v.videoHeight;
-      if (!w || !h) return fail('decode');
-      try {
-        var c = document.createElement('canvas');
-        var scale = Math.min(1, 640 / Math.max(w, h));
-        c.width = Math.max(1, Math.round(w * scale));
-        c.height = Math.max(1, Math.round(h * scale));
-        c.getContext('2d').drawImage(v, 0, 0, c.width, c.height);
-        c.toBlob(function(pb){
-          if (done) return;
-          if (!pb) return fail('poster');
-          done = true;
-          if (timer) clearTimeout(timer);
-          var id = newVideoId();
-          localVideoUrls[id] = url;   /* play it from this phone until it lands */
-          resolve({ id: id, file: file, mime: file.type, w: w, h: h,
-                    dur: isFinite(v.duration) ? v.duration : null,
-                    posterBlob: pb, posterUrl: URL.createObjectURL(pb) });
-        }, 'image/jpeg', 0.72);
-      } catch (e){ fail('poster'); }
-    }
-    v.addEventListener('error', function(){ fail('decode'); });
-    v.addEventListener('loadedmetadata', function(){
-      if (isFinite(v.duration) && v.duration > VIDEO_MAX_SECONDS) return fail('long');
-      try { v.currentTime = Math.min(0.25, (v.duration || 1) / 4); }
-      catch (e){ grab(); }
-    });
-    v.addEventListener('seeked', grab);
-    /* some phones never fire `seeked` for a tiny seek — take whatever frame
-       is decoded rather than losing the clip over a thumbnail */
-    timer = setTimeout(grab, 4000);
-    v.src = url;
-  });
-}
-
-/* poster first: it is small, and it creates the row the bytes then fill.
-   A dropped upload therefore leaves a posterless orphan the server sweeps,
-   never half a clip on a diary page. */
-function uploadVideo(v){
-  function chk(res){
-    if (res.ok) return res.json();
-    return res.json().catch(function(){ return {}; }).then(function(j){
-      var e = new Error(j.error || 'upload failed'); e.status = res.status; throw e;
-    });
-  }
-  var q = '?w=' + v.w + '&h=' + v.h + '&dur=' + (v.dur || 0);
-  return fetch('/api/video/' + encodeURIComponent(v.id) + '/poster' + q, {
-    method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: v.posterBlob,
-  }).then(chk).then(function(){
-    return fetch('/api/video/' + encodeURIComponent(v.id) + '/bytes?mime=' + encodeURIComponent(v.mime), {
-      method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: v.file,
-    });
-  }).then(chk);
-}
-function videoRef(v){ return { id: v.id, w: v.w, h: v.h, dur: v.dur }; }
-function videoErrToast(err){
-  var k = err && err.message;
-  toast(t(k === 'size' ? 'videoTooBig' : k === 'long' ? 'videoTooLong'
-        : k === 'type' ? 'videoBadType' : 'videoFailed'));
-}
-
 /* ---- diary photos: same pipeline as memo photos, their own staging ---- */
 var diaryPhotos = [];
-var diaryVideos = [];
 function renderDiaryPhotoStrip(){
   var strip = document.getElementById('gday-photo-strip');
   if (!strip) return;
-  strip.hidden = !(diaryPhotos.length || diaryVideos.length);
+  strip.hidden = !diaryPhotos.length;
   strip.innerHTML = diaryPhotos.map(function(p){
     return '<div class="mp-chip"><img src="' + esc(localPhotoUrl(p.id) || '') + '" alt="" />' +
       '<button type="button" class="mp-x" data-drop-dphoto="' + esc(p.id) + '">✕</button></div>';
-  }).concat(diaryVideos.map(function(v){
-    /* a clip stages as its own poster with a play badge — the same chip the
-       photos use, so the strip stays one row of one kind of thing */
-    return '<div class="mp-chip"><img src="' + esc(v.posterUrl) + '" alt="" />' +
-      '<span class="mp-play" aria-hidden="true"></span>' +
-      '<button type="button" class="mp-x" data-drop-dvideo="' + esc(v.id) + '">✕</button></div>';
-  })).join('');
+  }).join('');
   $$('[data-drop-dphoto]', strip).forEach(function(b){
     b.addEventListener('click', function(){
       diaryPhotos = diaryPhotos.filter(function(x){ return x.id !== b.dataset.dropDphoto; });
       renderDiaryPhotoStrip();
     });
   });
-  $$('[data-drop-dvideo]', strip).forEach(function(b){
-    b.addEventListener('click', function(){
-      diaryVideos = diaryVideos.filter(function(x){ return x.id !== b.dataset.dropDvideo; });
-      renderDiaryPhotoStrip();
-    });
-  });
 }
-function attachDiaryPhotos(diaryId, pending, pendingVideos){
-  toast(t((pendingVideos && pendingVideos.length) ? 'videoUploading' : 'photoUploading'));
+function attachDiaryPhotos(diaryId, pending){
+  toast(t('photoUploading'));
   var landed = [], failed = 0, full = false;
-  var landedV = [], failedV = 0, fullV = false;
   return pending.reduce(function(chain, p){
     return chain.then(function(){
       return uploadPhoto(p)
@@ -6886,38 +6732,22 @@ function attachDiaryPhotos(diaryId, pending, pendingVideos){
         .catch(function(err){ failed++; if (err && err.status === 507) full = true; });
     });
   }, Promise.resolve()).then(function(){
-    /* clips go up one at a time and after the pictures: twenty-five
-       megabytes on a phone connection should not be racing anything */
-    return (pendingVideos || []).reduce(function(chain, v){
-      return chain.then(function(){
-        return uploadVideo(v)
-          .then(function(){ landedV.push(videoRef(v)); })
-          .catch(function(err){ failedV++; if (err && err.status === 507) fullV = true; });
-      });
-    }, Promise.resolve());
-  }).then(function(){
     var d = (appState.diaries || []).filter(function(x){ return x.id === diaryId; })[0];
     if (d){
       if (landed.length) d.photos = landed; else delete d.photos;
-      if (landedV.length) d.videos = landedV; else delete d.videos;
       if (state.tab === 'growth') renderGrowth();
       if (state.gMode === 'edit') renderGrowthDay();
     }
     if (failed) toast(full ? t('photoStorageFull') : t('photoFailed'));
-    if (failedV) toast(fullV ? t('videoStorageFull') : t('videoFailed'));
-    if (!landed.length && !landedV.length) return;
-    var patch = { id: diaryId };
-    if (landed.length) patch.photos = landed;
-    if (landedV.length) patch.videos = landedV;
-    return apiMutate('updateDiary', patch);
+    if (!landed.length) return;
+    return apiMutate('updateDiary', { id: diaryId, photos: landed });
   }).catch(function(){ toast(t('photoFailed')); });
 }
 function submitDiary(){
   var ta = document.getElementById('gday-diary');
   var text = ta.value.trim();
   var pending = diaryPhotos.slice();
-  var pendingV = diaryVideos.slice();
-  if (!text && !pending.length && !pendingV.length) return;
+  if (!text && !pending.length) return;
   /* editing an existing page: the same box, but the save is an update — the
      photos already on the page stay, staged ones are added, and the
      translation is redone for the new words */
@@ -6928,7 +6758,7 @@ function submitDiary(){
     var d0 = (appState.diaries || []).filter(function(x){ return x.id === editId; })[0];
     if (d0){ d0.text = text; d0.lang = lang2; d0.translation = ''; }
     ta.value = '';
-    diaryPhotos = []; diaryVideos = [];
+    diaryPhotos = [];
     renderDiaryPhotoStrip();
     renderGrowth();
     if (state.gMode === 'edit') renderGrowthDay();
@@ -6936,27 +6766,16 @@ function submitDiary(){
     apiMutate('updateDiary', { id: editId, text: text, lang: lang2 })
       .then(function(){
         renderGrowth();
-        if (!pending.length && !pendingV.length) return;
-        /* whatever the page already carries stays; the staged ones join it */
-        var existing = (d0 && d0.photos) ? d0.photos.slice() : [];
-        var existingV = (d0 && d0.videos) ? d0.videos.slice() : [];
-        if (pendingV.length) toast(t('videoUploading'));
-        return pending.reduce(function(chain, p2){
-          return chain.then(function(){ return uploadPhoto(p2).then(function(){
-            existing.push({ id: p2.id, w: p2.w, h: p2.h });
-          }).catch(function(){}); });
-        }, Promise.resolve()).then(function(){
-          return pendingV.reduce(function(chain, v2){
-            return chain.then(function(){ return uploadVideo(v2).then(function(){
-              existingV.push(videoRef(v2));
-            }).catch(function(err){ toast(t(err && err.status === 507 ? 'videoStorageFull' : 'videoFailed')); }); });
-          }, Promise.resolve());
-        }).then(function(){
-          var patch = { id: editId };
-          if (pending.length) patch.photos = existing;
-          if (pendingV.length) patch.videos = existingV;
-          return apiMutate('updateDiary', patch);
-        }).then(function(){ renderGrowth(); });
+        if (pending.length){
+          var existing = (d0 && d0.photos) ? d0.photos.slice() : [];
+          return pending.reduce(function(chain, p2){
+            return chain.then(function(){ return uploadPhoto(p2).then(function(){
+              existing.push({ id: p2.id, w: p2.w, h: p2.h });
+            }).catch(function(){}); });
+          }, Promise.resolve()).then(function(){
+            return apiMutate('updateDiary', { id: editId, photos: existing });
+          }).then(function(){ renderGrowth(); });
+        }
       })
       .then(function(){
         if (text && (lang2 === 'ko' || lang2 === 'vi')){
@@ -6972,17 +6791,15 @@ function submitDiary(){
     return;
   }
   var refs = pending.map(function(p){ return { id: p.id, w: p.w, h: p.h }; });
-  var refsV = pendingV.map(videoRef);
   /* the page appears NOW, from this phone's own blobs; the server hears
      about the words first and the pictures land as a second write */
   var lang = detectLang(text);
   var tempId = 'tmpd_' + Date.now();
   appState.diaries = (appState.diaries || []).concat([{ id: tempId, date: gSelectedDate(),
     text: text, lang: lang, author: state.author, ts: new Date().toISOString(),
-    photos: refs.length ? refs : undefined,
-    videos: refsV.length ? refsV : undefined }]);
+    photos: refs.length ? refs : undefined }]);
   ta.value = '';
-  diaryPhotos = []; diaryVideos = [];
+  diaryPhotos = [];
   renderDiaryPhotoStrip();
   renderGrowth();
   /* mid-edit the poll-driven renders stand back (see renderGrowth) — a page
@@ -6994,7 +6811,7 @@ function submitDiary(){
       renderGrowth();
       if (state.gMode === 'edit') renderGrowthDay();
       var newId = res && res.diary && res.diary.id;
-      if ((pending.length || pendingV.length) && newId) attachDiaryPhotos(newId, pending, pendingV);
+      if (pending.length && newId) attachDiaryPhotos(newId, pending);
       /* translated for the other reader, after the post — never before it */
       if (newId && text && (lang === 'ko' || lang === 'vi')){
         apiTranslate(text, lang === 'ko' ? 'vi' : 'ko').then(function(tr){
@@ -8970,36 +8787,17 @@ function wireEvents(){
   // diary: photos and save
   var dPhotoInput = document.getElementById('gday-photo-input');
   document.getElementById('gday-photo-btn').addEventListener('click', function(){ dPhotoInput.click(); });
-  /* ONE BUTTON, TWO KINDS. The phone's picker offers pictures and clips
-     together, and what comes back is sorted here — they have completely
-     different ceilings, so they cannot share a path beyond this point. */
   dPhotoInput.addEventListener('change', function(){
     if (dPhotoInput.files && dPhotoInput.files.length){
-      var picked = Array.prototype.slice.call(dPhotoInput.files);
-      var isVid = function(f){ return /^video\//.test(f.type || ''); };
-      var pics = picked.filter(function(f){ return !isVid(f); });
-      var clips = picked.filter(isVid);
-
       var room = PHOTO_MAX - diaryPhotos.length;
-      if (pics.length && room <= 0){ toast(t('photoMaxTpl').replace('{n}', PHOTO_MAX)); }
+      if (room <= 0){ toast(t('photoMaxTpl').replace('{n}', PHOTO_MAX)); }
       else {
-        pics.slice(0, room).forEach(function(f){
+        Array.prototype.slice.call(dPhotoInput.files, 0, room).forEach(function(f){
           compressPhoto(f).then(function(p){
             rememberLocalPhoto(p.id, p.blob);
             diaryPhotos.push(p);
             renderDiaryPhotoStrip();
           }).catch(function(){ toast(t('photoTooBig')); });
-        });
-      }
-
-      var vroom = VIDEO_MAX - diaryVideos.length;
-      if (clips.length && vroom <= 0){ toast(t('videoMaxTpl').replace('{n}', VIDEO_MAX)); }
-      else {
-        clips.slice(0, vroom).forEach(function(f){
-          readVideo(f).then(function(v){
-            diaryVideos.push(v);
-            renderDiaryPhotoStrip();
-          }).catch(videoErrToast);
         });
       }
     }
