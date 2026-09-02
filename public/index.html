@@ -757,15 +757,16 @@
      a mess. One picture on its own is allowed to be taller, because then it
      IS the memo. Each box reserves its space before the image arrives so the
      list does not jump as the thumbnails load. */
-  .memo-row .m-photos, .gdiary-entry .m-photos{ display:grid; grid-template-columns:repeat(auto-fit, minmax(0, 1fr)); gap:5px; }
-  .memo-row .m-photos.one, .gdiary-entry .m-photos.one{ grid-template-columns:1fr; max-width:62%; }
+  .memo-row .m-photos, .gdiary-entry .m-photos, .galb-item .m-photos{ display:grid; grid-template-columns:repeat(auto-fit, minmax(0, 1fr)); gap:5px; }
+  .memo-row .m-photos.one, .gdiary-entry .m-photos.one, .galb-item .m-photos.one{ grid-template-columns:1fr; max-width:62%; }
   .m-photo{
     display:block; padding:0; border:0; background:var(--surface-2);
     border-radius:12px; overflow:hidden; width:100%; aspect-ratio:1/1;
   }
   /* a single tall photo is allowed its own shape, but not the whole screen —
      it is still a thumbnail in a list, and tapping it is what shows it whole */
-  .memo-row .m-photos.one .m-photo, .gdiary-entry .m-photos.one .m-photo{ aspect-ratio:1 / var(--ar, 1); max-height:250px; }
+  .memo-row .m-photos.one .m-photo, .gdiary-entry .m-photos.one .m-photo,
+  .galb-item .m-photos.one .m-photo{ aspect-ratio:1 / var(--ar, 1); max-height:250px; }
   .m-photo img{ width:100%; height:100%; object-fit:cover; display:block; }
 
   /* the strip of pictures waiting to be posted, in the compose sheet */
@@ -1314,6 +1315,29 @@
   .gweek-evt .tx{ min-width:0; overflow:hidden; text-overflow:ellipsis; }
   .gweek-sub{ font-size:var(--fs-caption); color:var(--muted); }
   .gweek-empty{ font-size:var(--fs-micro); color:var(--muted-2); padding-top:4px; }
+  /* ---------- 모아보기: 하루가 제목, 그 날의 것들이 그 아래 ----------
+     날짜 줄은 누르면 그날 페이지로 간다 — 모아보기에서 무언가를 고치려면
+     결국 그 하루로 가야 하기 때문에. */
+  .galb-group{ border-top:1px solid var(--border); padding-bottom:8px; }
+  .galb-group:first-child{ border-top:0; }
+  .galb-date{ display:flex; align-items:baseline; gap:8px; width:100%;
+    padding:11px 2px 4px; border:0; background:transparent; text-align:left; color:var(--fg); }
+  .galb-date b{ font-size:var(--fs-label); font-weight:var(--fw-display);
+    font-variant-numeric:tabular-nums; }
+  .galb-date span{ font-size:var(--fs-caption); color:var(--muted-2); }
+  .galb-date .dd{ margin-left:auto; font-variant-numeric:tabular-nums; }
+  .galb-item{ display:flex; gap:9px; align-items:flex-start; padding:5px 2px; }
+  .galb-item .g-ico{ padding-top:2px; }
+  .galb-body{ flex:1; min-width:0; }
+  .galb-meta{ font-size:var(--fs-micro); color:var(--muted-2); }
+  .galb-item .gd-text, .galb-item .galb-text{ font-size:var(--fs-label); line-height:1.55;
+    white-space:pre-wrap; word-break:break-word; }
+  .galb-item .gd-trans{ font-size:var(--fs-label); line-height:1.55; white-space:pre-wrap;
+    word-break:break-word; color:var(--primary-weak-fg, var(--primary)); margin-top:3px; }
+  .galb-item .m-photos{ margin-top:8px; }
+  .galb-more{ display:block; width:100%; margin-top:10px; padding:10px 0;
+    border:0; border-top:1px solid var(--border); background:transparent;
+    color:var(--muted); font-size:var(--fs-caption); }
   /* two number boxes, two unit labels and a button on one 320px row: the
      boxes give, everything else keeps its size */
   #fp-gday .weight-form input[type="number"]{ flex:1; min-width:0; width:auto; }
@@ -2072,6 +2096,7 @@
   <section class="panel" id="tab-growth" data-tab-panel hidden>
     <div class="htabs" id="growth-tabs">
       <button type="button" data-gv="cal" aria-pressed="true" data-i18n="gCal">캘린더</button>
+      <button type="button" data-gv="album" aria-pressed="false" data-i18n="gAlbum">모아보기</button>
       <button type="button" data-gv="graph" aria-pressed="false" data-i18n="gGraph">그래프</button>
     </div>
 
@@ -2097,6 +2122,21 @@
       <div class="hint-line gcal-legend" id="gcal-legend"></div>
       <div class="memo-fab-wrap">
         <button type="button" class="fab" id="gcal-fab" aria-label="growth add">+</button>
+      </div>
+    </div>
+
+    <!-- 모아보기 — 발달 기록과 육아일기를 한 줄기로, 최신순.
+         캘린더는 하루를 열어야 보이고 그래프는 숫자만 본다. 여기는
+         그 둘을 위에서 아래로 읽어 내려가는 곳. -->
+    <div class="ins-panel" data-gv-panel="album" hidden>
+      <div class="chips-nav" id="galbum-sub">
+        <button type="button" data-galb="all" aria-pressed="true" data-i18n="albumAll">전체</button>
+        <button type="button" data-galb="mile" aria-pressed="false" data-i18n="albumMile">발달</button>
+        <button type="button" data-galb="diary" aria-pressed="false" data-i18n="albumDiary">일기</button>
+      </div>
+      <div class="card">
+        <div id="galbum-list"></div>
+        <button type="button" class="galb-more" id="galbum-more" hidden data-i18n="loadMore">이전 기록 더 보기</button>
       </div>
     </div>
 
@@ -2594,7 +2634,9 @@ ko: {
   since_poop:"마지막 똥", authorViPh:"베트남어 이름 (자동 번역)",
   nextFeedLabel:"다음 추천 수유", nextFeedValueTpl:"{time} · {remain} 후", nextFeedDueValueTpl:"시간이 지났어요 · {time}",
   patternTitle:"시간대 패턴", patternCaption:"세로축은 하루 24시간 · 항목을 눌러 켜고 끄세요", patternEmpty:"이 기간엔 기록이 없어요",
-  insAll:"일과", tabGrowth:"성장", gCal:"캘린더", gGraph:"그래프",
+  insAll:"일과", tabGrowth:"성장", gCal:"캘린더", gGraph:"그래프", gAlbum:"모아보기",
+  albumAll:"전체", albumMile:"발달", albumDiary:"일기",
+  albumEmpty:"발달 기록과 육아일기가 여기 모여요",
   heightTitle:"키", milestoneTitle:"발달 기록", milestonePh:"뒤집기, 첫 웃음…",
   feedSubTerm:"수유텀", feedSubStats:"수유량", pvSleepTerm:"잠텀", sleepSubStats:"수면 통계", gMeasures:"측정", gDiaryTitle:"육아일기",
   gEdit:"수정", gDone:"완료", gNoMeasure:"기록 없음", memoEditTitle:"메모 수정",
@@ -2699,7 +2741,9 @@ vi: {
   since_poop:"Ị gần nhất", authorViPh:"Tên tiếng Việt (tự dịch)",
   nextFeedLabel:"Dự kiến bú tiếp theo", nextFeedValueTpl:"{time} · còn {remain}", nextFeedDueValueTpl:"Đã quá giờ · {time}",
   patternTitle:"Mẫu hình theo giờ", patternCaption:"Trục dọc là 24 giờ · chạm để bật/tắt từng mục", patternEmpty:"Chưa có nhật ký trong khoảng này",
-  insAll:"Sinh hoạt", tabGrowth:"Phát triển", gCal:"Lịch", gGraph:"Biểu đồ",
+  insAll:"Sinh hoạt", tabGrowth:"Phát triển", gCal:"Lịch", gGraph:"Biểu đồ", gAlbum:"Tổng hợp",
+  albumAll:"Tất cả", albumMile:"Cột mốc", albumDiary:"Nhật ký",
+  albumEmpty:"Cột mốc và nhật ký của bé sẽ hiện ở đây",
   heightTitle:"Chiều cao", milestoneTitle:"Cột mốc phát triển", milestonePh:"Lật người, nụ cười đầu…",
   feedSubTerm:"Cữ bú", feedSubStats:"Lượng sữa", pvSleepTerm:"Bé thức", sleepSubStats:"Thống kê ngủ", gMeasures:"Đo lường", gDiaryTitle:"Nhật ký bé",
   gEdit:"Sửa", gDone:"Xong", gNoMeasure:"Chưa có ghi chép", memoEditTitle:"Sửa ghi chú",
@@ -3079,7 +3123,9 @@ var state = {
   statsFeedDays: 7,
   patternDays: 7,     // how far back the pattern chart looks (7/14/28)
   insTab: 'all',      // 통계 tab section: 'all' | 'feed' | 'poop' | 'sleep'
-  gTab: 'cal',        // 성장 tab view: 'cal' | 'graph'
+  gTab: 'cal',        // 성장 tab view: 'cal' | 'album' | 'graph'
+  gAlbumFilter: 'all',// 모아보기 filter: 'all' | 'mile' | 'diary'
+  gAlbumLimit: 20,    // how many items of it are on screen
   gMonth: null,       // 'YYYY-MM' the calendar is showing (null = this month)
   gDate: null,        // 'YYYY-MM-DD' selected on the calendar (null = today)
   gCalView: 'month',  // 캘린더 화면: 'month' (그리드+일정 pill) | 'week' (리스트)
@@ -6301,6 +6347,122 @@ function renderGrowthWeek(){
     });
   });
 }
+/* ============ 모아보기 ============
+   발달 기록과 육아일기는 같은 것의 두 얼굴이다 — 오늘 아기가 무엇을 했는지.
+   캘린더는 그것을 날짜 칸 안의 점으로 만들고, 하루를 열어야 읽힌다.
+   여기는 그 둘을 시간 순으로 세워 위에서 아래로 내려 읽는 곳: 하루가
+   제목이고, 그 날의 것들이 그 아래에 붙는다.
+
+   측정(몸무게·키)과 일정은 일부러 빼 두었다. 숫자는 그래프가 이미 곡선으로
+   보여 주고, 일정은 앞으로의 일이라 뒤로 흐르는 이 화면과 방향이 반대다. */
+var GALBUM_PAGE = 20;
+function albumItems(){
+  var filter = state.gAlbumFilter || 'all';
+  var out = [];
+  if (filter !== 'diary'){
+    readMilestones().forEach(function(m){
+      /* a milestone carries a day, not a clock — put it at the head of its
+         day, above the pages written during it */
+      out.push({ kind: 'm', date: m.date, tms: 86400000, rec: m });
+    });
+  }
+  if (filter !== 'mile'){
+    readDiaries().forEach(function(d){
+      var tms = d.ts ? (new Date(d.ts) - new Date(d.date + 'T00:00:00')) : 0;
+      out.push({ kind: 'd', date: d.date, tms: tms || 0, rec: d });
+    });
+  }
+  out.sort(function(a, b){
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return b.tms - a.tms;
+  });
+  return out;
+}
+/* the day's own name in the reader's language, and how old the baby was */
+function albumDayTitle(ds){
+  var mo = Number(ds.slice(5, 7)), da = Number(ds.slice(8, 10));
+  return state.lang === 'vi' ? (da + '/' + mo) : (mo + '월 ' + da + '일');
+}
+function albumDDay(ds){
+  var el = document.getElementById('set-baby-birth');
+  var birth = el && el.value;
+  if (!birth) return '';
+  var days = Math.round((new Date(ds + 'T00:00:00') - new Date(birth + 'T00:00:00')) / 86400000);
+  if (days < 0) return '';
+  return t('dDay') + (days + 1);
+}
+function albumMileHtml(m){
+  return '<div class="galb-item">' + growthIconHtml('m') +
+    '<div class="galb-body"><div class="galb-text">' + esc(m.text) + '</div>' +
+      (m.author ? '<div class="galb-meta">' + esc(localizeAuthorName(m.author)) + '</div>' : '') +
+    '</div></div>';
+}
+function albumDiaryHtml(d2){
+  var photos = Array.isArray(d2.photos) ? d2.photos : [];
+  return '<div class="galb-item">' + growthIconHtml('d') +
+    '<div class="galb-body">' +
+      '<div class="galb-meta">' + esc(localizeAuthorName(d2.author)) +
+        (d2.ts ? ' · ' + esc(fmtTime(d2.ts)) : '') + '</div>' +
+      (d2.text ? '<div class="gd-text">' + esc(d2.text) + '</div>' : '') +
+      (d2.translated ? '<div class="gd-trans">' + esc(d2.translated) + '</div>' : '') +
+      (photos.length ? '<div class="m-photos' + (photos.length === 1 ? ' one' : '') + '">' +
+        photos.map(function(ph, i){
+          var ratio = (ph.w && ph.h) ? (ph.h / ph.w) : 1;
+          return '<button type="button" class="m-photo" data-diary-photo="' + esc(d2.id) + '" data-photo-i="' + i + '"' +
+            ' style="--ar:' + (Math.round(Math.min(1.6, Math.max(0.6, ratio)) * 1000) / 1000) + '">' +
+            '<img src="' + esc(displayPhotoUrl(ph.id, true)) + '" alt="" loading="lazy" /></button>';
+        }).join('') + '</div>' : '') +
+      reactionRowHtml('diary', d2.id, d2.reactions) +
+    '</div></div>';
+}
+function renderGrowthAlbum(){
+  var listEl = document.getElementById('galbum-list');
+  var moreEl = document.getElementById('galbum-more');
+  if (!listEl) return;
+  var filter = state.gAlbumFilter || 'all';
+  $$('#galbum-sub button').forEach(function(b){
+    b.setAttribute('aria-pressed', String(b.dataset.galb === filter));
+  });
+  var all = albumItems();
+  var shown = all.slice(0, state.gAlbumLimit || GALBUM_PAGE);
+  if (moreEl) moreEl.hidden = shown.length >= all.length;
+  if (!shown.length){
+    listEl.innerHTML = '<div class="empty-note" style="padding:22px 0">' + esc(t('albumEmpty')) + '</div>';
+    return;
+  }
+  var dows = t('weekday_short');
+  var html = '', curDate = '';
+  shown.forEach(function(it){
+    if (it.date !== curDate){
+      if (curDate) html += '</div></div>';
+      curDate = it.date;
+      var dd = albumDDay(it.date);
+      var dow = dows[new Date(it.date + 'T00:00:00').getDay()];
+      html += '<div class="galb-group">' +
+        '<button type="button" class="galb-date" data-gday="' + esc(it.date) + '">' +
+          '<b>' + esc(albumDayTitle(it.date)) + '</b><span>' + esc(dow) + '</span>' +
+          (dd ? '<span class="dd">' + esc(dd) + '</span>' : '') +
+        '</button><div class="galb-items">';
+    }
+    html += it.kind === 'm' ? albumMileHtml(it.rec) : albumDiaryHtml(it.rec);
+  });
+  html += '</div></div>';
+  listEl.innerHTML = html;
+  $$('[data-gday]', listEl).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      state.gDate = btn.dataset.gday;
+      openGrowthDay();
+    });
+  });
+  wireReactions(listEl);
+  $$('[data-diary-photo]', listEl).forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var d3 = readDiaries().filter(function(x){ return x.id === btn.dataset.diaryPhoto; })[0];
+      if (!d3 || !d3.photos) return;
+      openPhotoViewer(d3.photos.map(function(ph){ return ph.id; }), Number(btn.dataset.photoI) || 0);
+    });
+  });
+}
 function openGrowthDay(mode){
   state.gMode = mode || 'view';
   gPendingDiary = null;
@@ -6883,6 +7045,8 @@ function renderGrowth(){
   $$('[data-gv-panel]').forEach(function(pnl){ pnl.hidden = pnl.dataset.gvPanel !== gv; });
   if (gv === 'cal'){
     renderGrowthCalendar();
+  } else if (gv === 'album'){
+    renderGrowthAlbum();
   } else {
     renderWeightCard();
     renderHeightCard();
@@ -8909,7 +9073,23 @@ function wireEvents(){
 
   // growth tab: calendar/graph switch, month nav, day inputs
   $$('#growth-tabs button').forEach(function(b){
-    b.addEventListener('click', function(){ state.gTab = b.dataset.gv; renderGrowth(); });
+    b.addEventListener('click', function(){
+      state.gTab = b.dataset.gv;
+      /* coming back to 모아보기 starts at the top again */
+      if (b.dataset.gv === 'album') state.gAlbumLimit = GALBUM_PAGE;
+      renderGrowth();
+    });
+  });
+  $$('#galbum-sub button').forEach(function(b){
+    b.addEventListener('click', function(){
+      state.gAlbumFilter = b.dataset.galb;
+      state.gAlbumLimit = GALBUM_PAGE;
+      renderGrowthAlbum();
+    });
+  });
+  document.getElementById('galbum-more').addEventListener('click', function(){
+    state.gAlbumLimit = (state.gAlbumLimit || GALBUM_PAGE) + GALBUM_PAGE;
+    renderGrowthAlbum();
   });
   document.getElementById('gcal-prev').addEventListener('click', function(){ gShiftMonth(-1); });
   document.getElementById('gcal-next').addEventListener('click', function(){ gShiftMonth(1); });
