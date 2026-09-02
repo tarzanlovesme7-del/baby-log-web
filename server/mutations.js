@@ -468,10 +468,13 @@ function applyMutation(prevState, type, payload) {
        that has to survive a round trip through a translator; a heart says
        "I saw this, thank you" and arrives whole.
 
-       DELIBERATELY POSITIVE ONLY. A record with a thumbs-down is an
-       appraisal, and once one is possible, silence becomes one too —
-       every unreacted record starts to mean something. Four warm marks,
-       no cold ones, and no count that could be read as a score.
+       THE LINE IS "NOTHING THAT JUDGES A PERSON", not "only cheerful". A
+       record wearing a thumbs-down is an appraisal, and once one of those
+       is possible, silence becomes one too — every unreacted record starts
+       to mean something. 😦 🤔 😥 answer the SITUATION instead: sympathy
+       for a hard night, or "let me think about this". So they are in, and
+       👎, ❌ and the angry faces stay out, as does any count that could be
+       read as a score.
 
        Anyone may react to anyone's record: acknowledging someone else's
        work is the whole point, so this is NOT gated by assertMayTouch the
@@ -480,7 +483,7 @@ function applyMutation(prevState, type, payload) {
        that has since been deleted reports alreadyGone rather than 404,
        like every other write here. */
     case 'toggleReaction': {
-      const KINDS = ['laugh', 'thumb', 'heart', 'clap', 'bow', 'fire', 'ok'];
+      const KINDS = ['laugh', 'thumb', 'heart', 'clap', 'bow', 'fire', 'ok', 'worry', 'think', 'pity'];
       if (KINDS.indexOf(payload.kind) < 0) throw httpError(400, 'unknown reaction');
       const who = (payload.author || '').trim();
       if (!who) throw httpError(400, 'reaction needs an author');

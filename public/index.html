@@ -673,9 +673,14 @@
     font-family:"Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif;
   }
   /* the picker: the same floating card as the ⋯ menu, laid out in a row */
+  /* FIVE ACROSS, THEN WRAP. A single row was right at seven and impossible
+     at ten — 390px cannot hold ten tappable marks side by side, and shrinking
+     them to fit would make each one harder to hit than the last. Five to a
+     row keeps every mark full size and leaves room to add more. */
   .rx-menu{
-    position:fixed; z-index:70; padding:6px; display:flex; gap:2px;
-    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-pill);
+    position:fixed; z-index:70; padding:6px; display:grid;
+    grid-template-columns:repeat(5, auto); gap:2px;
+    background:var(--surface); border:1px solid var(--border); border-radius:18px;
     box-shadow:0 12px 32px rgba(15,23,42,.18);
   }
   .rx-menu button{
@@ -689,8 +694,8 @@
      whole row still opens on screen rather than running off the edge. */
   @media (max-width: 360px){
     .rx-menu{ padding:5px; }
-    .rx-menu button{ padding:6px; }
-    .rx-menu button .rx-ico{ font-size:22px; }
+    .rx-menu button{ padding:7px; }
+    .rx-menu button .rx-ico{ font-size:23px; }
   }
   .empty-note{ padding:50px 16px; text-align:center; color:var(--muted); font-size:var(--fs-label); }
 
@@ -2885,9 +2890,14 @@ var GROWTH_ICONS = {
    no drawing would match. Hands at 15px were the deciding practicality —
    two mitts and three sparks read as two rounded rectangles.
 
-   Still no cold one: a record with a thumbs-down is an appraisal, and once
-   one is possible, silence becomes one too. */
-var REACTION_KINDS = ['laugh', 'thumb', 'heart', 'clap', 'bow', 'fire', 'ok'];
+   THE LINE IS NOT "ONLY CHEERFUL" — IT IS "NOTHING THAT JUDGES A PERSON".
+   The set started out warm only, on the reasoning that a record wearing a
+   thumbs-down is an appraisal and, once one is possible, silence becomes one
+   too. 😦 🤔 😥 do not do that: they answer the SITUATION, not the person
+   who wrote it down. 😥 on "새벽에 두 번 깼어" is sympathy; 🤔 on a strange
+   day is "let me think about this"; neither says anyone did badly. What
+   stays out is anything that grades the writer — 👎, ❌, an angry face. */
+var REACTION_KINDS = ['laugh', 'thumb', 'heart', 'clap', 'bow', 'fire', 'ok', 'worry', 'think', 'pity'];
 var REACTION_EMOJI = {
   laugh: '\uD83D\uDE02',
   thumb: '\uD83D\uDC4D',
@@ -2899,7 +2909,12 @@ var REACTION_EMOJI = {
      which still reads as a bow. */
   bow: '\uD83D\uDE47\u200D\u2640\uFE0F',
   fire: '\uD83D\uDD25',
-  ok: '\uD83D\uDC4C'
+  ok: '\uD83D\uDC4C',
+  worry: '\uD83D\uDE26',
+  think: '\uD83E\uDD14',
+  /* 😥 — "그랬구나". Sympathy for a hard night, not a mark against whoever
+     had to live through it. */
+  pity: '\uD83D\uDE25'
 };
 function reactionIconHtml(k, cls){
   return '<span class="' + (cls || 'rx-ico') + '" aria-hidden="true">' + (REACTION_EMOJI[k] || '') + '</span>';
