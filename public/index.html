@@ -2925,14 +2925,15 @@ function reactionIconHtml(k, cls){
 
    Names, not counts. There are three people in this house and knowing WHO
    said "잘했어요" is the whole value; "2" is not. */
-function reactionRowHtml(target, id, reactions){
+function reactionRowHtml(target, id, reactions, memoId){
   var rx = reactions || {};
   var chips = REACTION_KINDS.filter(function(k){ return (rx[k] || []).length; }).map(function(k){
     var who = rx[k];
     var mine = who.indexOf(state.author) >= 0;
     return '<span class="rx-chip' + (mine ? ' is-mine' : '') + '" role="button" tabindex="0"' +
       ' title="' + esc(who.map(localizeAuthorName).join(', ')) + '"' +
-      ' data-rx-tog="' + esc(k) + '" data-rx-t="' + esc(target) + '" data-rx-id="' + esc(id) + '">' +
+      ' data-rx-tog="' + esc(k) + '" data-rx-t="' + esc(target) + '" data-rx-id="' + esc(id) + '"' +
+      (memoId ? ' data-rx-m="' + esc(memoId) + '"' : '') + '>' +
       reactionIconHtml(k) + '<span class="rx-name">' +
       esc(who.map(localizeAuthorName).join(', ')) + '</span></span>';
   });
@@ -2940,7 +2941,8 @@ function reactionRowHtml(target, id, reactions){
      here would read as "the app suggests this one" */
   chips.push('<span class="rx-add" role="button" tabindex="0" aria-label="' + esc(t('rxAdd')) + '"' +
     ' title="' + esc(t('rxAdd')) + '"' +
-    ' data-rx-open="1" data-rx-t="' + esc(target) + '" data-rx-id="' + esc(id) + '">+</span>');
+    ' data-rx-open="1" data-rx-t="' + esc(target) + '" data-rx-id="' + esc(id) + '"' +
+    (memoId ? ' data-rx-m="' + esc(memoId) + '"' : '') + '>+</span>');
   return '<span class="rx-row">' + chips.join('') + '</span>';
 }
 
@@ -2958,7 +2960,7 @@ function closeRxMenu(){
   document.removeEventListener('click', rxOutsideClick, true);
   window.removeEventListener('scroll', closeRxMenu, true);
 }
-function openRxMenu(anchor, target, id, mine){
+function openRxMenu(anchor, target, id, mine, memoId){
   closeRxMenu();
   rxMenuEl = document.createElement('div');
   rxMenuEl.className = 'rx-menu';
@@ -2978,7 +2980,7 @@ function openRxMenu(anchor, target, id, mine){
       ev.stopPropagation();
       /* the picker deliberately STAYS OPEN: making her reopen it for every
          mark is exactly the friction that made one-per-person wrong */
-      b.setAttribute('aria-pressed', String(sendReaction(target, id, b.dataset.rk)));
+      b.setAttribute('aria-pressed', String(sendReaction(target, id, b.dataset.rk, memoId)));
     });
   });
   setTimeout(function(){
@@ -2987,12 +2989,18 @@ function openRxMenu(anchor, target, id, mine){
   }, 0);
 }
 
-/* three kinds of thing can be reacted to; this is the only place that knows
-   which bag each of them lives in */
-function rxTargetList(target){
-  if (target === 'diary') return appState.diaries || [];
-  if (target === 'memo') return appState.memos || [];
-  return appState.entries || [];
+/* four kinds of thing can be reacted to; this is the only place that knows
+   where each of them lives. A REPLY IS THE ODD ONE: it is not addressed by
+   id alone, because it lives inside a memo, so it takes that memo's id too. */
+function rxTargetRecord(target, id, memoId){
+  if (target === 'reply'){
+    var m = (appState.memos || []).filter(function(x){ return x.id === memoId; })[0];
+    return m && (m.replies || []).filter(function(r){ return r.id === id; })[0];
+  }
+  var list = target === 'diary' ? (appState.diaries || [])
+    : target === 'memo' ? (appState.memos || [])
+    : (appState.entries || []);
+  return list.filter(function(x){ return x.id === id; })[0];
 }
 /* OPTIMISTIC, like everything else here: the mark appears under the thumb
    and the server is told second.
@@ -3002,9 +3010,8 @@ function rxTargetList(target){
    thanking someone for, and being made to choose between 😂 and 🙇‍♀️ loses
    half of what she meant. Returns whether the mark is now on, so the picker
    can light its own button without a re-render. */
-function sendReaction(target, id, kind){
-  var list = rxTargetList(target);
-  var rec = list.filter(function(x){ return x.id === id; })[0];
+function sendReaction(target, id, kind, memoId){
+  var rec = rxTargetRecord(target, id, memoId);
   if (!rec) return false;
   var rx = rec.reactions || {};
   var had = (rx[kind] || []).indexOf(state.author) >= 0;
@@ -3016,7 +3023,8 @@ function sendReaction(target, id, kind){
   }
   if (Object.keys(rx).length) rec.reactions = rx; else delete rec.reactions;
   renderAll();
-  apiMutate('toggleReaction', { target: target, id: id, kind: kind, author: state.author })
+  apiMutate('toggleReaction', { target: target, id: id, kind: kind,
+                                author: state.author, memoId: memoId })
     .catch(function(err){ toast(err.message); apiGetState().then(renderAll).catch(function(){}); });
   return !had;
 }
@@ -3032,14 +3040,13 @@ function wireReactions(container){
     });
     el.addEventListener('click', function(e){
       e.stopPropagation(); e.preventDefault();
-      var target = el.dataset.rxT, id = el.dataset.rxId;
-      if (el.dataset.rxTog) { sendReaction(target, id, el.dataset.rxTog); return; }
-      var list = rxTargetList(target);
-      var rec = list.filter(function(x){ return x.id === id; })[0];
+      var target = el.dataset.rxT, id = el.dataset.rxId, memoId = el.dataset.rxM || '';
+      if (el.dataset.rxTog) { sendReaction(target, id, el.dataset.rxTog, memoId); return; }
+      var rec = rxTargetRecord(target, id, memoId);
       var mine = REACTION_KINDS.filter(function(k){
         return rec && ((rec.reactions || {})[k] || []).indexOf(state.author) >= 0;
       });
-      openRxMenu(el, target, id, mine);
+      openRxMenu(el, target, id, mine, memoId);
     });
   });
 }
@@ -7751,7 +7758,8 @@ function readMemos(){
       replies: (m.replies || []).map(function(r){
         return { id: r.id, text: r.text || '', lang: r.lang || 'other',
                  translated: glossaryFix(r.text || '', r.lang || '', r.translation || ''),
-                 author: r.author || '', time: r.ts || '' };
+                 author: r.author || '', time: r.ts || '',
+                 reactions: r.reactions || null };
       })
     };
   }).sort(function(a,b){ return new Date(b.time) - new Date(a.time); });
@@ -7895,9 +7903,53 @@ function syncAnnounceStack(){
   var anyVisible = (memoRow && !memoRow.hidden) || (feedRow && !feedRow.hidden);
   stack.hidden = !anyVisible;
 }
+/* A REPLY GETS EXACTLY ONE SHOT AT BEING TRANSLATED, and until now that was
+   the whole story: it is translated once, right after it is posted, and if
+   that attempt failed — a dropped 4G moment, the app closed before the
+   answer came back, the phone posting from a lift — the words stayed in one
+   language forever. There was no second attempt and no way to ask for one.
+   Schedules already self-heal (see backfillScheduleTranslations); memos and
+   their replies now do too.
+
+   One at a time, and each id tried once per session: a memo tab with thirty
+   untranslated replies on it must not open thirty translation requests. */
+var memoTranslateTried = {};
+function backfillMemoTranslations(){
+  var jobs = [];
+  (appState.memos || []).forEach(function(m){
+    if (/^tmp/.test(m.id)) return;
+    if (!m.translation && m.text && (m.lang === 'ko' || m.lang === 'vi')){
+      jobs.push({ kind: 'memo', memoId: m.id, id: m.id, text: m.text, lang: m.lang });
+    }
+    (m.replies || []).forEach(function(r){
+      if (/^tmp/.test(r.id)) return;
+      if (!r.translation && r.text && (r.lang === 'ko' || r.lang === 'vi')){
+        jobs.push({ kind: 'reply', memoId: m.id, id: r.id, text: r.text, lang: r.lang });
+      }
+    });
+  });
+  var job = jobs.filter(function(j){ return !memoTranslateTried[j.id]; })[0];
+  if (!job) return;
+  memoTranslateTried[job.id] = true;
+  apiTranslate(job.text, job.lang === 'ko' ? 'vi' : 'ko').then(function(tr){
+    if (!tr) return;
+    var m = (appState.memos || []).filter(function(x){ return x.id === job.memoId; })[0];
+    if (!m) return;
+    var target = job.kind === 'memo' ? m
+      : (m.replies || []).filter(function(x){ return x.id === job.id; })[0];
+    if (!target || target.translation) return;
+    target.translation = tr;
+    renderMemoList(); updateMemoPreview();
+    return apiMutate(job.kind === 'memo' ? 'updateMemo' : 'updateMemoReply',
+      job.kind === 'memo' ? { id: job.id, translation: tr }
+                          : { memoId: job.memoId, id: job.id, translation: tr });
+  }).catch(function(){ /* the next session tries again */ });
+}
+
 function renderMemoList(){
   var box = document.getElementById('memo-list');
   if (!box) return;
+  backfillMemoTranslations();
   var memos = readMemos();
   if (!memos.length){
     box.innerHTML = '<div class="empty-note">'+esc(t('memoNoMemos'))+'</div>';
@@ -7974,6 +8026,9 @@ function renderMemoList(){
             '<div class="m-orig">'+esc(r.text)+'</div>' +
             (r.translated ? '<div class="m-trans">'+esc(r.translated)+'</div>' : '') +
           '</div>' +
+          /* a reply is answerable too — often it is the ONLY thing worth
+             answering, because it is where the two of them are talking */
+          reactionRowHtml('reply', r.id, r.reactions, m.id) +
         '</div>';
       }).join('') + '</div>' : '') +
       '<div class="m-reply-form" data-reply-form="'+esc(m.id)+'" hidden>' +
@@ -7996,16 +8051,21 @@ function renderMemoList(){
       var m = readMemos().filter(function(x){ return x.id === btn.dataset.kbMemoRow; })[0];
       if (!m) return;
       var items = [{ label: t('gEdit'), icon: 'pencil', fn: function(){ openMemoEditor(m); } }];
-      /* only when the server holds a DeepL key: memos written before the key
-         existed still carry whatever the free translator said at the time */
-      if (serverHasGoodTranslator && (m.lang === 'ko' || m.lang === 'vi')){
+      /* WHEN IS RE-TRANSLATING WORTH OFFERING? Either the server has a DeepL
+         key — so a memo written before it existed can be improved — or there
+         is no translation at all, in which case even the free engine beats
+         the empty line that is there now. */
+      if ((serverHasGoodTranslator || !m.translated) && (m.lang === 'ko' || m.lang === 'vi')){
         items.push({ label: t('retranslate'), icon: 'check', fn: function(){
           apiTranslate(m.text, m.lang === 'ko' ? 'vi' : 'ko').then(function(tr){
-            if (!tr) throw new Error('translate failed');
+            if (!tr) throw new Error('empty');
             return apiMutate('updateMemo', { id: m.id, translation: tr });
           }).then(function(){
             renderMemoList(); updateMemoPreview(); toast(t('savedToast'));
-          }).catch(function(err){ toast(err.message || 'error'); });
+          /* whatever went wrong — no engine, no network, an empty answer —
+             what she needs to read is that the translation did not happen,
+             not the browser's own words for it */
+          }).catch(function(){ toast(t('translateFailed')); });
         } });
       }
       if (canTouch(m.author)) items.push({ label: t('delete'), icon: 'trash', danger: true, fn: function(){
@@ -8035,6 +8095,17 @@ function renderMemoList(){
           try{ inp.focus(); }catch(e){}
         }
       } }];
+      /* the same offer the memo above it has had all along */
+      if ((serverHasGoodTranslator || !r2.translated) && (r2.lang === 'ko' || r2.lang === 'vi')){
+        items.push({ label: t('retranslate'), icon: 'check', fn: function(){
+          apiTranslate(r2.text, r2.lang === 'ko' ? 'vi' : 'ko').then(function(tr){
+            if (!tr) throw new Error('empty');
+            return apiMutate('updateMemoReply', { memoId: parts[0], id: parts[1], translation: tr });
+          }).then(function(){
+            renderMemoList(); updateMemoPreview(); toast(t('savedToast'));
+          }).catch(function(){ toast(t('translateFailed')); });
+        } });
+      }
       if (canTouch(r2.author)) items.push({ label: t('delete'), icon: 'trash', danger: true, fn: function(){
         apiMutate('deleteMemoReply', { memoId: parts[0], id: parts[1] }).then(function(){
           renderMemoList(); updateMemoPreview(); toast(t('deletedToast'));

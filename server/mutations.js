@@ -487,10 +487,18 @@ function applyMutation(prevState, type, payload) {
       if (KINDS.indexOf(payload.kind) < 0) throw httpError(400, 'unknown reaction');
       const who = (payload.author || '').trim();
       if (!who) throw httpError(400, 'reaction needs an author');
-      const list = payload.target === 'diary' ? (state.diaries || [])
-        : payload.target === 'memo' ? (state.memos || [])
-        : (state.entries || []);
-      const rec = list.find((x) => x.id === payload.id);
+      /* a reply is the one thing here that is not addressed by id alone —
+         it lives inside a memo, so it takes both */
+      let rec;
+      if (payload.target === 'reply') {
+        const memo = (state.memos || []).find((m) => m.id === payload.memoId);
+        rec = memo && (memo.replies || []).find((r) => r.id === payload.id);
+      } else {
+        const list = payload.target === 'diary' ? (state.diaries || [])
+          : payload.target === 'memo' ? (state.memos || [])
+          : (state.entries || []);
+        rec = list.find((x) => x.id === payload.id);
+      }
       if (!rec) return { state, result: { alreadyGone: true } };
       const rx = rec.reactions || {};
       const had = (rx[payload.kind] || []).indexOf(who) >= 0;
