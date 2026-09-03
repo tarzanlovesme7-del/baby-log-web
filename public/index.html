@@ -2941,7 +2941,8 @@ var GROWTH_ICONS = {
    who wrote it down. 😥 on "새벽에 두 번 깼어" is sympathy; 🤔 on a strange
    day is "let me think about this"; neither says anyone did badly. What
    stays out is anything that grades the writer — 👎, ❌, an angry face. */
-var REACTION_KINDS = ['laugh', 'thumb', 'heart', 'clap', 'bow', 'fire', 'ok', 'worry', 'think', 'pity'];
+var REACTION_KINDS = ['laugh', 'thumb', 'heart', 'clap', 'bow', 'fire', 'ok', 'worry', 'think', 'pity',
+  'siren', 'muscle', 'eyes', 'melt', 'idea'];
 var REACTION_EMOJI = {
   laugh: '\uD83D\uDE02',
   thumb: '\uD83D\uDC4D',
@@ -2958,7 +2959,17 @@ var REACTION_EMOJI = {
   think: '\uD83E\uDD14',
   /* 😥 — "그랬구나". Sympathy for a hard night, not a mark against whoever
      had to live through it. */
-  pity: '\uD83D\uDE25'
+  pity: '\uD83D\uDE25',
+  /* the last five answer the situations the first ten had no word for:
+     🚨 이거 봐 (급함), 💪 힘내요/해냈다, 👀 봤어요 — the read
+     receipt a record deserves when there is nothing to add, 🫠 녹는다
+     (귀여워서·기가 막혀서), 💡 좋은 생각. Still nothing that grades
+     the person who wrote it down. */
+  siren: '\uD83D\uDEA8',
+  muscle: '\uD83D\uDCAA',
+  eyes: '\uD83D\uDC40',
+  melt: '\uD83E\uDEE0',
+  idea: '\uD83D\uDCA1'
 };
 function reactionIconHtml(k, cls){
   return '<span class="' + (cls || 'rx-ico') + '" aria-hidden="true">' + (REACTION_EMOJI[k] || '') + '</span>';

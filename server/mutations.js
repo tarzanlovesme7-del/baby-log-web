@@ -483,7 +483,8 @@ function applyMutation(prevState, type, payload) {
        that has since been deleted reports alreadyGone rather than 404,
        like every other write here. */
     case 'toggleReaction': {
-      const KINDS = ['laugh', 'thumb', 'heart', 'clap', 'bow', 'fire', 'ok', 'worry', 'think', 'pity'];
+      const KINDS = ['laugh', 'thumb', 'heart', 'clap', 'bow', 'fire', 'ok', 'worry', 'think', 'pity',
+        'siren', 'muscle', 'eyes', 'melt', 'idea'];
       if (KINDS.indexOf(payload.kind) < 0) throw httpError(400, 'unknown reaction');
       const who = (payload.author || '').trim();
       if (!who) throw httpError(400, 'reaction needs an author');
