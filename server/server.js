@@ -163,6 +163,28 @@ app.get('/api/photo/:id', async (req, res, next) => {
   } catch (err) { next(err); }
 });
 
+/* A PICTURE TAKEN BACK OUT OF THE COMPOSE STRIP.
+   The phone now starts the upload the moment a picture is chosen, so one she
+   then removes before posting is already here, referenced by nothing. The
+   six-hourly sweep would collect it eventually; this collects it at once, on
+   a 0.5GB disk. It can ONLY ever remove a photo that no memo and no diary
+   page points at — a referenced id is refused rather than deleted. */
+app.delete('/api/photo/:id', async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    if (!photos.isPhotoId(id)) return res.status(400).json({ error: 'bad photo id' });
+    const { data } = await db.getState();
+    const referenced = [];
+    (data.memos || []).forEach((m) => (m.photos || []).forEach((ph) => referenced.push(ph.id)));
+    (data.diaries || []).forEach((d) => (d.photos || []).forEach((ph) => referenced.push(ph.id)));
+    if (referenced.indexOf(id) >= 0) return res.status(409).json({ error: 'photo in use' });
+    await photos.deletePhotos([id]);
+    /* deleting one that is already gone is not a failure — it is the state
+       the caller asked for */
+    res.json({ ok: true });
+  } catch (err) { next(err); }
+});
+
 /* how much room is left, for the settings screen to show before it runs out
    rather than after */
 app.get('/api/photo-usage', async (req, res, next) => {

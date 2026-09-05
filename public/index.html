@@ -778,6 +778,21 @@
     border:0; background:rgba(0,0,0,.58); color:#fff; font-size:12px; line-height:1;
     display:flex; align-items:center; justify-content:center; padding:0;
   }
+  .mp-chip.is-up img{ opacity:.42; }
+  .mp-chip.is-failed img{ opacity:.42; }
+  .mp-spin{
+    position:absolute; left:50%; top:50%; width:20px; height:20px; margin:-10px 0 0 -10px;
+    border:2px solid rgba(255,255,255,.55); border-top-color:#fff; border-radius:50%;
+    animation:mp-turn .8s linear infinite;
+  }
+  @keyframes mp-turn{ to{ transform:rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce){ .mp-spin{ animation-duration:2.4s; } }
+  .mp-retry{
+    position:absolute; left:50%; top:50%; width:30px; height:30px; margin:-15px 0 0 -15px;
+    border:0; border-radius:50%; background:rgba(0,0,0,.6); color:#fff;
+    font-size:16px; line-height:1; padding:0;
+    display:flex; align-items:center; justify-content:center;
+  }
   .mp-add{
     align-self:flex-start; display:inline-flex; align-items:center; gap:7px;
     background:var(--surface-2); border:0; border-radius:14px; padding:10px 14px;
@@ -2610,7 +2625,7 @@ var I18N = {
 ko: {
   memoLabel:"메모", memoComposeTitle:"메모 추가", memoComposePh:"메모를 입력하세요",
   memoSubmit:"등록", memoTranslateToVi:"베트남어 번역 (선택)", memoTranslateToKo:"한국어 번역 (선택)",
-  photoAdd:"사진", photoRemove:"사진 빼기", photoMaxTpl:"사진은 {n}장까지 넣을 수 있어요",
+  photoAdd:"사진", photoRemove:"사진 빼기", photoRetry:"다시 올리기", photoMaxTpl:"사진은 {n}장까지 넣을 수 있어요",
   photoTooBig:"이 사진은 열 수 없어요", photoUploading:"사진 올리는 중...",
   photoFailed:"사진을 올리지 못했어요", photoStorageFull:"사진 저장 공간이 가득 찼어요",
   photoClose:"닫기", photoOf:"{i}/{n}", memoUnreadTpl:"새 메모 {n}개",
@@ -2712,7 +2727,7 @@ ko: {
 vi: {
   memoLabel:"Ghi chú", memoComposeTitle:"Thêm ghi chú", memoComposePh:"Nhập ghi chú",
   memoSubmit:"Đăng", memoTranslateToVi:"Dịch tiếng Việt (tùy chọn)", memoTranslateToKo:"Dịch tiếng Hàn (tùy chọn)",
-  photoAdd:"Ảnh", photoRemove:"Bỏ ảnh", photoMaxTpl:"Chỉ thêm được tối đa {n} ảnh",
+  photoAdd:"Ảnh", photoRemove:"Bỏ ảnh", photoRetry:"Gửi lại", photoMaxTpl:"Chỉ thêm được tối đa {n} ảnh",
   photoTooBig:"Không mở được ảnh này", photoUploading:"Đang tải ảnh lên...",
   photoFailed:"Không tải được ảnh lên", photoStorageFull:"Hết dung lượng lưu ảnh",
   photoClose:"Đóng", photoOf:"{i}/{n}", memoUnreadTpl:"{n} ghi chú mới",
@@ -3255,8 +3270,9 @@ function apiGetState(){
     return json;
   });
 }
-var mutationsInFlight = 0;
+var mutationsInFlight = 0, oldestMutationAt = 0;
 function apiMutate(type, payload){
+  if (mutationsInFlight === 0) oldestMutationAt = Date.now();
   mutationsInFlight++;
   return fetch('/api/mutate', {
     method: 'POST', headers: {'Content-Type':'application/json'},
@@ -3495,10 +3511,30 @@ function apiTranslate(text, target){
    log. The version counter answers the same question in a few bytes; the
    records are fetched only when it has actually moved. */
 var pollBusy = false;
+/* THE SECOND HALF OF THE SAME BUG: nothing re-synced when the phone came
+   back. A backgrounded page's timers are throttled and, on iOS, stopped
+   outright — so the 4-second poll simply does not run while the phone is in
+   a pocket, and the first thing she sees on unlocking it is minutes-old
+   state that looks exactly like her change was undone. Every way a page can
+   come back to life asks the server at once. */
+function resyncNow(){
+  pollBusy = false;                 /* a poll frozen mid-flight must not latch */
+  pollState();
+}
+document.addEventListener('visibilitychange', function(){ if (!document.hidden) resyncNow(); });
+window.addEventListener('pageshow', resyncNow);
+window.addEventListener('focus', resyncNow);
+window.addEventListener('online', resyncNow);
 function pollState(){
   /* a poll landing mid-write would replace appState with a version that
-     predates the optimistic row and make it flicker away */
-  if (pollBusy || mutationsInFlight > 0) return;
+     predates the optimistic row and make it flicker away.
+     BUT a write that never answers — a stalled request on a mobile
+     connection — used to hold that gate shut for as long as it hung, and a
+     phone that has stopped polling is a phone showing stale records. After
+     twelve seconds the poll goes ahead regardless: a flicker is cheaper than
+     minutes of a screen that lies. */
+  if (mutationsInFlight > 0 && (Date.now() - oldestMutationAt) < 12000) return;
+  if (pollBusy) return;
   pollBusy = true;
   function done(){ pollBusy = false; }
   function pullEverything(){
@@ -4055,6 +4091,10 @@ function renderActiveBar(){
   document.getElementById('aw-pause').innerHTML = awIcon(paused ? 'play' : 'pause');
   document.getElementById('aw-pause').title = paused ? t('resumeBtn') : t('pauseBtn');
   document.getElementById('aw-name').textContent = name;
+  if (state.adjustOpen && adjustPendingStart === null && !adjustInFlight &&
+      adjustShownStart && a.start !== adjustShownStart){
+    renderAdjustPanel();
+  }
   /* THREE THINGS DO NOT FIT ON THIS LINE. Start time, "일시정지됨" and the
      author together ran past the end of the bar at every width, in both
      languages — and the line is nowrap+ellipsis, so what fell off was the
@@ -4107,6 +4147,24 @@ function toggleAdjustPanel(){
 }
 /* one write per settled ruler position — see the scrubchange listener */
 var adjustSendTimer = null, adjustPendingStart = null, adjustPrevStart = null, adjustInFlight = false;
+/* WHY THE CORRECTED TIME KEPT COMING BACK AS THE TIME SHE FIRST PRESSED.
+   The finish used to carry the start this phone was showing, always — the
+   idea being that what the family saw on screen is what gets stored. But a
+   phone that has NOT caught up is also "showing" something: an iPhone freezes
+   a backgrounded page, so a phone put in a pocket after 밤잠 was pressed still
+   holds the original time hours later, and pressing 완료 on it wrote that
+   original time over the 3:48 she had corrected it to. Two phones do it to
+   each other; one phone does it to itself across a lock screen.
+   So the rule is narrower now: a phone asserts the start ONLY if its own user
+   moved the ruler during THIS session. Otherwise it says nothing about the
+   start and the server keeps the one it has — which is the corrected one. */
+var activeStartTouched = false;
+/* what the OPEN panel is currently anchored to. The panel used to be built
+   once and then never notice that the record had changed underneath it — so
+   a phone that pulled a correction from another phone (or woke up and pulled
+   its own) went on showing the old time on the ruler. It is re-anchored only
+   when nothing local is pending, or it would fight her finger mid-drag. */
+var adjustShownStart = null;
 function sendAdjustStart(){
   if (adjustInFlight || adjustPendingStart === null) return;
   var next = adjustPendingStart;
@@ -4140,6 +4198,7 @@ function renderAdjustPanel(){
      gesture everywhere in the app rather than a scrub here and a native
      spinner there. Its own 지금 chip replaces the separate button this
      panel used to carry. */
+  adjustShownStart = a.start;
   html += timeScrubHtml('aw-start-input', toTimeValue(a.start), true);
   html += '<button type="button" class="text-btn" style="color:var(--danger);padding-left:0;margin-top:10px;" id="aw-discard">'+esc(t('discardActive'))+'</button>';
   panel.innerHTML = html;
@@ -4157,6 +4216,7 @@ function renderAdjustPanel(){
     var a2 = getActive();
     if (!a2) return;
     if (adjustPrevStart === null) adjustPrevStart = a2.start;  /* rollback point: where the burst began */
+    activeStartTouched = true;
     a2.start = combineDateTime(a2.start, ev.target.value);
     renderActiveBar();
     adjustPendingStart = a2.start;
@@ -4166,6 +4226,7 @@ function renderAdjustPanel(){
   document.getElementById('aw-discard').addEventListener('click', function(){
     clearTimeout(adjustSendTimer);
     adjustPendingStart = null; adjustPrevStart = null;
+    activeStartTouched = false;
     var prev = appState.active;
     appState.active = null;
     state.adjustOpen = false;
@@ -4206,7 +4267,10 @@ function finishActive(){
      itself carries the start on screen, so nothing is owed afterwards */
   clearTimeout(adjustSendTimer);
   adjustPendingStart = null; adjustPrevStart = null;
-  apiMutate('finishActive', { author: state.author, end: end, start: a.start })
+  var finishPayload = { author: state.author, end: end };
+  if (activeStartTouched) finishPayload.start = a.start;
+  activeStartTouched = false;
+  apiMutate('finishActive', finishPayload)
     .then(function(result){
       /* same trap as quickCreate: the row on screen carries an id this phone
          invented, and tapping it before the server answers would leave the
@@ -4577,6 +4641,7 @@ function startStopwatch(typeId){
   var start = new Date().toISOString();
 
   var prev = appState.active;
+  activeStartTouched = false;      /* a fresh session; nothing corrected yet */
   appState.active = { type: typeId, start: start, name: name,
                       author: state.author, paused: false, pausedAt: null };
   renderTimeline(); renderActiveBar(); toast(t('startedToast'));
@@ -6907,26 +6972,32 @@ function renderDiaryPhotoStrip(){
   if (!strip) return;
   strip.hidden = !diaryPhotos.length;
   strip.innerHTML = diaryPhotos.map(function(p){
-    return '<div class="mp-chip"><img src="' + esc(localPhotoUrl(p.id) || '') + '" alt="" />' +
+    return '<div class="mp-chip' + chipStateClass(p) + '"><img src="' + esc(localPhotoUrl(p.id) || '') + '" alt="" />' +
+      chipStateHtml(p, 'data-retry-dphoto="' + esc(p.id) + '"') +
       '<button type="button" class="mp-x" data-drop-dphoto="' + esc(p.id) + '">✕</button></div>';
   }).join('');
+  $$('[data-retry-dphoto]', strip).forEach(function(b){
+    b.addEventListener('click', function(){
+      var p = diaryPhotos.filter(function(x){ return x.id === b.dataset.retryDphoto; })[0];
+      if (p) beginPhotoUpload(p, renderDiaryPhotoStrip);
+    });
+  });
   $$('[data-drop-dphoto]', strip).forEach(function(b){
     b.addEventListener('click', function(){
+      forgetUploadedPhoto(diaryPhotos.filter(function(x){ return x.id === b.dataset.dropDphoto; })[0]);
       diaryPhotos = diaryPhotos.filter(function(x){ return x.id !== b.dataset.dropDphoto; });
       renderDiaryPhotoStrip();
     });
   });
 }
 function attachDiaryPhotos(diaryId, pending){
-  toast(t('photoUploading'));
   var landed = [], failed = 0, full = false;
-  return pending.reduce(function(chain, p){
-    return chain.then(function(){
-      return uploadPhoto(p)
-        .then(function(){ landed.push({ id: p.id, w: p.w, h: p.h }); })
-        .catch(function(err){ failed++; if (err && err.status === 507) full = true; });
-    });
-  }, Promise.resolve()).then(function(){
+  if (pending.some(function(p){ return p.state !== 'done'; })) toast(t('photoUploading'));
+  return Promise.all(pending.map(function(p){
+    return ensureUploaded(p, renderDiaryPhotoStrip).then(function(){ return p; },
+      function(err){ failed++; if (err && err.status === 507) full = true; return null; });
+  })).then(function(rows){
+    rows.forEach(function(p){ if (p) landed.push({ id: p.id, w: p.w, h: p.h }); });
     var d = (appState.diaries || []).filter(function(x){ return x.id === diaryId; })[0];
     if (d){
       if (landed.length) d.photos = landed; else delete d.photos;
@@ -6963,11 +7034,10 @@ function submitDiary(){
         renderGrowth();
         if (pending.length){
           var existing = (d0 && d0.photos) ? d0.photos.slice() : [];
-          return pending.reduce(function(chain, p2){
-            return chain.then(function(){ return uploadPhoto(p2).then(function(){
-              existing.push({ id: p2.id, w: p2.w, h: p2.h });
-            }).catch(function(){}); });
-          }, Promise.resolve()).then(function(){
+          return Promise.all(pending.map(function(p2){
+            return ensureUploaded(p2).then(function(){ return p2; }, function(){ return null; });
+          })).then(function(rows){
+            rows.forEach(function(p2){ if (p2) existing.push({ id: p2.id, w: p2.w, h: p2.h }); });
             return apiMutate('updateDiary', { id: editId, photos: existing });
           }).then(function(){ renderGrowth(); });
         }
@@ -8444,10 +8514,19 @@ function updateMemoComposeTranslateField(){
    picture can be posted without waiting for the upload to come back.
    ================================================================ */
 var PHOTO_MAX = 4;                 // per memo
-var PHOTO_LONG_EDGE = 1600;
-var PHOTO_THUMB_EDGE = 400;
-var PHOTO_QUALITY = 0.82;
-var PHOTO_THUMB_QUALITY = 0.7;
+/* WHAT MADE UPLOADS SLOW, MEASURED, NOT GUESSED: the server log showed
+   bodies of ~790KB arriving from her phone and being cut off part way
+   ("request aborted, expected 790234, received 531385"). 1600px at q0.82 is
+   a print size; nothing in this app ever draws a picture bigger than a phone
+   screen, and the list draws 76px squares. 1280 at q0.72 is indistinguishable
+   on the screens it is actually shown on and roughly a third of the bytes.
+   WebP takes another ~30% off where the phone can encode it -- and where it
+   cannot, toBlob quietly hands back a PNG, which is BIGGER, so the format is
+   checked rather than trusted. */
+var PHOTO_LONG_EDGE = 1280;
+var PHOTO_THUMB_EDGE = 320;
+var PHOTO_QUALITY = 0.72;
+var PHOTO_THUMB_QUALITY = 0.62;
 
 function newPhotoId(){
   var a = new Uint8Array(14);
@@ -8480,7 +8559,7 @@ function decodeViaImg(file){
     img.src = url;
   });
 }
-function drawScaled(src, longEdge, quality){
+function drawScaled(src, longEdge, quality, mime){
   var w = src.width || src.naturalWidth, h = src.height || src.naturalHeight;
   var scale = Math.min(1, longEdge / Math.max(w, h));
   var cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
@@ -8488,21 +8567,35 @@ function drawScaled(src, longEdge, quality){
   c.width = cw; c.height = ch;
   var ctx = c.getContext('2d');
   ctx.drawImage(src, 0, 0, cw, ch);
-  return new Promise(function(resolve){
-    /* toBlob is asynchronous and does not block the tap that started it */
-    c.toBlob(function(blob){ resolve({ blob: blob, w: cw, h: ch }); }, 'image/jpeg', quality);
+  return encodeCanvas(c, quality, mime).then(function(enc){
+    return { blob: enc.blob, mime: enc.mime, w: cw, h: ch };
+  });
+}
+/* toBlob is asynchronous and does not block the tap that started it. Asking
+   for a format the phone cannot write gets a PNG back with no error at all,
+   so the answer's own type decides. */
+function encodeCanvas(c, quality, want){
+  function as(mime){
+    return new Promise(function(resolve){
+      c.toBlob(function(blob){ resolve(blob ? { blob: blob, mime: blob.type || mime } : null); }, mime, quality);
+    });
+  }
+  if (want && want !== 'image/webp') return as(want).then(function(r){ return r || as('image/jpeg'); });
+  return as('image/webp').then(function(r){
+    if (r && r.mime === 'image/webp') return r;
+    return as('image/jpeg');
   });
 }
 function compressPhoto(file){
   return decodeImage(file).then(function(src){
-    return Promise.all([
-      drawScaled(src, PHOTO_LONG_EDGE, PHOTO_QUALITY),
-      drawScaled(src, PHOTO_THUMB_EDGE, PHOTO_THUMB_QUALITY),
-    ]).then(function(pair){
-      if (src.close) src.close();     // release the decoded bitmap
-      var full = pair[0], thumb = pair[1];
-      return { id: newPhotoId(), mime: 'image/jpeg', w: full.w, h: full.h,
-               blob: full.blob, thumbBlob: thumb.blob };
+    /* the full size decides the format; the thumbnail follows it, because the
+       row stores ONE mime for both */
+    return drawScaled(src, PHOTO_LONG_EDGE, PHOTO_QUALITY).then(function(full){
+      return drawScaled(src, PHOTO_THUMB_EDGE, PHOTO_THUMB_QUALITY, full.mime).then(function(thumb){
+        if (src.close) src.close();   // release the decoded bitmap
+        return { id: newPhotoId(), mime: full.mime, w: full.w, h: full.h,
+                 blob: full.blob, thumbBlob: thumb.blob };
+      });
     });
   });
 }
@@ -8532,6 +8625,60 @@ function uploadPhoto(p){
       });
     });
 }
+/* THE UPLOAD NO LONGER WAITS FOR 등록.
+   A picture is chosen seconds before the words are finished; sending it then
+   means the bytes are usually already on the server by the time she presses
+   save, and the save is a single small write. The id was always made on the
+   phone, so nothing has to come back first.
+
+   And a dropped body is retried. The server log had two of them inside 90
+   seconds -- a mobile connection cutting out mid-picture is not an error
+   worth telling anyone about, it is a thing to do again. The write is
+   idempotent (ON CONFLICT DO NOTHING), so a retry cannot duplicate. */
+function uploadPhotoWithRetry(p, tries){
+  var n = tries || 3;
+  function attempt(k){
+    return uploadPhoto(p).catch(function(err){
+      /* 4xx and 507 are ANSWERS -- too big, wrong type, disk full. Only a
+         broken connection or a server fault is worth a second go. */
+      var st = err && err.status;
+      if (k >= n || (st && st < 500 && st !== 408)) throw err;
+      return new Promise(function(r){ setTimeout(r, 600 * k); }).then(function(){ return attempt(k + 1); });
+    });
+  }
+  return attempt(1);
+}
+function beginPhotoUpload(p, onchange){
+  p.state = 'up';
+  p.up = uploadPhotoWithRetry(p).then(function(res){
+    p.state = 'done';
+    if (onchange) onchange();
+    return res;
+  }, function(err){
+    p.state = 'failed'; p.err = err;
+    if (onchange) onchange();
+    throw err;
+  });
+  p.up.catch(function(){});   /* nobody is awaiting it yet; do not let it go unhandled */
+  if (onchange) onchange();
+  return p.up;
+}
+/* at save time: already up -> nothing to wait for; in flight -> wait for it;
+   failed or never started -> one more try, now */
+function ensureUploaded(p, onchange){
+  if (p.state === 'done') return Promise.resolve(p);
+  if (p.state === 'up' && p.up) return p.up.then(function(){ return p; });
+  return beginPhotoUpload(p, onchange).then(function(){ return p; });
+}
+/* taken back out of the strip after it had already gone up: tell the server
+   to forget it rather than leaving it for the six-hourly sweep. Waits for any
+   upload still in flight, or the delete would arrive first and lose the race. */
+function forgetUploadedPhoto(p){
+  if (!p || (p.state !== 'done' && p.state !== 'up')) return;
+  Promise.resolve(p.up).catch(function(){}).then(function(){
+    return fetch('/api/photo/' + encodeURIComponent(p.id), { method: 'DELETE' });
+  }).catch(function(){});
+}
 function photoUrl(id, thumb){ return '/api/photo/' + encodeURIComponent(id) + (thumb ? '?t=1' : ''); }
 
 /* A picture just taken is on this phone already. Showing it from the blob
@@ -8547,18 +8694,40 @@ function displayPhotoUrl(id, thumb){ return localPhotoUrl(id) || photoUrl(id, th
 
 /* ---- the strip of pending pictures in the compose sheet ---- */
 var composePhotos = [];
+/* A PICTURE IN THE STRIP IS IN ONE OF THREE STATES, and the difference
+   matters now that the upload starts on its own: still going up (dimmed,
+   with a turning ring), landed (nothing — the plain picture), or dropped
+   (tap it to send again). Nothing here blocks the save; it is only so she
+   can see that the slow part already happened while she was typing. */
+function chipStateClass(p){
+  return p.state === 'up' ? ' is-up' : p.state === 'failed' ? ' is-failed' : '';
+}
+function chipStateHtml(p, attr){
+  if (p.state === 'up') return '<span class="mp-spin" aria-hidden="true"></span>';
+  if (p.state === 'failed') return '<button type="button" class="mp-retry" ' + attr +
+    ' aria-label="' + esc(t('photoRetry')) + '">\u21BB</button>';
+  return '';
+}
 function renderComposePhotos(){
   var strip = document.getElementById('memo-photo-strip');
   if (!strip) return;
   strip.hidden = !composePhotos.length;
   strip.innerHTML = composePhotos.map(function(p){
-    return '<div class="mp-chip"><img src="'+esc(localPhotoUrl(p.id) || '')+'" alt="" />' +
+    return '<div class="mp-chip' + chipStateClass(p) + '"><img src="'+esc(localPhotoUrl(p.id) || '')+'" alt="" />' +
+      chipStateHtml(p, 'data-retry-photo="' + esc(p.id) + '"') +
       '<button type="button" class="mp-x" data-drop-photo="'+esc(p.id)+'" ' +
       'aria-label="'+esc(t('photoRemove'))+'">✕</button></div>';
   }).join('');
+  $$('[data-retry-photo]', strip).forEach(function(b){
+    b.addEventListener('click', function(){
+      var p = composePhotos.filter(function(x){ return x.id === b.dataset.retryPhoto; })[0];
+      if (p) beginPhotoUpload(p, renderComposePhotos);
+    });
+  });
   $$('[data-drop-photo]', strip).forEach(function(b){
     b.addEventListener('click', function(){
       var id = b.dataset.dropPhoto;
+      forgetUploadedPhoto(composePhotos.filter(function(x){ return x.id === id; })[0]);
       composePhotos = composePhotos.filter(function(x){ return x.id !== id; });
       if (localPhotoUrls[id]){ URL.revokeObjectURL(localPhotoUrls[id]); delete localPhotoUrls[id]; }
       renderComposePhotos();
@@ -8577,6 +8746,7 @@ function addComposePhotos(files){
       rememberLocalPhoto(p.id, p.blob);
       composePhotos.push(p);
       renderComposePhotos();
+      beginPhotoUpload(p, renderComposePhotos);
     }).catch(function(){ toast(t('photoTooBig')); });
   });
 }
@@ -8717,16 +8887,17 @@ function submitMemo(){
    fails is dropped from the memo rather than left as a broken square, and
    the memo itself — the words somebody wrote — is never lost to it. */
 function attachMemoPhotos(memoId, pending, baseRefs){
-  toast(t('photoUploading'));
   var landed = (baseRefs || []).slice();
   var failed = 0, full = false;
-  return pending.reduce(function(chain, p){
-    return chain.then(function(){
-      return uploadPhoto(p)
-        .then(function(){ landed.push({ id: p.id, w: p.w, h: p.h }); })
-        .catch(function(err){ failed++; if (err && err.status === 507) full = true; });
-    });
-  }, Promise.resolve()).then(function(){
+  /* four pictures used to go up one after another, each waiting out the one
+     before it. They are independent writes; send them together. And say
+     nothing if they are already up, which is now the usual case. */
+  if (pending.some(function(p){ return p.state !== 'done'; })) toast(t('photoUploading'));
+  return Promise.all(pending.map(function(p){
+    return ensureUploaded(p, renderComposePhotos).then(function(){ return p; },
+      function(err){ failed++; if (err && err.status === 507) full = true; return null; });
+  })).then(function(rows){
+    rows.forEach(function(p){ if (p) landed.push({ id: p.id, w: p.w, h: p.h }); });
     var m = (appState.memos || []).filter(function(x){ return x.id === memoId; })[0];
     if (m){
       if (landed.length) m.photos = landed; else delete m.photos;
@@ -9058,6 +9229,7 @@ function wireEvents(){
             rememberLocalPhoto(p.id, p.blob);
             diaryPhotos.push(p);
             renderDiaryPhotoStrip();
+            beginPhotoUpload(p, renderDiaryPhotoStrip);
           }).catch(function(){ toast(t('photoTooBig')); });
         });
       }

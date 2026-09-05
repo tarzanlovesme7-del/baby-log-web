@@ -74,6 +74,16 @@ const server = http.createServer((req, res) => {
     });
     return res.end(buf);
   }
+  if (req.method === 'DELETE' && u.pathname.startsWith('/api/photo/')){
+    const id = decodeURIComponent(u.pathname.slice('/api/photo/'.length));
+    if (!PHOTO_ID_RE.test(id)) return send(res, 400, { error: 'bad photo id' });
+    const referenced = [];
+    (state.memos || []).forEach(m => (m.photos || []).forEach(ph => referenced.push(ph.id)));
+    (state.diaries || []).forEach(d => (d.photos || []).forEach(ph => referenced.push(ph.id)));
+    if (referenced.indexOf(id) >= 0) return send(res, 409, { error: 'photo in use' });
+    photoStore.delete(id);
+    return send(res, 200, { ok: true });
+  }
   if (req.method === 'GET' && u.pathname === '/api/photo-usage'){
     let used = 0;
     photoStore.forEach(p => { used += p.bytes.length + p.thumb.length; });
