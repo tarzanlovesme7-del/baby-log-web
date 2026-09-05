@@ -50,6 +50,26 @@ function sameAuthor(a, b) {
 function isMaster(actor) {
   return authorIndex(actor) === MASTER_INDEX;
 }
+/* ONE PERSON, ONE STORED NAME.
+   The name went onto the record in whatever language the phone was set to,
+   so the nanny is '내니' on 21 records and 'Bảo mẫu' on 195 — one person
+   filed as two, and every per-person view split down the middle with her.
+   The comparisons above already knew the two were the same; what got
+   STORED did not.
+
+   The Korean preset is the stored form — arbitrarily, but consistently —
+   and the screens translate it for whoever is reading. That is already
+   what a custom name does: '외할머니' is stored once and shown with its
+   Vietnamese form. Normalised here as well as on the phone, so an old page
+   still open somewhere cannot go on writing the other spelling. */
+function canonAuthor(state, name) {
+  const n = (name || '').trim();
+  if (!n) return n;
+  const i = authorIndex(n);
+  if (i !== -1) return PRESET_AUTHORS[i][0];
+  const custom = (state.customAuthors || []).find((c) => c && (c.name === n || c.nameVi === n));
+  return custom ? (custom.name || n) : n;
+}
 /* An actor is only trusted as far as the phone that claims it. Mutations
    carry it as payload.actor; a client that omits it gets the old
    everyone-can-do-everything behaviour, which is why the client always
@@ -74,6 +94,13 @@ function pruneTrash(state) {
 function applyMutation(prevState, type, payload) {
   const state = clone(prevState);
   payload = payload || {};
+  /* every write carries at most two names — who is doing it, and whose
+     record it is filed under. Both arrive in the writer's language. */
+  if (typeof payload.author === 'string' || typeof payload.actor === 'string') {
+    payload = Object.assign({}, payload);
+    if (typeof payload.author === 'string') payload.author = canonAuthor(state, payload.author);
+    if (typeof payload.actor === 'string') payload.actor = canonAuthor(state, payload.actor);
+  }
 
   switch (type) {
     case 'addEntry': {

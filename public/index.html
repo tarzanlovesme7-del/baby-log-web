@@ -3275,10 +3275,23 @@ function isMasterUser(){ return authorIndex(state.author) === MASTER_INDEX; }
 function canTouch(ownerName){
   return isMasterUser() || sameAuthor(ownerName, state.author);
 }
+/* the stored form of a name: the Korean preset for the three, and .name for
+   a custom author however it was spelled coming in */
+function canonAuthorName(name){
+  var n = String(name || '').trim();
+  if (!n) return n;
+  var i = authorIndex(n);
+  if (i !== -1) return I18N.ko.authorPresets[i];
+  var c = (appState.customAuthors || []).filter(function(x){
+    return x && (x.name === n || x.nameVi === n);
+  })[0];
+  return c ? (c.name || n) : n;
+}
 function withActor(payload){
   var out = {};
   for (var k in (payload || {})) out[k] = payload[k];
-  out.actor = state.author || '';
+  out.actor = canonAuthorName(state.author || '');
+  if (typeof out.author === 'string') out.author = canonAuthorName(out.author);
   return out;
 }
 
@@ -3765,7 +3778,13 @@ function readCustomAuthors(){
    stayed in Korean on the nanny's screen even after it had a Vietnamese
    form. */
 function allAuthorChoices(){
-  var presets = t('authorPresets').map(function(n){ return { value: n, label: n }; });
+  /* THE VALUE IS THE KOREAN PRESET, ALWAYS — the label is the word that
+     follows the reader. This line used to save t('authorPresets'), the
+     CURRENT language's word, which is how one nanny became '내니' on some
+     records and 'Bảo mẫu' on others. */
+  var presets = I18N.ko.authorPresets.map(function(n, i){
+    return { value: n, label: t('authorPresets')[i] };
+  });
   return presets.concat(readCustomAuthors().map(function(c){
     return { value: c.name, label: localizeAuthorName(c.name) };
   }));
