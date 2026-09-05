@@ -102,11 +102,30 @@ app.post('/api/mutate', async (req, res, next) => {
   const { type, payload } = req.body || {};
   if (!type) return res.status(400).json({ error: 'missing mutation type' });
 
+  /* THE SAME WRITE, TWICE. The phone keeps every write in a list until the
+     server confirms it, and replays that list after a reload or when the
+     signal comes back — so a write whose ANSWER was lost (it landed; the
+     reply did not) arrives here a second time. Each one carries an id the
+     phone made up; the document remembers the last few dozen, and a repeat
+     is answered with what the first one answered instead of being applied
+     again. Without this the phone's own safety net would double records. */
+  const mid = payload && typeof payload.mid === 'string' ? payload.mid : '';
+  const APPLIED_KEEP = 60;
+
   const MAX_RETRIES = 6;
   try {
     for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
       const { data, version } = await db.getState();
+      if (mid) {
+        const prior = (data.applied || []).find((r) => r && r.mid === mid);
+        if (prior) return res.json({ data, version, result: prior.result, duplicate: true });
+      }
       const { state: nextState, result } = applyMutation(data, type, payload);
+      if (mid) {
+        nextState.applied = (nextState.applied || [])
+          .concat([{ mid, result: result || null }])
+          .slice(-APPLIED_KEEP);
+      }
       const saved = await db.saveState(nextState, version);
       if (saved) {
         /* the bytes go only once the write that orphaned them has actually

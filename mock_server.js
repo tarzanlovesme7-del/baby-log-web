@@ -104,8 +104,18 @@ const server = http.createServer((req, res) => {
       setTimeout(() => {
         try {
           const { type, payload } = JSON.parse(body || '{}');
+          /* same rule as the real server: a write id already applied is
+             answered, not applied again */
+          const mid = payload && typeof payload.mid === 'string' ? payload.mid : '';
+          if (mid) {
+            const prior = (state.applied || []).find(r0 => r0 && r0.mid === mid);
+            if (prior) return send(res, 200, { data: state, version, result: prior.result, duplicate: true });
+          }
           const r = applyMutation(state, type, payload || {});
           state = r.state;
+          if (mid) {
+            state.applied = (state.applied || []).concat([{ mid, result: r.result || null }]).slice(-60);
+          }
           version += 1;
           /* same as the real server: the bytes go only once the write that
              orphaned them has landed */

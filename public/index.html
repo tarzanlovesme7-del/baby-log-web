@@ -698,6 +698,44 @@
     .rx-menu button .rx-ico{ font-size:23px; }
   }
   .empty-note{ padding:50px 16px; text-align:center; color:var(--muted); font-size:var(--fs-label); }
+  /* ---------- WHILE THE SERVER IS WAKING UP ----------
+     The free tier sleeps after fifteen minutes and takes the better part of
+     a minute to come back, and for that whole minute the app was answering a
+     question it had not asked anything about yet: 마지막 수유 "기록 없음",
+     an empty log, D+0. That is not an empty log, it is an unanswered one —
+     and it reads as "your records are gone", which is a horrible thing for a
+     baby log to say. Grey bars say the true thing: not here YET. */
+  .skel{ position:relative; overflow:hidden; border-radius:7px;
+    background:var(--skel-base, rgba(0,0,0,.075)); }
+  .skel::after{
+    content:''; position:absolute; inset:0; transform:translateX(-100%);
+    background:linear-gradient(90deg, transparent, var(--skel-shine, rgba(255,255,255,.55)), transparent);
+    animation:skel-sweep 1.25s ease-in-out infinite;
+  }
+  @keyframes skel-sweep{ to{ transform:translateX(100%); } }
+  @media (prefers-reduced-motion: reduce){ .skel::after{ animation:none; } }
+  /* the light values are the ones on bare :root above; only the dark ones are
+     redefined, and ONLY where dark actually applies — an unguarded
+     :not([data-theme="light"]) rule paints white-on-white in daylight, which
+     is exactly the bug this pass was written to avoid */
+  :root[data-theme="dark"] .skel{ --skel-base:rgba(255,255,255,.10); --skel-shine:rgba(255,255,255,.14); }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]) .skel{ --skel-base:rgba(255,255,255,.10); --skel-shine:rgba(255,255,255,.14); }
+  }
+  .skel-line{ display:block; height:13px; margin:0 auto; }
+  .dash-item .skel-line{ width:62%; height:17px; margin-top:3px; }
+  .skel-row{ display:flex; align-items:center; gap:12px; padding:11px 2px; }
+  .skel-row .sk-time{ flex:0 0 58px; height:12px; }
+  .skel-row .sk-body{ flex:1; height:19px; }
+  .skel-row .sk-tail{ flex:0 0 40px; height:12px; }
+  .skel-band{ height:15px; width:96px; margin:14px 2px 4px; }
+  /* the header's own two lines, so the top of the screen does not say D+0 */
+  body.booting #hd-name, body.booting #hd-age{ color:transparent; }
+  body.booting #hd-name{ display:inline-block; min-width:88px; }
+  body.booting #hd-age{ display:inline-block; min-width:44px; }
+  body.booting #hd-name, body.booting #hd-age{
+    background:rgba(128,128,128,.16); border-radius:6px;
+  }
 
   /* memo tab — list-only now: composing moved to its own bottom sheet
      (triggered by the floating + button) instead of sharing the tab with an
@@ -1870,7 +1908,7 @@
   .gweek-day{ width:calc(100% + var(--pad, 16px) * 2); }
 </style>
 </head>
-<body>
+<body class="booting">
 
 <div id="app">
   <div class="ptr" id="ptr" aria-hidden="true"><div class="ptr-dot"></div></div>
@@ -1960,7 +1998,16 @@
            slot under the first date band, where it sticks to the top with
            the band while the day scrolls past. -->
       <div id="active-bar-slot"></div>
-      <div id="timeline" style="display:flex;flex-direction:column;gap:14px;"></div>
+      <!-- the first paint of the log, before the state has arrived. renderTimeline
+           replaces it the moment the server answers; see .skel in the stylesheet
+           for why this is not just left empty. -->
+      <div id="timeline" style="display:flex;flex-direction:column;gap:14px;">
+        <div class="skel skel-band"></div>
+        <div class="skel-row"><span class="skel sk-time"></span><span class="skel sk-body"></span><span class="skel sk-tail"></span></div>
+        <div class="skel-row"><span class="skel sk-time"></span><span class="skel sk-body"></span><span class="skel sk-tail"></span></div>
+        <div class="skel-row"><span class="skel sk-time"></span><span class="skel sk-body"></span><span class="skel sk-tail"></span></div>
+        <div class="skel-row"><span class="skel sk-time"></span><span class="skel sk-body"></span><span class="skel sk-tail"></span></div>
+      </div>
       <button type="button" class="btn ghost" id="log-more" hidden data-i18n="loadMore">이전 기록 더 보기</button>
     </div>
   </section>
@@ -3255,6 +3302,23 @@ function cssEsc(s){ return String(s).replace(/["\\]/g, '\\$&'); }
    ================================================================ */
 var appState = { entries: [], active: null, customTypes: [], memos: [], typeOrder: [], profile: {} };
 var appVersion = -1;
+/* false until the first answer from the server — see the .skel CSS above.
+   Every screen that would otherwise say "없어요" checks this first, because
+   before this is true the app does not know whether there is anything. */
+var appBooted = false;
+function skelRowsHtml(n){
+  var out = '<div class="skel skel-band"></div>';
+  for (var i = 0; i < n; i++){
+    out += '<div class="skel-row"><span class="skel sk-time"></span>' +
+           '<span class="skel sk-body"></span><span class="skel sk-tail"></span></div>';
+  }
+  return out;
+}
+function markBooted(){
+  if (appBooted) return;
+  appBooted = true;
+  document.body.classList.remove('booting');
+}
 
 /* the server says whether it holds a DeepL key. When it does, ITS
    translation is better than the free endpoint this phone can reach, and
@@ -3270,30 +3334,135 @@ function apiGetState(){
     return json;
   });
 }
-var mutationsInFlight = 0, oldestMutationAt = 0;
-function apiMutate(type, payload){
-  if (mutationsInFlight === 0) oldestMutationAt = Date.now();
-  mutationsInFlight++;
-  return fetch('/api/mutate', {
+/* ================================================================
+   THE OUTBOX — why a saved note could vanish on refresh.
+
+   Every screen in this app answers the finger first and writes afterwards:
+   the note appears, the toast says 저장, and the request goes out behind it.
+   That is right — a save must not wait on a sleeping server. What was
+   MISSING is what happens when that request never arrives. On her
+   connection they do fail: the server log has POST bodies cut off half way
+   through. The write was fired once, into the dark; if it never landed and
+   she reloaded the page, the note she watched being saved was simply gone,
+   with nothing anywhere that remembered it.
+
+   So a write is written down before it is sent, and it stays written down
+   until the server confirms it. The list lives in localStorage, so it
+   survives the reload, the app being closed, the phone being restarted; it
+   is replayed on the next load, when the network comes back, and when the
+   phone wakes. Only the server saying NO — a real refusal, 400/403 — takes
+   a write off the list; a connection that failed is a reason to try again.
+
+   Replay is safe because every write carries a 'mid' the phone made up, and
+   the server remembers the last few dozen it has applied: sending the same
+   one twice cannot enter it twice, and the second attempt gets the first
+   attempt's answer back. Without that, a lost REPLY (the write landed, the
+   answer did not) would duplicate the record on retry — trading a bug she
+   noticed for one she would not.
+   ================================================================ */
+var LS_OUTBOX = 'bbl_outbox';
+var OUTBOX_MAX_AGE_MS = 48 * 3600 * 1000;
+var outbox = [];
+function outboxLoad(){
+  try {
+    var raw = JSON.parse(localStorage.getItem(LS_OUTBOX) || '[]');
+    var now = Date.now();
+    outbox = (Array.isArray(raw) ? raw : []).filter(function(w){
+      return w && w.mid && w.type && (now - (w.at || 0)) < OUTBOX_MAX_AGE_MS;
+    });
+  } catch (e) { outbox = []; }
+}
+function outboxSave(){
+  try { localStorage.setItem(LS_OUTBOX, JSON.stringify(outbox)); } catch (e) {}
+}
+function outboxAdd(w){ outbox.push(w); outboxSave(); }
+function outboxDrop(mid){
+  outbox = outbox.filter(function(w){ return w.mid !== mid; });
+  outboxSave();
+}
+function newMid(){
+  return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+/* a refusal is final; anything else is the network and will be tried again */
+function isPermanentWriteError(status){
+  return status >= 400 && status < 500 && status !== 408 && status !== 409 && status !== 429;
+}
+function sendWrite(w){
+  return withTimeout(fetch('/api/mutate', {
     method: 'POST', headers: {'Content-Type':'application/json'},
     /* who is making this change. The server uses it to decide whether this
        phone may touch this record — see assertMayTouch() in mutations.js. */
-    body: JSON.stringify({ type: type, payload: withActor(payload) })
+    body: JSON.stringify({ type: w.type, payload: w.payload })
   }).then(function(res){
-    return res.json().then(function(json){
+    return res.json().catch(function(){ return {}; }).then(function(json){
       if (!res.ok){
-        var msg = json.error || ('mutate failed: ' + type);
+        var msg = json.error || ('mutate failed: ' + w.type);
         /* the server's own guard rail — reachable only if two phones raced,
            or an old page is still open somewhere */
         if (String(msg).indexOf('not-owner') === 0) msg = t('notMine');
-        throw new Error(msg);
+        var e = new Error(msg);
+        e.status = res.status;
+        e.permanent = isPermanentWriteError(res.status);
+        throw e;
       }
       return json;
     });
-  }).then(function(json){
-    appState = json.data; appVersion = json.version; return json.result;
-  }).finally(function(){ mutationsInFlight--; });
+  }), 25000);
 }
+var mutationsInFlight = 0, oldestMutationAt = 0;
+/* one attempt after another, never two at once: these are read-modify-write
+   mutations on a single document and racing them is what makes the server
+   answer "too many concurrent writes" */
+var outboxDraining = false, outboxTimer = null, outboxTries = 0;
+function outboxDrain(){
+  if (outboxDraining) return;
+  var w = outbox[0];
+  if (!w) { outboxTries = 0; return; }
+  outboxDraining = true;
+  if (mutationsInFlight === 0) oldestMutationAt = Date.now();
+  mutationsInFlight++;
+  sendWrite(w).then(function(json){
+    appState = json.data; appVersion = json.version;
+    outboxDrop(w.mid);
+    outboxTries = 0;
+    if (w.resolve) w.resolve(json.result);
+    outboxDraining = false; mutationsInFlight--;
+    if (outbox.length) outboxDrain();
+    else renderAll();
+  }, function(err){
+    outboxDraining = false; mutationsInFlight--;
+    if (err && err.permanent){
+      outboxDrop(w.mid);
+      outboxTries = 0;
+      if (w.reject) w.reject(err);
+      if (outbox.length) outboxDrain();
+      return;
+    }
+    /* the connection, not the server. Keep it and come back to it — this is
+       the case that used to lose the note. */
+    outboxTries++;
+    if (outboxTries >= 6 && w.reject){
+      /* six failures is no longer "a moment of bad signal": tell whoever is
+         waiting so the screen can put itself right, but KEEP the write —
+         the next load or the next bar of signal still gets to try it */
+      w.reject(err);
+      w.resolve = null; w.reject = null;
+    }
+    var wait = Math.min(30000, 1000 * Math.pow(2, Math.min(outboxTries, 5)));
+    clearTimeout(outboxTimer);
+    outboxTimer = setTimeout(outboxDrain, wait);
+  });
+}
+function apiMutate(type, payload){
+  var w = { mid: newMid(), type: type, payload: withActor(payload), at: Date.now() };
+  w.payload.mid = w.mid;
+  outboxAdd(w);
+  var p = new Promise(function(resolve, reject){ w.resolve = resolve; w.reject = reject; });
+  outboxDrain();
+  return p;
+}
+/* anything a replayed write changed is now on screen from the server's copy */
+function outboxReplay(){ if (outbox.length) outboxDrain(); }
 /* TRANSLATION — tried on the PHONE first, server second.
    The server runs on a shared host IP that the free translation services
    rate-limit to nothing (both answered 429 for every request), while each
@@ -3519,6 +3688,7 @@ var pollBusy = false;
    come back to life asks the server at once. */
 function resyncNow(){
   pollBusy = false;                 /* a poll frozen mid-flight must not latch */
+  outboxReplay();                   /* anything still owed to the server */
   pollState();
 }
 document.addEventListener('visibilitychange', function(){ if (!document.hidden) resyncNow(); });
@@ -4406,6 +4576,18 @@ function renderSinceLast(){
   cards.forEach(function(c, i){
     var el = items[i];
     var ms = c.e ? (now - new Date(refTimeOf(c.e, c.basis)).getTime()) : null;
+    /* "기록 없음" is an answer; before the first load there is no answer */
+    if (!appBooted){
+      var valEl = el.children[2];
+      if (el.children[0].textContent !== c.emoji) el.children[0].textContent = c.emoji;
+      if (el.children[1].textContent !== t(c.key)) el.children[1].textContent = t(c.key);
+      if (!valEl.firstChild || valEl.firstChild.nodeType !== 1){
+        valEl.textContent = '';
+        valEl.innerHTML = '<span class="skel skel-line"></span>';
+      }
+      return;
+    }
+    if (el.children[2].firstChild && el.children[2].firstChild.nodeType === 1) el.children[2].innerHTML = '';
     var vals = [c.emoji, t(c.key), fmtElapsed(ms)];
     var nodes = el.children;
     for (var k = 0; k < 3; k++){
@@ -4767,7 +4949,9 @@ function renderTimeline(){
   var nowIso = new Date().toISOString();
 
   if (!entries.length){
-    container.innerHTML = '<div class="empty-note">'+esc(t('emptyTimeline'))+'</div>';
+    container.innerHTML = appBooted
+      ? '<div class="empty-note">'+esc(t('emptyTimeline'))+'</div>'
+      : skelRowsHtml(4);
     return;
   }
   var agg = dailyAggregate(entries);
@@ -8197,7 +8381,9 @@ function renderMemoList(){
   backfillMemoTranslations();
   var memos = readMemos();
   if (!memos.length){
-    box.innerHTML = '<div class="empty-note">'+esc(t('memoNoMemos'))+'</div>';
+    box.innerHTML = appBooted
+      ? '<div class="empty-note">'+esc(t('memoNoMemos'))+'</div>'
+      : skelRowsHtml(3);
     return;
   }
   /* Anything unread when the tab was opened STAYS marked for the whole
@@ -9642,12 +9828,20 @@ function init(){
   syncLangPills();
   wireEvents();
   wirePullToRefresh();
+  /* WRITES THIS PHONE STILL OWES THE SERVER, from before the reload. They go
+     first: the state we then draw is the one that includes them. */
+  outboxLoad();
   apiGetState().then(function(){
+    markBooted();
+    if (outbox.length) outboxDrain();
     renderAll();
     if (!state.author){ openProfilePicker(); }
     /* after the first paint, never before it */
     setTimeout(backfillAuthorNames, 1500);
   }).catch(function(err){
+    /* it failed rather than being slow: an honest empty screen and the
+       message, not a shimmer that never resolves */
+    markBooted();
     toast(err.message || 'failed to load');
     renderAll();
   });
