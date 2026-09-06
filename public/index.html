@@ -3337,13 +3337,31 @@ function markBooted(){
    translation is better than the free endpoint this phone can reach, and
    the chain below flips to server-first. */
 var serverHasGoodTranslator = false;
+/* THE SCREEN NEVER GOES BACKWARDS.
+   "항목 누르면 잠깐 사라졌다가 나타나는 현상" — tap a quick record, watch it
+   appear, watch it vanish for a few seconds, watch it come back.
+
+   The poll is the one that takes it away. A pull that STARTED before her
+   tap can arrive after it, and the document it is carrying was made before
+   her record existed; assigning it wipes the row until the next tick
+   fetches it back. Not blocking the poll while a write is in flight was not
+   enough — the poll had already left.
+
+   Every document the server hands out carries the version it was made at,
+   so the rule needs no timing at all: a snapshot older than the one this
+   phone is already showing is stale by definition, and gets dropped. */
+function applyServerState(json){
+  if (json.goodTranslator !== undefined) serverHasGoodTranslator = !!json.goodTranslator;
+  if (typeof json.version === 'number' && json.version < appVersion) return false;
+  appState = json.data; appVersion = json.version;
+  return true;
+}
 function apiGetState(){
   return fetch('/api/state').then(function(res){
     if (!res.ok) throw new Error('failed to load');
     return res.json();
   }).then(function(json){
-    appState = json.data; appVersion = json.version;
-    if (json.goodTranslator !== undefined) serverHasGoodTranslator = !!json.goodTranslator;
+    applyServerState(json);
     return json;
   });
 }
@@ -3435,7 +3453,7 @@ function outboxDrain(){
   if (mutationsInFlight === 0) oldestMutationAt = Date.now();
   mutationsInFlight++;
   sendWrite(w).then(function(json){
-    appState = json.data; appVersion = json.version;
+    applyServerState(json);
     outboxDrop(w.mid);
     outboxTries = 0;
     if (w.resolve) w.resolve(json.result);
