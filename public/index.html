@@ -1375,11 +1375,22 @@
     display:inline-flex; align-items:center; flex:0 0 auto; }
   .hd-gear svg{ width:22px; height:22px; display:block; fill:none; stroke:currentColor;
     stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+  /* 급여 탭은 카드 하나에 한두 줄뿐인 것이 많다. 기록 탭 간격(18px)을 그대로
+     쓰면 화면의 절반이 회색 틈이 된다. */
+  #tab-pay{ gap:10px; padding-bottom:14px; }
+  #tab-pay .card{ padding-top:12px; padding-bottom:12px; }
+  #tab-pay .section-title{ margin-top:2px; }
+  #tab-pay .empty-note{ padding:16px 0; font-size:var(--fs-caption); }
+  /* 출근 여부만 담는 칸이라 성장 캘린더의 66px 높이가 필요 없다 */
+  #pay-cal-card{ padding-top:10px; padding-bottom:8px; }
+  #pay-grid .gcal-day{ min-height:40px; padding:6px 0 5px; gap:3px; }
+  #pay-grid .gcal-day.is-dim{ opacity:.35; }
   .pay-today{ display:flex; flex-direction:column; gap:9px; }
   .pay-row{ display:flex; align-items:center; gap:10px; }
   .pay-row .grow{ flex:1; min-width:0; }
   .pay-big{ font-size:26px; font-weight:var(--fw-display); letter-spacing:-.02em;
-    font-variant-numeric:tabular-nums; }
+    font-variant-numeric:tabular-nums; line-height:1.15; }
+  .pay-big.is-zero{ color:var(--muted-2); }
   .pay-sub{ font-size:var(--fs-caption); color:var(--muted); }
   .pay-vi{ font-size:var(--fs-micro); color:var(--muted-2); }
   .pay-stamp-btn{ border:0; border-radius:13px; padding:14px; width:100%;
@@ -1387,6 +1398,12 @@
     font-size:var(--fs-title); font-weight:var(--fw-strong); }
   .pay-stamp-btn[disabled]{ opacity:.5; }
   .pay-done{ display:flex; align-items:center; gap:9px; font-size:var(--fs-label);
+    font-weight:var(--fw-strong); }
+  .pay-ico svg{ width:21px; height:21px; display:block; fill:none; stroke:var(--ok-fg, #2f9d68);
+    stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
+  /* 부수적인 동작은 줄 하나로. 회색 대형 버튼이 카드의 주인공이 되면 안 된다 */
+  .pay-textbtn{ align-self:flex-start; border:0; background:transparent; padding:4px 0;
+    color:var(--primary-weak-fg, var(--primary)); font-size:var(--fs-caption);
     font-weight:var(--fw-strong); }
   .pay-chip{ border:1px solid var(--border); border-radius:20px; padding:3px 10px;
     font-size:var(--fs-micro); color:var(--muted); background:transparent; }
@@ -1397,6 +1414,9 @@
   .pay-line:first-child{ border-top:0; }
   .pay-line .num{ margin-left:auto; font-variant-numeric:tabular-nums; font-weight:var(--fw-strong); }
   .pay-line .num.muted{ color:var(--muted-2); font-weight:var(--fw-body); }
+  .pay-btn{ border:1px solid var(--border); background:transparent; color:var(--fg);
+    border-radius:11px; padding:7px 16px; font-size:var(--fs-caption); font-weight:var(--fw-strong); }
+  .pay-btn.go{ background:var(--primary); border-color:var(--primary); color:var(--primary-fg, #fff); }
   .pay-approval{ padding:10px 0; border-top:1px solid var(--border); }
   .pay-approval:first-of-type{ border-top:0; }
   .pay-actions{ display:flex; gap:8px; margin-top:9px; }
@@ -2423,7 +2443,7 @@
     <!-- 얼마인지가 먼저. 내니는 이걸 보러 들어오고, 엄마는 이걸 보고 보낸다 -->
     <div class="card" id="pay-period"></div>
 
-    <div class="card gcal-card">
+    <div class="card gcal-card" id="pay-cal-card">
       <div class="gcal-head">
         <button type="button" class="log-arrow" id="pay-prev">‹</button>
         <div class="gcal-title" id="pay-title"></div>
@@ -2823,6 +2843,7 @@ ko: {
   payApprove:"승인", payReject:"거절", payApprovals:"승인할 것",
   payReqStamp:"출근 요청", payReqOt:"오버타임 요청",
   payNoWork:"아직 근무 기록이 없어요", payNotStarted:"9월 16일부터 기록해요",
+  payNotStartedTpl:"{d}부터 기록해요",
   payDay:"이 날", payAddOt:"+ 오버타임", payDayWage:"이 날 일당", payStampAt:"출근 도장",
   payLegendOn:"출근", payLegendWait:"승인 대기", payStampShort:"출근 도장",
   payNoStamp:"이 날은 출근 기록이 없어요", payRemove:"지우기",
@@ -2952,6 +2973,7 @@ vi: {
   payApprove:"Duyệt", payReject:"Từ chối", payApprovals:"Chờ duyệt",
   payReqStamp:"Yêu cầu chấm công", payReqOt:"Yêu cầu tăng ca",
   payNoWork:"Chưa có ngày công nào", payNotStarted:"Bắt đầu từ 16/9",
+  payNotStartedTpl:"Bắt đầu từ {d}",
   payDay:"Ngày này", payAddOt:"+ Tăng ca", payDayWage:"Lương ngày này", payStampAt:"Giờ điểm danh",
   payLegendOn:"Đi làm", payLegendWait:"Chờ duyệt", payStampShort:"Điểm danh",
   payNoStamp:"Ngày này chưa điểm danh", payRemove:"Xoá",
@@ -7550,7 +7572,9 @@ function otMins(o){
   if (b <= a) b += 1440;      /* 22:30 → 00:30 은 자정을 넘긴 것 */
   return b - a;
 }
-function fmtDur(min){
+/* 분을 사람 말로. 이름이 fmtDur이면 밀리초를 받는 기존 fmtDur를 덮어써서
+   9분짜리 수유가 "9000시간"이 된다 — 실제로 그렇게 나갔다. */
+function fmtWorkDur(min){
   var h = Math.floor(min / 60), m = min % 60;
   if (!h) return t('minOnlyTpl').replace('{m}', m);
   if (!m) return t('hourOnlyTpl').replace('{h}', h);
@@ -7661,18 +7685,21 @@ function renderPayToday(){
   var html = '<div class="pay-row"><span class="pay-sub">' + esc(t('payToday')) + '</span>' +
     '<span class="pay-chip" style="margin-left:auto">' + esc(payDateLabel(today)) + '</span></div>';
   if (!payStarted(today)){
-    html += '<div class="empty-note" style="padding:12px 0">' + esc(t('payNotStarted')) + '</div>';
+    /* .empty-note는 50px 패딩짜리 빈 화면용이라, 한 줄 알림에 쓰면 카드가
+       손바닥만 해진다 */
+    html += '<div class="pay-sub" style="padding:2px 0 2px">' +
+      esc(t('payNotStartedTpl').replace('{d}', payDateLabel(payroll().startDate).replace(/\s*\(.*\)$/, ''))) + '</div>';
   } else if (!sh){
     html += '<button type="button" class="pay-stamp-btn" id="pay-stamp">' + esc(t('payStamp')) + '</button>';
     if (state.lang !== 'vi') html += '<div class="pay-vi" style="text-align:center">Điểm danh hôm nay</div>';
   } else {
-    html += '<div class="pay-done">' + growthIconHtml('m', 'g-ico') +
+    html += '<div class="pay-done">' + payStampIcon() +
       '<span>' + esc(t('payStamped')) + (sh.at ? ' · ' + esc(fmtTime(sh.at)) : '') + '</span>' +
       (canTouch(sh.by) || sh.status === 'pending'
         ? '<button type="button" class="pay-chip" id="pay-unstamp" style="margin-left:auto">' + esc(t('payStampCancel')) + '</button>' : '') +
       '</div>';
     if (sh.status === 'pending') html += '<div class="pay-chip warn" style="align-self:flex-start">' + esc(t('payPending')) + '</div>';
-    html += '<button type="button" class="btn ghost" id="pay-ot-today">' + esc(t('payAddOt')) + '</button>';
+    html += '<button type="button" class="pay-textbtn" id="pay-ot-today">' + esc(t('payAddOt')) + '</button>';
   }
   box.innerHTML = html;
   var stamp = document.getElementById('pay-stamp');
@@ -7688,6 +7715,12 @@ function payShiftMonth(delta){
   state.payMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
   renderPayCalendar();
 }
+/* 출근 표시에 발달 기록의 별을 빌려 쓰면 "오늘의 첫 뒤집기"처럼 읽힌다.
+   찍힌 도장 하나면 된다. */
+function payStampIcon(){
+  return '<span class="pay-ico" aria-hidden="true"><svg viewBox="0 0 24 24">' +
+    '<circle cx="12" cy="12" r="8.6"/><path d="M8.3 12.3l2.6 2.6 4.8-5.2"/></svg></span>';
+}
 function payDateLabel(ds){
   var d = new Date(ds + 'T00:00:00');
   var wd = t('weekday_short')[d.getDay()];
@@ -7701,9 +7734,9 @@ function payApprovalRow(label, amount, kind, id){
   return '<div class="pay-approval">' +
     '<div class="pay-row"><span>' + label + '</span>' +
       '<span class="num" style="margin-left:auto">' + esc(amount) + '</span></div>' +
-    '<div class="pay-actions" style="margin-top:7px">' +
-      '<button type="button" class="btn primary" data-ok-' + kind + '="' + esc(id) + '">' + esc(t('payApprove')) + '</button>' +
-      '<button type="button" class="btn ghost" data-no-' + kind + '="' + esc(id) + '">' + esc(t('payReject')) + '</button>' +
+    '<div class="pay-row" style="margin-top:7px;justify-content:flex-end">' +
+      '<button type="button" class="pay-btn ghost" data-no-' + kind + '="' + esc(id) + '">' + esc(t('payReject')) + '</button>' +
+      '<button type="button" class="pay-btn go" data-ok-' + kind + '="' + esc(id) + '">' + esc(t('payApprove')) + '</button>' +
     '</div></div>';
 }
 function renderPayApprovals(){
@@ -7774,6 +7807,8 @@ function renderPayDay(){
   var ds = paySelectedDate();
   var sh = shiftOn(ds), ots = otOn(ds), r = payroll();
   var locked = !!paidPeriod(periodOf(ds).from, periodOf(ds).to);
+  if (!payStarted(ds)){ box.innerHTML = ''; box.hidden = true; return; }
+  box.hidden = false;
   var html = '<div class="pay-row"><b>' + esc(payDateLabel(ds)) + '</b>' +
     (locked ? '<span class="pay-chip ok" style="margin-left:auto">' + esc(t('payPaidAt').replace('{d}', '')) + '</span>' : '') +
     '</div>';
@@ -7800,12 +7835,12 @@ function renderPayDay(){
   if (!locked && payStarted(ds)){
     html += '<div class="pay-actions">';
     if (!sh){
-      html += '<button type="button" class="btn ghost" id="pay-day-stamp">' +
+      html += '<button type="button" class="pay-textbtn" id="pay-day-stamp">' +
         esc(isMasterUser() || ds === toDateValue() ? t('payStampShort') : t('payReqStamp')) + '</button>';
     } else if (canTouch(sh.by) || sh.status === 'pending'){
-      html += '<button type="button" class="btn ghost" id="pay-day-unstamp">' + esc(t('payRemove')) + '</button>';
+      html += '<button type="button" class="pay-textbtn" id="pay-day-unstamp">' + esc(t('payRemove')) + '</button>';
     }
-    html += '<button type="button" class="btn ghost" id="pay-day-ot">' + esc(t('payAddOt')) + '</button></div>';
+    html += '<button type="button" class="pay-textbtn" id="pay-day-ot" style="margin-left:auto">' + esc(t('payAddOt')) + '</button></div>';
   }
   box.innerHTML = html;
   $$('[data-del-ot]', box).forEach(function(b){ b.addEventListener('click', function(){
@@ -7822,6 +7857,10 @@ function renderPayPeriodCard(){
   if (!box) return;
   var today = toDateValue();
   var pr = periodOf(today);
+  /* 아직 시작 전이면 오늘이 낀 기간은 존재한 적이 없는 기간이다. 0 ₫짜리
+     카드와 "입금 완료로 표시" 버튼을 띄우는 대신 첫 기간을 보여준다. */
+  var start = payroll().startDate;
+  if (pr.to < start) pr = periodOf(start);
   var tot = periodTotals(pr.from, pr.to);
   var already = paidPeriod(pr.from, pr.to);
   var dleft = Math.round((new Date(pr.payday + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
@@ -7830,16 +7869,22 @@ function renderPayPeriodCard(){
       : '<span class="pay-chip warn" style="margin-left:auto">' + (dleft > 0 ? 'D-' + dleft : dleft === 0 ? 'D-DAY' : 'D+' + (-dleft)) + '</span>') +
     '</div>' +
     '<div style="font-weight:var(--fw-strong);margin-top:2px">' + esc(payDateLabel(pr.payday)) + '</div>' +
-    '<div class="pay-big" style="margin-top:6px">' + esc(fmtVnd(already ? already.amount : tot.amount)) + '</div>' +
+    '<div class="pay-big' + ((already ? already.amount : tot.amount) ? '' : ' is-zero') +
+      '" style="margin-top:6px">' + esc(fmtVnd(already ? already.amount : tot.amount)) + '</div>' +
     '<div class="pay-sub" style="margin-top:3px">' + esc(payDateLabel(pr.from).replace(/\s*\(.*\)$/, '')) + ' – ' +
       esc(payDateLabel(pr.to).replace(/\s*\(.*\)$/, '')) + ' · ' +
       esc(t('payDaysTpl').replace('{n}', already ? already.days : tot.days)) +
-      ((already ? already.otMin : tot.otMin) ? ' · ' + esc(t('payOtTpl').replace('{t}', fmtDur(already ? already.otMin : tot.otMin))) : '') +
+      ((already ? already.otMin : tot.otMin) ? ' · ' + esc(t('payOtTpl').replace('{t}', fmtWorkDur(already ? already.otMin : tot.otMin))) : '') +
     '</div>';
-  if (isMasterUser()){
+  /* 줄 것이 없으면 입금 버튼도 없다 — 0 ₫을 입금 완료로 표시하는 화면은
+     아무 뜻이 없고, 파란 버튼이 화면에서 제일 큰 것이 되어 버린다 */
+  if (isMasterUser() && (already || tot.days || tot.otMin)){
+    /* 지급일 전에는 조용한 버튼, 지급일이 오면 파란 버튼 — 화면에서 제일 큰
+       것이 언제나 "입금 완료"일 이유는 없다 */
     html += '<div class="pay-actions">' + (already
       ? '<button type="button" class="btn ghost" id="pay-unpaid">' + esc(t('payPaidUndo')) + '</button>'
-      : '<button type="button" class="btn primary" id="pay-paid">' + esc(t('payMarkPaid')) + '</button>') + '</div>';
+      : '<button type="button" class="btn ' + (dleft <= 0 ? 'primary' : 'ghost') + '" id="pay-paid">' +
+        esc(t('payMarkPaid')) + '</button>') + '</div>';
   }
   box.innerHTML = html;
   var b1 = document.getElementById('pay-paid');
@@ -7876,7 +7921,7 @@ function renderPayHistory(){
       '<div>' + esc(payDateLabel(r.pr.from).replace(/\s*\(.*\)$/, '')) + ' – ' +
         esc(payDateLabel(r.pr.to).replace(/\s*\(.*\)$/, '')) + '</div>' +
       '<div class="pay-vi">' + esc(t('payDaysTpl').replace('{n}', r.tot.days)) +
-        (r.tot.otMin ? ' · ' + esc(t('payOtTpl').replace('{t}', fmtDur(r.tot.otMin))) : '') + '</div></div>' +
+        (r.tot.otMin ? ' · ' + esc(t('payOtTpl').replace('{t}', fmtWorkDur(r.tot.otMin))) : '') + '</div></div>' +
       '<div style="text-align:right"><div class="num" style="font-variant-numeric:tabular-nums;font-weight:var(--fw-strong)">' +
         esc(fmtVnd(r.tot.amount)) + '</div>' +
       (r.paid
@@ -7934,7 +7979,7 @@ function renderOtSum(){
   var o = { start: document.getElementById('ot-start').value, end: document.getElementById('ot-end').value };
   var min = otMins(o);
   box.className = 'ot-sum';
-  box.innerHTML = '<span>' + esc(fmtDur(min)) + '</span><b>+' + esc(fmtVnd(min * otPerMinute())) + '</b>';
+  box.innerHTML = '<span>' + esc(fmtWorkDur(min)) + '</span><b>+' + esc(fmtVnd(min * otPerMinute())) + '</b>';
 }
 function saveOtSheet(){
   var date = document.getElementById('ot-date').value;
