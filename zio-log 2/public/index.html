@@ -1368,48 +1368,6 @@
   .gweek-evt .tx{ min-width:0; overflow:hidden; text-overflow:ellipsis; }
   .gweek-sub{ font-size:var(--fs-caption); color:var(--muted); }
   .gweek-empty{ font-size:var(--fs-micro); color:var(--muted-2); padding-top:4px; }
-  /* ---------- 급여 ---------- */
-  /* 헤더 톱니. .ui-ico를 빌려 쓰면 그 클래스가 다른 곳에서 받는 크기 규칙에
-     끌려가 점 하나로 쪼그라든다 — 자기 규칙을 갖는다. */
-  .hd-gear{ border:0; background:transparent; padding:6px; margin-left:2px; color:var(--muted);
-    display:inline-flex; align-items:center; flex:0 0 auto; }
-  .hd-gear svg{ width:22px; height:22px; display:block; fill:none; stroke:currentColor;
-    stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
-  .pay-today{ display:flex; flex-direction:column; gap:9px; }
-  .pay-row{ display:flex; align-items:center; gap:10px; }
-  .pay-row .grow{ flex:1; min-width:0; }
-  .pay-big{ font-size:26px; font-weight:var(--fw-display); letter-spacing:-.02em;
-    font-variant-numeric:tabular-nums; }
-  .pay-sub{ font-size:var(--fs-caption); color:var(--muted); }
-  .pay-vi{ font-size:var(--fs-micro); color:var(--muted-2); }
-  .pay-stamp-btn{ border:0; border-radius:13px; padding:14px; width:100%;
-    background:var(--primary); color:var(--primary-fg, #fff);
-    font-size:var(--fs-title); font-weight:var(--fw-strong); }
-  .pay-stamp-btn[disabled]{ opacity:.5; }
-  .pay-done{ display:flex; align-items:center; gap:9px; font-size:var(--fs-label);
-    font-weight:var(--fw-strong); }
-  .pay-chip{ border:1px solid var(--border); border-radius:20px; padding:3px 10px;
-    font-size:var(--fs-micro); color:var(--muted); background:transparent; }
-  .pay-chip.warn{ border-color:var(--warn-fg, #b7791f); color:var(--warn-fg, #b7791f); }
-  .pay-chip.ok{ border-color:var(--ok-fg, #2f9d68); color:var(--ok-fg, #2f9d68); }
-  .pay-line{ display:flex; align-items:center; gap:9px; padding:9px 0;
-    border-top:1px solid var(--border); font-size:var(--fs-label); }
-  .pay-line:first-child{ border-top:0; }
-  .pay-line .num{ margin-left:auto; font-variant-numeric:tabular-nums; font-weight:var(--fw-strong); }
-  .pay-line .num.muted{ color:var(--muted-2); font-weight:var(--fw-body); }
-  .pay-approval{ padding:10px 0; border-top:1px solid var(--border); }
-  .pay-approval:first-of-type{ border-top:0; }
-  .pay-actions{ display:flex; gap:8px; margin-top:9px; }
-  .pay-actions .btn{ flex:1; }
-  .gcal-day .pay-dot{ width:7px; height:7px; border-radius:50%; background:var(--fg); display:block;
-    margin:2px auto 0; }
-  .gcal-day .pay-dot.pending{ background:transparent; border:1.5px solid var(--muted-2); }
-  .gcal-day .pay-ot{ position:absolute; top:2px; right:4px; font-size:11px; line-height:1;
-    color:var(--primary); font-weight:var(--fw-strong); }
-  .ot-sum{ margin-top:6px; padding:12px; border-radius:12px; background:var(--surface-2);
-    display:flex; align-items:baseline; gap:10px; font-size:var(--fs-label); }
-  .ot-sum b{ margin-left:auto; font-size:var(--fs-title); font-variant-numeric:tabular-nums; }
-  .ot-sum.bad{ color:var(--danger); }
   /* ---------- 모아보기: 하루가 제목, 그 날의 것들이 그 아래 ----------
      날짜 줄은 누르면 그날 페이지로 간다 — 모아보기에서 무언가를 고치려면
      결국 그 하루로 가야 하기 때문에. */
@@ -1972,12 +1930,6 @@
         <button type="button" class="profile-avatar" id="btn-profile" title="profile">
           <span id="profile-pill-text">-</span>
         </button>
-        <!-- 설정은 하루에 한 번 열까 말까 하면서 아래 다섯 자리 중 하나를 쓰고
-             있었다. 그 자리를 급여에 내주고 여기로 올라옴. -->
-        <button type="button" class="hd-gear" id="btn-settings" aria-label="설정 · Cài đặt">
-          <!-- 톱니. 원에 직선 살만 뻗으면 해 모양이라 '밝기'로 읽힌다 -->
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.3 13.1a7.6 7.6 0 0 0 0-2.2l2-1.5-1.9-3.3-2.4.9a7.6 7.6 0 0 0-1.9-1.1L14.7 3.4h-3.8l-.4 2.5c-.7.2-1.3.6-1.9 1.1l-2.4-.9-1.9 3.3 2 1.5a7.6 7.6 0 0 0 0 2.2l-2 1.5 1.9 3.3 2.4-.9c.6.5 1.2.8 1.9 1.1l.4 2.5h3.8l.4-2.5c.7-.3 1.3-.6 1.9-1.1l2.4.9 1.9-3.3z"/><circle cx="12.8" cy="12" r="2.7"/></svg>
-        </button>
       </div>
     </div>
   </header>
@@ -2331,8 +2283,6 @@
         </button>
       </div>
       <div class="hint-line" data-i18n="masterPinHint">PIN을 걸어두면 다른 사람이 설정에서 '엄마'로 바꿀 수 없어요.</div>
-      <div class="section-title" data-i18n="payTitle">급여</div>
-      <div class="card" id="pay-settings"></div>
     </div>
 
     <div>
@@ -2409,38 +2359,6 @@
     </p>
   </section>
 
-  <!-- ============ TAB: PAY — 내니 근무와 급여 ============
-       도장 하나가 하루 일당이고, 그 도장이 그대로 급여가 된다. 엄마와 내니가
-       같은 숫자를 본다: 내니는 자기 출근을 찍고 금액을 읽기만, 엄마는 승인하고
-       입금 완료를 찍는다. -->
-  <section class="panel" id="tab-pay" data-tab-panel hidden>
-    <!-- 오늘. 내니 폰에서는 도장 버튼, 다른 폰에서는 오늘 상태만 -->
-    <div class="card pay-today" id="pay-today"></div>
-
-    <!-- 엄마 폰에만, 승인 기다리는 것이 있을 때만 -->
-    <div id="pay-approvals"></div>
-
-    <!-- 얼마인지가 먼저. 내니는 이걸 보러 들어오고, 엄마는 이걸 보고 보낸다 -->
-    <div class="card" id="pay-period"></div>
-
-    <div class="card gcal-card">
-      <div class="gcal-head">
-        <button type="button" class="log-arrow" id="pay-prev">‹</button>
-        <div class="gcal-title" id="pay-title"></div>
-        <button type="button" class="log-arrow" id="pay-next">›</button>
-      </div>
-      <div class="gcal-dow" id="pay-dow"></div>
-      <div class="gcal-grid" id="pay-grid"></div>
-    </div>
-    <div class="hint-line gcal-legend" id="pay-legend"></div>
-
-    <!-- 고른 날 하나 -->
-    <div class="card" id="pay-day"></div>
-
-    <div class="section-title" data-i18n="payPast" style="margin-bottom:0">지난 급여</div>
-    <div class="card" id="pay-history"></div>
-  </section>
-
   <!-- ============ TAB BAR ============ -->
   <!-- Line icons rather than emoji. A greyscale-filtered emoji is still an
        emoji: it renders differently on every phone, sits at a different
@@ -2463,49 +2381,11 @@
       <svg class="tb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21v-8.2"/><path d="M12 12.8C12 8.9 9.2 6.2 5.2 6.2c0 3.9 2.8 6.6 6.8 6.6z"/><path d="M12 10.9c0-3.3 2.4-5.6 5.9-5.6 0 3.3-2.4 5.6-5.9 5.6z"/></svg>
       <span data-i18n="tabGrowth">성장</span>
     </button>
-    <!-- 돼지저금통. 다른 탭 아이콘과 같은 24 격자·같은 획 굵기로 그리되,
-         몸통은 채워서 아래 줄에서 이것만 확실히 눈에 띄게. -->
-    <button type="button" class="tab-btn" data-tab="pay" aria-current="false">
-      <svg class="tb-ico" viewBox="0 0 24 24" aria-hidden="true">
-        <path data-solid d="M9.2 6.4h3.4c3.6 0 6.4 2.3 6.9 5.2l1.7.9v3.1h-2.2a6.6 6.6 0 0 1-2.1 2.1v2.1h-2.7v-1.2a8.6 8.6 0 0 1-3.7 0v1.2H7.8v-2.2C6 16.4 4.9 14.5 4.9 12.3c0-.9.2-1.7.5-2.4H4.1a2.1 2.1 0 0 1 2.1-2.1h.8z"/>
-        <path d="M9.2 6.4A3.1 3.1 0 0 1 14 4.2"/>
-        <circle class="dot" cx="15.4" cy="11.4" r="1"/>
-      </svg>
-      <span data-i18n="tabPay">급여</span>
+    <button type="button" class="tab-btn" data-tab="settings" aria-current="false">
+      <svg class="tb-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h6M14 8h6M4 16h10M18 16h2"/><circle cx="12" cy="8" r="2.2"/><circle cx="16" cy="16" r="2.2"/></svg>
+      <span data-i18n="tabSettings">설정</span>
     </button>
   </nav>
-
-  <!-- ============ SHEET: OVERTIME ============
-       시각으로 넣는다. 105,000 ₫/h는 1,750 ₫/분이라 몇 분이 나오든 동 단위로
-       떨어져서 반올림 규칙이 없다 — 그래서 0.5시간 단위 같은 것도 없다. -->
-  <div class="scrim" id="scrim7"></div>
-  <div class="sheet" id="ot-sheet" data-scrim="scrim7" role="dialog" aria-modal="true">
-    <div class="sheet-head">
-      <div class="grabber"></div>
-      <button type="button" class="icon-btn" id="ot-sheet-close">✕</button>
-      <h2 data-i18n="otTitle">오버타임</h2>
-      <span style="width:30px"></span>
-    </div>
-    <div class="sheet-body">
-      <div class="field">
-        <label data-i18n="otDate">날짜</label>
-        <input type="date" id="ot-date" />
-      </div>
-      <div class="field">
-        <label data-i18n="otStart">시작</label>
-        <div id="ot-start-wrap"></div>
-      </div>
-      <div class="field">
-        <label data-i18n="otEnd">종료</label>
-        <div id="ot-end-wrap"></div>
-      </div>
-      <div class="ot-sum" id="ot-sum"></div>
-    </div>
-    <div class="sheet-foot">
-      <button type="button" class="btn ghost" id="ot-sheet-cancel" data-i18n="cancel">취소</button>
-      <button type="button" class="btn primary" id="ot-sheet-save" data-i18n="save">저장</button>
-    </div>
-  </div>
 
   <!-- ============ FULL PAGE: ENTRY DETAIL ============ -->
   <div class="fullpage" id="fp-entry">
@@ -2816,28 +2696,6 @@ ko: {
   since_poop:"마지막 똥", authorViPh:"베트남어 이름 (자동 번역)",
   nextFeedLabel:"다음 추천 수유", nextFeedValueTpl:"{time} · {remain} 후", nextFeedDueValueTpl:"시간이 지났어요 · {time}",
   patternTitle:"시간대 패턴", patternCaption:"세로축은 하루 24시간 · 항목을 눌러 켜고 끄세요", patternEmpty:"이 기간엔 기록이 없어요",
-  /* ---- 내니 근무와 급여 ---- */
-  tabPay:"급여", payTitle:"급여", payToday:"오늘 근무", payStamp:"출근 도장 찍기",
-  payStamped:"오늘 출근함", payStampCancel:"취소", payStampAsk:"이 날 출근으로 요청할까요?",
-  payRequested:"승인 대기", payPending:"승인 기다리는 중",
-  payApprove:"승인", payReject:"거절", payApprovals:"승인할 것",
-  payReqStamp:"출근 요청", payReqOt:"오버타임 요청",
-  payNoWork:"아직 근무 기록이 없어요", payNotStarted:"9월 16일부터 기록해요",
-  payDay:"이 날", payAddOt:"+ 오버타임", payDayWage:"이 날 일당", payStampAt:"출근 도장",
-  payLegendOn:"출근", payLegendWait:"승인 대기", payStampShort:"출근 도장",
-  payNoStamp:"이 날은 출근 기록이 없어요", payRemove:"지우기",
-  payNext:"다음 지급일", payPeriodTpl:"{from} – {to}", payDaysTpl:"근무 {n}일",
-  payOtTpl:"오버타임 {t}", payPast:"지난 급여", payNoPast:"아직 없어요. 첫 지급은 {d}이에요.",
-  payMarkPaid:"입금 완료로 표시", payPaidAt:"입금 완료 {d}", payUnpaid:"미입금",
-  payPaidUndo:"입금 취소", payFrozen:"입금 완료된 기간은 금액이 바뀌지 않아요",
-  payDaily:"일급", payHourly:"시급", payMeal:"식대", payOtMul:"오버타임 배율", payStart:"시작일",
-  payPerMin:"{n} ₫/분", payMasterOnly:"엄마만 바꿀 수 있어요",
-  otTitle:"오버타임", otDate:"날짜", otStart:"시작", otEnd:"종료",
-  otSumTpl:"{dur} · {amount}", otBadRange:"종료가 시작보다 빨라요",
-  otSent:"승인 요청을 보냈어요", otAdded:"오버타임을 넣었어요",
-  hourMinTpl:"{h}시간 {m}분", minOnlyTpl:"{m}분", hourOnlyTpl:"{h}시간",
-  paydayMemoTpl:"{payday} 급여일 · {from}–{to} 근무 {days}일, 오버타임 {ot} → {amount}",
-  paydayMemoNoOt:"{payday} 급여일 · {from}–{to} 근무 {days}일 → {amount}",
   insAll:"일과", tabGrowth:"성장", gCal:"캘린더", gGraph:"그래프", gAlbum:"모아보기",
   albumAll:"전체", albumMile:"발달", albumDiary:"일기",
   albumEmpty:"발달 기록과 육아일기가 여기 모여요",
@@ -2945,28 +2803,6 @@ vi: {
   since_poop:"Ị gần nhất", authorViPh:"Tên tiếng Việt (tự dịch)",
   nextFeedLabel:"Dự kiến bú tiếp theo", nextFeedValueTpl:"{time} · còn {remain}", nextFeedDueValueTpl:"Đã quá giờ · {time}",
   patternTitle:"Mẫu hình theo giờ", patternCaption:"Trục dọc là 24 giờ · chạm để bật/tắt từng mục", patternEmpty:"Chưa có nhật ký trong khoảng này",
-  /* ---- Chấm công và lương ---- */
-  tabPay:"Lương", payTitle:"Lương", payToday:"Hôm nay", payStamp:"Điểm danh hôm nay",
-  payStamped:"Đã điểm danh", payStampCancel:"Huỷ", payStampAsk:"Gửi yêu cầu chấm công ngày này?",
-  payRequested:"Chờ duyệt", payPending:"Đang chờ mẹ duyệt",
-  payApprove:"Duyệt", payReject:"Từ chối", payApprovals:"Chờ duyệt",
-  payReqStamp:"Yêu cầu chấm công", payReqOt:"Yêu cầu tăng ca",
-  payNoWork:"Chưa có ngày công nào", payNotStarted:"Bắt đầu từ 16/9",
-  payDay:"Ngày này", payAddOt:"+ Tăng ca", payDayWage:"Lương ngày này", payStampAt:"Giờ điểm danh",
-  payLegendOn:"Đi làm", payLegendWait:"Chờ duyệt", payStampShort:"Điểm danh",
-  payNoStamp:"Ngày này chưa điểm danh", payRemove:"Xoá",
-  payNext:"Kỳ lương tới", payPeriodTpl:"{from} – {to}", payDaysTpl:"{n} ngày công",
-  payOtTpl:"Tăng ca {t}", payPast:"Lương đã trả", payNoPast:"Chưa có · kỳ đầu tiên là {d}",
-  payMarkPaid:"Đánh dấu đã trả", payPaidAt:"Đã trả {d}", payUnpaid:"Chưa trả",
-  payPaidUndo:"Bỏ đánh dấu", payFrozen:"Kỳ đã trả thì số tiền không đổi nữa",
-  payDaily:"Lương ngày", payHourly:"Lương giờ", payMeal:"Tiền ăn", payOtMul:"Hệ số tăng ca", payStart:"Ngày bắt đầu",
-  payPerMin:"{n} ₫/phút", payMasterOnly:"Chỉ mẹ mới sửa được",
-  otTitle:"Tăng ca", otDate:"Ngày", otStart:"Bắt đầu", otEnd:"Kết thúc",
-  otSumTpl:"{dur} · {amount}", otBadRange:"Giờ kết thúc sớm hơn giờ bắt đầu",
-  otSent:"Đã gửi yêu cầu", otAdded:"Đã thêm tăng ca",
-  hourMinTpl:"{h} giờ {m} phút", minOnlyTpl:"{m} phút", hourOnlyTpl:"{h} giờ",
-  paydayMemoTpl:"Ngày lương {payday} · {from}–{to}: {days} ngày công, tăng ca {ot} → {amount}",
-  paydayMemoNoOt:"Ngày lương {payday} · {from}–{to}: {days} ngày công → {amount}",
   insAll:"Sinh hoạt", tabGrowth:"Phát triển", gCal:"Lịch", gGraph:"Biểu đồ", gAlbum:"Tổng hợp",
   albumAll:"Tất cả", albumMile:"Cột mốc", albumDiary:"Nhật ký",
   albumEmpty:"Cột mốc và nhật ký của bé sẽ hiện ở đây",
@@ -3361,8 +3197,6 @@ var state = {
   patternDays: 7,     // how far back the pattern chart looks (7/14/28)
   insTab: 'all',      // 통계 tab section: 'all' | 'feed' | 'poop' | 'sleep'
   gTab: 'cal',        // 성장 tab view: 'cal' | 'album' | 'graph'
-  payMonth: null,     // 'YYYY-MM' the pay calendar is showing (null = this month)
-  payDate: null,      // 'YYYY-MM-DD' selected on the pay calendar (null = today)
   gAlbumFilter: 'all',// 모아보기 filter: 'all' | 'mile' | 'diary'
   gAlbumLimit: 20,    // how many items of it are on screen
   gMonth: null,       // 'YYYY-MM' the calendar is showing (null = this month)
@@ -3503,31 +3337,13 @@ function markBooted(){
    translation is better than the free endpoint this phone can reach, and
    the chain below flips to server-first. */
 var serverHasGoodTranslator = false;
-/* THE SCREEN NEVER GOES BACKWARDS.
-   "항목 누르면 잠깐 사라졌다가 나타나는 현상" — tap a quick record, watch it
-   appear, watch it vanish for a few seconds, watch it come back.
-
-   The poll is the one that takes it away. A pull that STARTED before her
-   tap can arrive after it, and the document it is carrying was made before
-   her record existed; assigning it wipes the row until the next tick
-   fetches it back. Not blocking the poll while a write is in flight was not
-   enough — the poll had already left.
-
-   Every document the server hands out carries the version it was made at,
-   so the rule needs no timing at all: a snapshot older than the one this
-   phone is already showing is stale by definition, and gets dropped. */
-function applyServerState(json){
-  if (json.goodTranslator !== undefined) serverHasGoodTranslator = !!json.goodTranslator;
-  if (typeof json.version === 'number' && json.version < appVersion) return false;
-  appState = json.data; appVersion = json.version;
-  return true;
-}
 function apiGetState(){
   return fetch('/api/state').then(function(res){
     if (!res.ok) throw new Error('failed to load');
     return res.json();
   }).then(function(json){
-    applyServerState(json);
+    appState = json.data; appVersion = json.version;
+    if (json.goodTranslator !== undefined) serverHasGoodTranslator = !!json.goodTranslator;
     return json;
   });
 }
@@ -3619,7 +3435,7 @@ function outboxDrain(){
   if (mutationsInFlight === 0) oldestMutationAt = Date.now();
   mutationsInFlight++;
   sendWrite(w).then(function(json){
-    applyServerState(json);
+    appState = json.data; appVersion = json.version;
     outboxDrop(w.mid);
     outboxTries = 0;
     if (w.resolve) w.resolve(json.result);
@@ -3651,10 +3467,7 @@ function outboxDrain(){
   });
 }
 function apiMutate(type, payload){
-  /* a caller may pin the write id — the payday memo does, so that three phones
-     posting the same summary end up with one memo, not three */
-  var pinned = payload && typeof payload.mid === 'string' ? payload.mid : '';
-  var w = { mid: pinned || newMid(), type: type, payload: withActor(payload), at: Date.now() };
+  var w = { mid: newMid(), type: type, payload: withActor(payload), at: Date.now() };
   w.payload.mid = w.mid;
   outboxAdd(w);
   var p = new Promise(function(resolve, reject){ w.resolve = resolve; w.reject = reject; });
@@ -7507,481 +7320,6 @@ function backfillScheduleTranslations(){
     return apiMutate('updateSchedule', { id: s.id, translation: tr });
   }).catch(function(){ /* the next session tries again */ });
 }
-/* ================================================================
-   내니 근무와 급여
-   ================================================================
-   한 번의 도장이 하루 일당이고, 오버타임은 시작·종료 시각으로 들어와 분 단위로
-   값이 매겨진다. 105,000 ₫/h = 1,750 ₫/분이라 몇 분이든 동 단위로 딱 떨어져서
-   반올림 규칙이 없다.
-
-   기간은 달을 둘로 자른다: 1–15일치를 15일에, 16–말일치를 말일에. 지급일 당일
-   근무가 그 날 정산에 들어간다 — 15일 아침에 일하고 15일 저녁에 받는다. */
-function payroll(){
-  var p = appState.payroll || {};
-  return {
-    daily: Number(p.daily) || 800000,
-    hourly: Number(p.hourly) || 70000,
-    meal: Number(p.meal) || 100000,
-    otMul: Number(p.otMul) || 1.5,
-    startDate: /^\d{4}-\d{2}-\d{2}$/.test(p.startDate || '') ? p.startDate : '2026-09-16'
-  };
-}
-function otPerMinute(){ var r = payroll(); return (r.hourly * r.otMul) / 60; }
-function readShifts(){
-  return (appState.shifts || []).map(function(x){
-    return { id: x.id, date: x.date, at: x.at || '', by: x.by || '', status: x.status || 'ok' };
-  }).sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
-}
-function readOt(){
-  return (appState.ot || []).map(function(x){
-    return { id: x.id, date: x.date, start: x.start || '', end: x.end || '',
-             by: x.by || '', status: x.status || 'ok' };
-  }).sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
-}
-function readPayPeriods(){
-  return (appState.payPeriods || []).slice().sort(function(a, b){
-    return a.from < b.from ? 1 : a.from > b.from ? -1 : 0;   /* 최신 먼저 */
-  });
-}
-function otMins(o){
-  if (!/^\d{2}:\d{2}$/.test(o.start || '') || !/^\d{2}:\d{2}$/.test(o.end || '')) return 0;
-  var a = Number(o.start.slice(0,2)) * 60 + Number(o.start.slice(3));
-  var b = Number(o.end.slice(0,2)) * 60 + Number(o.end.slice(3));
-  if (b <= a) b += 1440;      /* 22:30 → 00:30 은 자정을 넘긴 것 */
-  return b - a;
-}
-function fmtDur(min){
-  var h = Math.floor(min / 60), m = min % 60;
-  if (!h) return t('minOnlyTpl').replace('{m}', m);
-  if (!m) return t('hourOnlyTpl').replace('{h}', h);
-  return t('hourMinTpl').replace('{h}', h).replace('{m}', m);
-}
-/* 베트남은 천 단위를 점으로 끊는다 — 읽는 사람 방식대로 */
-function fmtVnd(n){
-  var v = Math.round(Number(n) || 0);
-  var sep = state.lang === 'vi' ? '.' : ',';
-  return String(v).replace(/\B(?=(\d{3})+(?!\d))/g, sep) + ' ₫';
-}
-function lastDayOf(y, m){ return new Date(y, m, 0).getDate(); }
-/* 어떤 날짜가 속한 정산 기간 */
-function periodOf(ds){
-  var y = Number(ds.slice(0,4)), m = Number(ds.slice(5,7)), d = Number(ds.slice(8,10));
-  var mm = String(m).padStart(2, '0');
-  if (d <= 15) return { from: y+'-'+mm+'-01', to: y+'-'+mm+'-15', payday: y+'-'+mm+'-15' };
-  var last = String(lastDayOf(y, m)).padStart(2, '0');
-  return { from: y+'-'+mm+'-16', to: y+'-'+mm+'-'+last, payday: y+'-'+mm+'-'+last };
-}
-function prevPeriod(pr){
-  var d = new Date(pr.from + 'T00:00:00');
-  d.setDate(d.getDate() - 1);
-  return periodOf(toDateValue(d));
-}
-function periodTotals(from, to){
-  var days = readShifts().filter(function(x){ return x.status === 'ok' && x.date >= from && x.date <= to; });
-  var mins = readOt().filter(function(x){ return x.status === 'ok' && x.date >= from && x.date <= to; })
-    .reduce(function(n, x){ return n + otMins(x); }, 0);
-  var r = payroll();
-  return { days: days.length, otMin: mins,
-           amount: days.length * r.daily + Math.round(mins * otPerMinute()) };
-}
-function paidPeriod(from, to){
-  return readPayPeriods().filter(function(p){ return p.from === from && p.to === to; })[0] || null;
-}
-function shiftOn(ds){ return readShifts().filter(function(x){ return x.date === ds; })[0] || null; }
-function otOn(ds){ return readOt().filter(function(x){ return x.date === ds; }); }
-function payPending(){
-  return { shifts: readShifts().filter(function(x){ return x.status === 'pending'; }),
-           ot: readOt().filter(function(x){ return x.status === 'pending'; }) };
-}
-function payPendingCount(){ var p = payPending(); return p.shifts.length + p.ot.length; }
-/* 근무를 시작한 날 이전은 이 앱의 일이 아니다 */
-function payStarted(ds){ return ds >= payroll().startDate; }
-function paySelectedDate(){ return state.payDate || toDateValue(); }
-function payMonthKey(){ return state.payMonth || paySelectedDate().slice(0, 7); }
-
-/* ---- 지급일 메모. 지급일이 지나면 그 기간 요약이 메모로 한 번 올라온다.
-   세 대의 폰이 동시에 올리려 해도 mid가 같아서 서버가 한 번만 반영한다. ---- */
-var paydayMemoTried = {};
-function paydayMemoKey(pr){ return 'payday_' + pr.from + '_' + pr.to; }
-function maybePostPaydayMemo(){
-  if (!appBooted) return;
-  var today = toDateValue();
-  var cur = periodOf(today);
-  var pr = today >= cur.payday ? cur : prevPeriod(cur);
-  if (pr.to < payroll().startDate) return;
-  if (today < pr.payday) return;
-  var key = paydayMemoKey(pr);
-  if (paydayMemoTried[key]) return;
-  /* 이미 올라와 있으면 그만 — 서버 중복 방지와 별개로, 지운 뒤 다시 올리는 것도 막는다 */
-  if ((appState.memos || []).some(function(m){ return m.paydayKey === key; })) { paydayMemoTried[key] = true; return; }
-  var tot = periodTotals(pr.from, pr.to);
-  if (!tot.days && !tot.otMin) return;
-  paydayMemoTried[key] = true;
-  function line(lang){
-    var d = function(x){ return Number(x.slice(5,7)) + (lang === 'vi' ? '/' : '월 ') + Number(x.slice(8,10)) + (lang === 'vi' ? '' : '일'); };
-    var tpl = I18N[lang][tot.otMin ? 'paydayMemoTpl' : 'paydayMemoNoOt'];
-    var sep = lang === 'vi' ? '.' : ',';
-    var money = String(tot.amount).replace(/\B(?=(\d{3})+(?!\d))/g, sep) + ' ₫';
-    var h = Math.floor(tot.otMin / 60), mm = tot.otMin % 60;
-    var dur = !h ? I18N[lang].minOnlyTpl.replace('{m}', mm)
-      : (!mm ? I18N[lang].hourOnlyTpl.replace('{h}', h)
-             : I18N[lang].hourMinTpl.replace('{h}', h).replace('{m}', mm));
-    return tpl.replace('{payday}', d(pr.payday)).replace('{from}', d(pr.from)).replace('{to}', d(pr.to))
-      .replace('{days}', tot.days).replace('{ot}', dur).replace('{amount}', money);
-  }
-  apiMutate('addMemo', { text: line('ko'), lang: 'ko', translation: line('vi'),
-                         author: '지오로그', paydayKey: key, mid: key })
-    .then(function(){ renderMemoList(); updateMemoPreview(); })
-    .catch(function(){ paydayMemoTried[key] = false; });
-}
-
-/* ---- 렌더 ---- */
-function renderPay(){
-  maybePostPaydayMemo();
-  renderPayToday();
-  renderPayApprovals();
-  renderPayCalendar();
-  renderPayDay();
-  renderPayPeriodCard();
-  renderPayHistory();
-  syncPayBadge();
-}
-function syncPayBadge(){
-  var btn = document.querySelector('.tab-btn[data-tab="pay"]');
-  if (!btn) return;
-  var n = isMasterUser() ? payPendingCount() : 0;
-  btn.classList.toggle('has-badge', n > 0);
-}
-function renderPayToday(){
-  var box = document.getElementById('pay-today');
-  if (!box) return;
-  var today = toDateValue();
-  var sh = shiftOn(today);
-  var mine = !isMasterUser();       /* 내니·아빠 폰: 도장 버튼 */
-  var html = '<div class="pay-row"><span class="pay-sub">' + esc(t('payToday')) + '</span>' +
-    '<span class="pay-chip" style="margin-left:auto">' + esc(payDateLabel(today)) + '</span></div>';
-  if (!payStarted(today)){
-    html += '<div class="empty-note" style="padding:12px 0">' + esc(t('payNotStarted')) + '</div>';
-  } else if (!sh){
-    html += '<button type="button" class="pay-stamp-btn" id="pay-stamp">' + esc(t('payStamp')) + '</button>';
-    if (state.lang !== 'vi') html += '<div class="pay-vi" style="text-align:center">Điểm danh hôm nay</div>';
-  } else {
-    html += '<div class="pay-done">' + growthIconHtml('m', 'g-ico') +
-      '<span>' + esc(t('payStamped')) + (sh.at ? ' · ' + esc(fmtTime(sh.at)) : '') + '</span>' +
-      (canTouch(sh.by) || sh.status === 'pending'
-        ? '<button type="button" class="pay-chip" id="pay-unstamp" style="margin-left:auto">' + esc(t('payStampCancel')) + '</button>' : '') +
-      '</div>';
-    if (sh.status === 'pending') html += '<div class="pay-chip warn" style="align-self:flex-start">' + esc(t('payPending')) + '</div>';
-    html += '<button type="button" class="btn ghost" id="pay-ot-today">' + esc(t('payAddOt')) + '</button>';
-  }
-  box.innerHTML = html;
-  var stamp = document.getElementById('pay-stamp');
-  if (stamp) stamp.addEventListener('click', function(){ doStamp(today); });
-  var un = document.getElementById('pay-unstamp');
-  if (un) un.addEventListener('click', function(){ doUnstamp(sh); });
-  var ot = document.getElementById('pay-ot-today');
-  if (ot) ot.addEventListener('click', function(){ openOtSheet(today); });
-}
-function payShiftMonth(delta){
-  var mk = payMonthKey();
-  var d = new Date(Number(mk.slice(0,4)), Number(mk.slice(5,7)) - 1 + delta, 1);
-  state.payMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
-  renderPayCalendar();
-}
-function payDateLabel(ds){
-  var d = new Date(ds + 'T00:00:00');
-  var wd = t('weekday_short')[d.getDay()];
-  return state.lang === 'vi'
-    ? (d.getDate() + '/' + (d.getMonth() + 1) + ' (' + wd + ')')
-    : ((d.getMonth() + 1) + '월 ' + d.getDate() + '일 (' + wd + ')');
-}
-/* 한 줄에 날짜·금액·승인·거절을 다 넣으면 390px에서 버튼 글자가 세로로 쪼개진다.
-   읽는 줄과 누르는 줄을 나눈다. */
-function payApprovalRow(label, amount, kind, id){
-  return '<div class="pay-approval">' +
-    '<div class="pay-row"><span>' + label + '</span>' +
-      '<span class="num" style="margin-left:auto">' + esc(amount) + '</span></div>' +
-    '<div class="pay-actions" style="margin-top:7px">' +
-      '<button type="button" class="btn primary" data-ok-' + kind + '="' + esc(id) + '">' + esc(t('payApprove')) + '</button>' +
-      '<button type="button" class="btn ghost" data-no-' + kind + '="' + esc(id) + '">' + esc(t('payReject')) + '</button>' +
-    '</div></div>';
-}
-function renderPayApprovals(){
-  var box = document.getElementById('pay-approvals');
-  if (!box) return;
-  var p = payPending();
-  if (!isMasterUser() || (!p.shifts.length && !p.ot.length)){ box.innerHTML = ''; return; }
-  var rows = p.shifts.map(function(x){
-    return payApprovalRow(esc(payDateLabel(x.date)) + ' · ' + esc(t('payReqStamp')),
-      fmtVnd(payroll().daily), 'shift', x.id);
-  }).concat(p.ot.map(function(x){
-    return payApprovalRow(esc(payDateLabel(x.date)) + ' · ' + esc(x.start) + '–' + esc(x.end),
-      fmtVnd(otMins(x) * otPerMinute()), 'ot', x.id);
-  })).join('');
-  box.innerHTML = '<div class="card" style="border-color:var(--primary)">' +
-    '<div class="pay-row"><b>' + esc(t('payApprovals')) + '</b>' +
-      '<span class="pay-chip warn" style="margin-left:auto">' + (p.shifts.length + p.ot.length) + '</span></div>' +
-    rows + '</div>';
-  $$('[data-ok-shift]', box).forEach(function(b){ b.addEventListener('click', function(){
-    apiMutate('approveShift', { id: b.dataset.okShift }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
-  $$('[data-no-shift]', box).forEach(function(b){ b.addEventListener('click', function(){
-    apiMutate('deleteShift', { id: b.dataset.noShift }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
-  $$('[data-ok-ot]', box).forEach(function(b){ b.addEventListener('click', function(){
-    apiMutate('approveOt', { id: b.dataset.okOt }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
-  $$('[data-no-ot]', box).forEach(function(b){ b.addEventListener('click', function(){
-    apiMutate('deleteOt', { id: b.dataset.noOt }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
-}
-function renderPayCalendar(){
-  var grid = document.getElementById('pay-grid');
-  var titleEl = document.getElementById('pay-title');
-  var dowEl = document.getElementById('pay-dow');
-  var legEl = document.getElementById('pay-legend');
-  if (!grid) return;
-  var mk = payMonthKey();
-  var y = Number(mk.slice(0,4)), mo = Number(mk.slice(5,7));
-  titleEl.textContent = state.lang === 'vi' ? (mo + '/' + y) : (y + '년 ' + mo + '월');
-  dowEl.innerHTML = t('weekday_short').map(function(w){ return '<span>' + esc(w) + '</span>'; }).join('');
-  if (legEl) legEl.innerHTML =
-    '<span><i style="background:var(--fg)"></i>' + esc(t('payLegendOn')) + '</span>' +
-    '<span><i style="background:transparent;border:1.5px solid var(--muted-2)"></i>' + esc(t('payLegendWait')) + '</span>' +
-    '<span><i style="background:var(--primary)"></i>' + esc(t('otTitle')) + '</span>';
-  var firstDow = new Date(y, mo - 1, 1).getDay();
-  var days = lastDayOf(y, mo);
-  var todayStr = toDateValue(), sel = paySelectedDate();
-  var cells = '';
-  for (var i = 0; i < firstDow; i++) cells += '<div class="gcal-day is-out"></div>';
-  for (var d = 1; d <= days; d++){
-    var ds = mk + '-' + String(d).padStart(2, '0');
-    var sh = shiftOn(ds), ots = otOn(ds);
-    var okOt = ots.some(function(x){ return x.status === 'ok'; });
-    var pendOt = ots.some(function(x){ return x.status === 'pending'; });
-    cells += '<button type="button" class="gcal-day' +
-      (ds === todayStr ? ' is-today' : '') + (ds === sel ? ' is-sel' : '') +
-      (payStarted(ds) ? '' : ' is-dim') + '" data-payday="' + ds + '">' +
-      '<span class="gcal-num">' + d + '</span>' +
-      (sh ? '<i class="pay-dot' + (sh.status === 'pending' ? ' pending' : '') + '"></i>' : '') +
-      ((okOt || pendOt) ? '<span class="pay-ot"' + (pendOt && !okOt ? ' style="opacity:.45"' : '') + '>+</span>' : '') +
-    '</button>';
-  }
-  grid.innerHTML = cells;
-  $$('[data-payday]', grid).forEach(function(b){
-    b.addEventListener('click', function(){ state.payDate = b.dataset.payday; renderPay(); });
-  });
-}
-function renderPayDay(){
-  var box = document.getElementById('pay-day');
-  if (!box) return;
-  var ds = paySelectedDate();
-  var sh = shiftOn(ds), ots = otOn(ds), r = payroll();
-  var locked = !!paidPeriod(periodOf(ds).from, periodOf(ds).to);
-  var html = '<div class="pay-row"><b>' + esc(payDateLabel(ds)) + '</b>' +
-    (locked ? '<span class="pay-chip ok" style="margin-left:auto">' + esc(t('payPaidAt').replace('{d}', '')) + '</span>' : '') +
-    '</div>';
-  if (sh){
-    html += '<div class="pay-line"><span>' + esc(t('payStampAt')) + '</span>' +
-      '<span class="num">' + (sh.at ? esc(fmtTime(sh.at)) : '—') + '</span></div>';
-  } else {
-    html += '<div class="pay-line"><span class="pay-sub">' + esc(t('payNoStamp')) + '</span></div>';
-  }
-  var dayMin = 0;
-  ots.forEach(function(o){
-    if (o.status === 'ok') dayMin += otMins(o);
-    html += '<div class="pay-line"><span>' + esc(t('otTitle')) + ' ' + esc(o.start) + '–' + esc(o.end) +
-      (o.status === 'pending' ? ' <span class="pay-chip warn">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
-      '<span class="num' + (o.status === 'pending' ? ' muted' : '') + '">' + esc(fmtVnd(otMins(o) * otPerMinute())) + '</span>' +
-      (!locked && (isMasterUser() || (o.status === 'pending' && sameAuthor(o.by, state.author)))
-        ? '<button type="button" class="pay-chip" data-del-ot="' + esc(o.id) + '">' + esc(t('payRemove')) + '</button>' : '') +
-      '</div>';
-  });
-  if (sh && sh.status === 'ok'){
-    html += '<div class="pay-line"><b>' + esc(t('payDayWage')) + '</b>' +
-      '<span class="num">' + esc(fmtVnd(r.daily + Math.round(dayMin * otPerMinute()))) + '</span></div>';
-  }
-  if (!locked && payStarted(ds)){
-    html += '<div class="pay-actions">';
-    if (!sh){
-      html += '<button type="button" class="btn ghost" id="pay-day-stamp">' +
-        esc(isMasterUser() || ds === toDateValue() ? t('payStampShort') : t('payReqStamp')) + '</button>';
-    } else if (canTouch(sh.by) || sh.status === 'pending'){
-      html += '<button type="button" class="btn ghost" id="pay-day-unstamp">' + esc(t('payRemove')) + '</button>';
-    }
-    html += '<button type="button" class="btn ghost" id="pay-day-ot">' + esc(t('payAddOt')) + '</button></div>';
-  }
-  box.innerHTML = html;
-  $$('[data-del-ot]', box).forEach(function(b){ b.addEventListener('click', function(){
-    apiMutate('deleteOt', { id: b.dataset.delOt }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
-  var st = document.getElementById('pay-day-stamp');
-  if (st) st.addEventListener('click', function(){ doStamp(ds); });
-  var un = document.getElementById('pay-day-unstamp');
-  if (un) un.addEventListener('click', function(){ doUnstamp(sh); });
-  var ot = document.getElementById('pay-day-ot');
-  if (ot) ot.addEventListener('click', function(){ openOtSheet(ds); });
-}
-function renderPayPeriodCard(){
-  var box = document.getElementById('pay-period');
-  if (!box) return;
-  var today = toDateValue();
-  var pr = periodOf(today);
-  var tot = periodTotals(pr.from, pr.to);
-  var already = paidPeriod(pr.from, pr.to);
-  var dleft = Math.round((new Date(pr.payday + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
-  var html = '<div class="pay-row"><span class="pay-sub">' + esc(t('payNext')) + '</span>' +
-    (already ? '<span class="pay-chip ok" style="margin-left:auto">' + esc(t('payPaidAt').replace('{d}', payDateLabel(already.paidAt.slice(0,10)))) + '</span>'
-      : '<span class="pay-chip warn" style="margin-left:auto">' + (dleft > 0 ? 'D-' + dleft : dleft === 0 ? 'D-DAY' : 'D+' + (-dleft)) + '</span>') +
-    '</div>' +
-    '<div style="font-weight:var(--fw-strong);margin-top:2px">' + esc(payDateLabel(pr.payday)) + '</div>' +
-    '<div class="pay-big" style="margin-top:6px">' + esc(fmtVnd(already ? already.amount : tot.amount)) + '</div>' +
-    '<div class="pay-sub" style="margin-top:3px">' + esc(payDateLabel(pr.from).replace(/\s*\(.*\)$/, '')) + ' – ' +
-      esc(payDateLabel(pr.to).replace(/\s*\(.*\)$/, '')) + ' · ' +
-      esc(t('payDaysTpl').replace('{n}', already ? already.days : tot.days)) +
-      ((already ? already.otMin : tot.otMin) ? ' · ' + esc(t('payOtTpl').replace('{t}', fmtDur(already ? already.otMin : tot.otMin))) : '') +
-    '</div>';
-  if (isMasterUser()){
-    html += '<div class="pay-actions">' + (already
-      ? '<button type="button" class="btn ghost" id="pay-unpaid">' + esc(t('payPaidUndo')) + '</button>'
-      : '<button type="button" class="btn primary" id="pay-paid">' + esc(t('payMarkPaid')) + '</button>') + '</div>';
-  }
-  box.innerHTML = html;
-  var b1 = document.getElementById('pay-paid');
-  if (b1) b1.addEventListener('click', function(){
-    apiMutate('markPaid', { from: pr.from, to: pr.to, payday: pr.payday })
-      .then(function(){ renderPay(); toast(t('savedToast')); })
-      .catch(function(e){ toast(e.message); });
-  });
-  var b2 = document.getElementById('pay-unpaid');
-  if (b2) b2.addEventListener('click', function(){
-    apiMutate('unmarkPaid', { id: already.id }).then(renderPay).catch(function(e){ toast(e.message); });
-  });
-}
-function renderPayHistory(){
-  var box = document.getElementById('pay-history');
-  if (!box) return;
-  var today = toDateValue();
-  var cur = periodOf(today);
-  /* 지난 기간들: 지급된 것과, 지급일이 지났는데 아직 표시 안 된 것 */
-  var rows = [], pr = prevPeriod(cur), guard = 0;
-  while (pr.to >= payroll().startDate && guard++ < 24){
-    var paid = paidPeriod(pr.from, pr.to);
-    var tot = paid ? { days: paid.days, otMin: paid.otMin, amount: paid.amount } : periodTotals(pr.from, pr.to);
-    if (paid || tot.days || tot.otMin) rows.push({ pr: pr, paid: paid, tot: tot });
-    pr = prevPeriod(pr);
-  }
-  if (!rows.length){
-    box.innerHTML = '<div class="empty-note" style="padding:18px 0">' +
-      esc(t('payNoPast').replace('{d}', payDateLabel(cur.payday))) + '</div>';
-    return;
-  }
-  box.innerHTML = rows.map(function(r){
-    return '<div class="pay-line"><div class="grow">' +
-      '<div>' + esc(payDateLabel(r.pr.from).replace(/\s*\(.*\)$/, '')) + ' – ' +
-        esc(payDateLabel(r.pr.to).replace(/\s*\(.*\)$/, '')) + '</div>' +
-      '<div class="pay-vi">' + esc(t('payDaysTpl').replace('{n}', r.tot.days)) +
-        (r.tot.otMin ? ' · ' + esc(t('payOtTpl').replace('{t}', fmtDur(r.tot.otMin))) : '') + '</div></div>' +
-      '<div style="text-align:right"><div class="num" style="font-variant-numeric:tabular-nums;font-weight:var(--fw-strong)">' +
-        esc(fmtVnd(r.tot.amount)) + '</div>' +
-      (r.paid
-        ? '<span class="pay-chip ok">' + esc(t('payPaidAt').replace('{d}', payDateLabel(r.paid.paidAt.slice(0,10)).replace(/\s*\(.*\)$/, ''))) + '</span>'
-        : '<span class="pay-chip warn" data-pay-period="' + esc(r.pr.from) + '">' + esc(t('payUnpaid')) + '</span>') +
-      '</div></div>';
-  }).join('');
-  if (isMasterUser()){
-    $$('[data-pay-period]', box).forEach(function(b){
-      b.addEventListener('click', function(){
-        var f = b.dataset.payPeriod, pr2 = periodOf(f);
-        apiMutate('markPaid', { from: pr2.from, to: pr2.to, payday: pr2.payday })
-          .then(function(){ renderPay(); toast(t('savedToast')); })
-          .catch(function(e){ toast(e.message); });
-      });
-    });
-  }
-}
-/* ---- 쓰기 ---- */
-function doStamp(ds){
-  var today = toDateValue();
-  var mutation = (isMasterUser() || ds === today) ? 'stampIn' : 'requestStamp';
-  if (mutation === 'requestStamp' && !confirm(t('payStampAsk'))) return;
-  apiMutate(mutation, { date: ds, today: today, at: new Date().toISOString(), author: state.author })
-    .then(function(){ renderPay(); toast(mutation === 'stampIn' ? t('savedToast') : t('otSent')); })
-    .catch(function(e){ toast(e.message); });
-  if (navigator.vibrate) try{ navigator.vibrate(8); }catch(e){}
-}
-function doUnstamp(sh){
-  if (!sh) return;
-  apiMutate('deleteShift', { id: sh.id }).then(function(){ renderPay(); toast(t('deletedToast')); })
-    .catch(function(e){ toast(e.message); });
-}
-/* ---- 오버타임 시트 ---- */
-var otSheetDate = null;
-function openOtSheet(ds){
-  otSheetDate = ds || toDateValue();
-  document.getElementById('ot-date').value = otSheetDate;
-  var now = new Date();
-  var start = String(now.getHours()).padStart(2,'0') + ':00';
-  var end = String((now.getHours() + 1) % 24).padStart(2,'0') + ':00';
-  document.getElementById('ot-start-wrap').innerHTML = timeScrubHtml('ot-start', start, false);
-  document.getElementById('ot-end-wrap').innerHTML = timeScrubHtml('ot-end', end, false);
-  wireScrubs(document.getElementById('ot-sheet'));
-  ['ot-start','ot-end'].forEach(function(id){
-    document.getElementById(id).addEventListener('scrubchange', renderOtSum);
-  });
-  document.getElementById('ot-date').onchange = renderOtSum;
-  renderOtSum();
-  openSheet('ot-sheet');
-}
-function renderOtSum(){
-  var box = document.getElementById('ot-sum');
-  if (!box) return;
-  var o = { start: document.getElementById('ot-start').value, end: document.getElementById('ot-end').value };
-  var min = otMins(o);
-  box.className = 'ot-sum';
-  box.innerHTML = '<span>' + esc(fmtDur(min)) + '</span><b>+' + esc(fmtVnd(min * otPerMinute())) + '</b>';
-}
-function saveOtSheet(){
-  var date = document.getElementById('ot-date').value;
-  var start = document.getElementById('ot-start').value;
-  var end = document.getElementById('ot-end').value;
-  if (!date || !start || !end) return;
-  var min = otMins({ start: start, end: end });
-  if (!min){ toast(t('otBadRange')); return; }
-  closeSheet('ot-sheet');
-  apiMutate('addOt', { date: date, start: start, end: end, author: state.author })
-    .then(function(){ renderPay(); toast(isMasterUser() ? t('otAdded') : t('otSent')); })
-    .catch(function(e){ toast(e.message); });
-}
-/* ---- 설정 안의 급여 ---- */
-function renderPaySettings(){
-  var box = document.getElementById('pay-settings');
-  if (!box) return;
-  var r = payroll(), master = isMasterUser();
-  function row(label, value, key, unit){
-    return '<div class="pay-line"><span>' + esc(label) + '</span>' +
-      (master
-        ? '<input class="num" data-pay-set="' + key + '" inputmode="decimal" value="' + esc(String(value)) + '" ' +
-          'style="width:110px;text-align:right;border:1px solid var(--border);background:var(--surface);color:var(--fg);border-radius:9px;padding:6px 8px;font-size:var(--fs-caption)" />'
-        : '<span class="num">' + esc(String(value)) + '</span>') +
-      (unit ? '<span class="pay-sub">' + esc(unit) + '</span>' : '') + '</div>';
-  }
-  box.innerHTML =
-    row(t('payDaily'), r.daily, 'daily', '₫') +
-    row(t('payHourly'), r.hourly, 'hourly', '₫') +
-    row(t('payMeal'), r.meal, 'meal', '₫') +
-    row(t('payOtMul'), r.otMul, 'otMul', '×') +
-    '<div class="pay-line"><span>' + esc(t('payStart')) + '</span>' +
-      (master ? '<input class="num" type="date" data-pay-set="startDate" value="' + esc(r.startDate) + '" style="margin-left:auto;border:1px solid var(--border);background:var(--surface);color:var(--fg);border-radius:9px;padding:6px 8px;font-size:var(--fs-caption)" />'
-              : '<span class="num">' + esc(r.startDate) + '</span>') + '</div>' +
-    '<div class="hint-line" style="padding-top:8px">' +
-      esc(t('payPerMin').replace('{n}', String(Math.round(otPerMinute())).replace(/\B(?=(\d{3})+(?!\d))/g, state.lang === 'vi' ? '.' : ','))) +
-      (master ? '' : ' · ' + esc(t('payMasterOnly'))) + '</div>';
-  if (!master) return;
-  $$('[data-pay-set]', box).forEach(function(inp){
-    inp.addEventListener('change', function(){
-      var payload = {};
-      payload[inp.dataset.paySet] = inp.dataset.paySet === 'startDate' ? inp.value : Number(inp.value);
-      apiMutate('setPayroll', payload).then(function(){ renderPaySettings(); renderPay(); })
-        .catch(function(e){ toast(e.message); renderPaySettings(); });
-    });
-  });
-}
 function renderGrowth(){
   var gv = state.gTab || 'cal';
   backfillScheduleTranslations();
@@ -8008,7 +7346,6 @@ function renderGrowth(){
    RENDER: SETTINGS (local)
    ================================================================ */
 function renderSettings(){
-  renderPaySettings();
   renderAuthorChips('author-chip-row', state.author, function(name){ setAuthor(name); });
   var customBox = document.getElementById('custom-type-manage-list');
   var types = readCustomTypes();
@@ -10002,10 +9339,6 @@ function renderAll(){
      appear on an open calendar. The form inputs are static elements, so a
      re-render never eats what someone is typing into them. */
   if (state.tab === 'growth') renderGrowth();
-  /* 급여도 여기: 내니가 다른 폰에서 찍은 도장이 열려 있는 화면에 나타나야 하고,
-     승인 대기 배지는 어느 탭에 있든 따라와야 한다 */
-  if (state.tab === 'pay') renderPay();
-  else syncPayBadge();
   if (state.tab === 'settings') renderSettings();
   updateMemoPreview();
   if (state.tab === 'memo') renderMemoList();
@@ -10030,7 +9363,6 @@ function switchTab(name){
   if (name === 'memo') renderMemoList();
   if (name === 'stats') syncInsight();
   if (name === 'growth') renderGrowth();
-  if (name === 'pay') renderPay();
   if (name === 'settings') renderSettings();
   if (state.adjustOpen){ state.adjustOpen = false; var panel = document.getElementById('aw-adjust-panel'); if (panel) panel.hidden = true; }
 }
@@ -10147,12 +9479,6 @@ function wireEvents(){
     state.gAlbumLimit = (state.gAlbumLimit || GALBUM_PAGE) + GALBUM_PAGE;
     renderGrowthAlbum();
   });
-  document.getElementById('btn-settings').addEventListener('click', function(){ switchTab('settings'); });
-  document.getElementById('pay-prev').addEventListener('click', function(){ payShiftMonth(-1); });
-  document.getElementById('pay-next').addEventListener('click', function(){ payShiftMonth(1); });
-  document.getElementById('ot-sheet-close').addEventListener('click', function(){ closeSheet('ot-sheet'); });
-  document.getElementById('ot-sheet-cancel').addEventListener('click', function(){ closeSheet('ot-sheet'); });
-  document.getElementById('ot-sheet-save').addEventListener('click', saveOtSheet);
   document.getElementById('gcal-prev').addEventListener('click', function(){ gShiftMonth(-1); });
   document.getElementById('gcal-next').addEventListener('click', function(){ gShiftMonth(1); });
   /* what she types into the measure boxes lives in the draft too, so a

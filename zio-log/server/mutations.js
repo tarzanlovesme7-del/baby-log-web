@@ -50,26 +50,6 @@ function sameAuthor(a, b) {
 function isMaster(actor) {
   return authorIndex(actor) === MASTER_INDEX;
 }
-/* ONE PERSON, ONE STORED NAME.
-   The name went onto the record in whatever language the phone was set to,
-   so the nanny is '내니' on 21 records and 'Bảo mẫu' on 195 — one person
-   filed as two, and every per-person view split down the middle with her.
-   The comparisons above already knew the two were the same; what got
-   STORED did not.
-
-   The Korean preset is the stored form — arbitrarily, but consistently —
-   and the screens translate it for whoever is reading. That is already
-   what a custom name does: '외할머니' is stored once and shown with its
-   Vietnamese form. Normalised here as well as on the phone, so an old page
-   still open somewhere cannot go on writing the other spelling. */
-function canonAuthor(state, name) {
-  const n = (name || '').trim();
-  if (!n) return n;
-  const i = authorIndex(n);
-  if (i !== -1) return PRESET_AUTHORS[i][0];
-  const custom = (state.customAuthors || []).find((c) => c && (c.name === n || c.nameVi === n));
-  return custom ? (custom.name || n) : n;
-}
 /* An actor is only trusted as far as the phone that claims it. Mutations
    carry it as payload.actor; a client that omits it gets the old
    everyone-can-do-everything behaviour, which is why the client always
@@ -91,52 +71,9 @@ function pruneTrash(state) {
   });
 }
 
-/* ================================================================
-   내니 근무와 급여
-   ================================================================
-   도장 하나가 하루 일당이고, 오버타임은 시작·종료 시각으로 들어와 분 단위로
-   값이 매겨진다. 105,000 ₫/h는 1,750 ₫/분이라 몇 분이 나오든 동 단위로 딱
-   떨어져서 반올림 규칙이 없다.
-
-   내니가 넣은 것 중 오늘 도장만 바로 반영되고, 지난 날짜 도장과 모든
-   오버타임은 status:'pending'으로 들어와 엄마가 승인해야 금액이 된다. */
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const HM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
-
-function payrollOf(state) {
-  const p = state.payroll || {};
-  return {
-    daily: Number(p.daily) || 800000,
-    hourly: Number(p.hourly) || 70000,
-    meal: Number(p.meal) || 100000,
-    otMul: Number(p.otMul) || 1.5,
-    startDate: DATE_RE.test(p.startDate || '') ? p.startDate : '2026-09-16',
-  };
-}
-function otMinutes(o) {
-  if (!HM_RE.test(o.start || '') || !HM_RE.test(o.end || '')) return 0;
-  const a = Number(o.start.slice(0, 2)) * 60 + Number(o.start.slice(3));
-  let b = Number(o.end.slice(0, 2)) * 60 + Number(o.end.slice(3));
-  /* 22:00 → 00:30 은 자정을 넘긴 것이지 음수가 아니다 */
-  if (b <= a) b += 24 * 60;
-  return b - a;
-}
-function assertMaster(actor, what) {
-  if (actor === undefined) return;
-  if (isMaster(actor)) return;
-  throw httpError(403, 'not-owner: ' + what);
-}
-
 function applyMutation(prevState, type, payload) {
   const state = clone(prevState);
   payload = payload || {};
-  /* every write carries at most two names — who is doing it, and whose
-     record it is filed under. Both arrive in the writer's language. */
-  if (typeof payload.author === 'string' || typeof payload.actor === 'string') {
-    payload = Object.assign({}, payload);
-    if (typeof payload.author === 'string') payload.author = canonAuthor(state, payload.author);
-    if (typeof payload.actor === 'string') payload.actor = canonAuthor(state, payload.actor);
-  }
 
   switch (type) {
     case 'addEntry': {
@@ -306,14 +243,6 @@ function applyMutation(prevState, type, payload) {
       };
       const photos = normalizePhotos(payload.photos);
       if (photos.length) memo.photos = photos;
-      /* 지급일 요약 메모는 기간마다 딱 하나 — 어느 폰이 올렸든 같은 표식을
-         달고 있어서, 이미 있는지 보고 두 번 올리지 않는다 */
-      if (typeof payload.paydayKey === 'string' && payload.paydayKey) {
-        if ((state.memos || []).some((m) => m.paydayKey === payload.paydayKey)) {
-          return { state, result: { duplicate: true } };
-        }
-        memo.paydayKey = payload.paydayKey;
-      }
       state.memos.unshift(memo);
       return { state, result: { memo } };
     }
@@ -553,127 +482,6 @@ function applyMutation(prevState, type, payload) {
        racing on the same heart settle on the same answer — and a record
        that has since been deleted reports alreadyGone rather than 404,
        like every other write here. */
-    /* ---------------- 내니 출석부 ---------------- */
-    case 'stampIn': {
-      const date = payload.date;
-      if (!DATE_RE.test(date || '')) throw httpError(400, 'stampIn requires a date');
-      state.shifts = state.shifts || [];
-      if (state.shifts.some((x) => x.date === date)) throw httpError(409, 'already stamped');
-      /* 오늘 것은 누구나 바로. 지난 날짜는 엄마만 — 내니는 requestStamp로. */
-      const today = payload.today && DATE_RE.test(payload.today) ? payload.today : date;
-      const status = (date === today || isMaster(payload.actor)) ? 'ok' : 'pending';
-      const shift = { id: uid('s_'), date, at: payload.at || '', by: payload.author || payload.actor || '', status };
-      state.shifts.push(shift);
-      return { state, result: { shift } };
-    }
-
-    case 'requestStamp': {
-      const date = payload.date;
-      if (!DATE_RE.test(date || '')) throw httpError(400, 'requestStamp requires a date');
-      state.shifts = state.shifts || [];
-      if (state.shifts.some((x) => x.date === date)) throw httpError(409, 'already stamped');
-      const shift = { id: uid('s_'), date, at: payload.at || '', by: payload.author || payload.actor || '', status: 'pending' };
-      state.shifts.push(shift);
-      return { state, result: { shift } };
-    }
-
-    case 'approveShift': {
-      assertMaster(payload.actor, 'shift');
-      const sh = (state.shifts || []).find((x) => x.id === payload.id);
-      if (!sh) return { state, result: { alreadyGone: true } };
-      sh.status = 'ok';
-      return { state, result: { shift: sh } };
-    }
-
-    case 'deleteShift': {
-      const sh = (state.shifts || []).find((x) => x.id === payload.id);
-      if (!sh) return { state, result: { alreadyGone: true } };
-      /* 자기가 방금 찍은 것은 취소할 수 있고, 남의 것·승인된 것은 엄마만 */
-      if (sh.status !== 'pending' || !sameAuthor(sh.by, payload.actor)) assertMaster(payload.actor, 'shift');
-      state.shifts = (state.shifts || []).filter((x) => x.id !== payload.id);
-      return { state, result: { removed: payload.id } };
-    }
-
-    /* ---------------- 오버타임 ---------------- */
-    case 'addOt': {
-      const date = payload.date;
-      if (!DATE_RE.test(date || '')) throw httpError(400, 'addOt requires a date');
-      if (!HM_RE.test(payload.start || '') || !HM_RE.test(payload.end || '')) {
-        throw httpError(400, 'addOt requires start and end');
-      }
-      const o = { id: uid('o_'), date, start: payload.start, end: payload.end,
-                  by: payload.author || payload.actor || '',
-                  status: isMaster(payload.actor) ? 'ok' : 'pending' };
-      if (otMinutes(o) <= 0) throw httpError(400, 'addOt: empty range');
-      state.ot = state.ot || [];
-      state.ot.push(o);
-      return { state, result: { ot: o } };
-    }
-
-    case 'approveOt': {
-      assertMaster(payload.actor, 'ot');
-      const o = (state.ot || []).find((x) => x.id === payload.id);
-      if (!o) return { state, result: { alreadyGone: true } };
-      o.status = 'ok';
-      return { state, result: { ot: o } };
-    }
-
-    case 'deleteOt': {
-      const o = (state.ot || []).find((x) => x.id === payload.id);
-      if (!o) return { state, result: { alreadyGone: true } };
-      if (o.status !== 'pending' || !sameAuthor(o.by, payload.actor)) assertMaster(payload.actor, 'ot');
-      state.ot = (state.ot || []).filter((x) => x.id !== payload.id);
-      return { state, result: { removed: payload.id } };
-    }
-
-    /* ---------------- 정산 ---------------- */
-    case 'markPaid': {
-      assertMaster(payload.actor, 'payPeriod');
-      const from = payload.from, to = payload.to;
-      if (!DATE_RE.test(from || '') || !DATE_RE.test(to || '')) throw httpError(400, 'markPaid requires from and to');
-      state.payPeriods = state.payPeriods || [];
-      if (state.payPeriods.some((p) => p.from === from && p.to === to)) throw httpError(409, 'already paid');
-      /* 금액은 지금 이 순간의 계산으로 굳는다 — 나중에 일급이 올라도 지난
-         급여는 움직이지 않는다 */
-      const rate = payrollOf(state);
-      const days = (state.shifts || []).filter((x) => x.status === 'ok' && x.date >= from && x.date <= to);
-      const mins = (state.ot || [])
-        .filter((x) => x.status === 'ok' && x.date >= from && x.date <= to)
-        .reduce((n, x) => n + otMinutes(x), 0);
-      const perMin = (rate.hourly * rate.otMul) / 60;
-      const amount = days.length * rate.daily + Math.round(mins * perMin);
-      const period = {
-        id: uid('pp_'), from, to, payday: payload.payday || to,
-        days: days.length, otMin: mins, amount,
-        paidAt: payload.paidAt || new Date().toISOString(),
-        paidBy: payload.actor || '',
-      };
-      state.payPeriods.push(period);
-      return { state, result: { period } };
-    }
-
-    case 'unmarkPaid': {
-      assertMaster(payload.actor, 'payPeriod');
-      const p0 = (state.payPeriods || []).find((x) => x.id === payload.id);
-      if (!p0) return { state, result: { alreadyGone: true } };
-      state.payPeriods = (state.payPeriods || []).filter((x) => x.id !== payload.id);
-      return { state, result: { removed: payload.id } };
-    }
-
-    case 'setPayroll': {
-      assertMaster(payload.actor, 'payroll');
-      const cur = payrollOf(state);
-      const next = {
-        daily: payload.daily !== undefined ? Math.max(0, Math.round(Number(payload.daily) || 0)) : cur.daily,
-        hourly: payload.hourly !== undefined ? Math.max(0, Math.round(Number(payload.hourly) || 0)) : cur.hourly,
-        meal: payload.meal !== undefined ? Math.max(0, Math.round(Number(payload.meal) || 0)) : cur.meal,
-        otMul: payload.otMul !== undefined ? Math.max(1, Number(payload.otMul) || 1.5) : cur.otMul,
-        startDate: DATE_RE.test(payload.startDate || '') ? payload.startDate : cur.startDate,
-      };
-      state.payroll = next;
-      return { state, result: { payroll: next } };
-    }
-
     case 'toggleReaction': {
       const KINDS = ['laugh', 'thumb', 'heart', 'clap', 'bow', 'fire', 'ok', 'worry', 'think', 'pity',
         'siren', 'muscle', 'eyes', 'melt', 'idea'];

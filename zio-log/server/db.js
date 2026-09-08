@@ -21,16 +21,6 @@ const EMPTY_STATE = {
   typeOrder: [],       // [typeId, ...]
   customAuthors: [],   // [{id,name}] — extra author names beyond the 3 presets
   quickWords: [],      // [{id,typeId,text}] — reusable note snippets per type
-  /* ---- 내니 근무와 급여 ----
-     shifts   [{id,date,at,by,status}]           status: 'ok' | 'pending'(소급 요청)
-     ot       [{id,date,start,end,by,status}]    시각으로 넣고 분 단위로 계산
-     payPeriods [{id,from,to,payday,amount,days,otMin,paidAt,paidBy}]
-                 입금 완료를 누른 순간의 금액으로 굳는다
-     payroll  일급·시급·식대·배율·시작일 */
-  shifts: [],
-  ot: [],
-  payPeriods: [],
-  payroll: { daily: 800000, hourly: 70000, meal: 100000, otMul: 1.5, startDate: '2026-09-16' },
   profile: { nameKo: '지오', nameVi: 'Zio', birth: '2026-05-11' },
 };
 
