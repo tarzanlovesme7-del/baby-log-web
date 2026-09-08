@@ -2443,7 +2443,6 @@
          셋으로 갈리니 화면도 셋으로. -->
     <div class="htabs" id="pay-tabs">
       <button type="button" data-pv="stamp" aria-pressed="true" data-i18n="paySubStamp">출근 도장</button>
-      <button type="button" data-pv="cal" aria-pressed="false" data-i18n="paySubCal">캘린더</button>
       <button type="button" data-pv="settle" aria-pressed="false" data-i18n="paySubSettle">정산</button>
     </div>
 
@@ -2452,23 +2451,20 @@
       <div class="card pay-today" id="pay-today"></div>
       <!-- 엄마 폰에만, 승인 기다리는 것이 있을 때만 -->
       <div id="pay-approvals"></div>
-      <!-- 이번 기간이 어디까지 찼는지 한 줄 -->
-      <div class="card" id="pay-glance"></div>
-    </div>
-
-    <div class="ins-panel" data-pv-panel="cal" hidden>
-    <div class="card gcal-card" id="pay-cal-card">
-      <div class="gcal-head">
-        <button type="button" class="log-arrow" id="pay-prev">‹</button>
-        <div class="gcal-title" id="pay-title"></div>
-        <button type="button" class="log-arrow" id="pay-next">›</button>
+      <div class="card gcal-card" id="pay-cal-card">
+        <div class="gcal-head">
+          <button type="button" class="log-arrow" id="pay-prev">‹</button>
+          <div class="gcal-title" id="pay-title"></div>
+          <button type="button" class="log-arrow" id="pay-next">›</button>
+        </div>
+        <div class="gcal-dow" id="pay-dow"></div>
+        <div class="gcal-grid" id="pay-grid"></div>
       </div>
-      <div class="gcal-dow" id="pay-dow"></div>
-      <div class="gcal-grid" id="pay-grid"></div>
-    </div>
-    <div class="hint-line gcal-legend" id="pay-legend"></div>
+      <div class="hint-line gcal-legend" id="pay-legend"></div>
       <!-- 고른 날 하나 -->
       <div class="card" id="pay-day"></div>
+      <!-- 이번 기간이 어디까지 찼는지 한 줄. 자세한 건 정산 화면에서 -->
+      <div class="card" id="pay-glance"></div>
     </div>
 
     <div class="ins-panel" data-pv-panel="settle" hidden>
@@ -2856,7 +2852,7 @@ ko: {
   patternTitle:"시간대 패턴", patternCaption:"세로축은 하루 24시간 · 항목을 눌러 켜고 끄세요", patternEmpty:"이 기간엔 기록이 없어요",
   /* ---- 내니 근무와 급여 ---- */
   tabPay:"급여", payTitle:"급여", payToday:"오늘 근무", payStamp:"출근 도장 찍기",
-  paySubStamp:"출근 도장", paySubCal:"캘린더", paySubSettle:"정산",
+  paySubStamp:"출근 도장", paySubSettle:"정산",
   payGlanceTpl:"{from} – {to} · {days} · {amount}",
   payStamped:"오늘 출근함", payStampCancel:"취소", payStampAsk:"이 날 출근으로 요청할까요?",
   payRequested:"승인 대기", payPending:"승인 기다리는 중",
@@ -2988,7 +2984,7 @@ vi: {
   patternTitle:"Mẫu hình theo giờ", patternCaption:"Trục dọc là 24 giờ · chạm để bật/tắt từng mục", patternEmpty:"Chưa có nhật ký trong khoảng này",
   /* ---- Chấm công và lương ---- */
   tabPay:"Lương", payTitle:"Lương", payToday:"Hôm nay", payStamp:"Điểm danh hôm nay",
-  paySubStamp:"Điểm danh", paySubCal:"Lịch", paySubSettle:"Thanh toán",
+  paySubStamp:"Điểm danh", paySubSettle:"Thanh toán",
   payGlanceTpl:"{from} – {to} · {days} · {amount}",
   payStamped:"Đã điểm danh", payStampCancel:"Huỷ", payStampAsk:"Gửi yêu cầu chấm công ngày này?",
   payRequested:"Chờ duyệt", payPending:"Đang chờ mẹ duyệt",
@@ -3405,7 +3401,7 @@ var state = {
   patternDays: 7,     // how far back the pattern chart looks (7/14/28)
   insTab: 'all',      // 통계 tab section: 'all' | 'feed' | 'poop' | 'sleep'
   gTab: 'cal',        // 성장 tab view: 'cal' | 'album' | 'graph'
-  paySub: 'stamp',    // 급여 탭: 'stamp' | 'cal' | 'settle'
+  paySub: 'stamp',    // 급여 탭: 'stamp'(도장+캘린더) | 'settle'
   payMonth: null,     // 'YYYY-MM' the pay calendar is showing (null = this month)
   payDate: null,      // 'YYYY-MM-DD' selected on the pay calendar (null = today)
   gAlbumFilter: 'all',// 모아보기 filter: 'all' | 'mile' | 'diary'
@@ -7685,7 +7681,7 @@ function maybePostPaydayMemo(){
 /* ---- 렌더 ---- */
 function renderPay(){
   maybePostPaydayMemo();
-  var pv = state.paySub || 'stamp';
+  var pv = state.paySub === 'settle' ? 'settle' : 'stamp';   /* 'cal'이 남아 있어도 도장 화면 */
   $$('#pay-tabs button').forEach(function(b){
     b.setAttribute('aria-pressed', String(b.dataset.pv === pv));
   });
@@ -7855,11 +7851,7 @@ function renderPayCalendar(){
   }
   grid.innerHTML = cells;
   $$('[data-payday]', grid).forEach(function(b){
-    b.addEventListener('click', function(){
-      state.payDate = b.dataset.payday;
-      state.paySub = 'cal';
-      renderPay();
-    });
+    b.addEventListener('click', function(){ state.payDate = b.dataset.payday; renderPay(); });
   });
 }
 function renderPayDay(){
