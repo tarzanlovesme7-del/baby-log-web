@@ -113,6 +113,39 @@ function payrollOf(state) {
     startDate: DATE_RE.test(p.startDate || '') ? p.startDate : '2026-09-16',
   };
 }
+const FEED_PLAN_DEFAULT = {
+  mode: 'fixed',
+  times: ['07:00', '11:00', '15:00', '19:00'],
+  startTime: '07:00',
+  intervalMin: 240,
+  count: 4,
+  perFeed: 200,
+  maxGapMin: 240,
+  quietFrom: '22:00',
+};
+/* 어느 필드가 빠져 있어도 기본값으로 메워서 돌려준다. 클라이언트는 이걸
+   그대로 믿고 그리므로, 여기서 걸러지지 않은 값은 화면에 나오지 않는다. */
+function feedPlanOf(state) {
+  const p = state.feedPlan || {};
+  const times = Array.isArray(p.times)
+    ? p.times.filter((x) => HM_RE.test(x || '')).slice(0, 12).sort()
+    : [];
+  return {
+    mode: p.mode === 'interval' ? 'interval' : 'fixed',
+    times: times.length ? times : FEED_PLAN_DEFAULT.times.slice(),
+    startTime: HM_RE.test(p.startTime || '') ? p.startTime : FEED_PLAN_DEFAULT.startTime,
+    intervalMin: clampNum(p.intervalMin, 30, 12 * 60, FEED_PLAN_DEFAULT.intervalMin),
+    count: clampNum(p.count, 1, 12, FEED_PLAN_DEFAULT.count),
+    perFeed: clampNum(p.perFeed, 0, 2000, FEED_PLAN_DEFAULT.perFeed),
+    maxGapMin: clampNum(p.maxGapMin, 30, 24 * 60, FEED_PLAN_DEFAULT.maxGapMin),
+    quietFrom: HM_RE.test(p.quietFrom || '') ? p.quietFrom : FEED_PLAN_DEFAULT.quietFrom,
+  };
+}
+function clampNum(v, lo, hi, dflt) {
+  const n = Math.round(Number(v));
+  if (!isFinite(n)) return dflt;
+  return Math.min(hi, Math.max(lo, n));
+}
 function otMinutes(o) {
   if (!HM_RE.test(o.start || '') || !HM_RE.test(o.end || '')) return 0;
   const a = Number(o.start.slice(0, 2)) * 60 + Number(o.start.slice(3));
@@ -672,6 +705,33 @@ function applyMutation(prevState, type, payload) {
       };
       state.payroll = next;
       return { state, result: { payroll: next } };
+    }
+
+    /* 수유 계획은 엄마만 바꾼다 — 내니 폰에서는 읽기만 된다. 넘어온 필드만
+       갈아끼우므로 설정 화면의 입력 하나가 바뀔 때마다 한 건씩 보내면 된다. */
+    case 'setFeedPlan': {
+      assertMaster(payload.actor, 'feed plan');
+      const cur = feedPlanOf(state);
+      const merged = Object.assign({}, cur);
+      ['mode', 'startTime', 'quietFrom'].forEach((k) => {
+        if (payload[k] !== undefined) merged[k] = payload[k];
+      });
+      /* target은 저장하지 않는다 — 1회량 × 횟수로 화면에서 계산한다 */
+      ['intervalMin', 'count', 'perFeed', 'maxGapMin'].forEach((k) => {
+        if (payload[k] !== undefined) merged[k] = payload[k];
+      });
+      if (payload.times !== undefined) {
+        if (!Array.isArray(payload.times) || !payload.times.length) {
+          throw httpError(400, 'feed times required');
+        }
+        if (!payload.times.every((x) => HM_RE.test(x || ''))) {
+          throw httpError(400, 'feed times must be HH:MM');
+        }
+        merged.times = payload.times;
+      }
+      const next = feedPlanOf({ feedPlan: merged });
+      state.feedPlan = next;
+      return { state, result: { feedPlan: next } };
     }
 
     case 'toggleReaction': {

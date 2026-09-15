@@ -420,6 +420,33 @@
      -16px header-flush pull, so the two bands read as one continuous strip)
      with its own peach tint instead of the memo's amber */
   .announce-row.next-feed-row{ background:var(--nf-bg); }
+  /* 오늘 총량 + 차례 점. 본문보다 한 단 작고 흐리게 — 시각이 주인공이고
+     이 줄은 곁눈으로 확인하는 것이다. */
+  .announce-row.next-feed-row .nf-sub{
+    display:flex; align-items:center; gap:8px; margin-top:3px;
+    font-size:var(--fs-micro); font-weight:var(--fw-medium);
+    color:var(--nf-fg); opacity:.82; font-variant-numeric:tabular-nums;
+  }
+  /* 시각 칸 옆의 지우기. 빨간 danger-btn을 쓰면 네 개가 나란히 붙어서
+     설정 화면이 경고판처럼 보인다 — 평소엔 흐리게 두고 누를 때만 붉게. */
+  .feed-time-x{
+    border:0; background:transparent; color:var(--muted-2);
+    font-size:16px; line-height:1; padding:6px 4px 6px 2px; cursor:pointer;
+  }
+  .feed-time-x:active{ color:var(--danger-text); }
+  .nf-dots{ display:inline-flex; gap:4px; align-items:center; }
+  .nf-dots i{
+    width:7px; height:7px; border-radius:50%;
+    border:1.5px solid currentColor; box-sizing:border-box;
+  }
+  .nf-dots i.on{ background:currentColor; }
+  /* 지난 차례인데 아직 안 먹인 것 — 안이 비어 있는 채로 빨갛게 */
+  .nf-dots i.miss{ border-color:var(--danger-text); }
+  /* 시간이 지났거나 최대 간격을 넘겼을 때. 배경째로 붉게 바꾸면 기록 화면
+     맨 위가 통째로 경고판이 되어버려서, 글자와 점만 색을 바꾼다. */
+  .announce-row.next-feed-row.urgent .a-orig,
+  .announce-row.next-feed-row.urgent .a-label{ color:var(--danger-text); }
+  .announce-row.next-feed-row.urgent .a-emoji{ filter:saturate(1.4); }
   .announce-row.next-feed-row .a-label,
   .announce-row.next-feed-row .a-orig{ color:var(--nf-fg); }
   .announce-row.next-feed-row .a-orig{ font-variant-numeric:tabular-nums; white-space:normal; }
@@ -1640,7 +1667,26 @@
     background:var(--surface); border-top:1px solid var(--border);
     display:flex; padding:6px 8px calc(6px + env(safe-area-inset-bottom));
   }
-  .tab-btn{ flex:1; background:transparent; border:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 2px; color:var(--muted-2); }
+  .tab-btn{ position:relative; flex:1; background:transparent; border:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:10px 2px; color:var(--muted-2); }
+  /* THE TAB BADGE. The only thing that tells you something is waiting when
+     you are not on the tab it is waiting on. It rides on the icon's top-right
+     corner rather than the button's, so it lands on the glyph at every tab
+     width instead of drifting out to the edge on a wide phone.
+
+     Two shapes: a count (unread memos — how many matters) and a bare dot
+     (pending approvals — that there are any is the whole message). */
+  /* .tab-btn span{display:none} 가 탭 글자를 숨기는데, 뱃지도 span이라 같이
+     사라졌다 — 그래서 선택자를 .tab-btn 아래로 내려 그 규칙을 이긴다 */
+  .tab-btn .tb-badge{
+    display:block;
+    position:absolute; top:6px; left:50%; margin-left:5px;
+    min-width:17px; height:17px; padding:0 4px; box-sizing:border-box;
+    border-radius:999px; background:var(--danger); color:#fff;
+    font-size:10px; font-weight:var(--fw-strong); line-height:17px;
+    text-align:center; font-variant-numeric:tabular-nums;
+    border:2px solid var(--surface);
+  }
+  .tab-btn .tb-badge.dot{ min-width:0; width:11px; height:11px; padding:0; top:8px; margin-left:7px; }
   /* the care-type glyphs — same grid and weight as the tab bar's, but they
      take the type's own colour rather than the tab's */
   .ty-ico{
@@ -2028,15 +2074,16 @@
         </div>
       </button>
 
-      <!-- last feed amount * 1.5min/ml from the last feed's own start time
-           (rule of thumb: 40ml holds ~1hr) -->
+      <!-- 정해진 수유 시각(설정에서 고정 시각 또는 첫 수유 기준 간격)의
+           다음 차례 + 오늘 채운 양. 계산식은 feedPlanState() 한 곳에 있다. -->
       <div class="announce-row next-feed-row" id="next-feed-row" hidden>
         <span class="a-emoji">🍼</span>
         <div class="a-body">
           <div class="a-top">
-            <span class="a-label" data-i18n="nextFeedLabel">다음 추천 수유</span>
+            <span class="a-label" id="nf-label" data-i18n="nextFeedLabel">다음 수유</span>
           </div>
           <div class="a-orig" id="nf-text"></div>
+          <div class="nf-sub" id="nf-sub"></div>
         </div>
       </div>
 
@@ -2356,6 +2403,9 @@
         </button>
       </div>
       <div class="hint-line" data-i18n="masterPinHint">PIN을 걸어두면 다른 사람이 설정에서 '엄마'로 바꿀 수 없어요.</div>
+      <div class="section-title" data-i18n="feedPlanTitle">수유 계획</div>
+      <div class="card" id="feed-settings"></div>
+      <div class="hint-line" id="feed-settings-hint"></div>
       <div class="section-title" data-i18n="payTitle">급여</div>
       <div class="card" id="pay-settings"></div>
     </div>
@@ -2848,7 +2898,23 @@ ko: {
   addNew:"항목 추가",
   since_feed:"마지막 수유", since_sleep:"마지막 잠",
   since_poop:"마지막 똥", authorViPh:"베트남어 이름 (자동 번역)",
-  nextFeedLabel:"다음 추천 수유", nextFeedValueTpl:"{time} · {remain} 후", nextFeedDueValueTpl:"시간이 지났어요 · {time}",
+  nextFeedLabel:"다음 수유", nextFeedDueLabel:"수유 시간이 지났어요", feedInTpl:"{remain} 후",
+  mlUnit:"ml",
+  feedTodayTpl:"오늘 {n} / {t}{u}",
+  feedTopUpLabel:"보충 수유", feedShortTpl:"{n}{u} 부족해요",
+  feedDoneLabel:"오늘 수유 완료", feedDoneValue:"목표를 채웠어요",
+  feedOverGapTpl:"{n}시간 넘었어요",
+  feedPlanTitle:"수유 계획",
+  feedPlanMode:"방식", feedPlanModeFixed:"정해진 시각", feedPlanModeInterval:"첫 수유 기준 간격",
+  feedPlanTimes:"수유 시각", feedPlanAddTime:"시각 추가",
+  feedPlanStartTime:"첫 수유 기준 시각", feedPlanInterval:"간격", feedPlanCount:"하루 횟수",
+  feedPlanPerFeed:"1회 수유량", feedPlanTarget:"하루 목표량",
+  feedPlanMaxGap:"최대 간격", feedPlanQuiet:"밤에 숨기기",
+  feedTargetCalcTpl:"{n}{u} × {c}회",
+  feedPlanMasterOnly:"엄마만 바꿀 수 있어요",
+  feedPlanHintFixed:"배고파하면 시각 전에 줘도 돼요. 앞뒤 2시간 안의 수유는 그 차례로 칩니다.",
+  feedPlanHintInterval:"그날 첫 수유 시각부터 간격을 세요. 아직 안 먹였으면 기준 시각부터.",
+  minUnit:"분", timesUnit:"회",
   patternTitle:"시간대 패턴", patternCaption:"세로축은 하루 24시간 · 항목을 눌러 켜고 끄세요", patternEmpty:"이 기간엔 기록이 없어요",
   /* ---- 내니 근무와 급여 ---- */
   tabPay:"급여", payTitle:"급여", payToday:"오늘 근무", payStamp:"출근 도장 찍기",
@@ -2980,7 +3046,23 @@ vi: {
      "Bú gần nhất" says the same thing. */
   since_feed:"Bú gần nhất", since_sleep:"Ngủ gần nhất",
   since_poop:"Ị gần nhất", authorViPh:"Tên tiếng Việt (tự dịch)",
-  nextFeedLabel:"Dự kiến bú tiếp theo", nextFeedValueTpl:"{time} · còn {remain}", nextFeedDueValueTpl:"Đã quá giờ · {time}",
+  nextFeedLabel:"Cữ bú tiếp theo", nextFeedDueLabel:"Đã quá giờ bú", feedInTpl:"còn {remain}",
+  mlUnit:"ml",
+  feedTodayTpl:"Hôm nay {n} / {t}{u}",
+  feedTopUpLabel:"Bú bù", feedShortTpl:"Còn thiếu {n}{u}",
+  feedDoneLabel:"Đã đủ cữ hôm nay", feedDoneValue:"Đã đạt mục tiêu",
+  feedOverGapTpl:"Đã quá {n} tiếng",
+  feedPlanTitle:"Lịch bú",
+  feedPlanMode:"Kiểu", feedPlanModeFixed:"Giờ cố định", feedPlanModeInterval:"Cách quãng từ cữ đầu",
+  feedPlanTimes:"Giờ bú", feedPlanAddTime:"Thêm giờ",
+  feedPlanStartTime:"Giờ cữ đầu", feedPlanInterval:"Cách quãng", feedPlanCount:"Số cữ mỗi ngày",
+  feedPlanPerFeed:"Lượng mỗi cữ", feedPlanTarget:"Mục tiêu mỗi ngày",
+  feedPlanMaxGap:"Khoảng cách tối đa", feedPlanQuiet:"Ẩn vào buổi tối",
+  feedTargetCalcTpl:"{n}{u} × {c} cữ",
+  feedPlanMasterOnly:"Chỉ mẹ mới đổi được",
+  feedPlanHintFixed:"Bé đói thì cho bú sớm hơn cũng được. Cữ bú trong vòng 2 tiếng trước/sau được tính cho giờ đó.",
+  feedPlanHintInterval:"Tính cách quãng từ cữ bú đầu tiên trong ngày. Chưa bú thì tính từ giờ cữ đầu.",
+  minUnit:" phút", timesUnit:" cữ",
   patternTitle:"Mẫu hình theo giờ", patternCaption:"Trục dọc là 24 giờ · chạm để bật/tắt từng mục", patternEmpty:"Chưa có nhật ký trong khoảng này",
   /* ---- Chấm công và lương ---- */
   tabPay:"Lương", payTitle:"Lương", payToday:"Hôm nay", payStamp:"Điểm danh hôm nay",
@@ -3932,7 +4014,17 @@ function resyncNow(){
   outboxReplay();                   /* anything still owed to the server */
   pollState();
 }
-document.addEventListener('visibilitychange', function(){ if (!document.hidden) resyncNow(); });
+document.addEventListener('visibilitychange', function(){
+  if (document.hidden) return;
+  resyncNow();
+  /* Memos that arrived while the phone slept got rendered into a memo list
+     nobody was looking at, and the guard in renderMemoList — correctly —
+     refused to mark them seen. But waking up does not change the version, so
+     nothing redrew them either and they sat there with no "new" dot. Waking
+     ON the memo tab has to redraw it. */
+  if (state.tab === 'memo') renderMemoList();
+  updateMemoPreview();
+});
 window.addEventListener('pageshow', resyncNow);
 window.addEventListener('focus', resyncNow);
 window.addEventListener('online', resyncNow);
@@ -4898,36 +4990,215 @@ function fitDashValues(row){
 }
 
 /* ================================================================
-   RENDER: NEXT RECOMMENDED FEED — estimated from the last feed's
-   amount using a simple rule-of-thumb (40ml ≈ 1hr, 80ml ≈ 2hr, i.e.
-   amount(ml) * 1.5 minutes after the last feed's start time).
+   수유 계획 — 정해진 시간에 먹인다
+
+   예전에는 "마지막 수유량 × 1.5분"으로 다음 시각을 추산했다(40ml에 한 시간).
+   지오가 새벽 분유를 끊으면서 낮에 정해진 양을 채우는 방식으로 바뀌었고,
+   그래서 배너가 계산하는 것이 "언제쯤 배고플까"에서 "다음 차례가 언제이고
+   오늘 얼마나 채웠나"로 바뀌었다.
+
+   두 가지 모드가 있다.
+     fixed    — 07:00 / 11:00 / 15:00 / 19:00 처럼 시각을 못박는다.
+     interval — 그날 첫 수유 시각에서 4시간 간격으로. 아침이 밀리면 하루가
+                통째로 같이 밀린다. 오늘 아직 한 번도 안 먹였으면 startTime을
+                첫 차례로 삼는다.
+
+   차례를 '소진'한다는 것: 정각에 딱 맞춰 먹이는 집은 없다. 배고파하면 일찍
+   줘도 된다고 했으므로, 차례 앞뒤 SLOT_WINDOW_MIN 안에 들어온 수유는 그
+   차례를 먹은 것으로 친다 — 그래야 14:10에 먹이고 나서 "15:00 아직"이 계속
+   떠서 두 번 먹이는 일이 없다. 수유 하나는 차례 하나만, 가장 가까운 것부터.
    ================================================================ */
-function estimateNextFeedMs(entries){
-  var lastFeed = lastOfType(entries, function(e){ return e.type==='feed'; }, 'start');
-  if (!lastFeed || !lastFeed.start) return null;
-  var amt = Number(lastFeed.amount);
-  if (!amt || amt <= 0) return null;
-  var gapMin = amt * 1.5; // 40ml/hr rule of thumb
-  return new Date(lastFeed.start).getTime() + gapMin * 60000;
+var SLOT_WINDOW_MIN = 120;
+var FEED_PLAN_FALLBACK = {
+  mode:'fixed', times:['07:00','11:00','15:00','19:00'], startTime:'07:00',
+  intervalMin:240, count:4, perFeed:200, maxGapMin:240, quietFrom:'22:00'
+};
+var HM_RE_C = /^([01]\d|2[0-3]):[0-5]\d$/;
+function readFeedPlan(){
+  var p = appState.feedPlan || {};
+  var d = FEED_PLAN_FALLBACK;
+  function num(v, lo, hi, dflt){
+    var n = Math.round(Number(v));
+    return isFinite(n) ? Math.min(hi, Math.max(lo, n)) : dflt;
+  }
+  var times = Array.isArray(p.times)
+    ? p.times.filter(function(x){ return HM_RE_C.test(x || ''); }).slice().sort()
+    : [];
+  var out = {
+    mode: p.mode === 'interval' ? 'interval' : 'fixed',
+    times: times.length ? times : d.times.slice(),
+    startTime: HM_RE_C.test(p.startTime || '') ? p.startTime : d.startTime,
+    intervalMin: num(p.intervalMin, 30, 720, d.intervalMin),
+    count: num(p.count, 1, 12, d.count),
+    perFeed: num(p.perFeed, 0, 2000, d.perFeed),
+    maxGapMin: num(p.maxGapMin, 30, 1440, d.maxGapMin),
+    quietFrom: HM_RE_C.test(p.quietFrom || '') ? p.quietFrom : d.quietFrom
+  };
+  /* 하루 목표량은 따로 입력받지 않는다 — 1회량 × 횟수가 곧 목표다. 두 칸으로
+     받으면 200을 180으로 고쳐도 목표가 800에 남아 조용히 어긋난다. */
+  out.slotCount = out.mode === 'interval' ? out.count : out.times.length;
+  out.target = out.perFeed * out.slotCount;
+  return out;
+}
+function hmToMin(hm){ return Number(hm.slice(0,2)) * 60 + Number(hm.slice(3)); }
+function minToHm(m){
+  m = ((Math.round(m) % 1440) + 1440) % 1440;
+  var h = Math.floor(m / 60), n = m % 60;
+  return (h < 10 ? '0' : '') + h + ':' + (n < 10 ? '0' : '') + n;
+}
+/* 자정 기준 분 → 그 날짜의 실제 시각 */
+function dayMsAt(dayStartMs, min){ return dayStartMs + min * 60000; }
+function startOfDayMs(ms){
+  var d = new Date(ms); d.setHours(0,0,0,0); return d.getTime();
+}
+function todayFeeds(entries, dayStartMs){
+  var end = dayStartMs + 86400000;
+  return entries.filter(function(e){
+    if (e.type !== 'feed' || !e.start) return false;
+    var ts = new Date(e.start).getTime();
+    return !isNaN(ts) && ts >= dayStartMs && ts < end;
+  }).sort(function(a,b){ return new Date(a.start) - new Date(b.start); });
+}
+/* 오늘의 차례들과, 각 차례를 어떤 수유가 먹었는지 */
+function feedSlots(plan, feeds, dayStartMs){
+  var mins = [];
+  if (plan.mode === 'interval'){
+    var anchor = feeds.length
+      ? Math.round((new Date(feeds[0].start).getTime() - dayStartMs) / 60000)
+      : hmToMin(plan.startTime);
+    for (var i = 0; i < plan.count; i++){
+      var m = anchor + i * plan.intervalMin;
+      if (m >= 1440) break;      /* 자정을 넘는 차례는 오늘 것이 아니다 */
+      mins.push(m);
+    }
+  } else {
+    mins = plan.times.map(hmToMin);
+  }
+  var slots = mins.map(function(m){ return { min:m, ms:dayMsAt(dayStartMs, m), fed:null }; });
+  /* 수유 하나가 차례 하나를 먹는다. 가까운 짝부터 맺어야 07:50 한 번이
+     07:00과 11:00을 동시에 지우거나 엉뚱한 쪽에 붙는 일이 없다. */
+  var pairs = [];
+  feeds.forEach(function(f, fi){
+    var fms = new Date(f.start).getTime();
+    slots.forEach(function(s, si){
+      var d = Math.abs(fms - s.ms) / 60000;
+      if (d <= SLOT_WINDOW_MIN) pairs.push({ d:d, fi:fi, si:si });
+    });
+  });
+  pairs.sort(function(a,b){ return a.d - b.d; });
+  var usedF = {}, usedS = {};
+  pairs.forEach(function(p){
+    if (usedF[p.fi] || usedS[p.si]) return;
+    usedF[p.fi] = usedS[p.si] = true;
+    slots[p.si].fed = feeds[p.fi];
+  });
+  return slots;
+}
+function feedTotalMl(feeds){
+  return feeds.reduce(function(sum, f){
+    var a = Number(f.amount);
+    return sum + (isFinite(a) && a > 0 ? a : 0);
+  }, 0);
+}
+/* 배너가 무엇을 말해야 하는지 한 군데서 정한다. 화면은 이걸 그리기만 한다.
+   kind: 'next' 다음 차례 | 'due' 시간이 지남 | 'topup' 보충 필요
+         'done' 목표 채움 | 'quiet' 밤 — 아무것도 안 띄움 */
+function feedPlanState(nowMs){
+  var plan = readFeedPlan();
+  var entries = readEntries();
+  var dayStartMs = startOfDayMs(nowMs);
+  var feeds = todayFeeds(entries, dayStartMs);
+  var slots = feedSlots(plan, feeds, dayStartMs);
+  var total = feedTotalMl(feeds);
+  var nowMin = Math.round((nowMs - dayStartMs) / 60000);
+  var quietMin = hmToMin(plan.quietFrom);
+
+  var lastFeedMs = feeds.length ? new Date(feeds[feeds.length-1].start).getTime() : null;
+  /* 배고파하지 않아도 이 간격은 넘기지 말라고 한 선 */
+  var overGap = lastFeedMs != null && (nowMs - lastFeedMs) > plan.maxGapMin * 60000;
+
+  var out = {
+    plan: plan, slots: slots, total: total, target: plan.target,
+    done: slots.filter(function(s){ return s.fed; }).length,
+    overGap: overGap, urgent: false
+  };
+  /* 지나간 차례에도 시효가 있다. 07:00을 걸렀다고 오후 1시에 "07:00 차례가
+     밀렸어요"를 띄우면 아무도 그걸 지금 먹이지 않는다 — 걸른 건 점으로만
+     남기고, 배너는 아직 유효한 차례로 넘어간다. 창(2시간) 안에 있는 동안만
+     '시간이 지났어요'로 재촉한다. */
+  var next = slots.filter(function(s){
+    return !s.fed && s.min > nowMin - SLOT_WINDOW_MIN;
+  })[0];
+  if (next){
+    out.kind = next.min <= nowMin ? 'due' : 'next';
+    out.slotMs = next.ms;
+    out.urgent = out.kind === 'due' || overGap;
+    return out;
+  }
+  /* 차례는 다 돌았다 */
+  if (plan.target > 0 && total < plan.target){
+    out.kind = 'topup';
+    out.shortBy = plan.target - total;
+    out.urgent = overGap;
+    if (nowMin >= quietMin) out.kind = 'quiet';
+    return out;
+  }
+  out.kind = nowMin >= quietMin ? 'quiet' : 'done';
+  return out;
+}
+/* 채운 차례는 채워진 점, 남은 차례는 빈 점. 지난 차례인데 비어 있으면
+   경고색 — 몇 시에 몇 번째를 걸렀는지 한 줄 안에서 보인다. */
+function feedDotsHtml(fs, nowMs){
+  var nowMin = Math.round((nowMs - startOfDayMs(nowMs)) / 60000);
+  return '<span class="nf-dots" aria-hidden="true">' + fs.slots.map(function(s){
+    var cls = s.fed ? 'on' : (s.min <= nowMin ? 'miss' : '');
+    return '<i class="' + cls + '"></i>';
+  }).join('') + '</span>';
+}
+function fmtRemain(min){
+  var h = Math.floor(min/60), m = min%60;
+  return h > 0 ? (h + t('hrShort') + ' ' + m + t('minShort')) : (m + t('minShort'));
 }
 function renderNextFeed(){
   var box = document.getElementById('next-feed-row');
   if (!box) return;
-  var nextMs = estimateNextFeedMs(readEntries());
-  if (nextMs == null){ box.hidden = true; syncAnnounceStack(); return; }
+  var nowMs = Date.now();
+  var fs = feedPlanState(nowMs);
+  if (fs.kind === 'quiet'){ box.hidden = true; syncAnnounceStack(); return; }
   box.hidden = false;
   syncAnnounceStack();
-  var diffMin = Math.round((nextMs - Date.now()) / 60000);
-  var timeStr = fmtTime(new Date(nextMs).toISOString());
-  var text;
-  if (diffMin > 0){
-    var h = Math.floor(diffMin/60), m = diffMin%60;
-    var remain = h>0 ? (h+t('hrShort')+' '+m+t('minShort')) : (m+t('minShort'));
-    text = t('nextFeedValueTpl').replace('{time}', timeStr).replace('{remain}', remain);
+  box.classList.toggle('urgent', !!fs.urgent);
+
+  /* 재촉하는 말은 라벨에, 사실(시각·양)은 본문에. 셋을 한 줄에 이어붙이면
+     베트남어에서 두 줄로 접히면서 배너 높이가 들쭉날쭉해진다. */
+  var label, text;
+  if (fs.kind === 'next' || fs.kind === 'due'){
+    var timeStr = fmtTime(new Date(fs.slotMs).toISOString());
+    label = fs.overGap ? t('feedOverGapTpl').replace('{n}', String(Math.round(fs.plan.maxGapMin/60)))
+          : fs.kind === 'due' ? t('nextFeedDueLabel')
+          : t('nextFeedLabel');
+    text = timeStr;
+    if (fs.kind === 'next'){
+      text += ' · ' + t('feedInTpl')
+        .replace('{remain}', fmtRemain(Math.max(0, Math.round((fs.slotMs - nowMs)/60000))));
+    }
+  } else if (fs.kind === 'topup'){
+    label = fs.overGap ? t('feedOverGapTpl').replace('{n}', String(Math.round(fs.plan.maxGapMin/60)))
+          : t('feedTopUpLabel');
+    text = t('feedShortTpl').replace('{n}', String(fs.shortBy)).replace('{u}', t('mlUnit'));
   } else {
-    text = t('nextFeedDueValueTpl').replace('{time}', timeStr);
+    label = t('feedDoneLabel');
+    text = t('feedDoneValue');
   }
+  document.getElementById('nf-label').textContent = label;
   document.getElementById('nf-text').textContent = text;
+  var sub = document.getElementById('nf-sub');
+  if (sub){
+    sub.innerHTML = (fs.target > 0
+      ? '<span class="nf-total">' + esc(t('feedTodayTpl')
+          .replace('{n}', String(fs.total)).replace('{t}', String(fs.target)).replace('{u}', t('mlUnit'))) + '</span>'
+      : '') + feedDotsHtml(fs, nowMs);
+  }
 }
 
 /* ================================================================
@@ -7723,11 +7994,31 @@ function renderPayGlance(){
   var go = document.getElementById('pay-glance-go');
   if (go) go.addEventListener('click', function(){ state.paySub = 'settle'; renderPay(); window.scrollTo(0, 0); });
 }
-function syncPayBadge(){
-  var btn = document.querySelector('.tab-btn[data-tab="pay"]');
+/* 탭 버튼 위 뱃지. n이 숫자면 개수, true면 점 하나, 0/false면 없음.
+   급여 뱃지는 has-badge 클래스만 토글하고 있었는데 그 클래스에 CSS가 아예
+   없어서 지금껏 아무것도 안 보였다 — 여기서 실제로 그린다. */
+function setTabBadge(tab, n){
+  var btn = document.querySelector('.tab-btn[data-tab="' + tab + '"]');
   if (!btn) return;
-  var n = isMasterUser() ? payPendingCount() : 0;
-  btn.classList.toggle('has-badge', n > 0);
+  var el = btn.querySelector('.tb-badge');
+  var show = n === true || (typeof n === 'number' && n > 0);
+  if (!show){ if (el) el.remove(); return; }
+  if (!el){
+    el = document.createElement('span');
+    el.className = 'tb-badge';
+    btn.appendChild(el);
+  }
+  el.classList.toggle('dot', n === true);
+  el.textContent = n === true ? '' : (n > 9 ? '9+' : String(n));
+  el.setAttribute('aria-hidden', 'true');
+}
+function syncPayBadge(){
+  setTabBadge('pay', isMasterUser() ? payPendingCount() : 0);
+}
+/* 안읽은 메모는 기록탭 배너로만 알리고 있었다. 내니가 출근 도장을 찍으러
+   급여탭으로 직행하면 배너를 지나칠 일이 없어서 메모를 통째로 놓친다. */
+function syncMemoBadge(){
+  setTabBadge('memo', state.tab === 'memo' ? 0 : unreadMemos().length);
 }
 function renderPayToday(){
   var box = document.getElementById('pay-today');
@@ -8106,7 +8397,119 @@ function renderGrowth(){
 /* ================================================================
    RENDER: SETTINGS (local)
    ================================================================ */
+/* 수유 계획 설정. 규칙은 이미 한 번 바뀌었고 또 바뀐다 — 코드에 박아두면
+   그때마다 배포를 해야 하므로 여기서 고칠 수 있게 둔다. 엄마만 수정. */
+function renderFeedSettings(){
+  var box = document.getElementById('feed-settings');
+  if (!box) return;
+  var p = readFeedPlan(), master = isMasterUser();
+  var inpStyle = 'border:1px solid var(--border);background:var(--surface);color:var(--fg);' +
+    'border-radius:9px;padding:6px 8px;font-size:var(--fs-caption)';
+  function numRow(label, value, key, unit){
+    return '<div class="pay-line"><span>' + esc(label) + '</span>' +
+      (master
+        ? '<input class="num" data-feed-set="' + key + '" inputmode="numeric" value="' + esc(String(value)) + '" ' +
+          'style="width:92px;text-align:right;' + inpStyle + '" />'
+        : '<span class="num">' + esc(String(value)) + '</span>') +
+      (unit ? '<span class="pay-sub">' + esc(unit) + '</span>' : '') + '</div>';
+  }
+  function timeRow(label, value, key){
+    return '<div class="pay-line"><span>' + esc(label) + '</span>' +
+      (master
+        ? '<input data-feed-set="' + key + '" type="time" value="' + esc(value) + '" ' +
+          'style="margin-left:auto;' + inpStyle + '" />'
+        : '<span class="num">' + esc(value) + '</span>') + '</div>';
+  }
+  /* 모드 칩은 라벨 오른쪽에 붙이면 베트남어에서 320px를 넘겨 화면이 옆으로
+     밀린다 — 라벨 아래 줄에 깔고 좁아지면 감싸게 둔다 */
+  var html = '<div class="pay-line" style="display:block"><span>' + esc(t('feedPlanMode')) + '</span>' +
+    '<span style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">' +
+      ['fixed','interval'].map(function(m){
+        return '<button type="button" class="chip" data-feed-mode="' + m + '"' +
+          (master ? '' : ' disabled') +
+          ' aria-pressed="' + (p.mode === m) + '">' +
+          esc(t(m === 'fixed' ? 'feedPlanModeFixed' : 'feedPlanModeInterval')) + '</button>';
+      }).join('') + '</span></div>';
+
+  if (p.mode === 'fixed'){
+    /* 시각 칸도 라벨 오른쪽에 밀어넣으면 "수유 시각"이 두 줄로 접히면서
+       입력칸이 쪼그라든다 — 라벨 아래 줄을 통째로 쓴다 */
+    html += '<div class="pay-line" style="display:block"><span>' + esc(t('feedPlanTimes')) + '</span>' +
+      '<span style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;align-items:center">' +
+      p.times.map(function(hm, i){
+        return master
+          ? '<span style="display:inline-flex;align-items:center">' +
+              '<input data-feed-time="' + i + '" type="time" value="' + esc(hm) + '" style="' + inpStyle + '" />' +
+              (p.times.length > 1
+                ? '<button type="button" class="feed-time-x" data-feed-time-del="' + i + '" aria-label="' + esc(t('delete')) + '">×</button>'
+                : '') +
+            '</span>'
+          : '<span class="num">' + esc(hm) + '</span>';
+      }).join('') +
+      (master && p.times.length < 12
+        ? '<button type="button" class="text-btn" id="feed-time-add">+ ' + esc(t('feedPlanAddTime')) + '</button>'
+        : '') +
+      '</span></div>';
+  } else {
+    html += timeRow(t('feedPlanStartTime'), p.startTime, 'startTime');
+    html += numRow(t('feedPlanInterval'), p.intervalMin, 'intervalMin', t('minUnit'));
+    html += numRow(t('feedPlanCount'), p.count, 'count', t('timesUnit'));
+  }
+  html += numRow(t('feedPlanPerFeed'), p.perFeed, 'perFeed', t('mlUnit'));
+  /* 목표량은 위의 두 값에서 나온다 — 고칠 수 있게 두면 어긋나기만 한다 */
+  html += '<div class="pay-line"><span>' + esc(t('feedPlanTarget')) + '</span>' +
+    '<span class="num" style="margin-left:auto">' + p.target + esc(t('mlUnit')) + '</span>' +
+    '<span class="pay-sub">' + esc(t('feedTargetCalcTpl')
+      .replace('{n}', String(p.perFeed)).replace('{u}', t('mlUnit'))
+      .replace('{c}', String(p.slotCount))) + '</span></div>';
+  html += numRow(t('feedPlanMaxGap'), p.maxGapMin, 'maxGapMin', t('minUnit'));
+  html += timeRow(t('feedPlanQuiet'), p.quietFrom, 'quietFrom');
+  box.innerHTML = html;
+
+  var hint = document.getElementById('feed-settings-hint');
+  if (hint){
+    hint.textContent = t(p.mode === 'fixed' ? 'feedPlanHintFixed' : 'feedPlanHintInterval') +
+      (master ? '' : ' · ' + t('feedPlanMasterOnly'));
+  }
+  if (!master) return;
+
+  function push(payload){
+    apiMutate('setFeedPlan', payload)
+      .then(function(){ renderFeedSettings(); renderNextFeed(); })
+      .catch(function(e){ toast(e.message); renderFeedSettings(); });
+  }
+  $$('[data-feed-mode]', box).forEach(function(b){
+    b.addEventListener('click', function(){ push({ mode: b.dataset.feedMode }); });
+  });
+  $$('[data-feed-set]', box).forEach(function(inp){
+    inp.addEventListener('change', function(){
+      var k = inp.dataset.feedSet, payload = {};
+      payload[k] = (k === 'startTime' || k === 'quietFrom') ? inp.value : Number(inp.value);
+      push(payload);
+    });
+  });
+  $$('[data-feed-time]', box).forEach(function(inp){
+    inp.addEventListener('change', function(){
+      var times = p.times.slice();
+      times[Number(inp.dataset.feedTime)] = inp.value;
+      push({ times: times });
+    });
+  });
+  $$('[data-feed-time-del]', box).forEach(function(b){
+    b.addEventListener('click', function(){
+      var times = p.times.filter(function(_, i){ return i !== Number(b.dataset.feedTimeDel); });
+      push({ times: times });
+    });
+  });
+  var add = document.getElementById('feed-time-add');
+  if (add) add.addEventListener('click', function(){
+    /* 마지막 시각 + 간격을 기본값으로 — 대개 그게 원하는 값이다 */
+    var last = hmToMin(p.times[p.times.length-1]);
+    push({ times: p.times.concat([minToHm(Math.min(23*60+30, last + p.intervalMin))]) });
+  });
+}
 function renderSettings(){
+  renderFeedSettings();
   renderPaySettings();
   renderAuthorChips('author-chip-row', state.author, function(name){ setAuthor(name); });
   var customBox = document.getElementById('custom-type-manage-list');
@@ -9069,6 +9472,7 @@ function updateMemoPreview(){
   var unread = unreadMemos();
   row.hidden = !unread.length;
   syncAnnounceStack();
+  syncMemoBadge();
   if (!unread.length) return;
 
   /* the newest unread THING — when the fresh part of a thread is a reply,
@@ -10131,6 +10535,9 @@ function switchTab(name){
   if (name === 'growth') renderGrowth();
   if (name === 'pay') renderPay();
   if (name === 'settings') renderSettings();
+  /* 메모탭에 들어가 있는 동안에는 뱃지를 달아두지 않는다 — 눈앞에 있는 걸
+     가리킬 이유가 없고, 나갈 때 markMemosRead가 정리한다 */
+  syncMemoBadge();
   if (state.adjustOpen){ state.adjustOpen = false; var panel = document.getElementById('aw-adjust-panel'); if (panel) panel.hidden = true; }
 }
 

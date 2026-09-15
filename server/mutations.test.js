@@ -126,3 +126,56 @@ console.log('ALL MUTATION TESTS PASSED');
   assert.equal(paid2.result.period.otMin, 120);
   console.log('payroll: ok');
 })();
+
+/* ── 수유 계획 ───────────────────────────────────────────────── */
+(function feedPlanTests() {
+  const base = () => ({ entries: [], memos: [], shifts: [], ot: [], payPeriods: [] });
+  const run = (st, type, payload) => applyMutation(st, type, payload).state;
+
+  let s = base();
+  // 기본값이 채워져 나온다
+  s = run(s, 'setFeedPlan', { actor: '엄마', perFeed: 200 });
+  assert.equal(s.feedPlan.mode, 'fixed');
+  assert.deepEqual(s.feedPlan.times, ['07:00', '11:00', '15:00', '19:00']);
+  assert.equal(s.feedPlan.perFeed, 200);
+  // 하루 목표량은 저장하지 않는다 — 1회량 × 횟수로 화면에서 낸다
+  assert.equal(s.feedPlan.target, undefined);
+
+  // 넘긴 필드만 바뀌고 나머지는 남는다
+  s = run(s, 'setFeedPlan', { actor: '엄마', perFeed: 180 });
+  assert.equal(s.feedPlan.perFeed, 180);
+  assert.deepEqual(s.feedPlan.times, ['07:00', '11:00', '15:00', '19:00']);
+
+  // target을 보내도 저장되지 않는다
+  s = run(s, 'setFeedPlan', { actor: '엄마', target: 9999 });
+  assert.equal(s.feedPlan.target, undefined);
+
+  // 시각은 정렬되어 저장된다
+  s = run(s, 'setFeedPlan', { actor: '엄마', times: ['19:00', '07:00', '13:00'] });
+  assert.deepEqual(s.feedPlan.times, ['07:00', '13:00', '19:00']);
+
+  // HH:MM이 아닌 것은 거절
+  assert.throws(() => run(base(), 'setFeedPlan', { actor: '엄마', times: ['7시'] }));
+  assert.throws(() => run(base(), 'setFeedPlan', { actor: '엄마', times: ['25:00'] }));
+  assert.throws(() => run(base(), 'setFeedPlan', { actor: '엄마', times: [] }));
+
+  // 범위를 벗어난 숫자는 잘린다
+  s = run(base(), 'setFeedPlan', { actor: '엄마', count: 99, intervalMin: 5, perFeed: -10 });
+  assert.equal(s.feedPlan.count, 12);
+  assert.equal(s.feedPlan.intervalMin, 30);
+  assert.equal(s.feedPlan.perFeed, 0);
+
+  // 엄마만 바꾼다
+  assert.throws(() => run(base(), 'setFeedPlan', { actor: '내니', perFeed: 100 }));
+  assert.throws(() => run(base(), 'setFeedPlan', { actor: '아빠', perFeed: 100 }));
+
+  // interval 모드
+  s = run(base(), 'setFeedPlan', { actor: '엄마', mode: 'interval', intervalMin: 240, count: 4 });
+  assert.equal(s.feedPlan.mode, 'interval');
+  assert.equal(s.feedPlan.intervalMin, 240);
+  // 모르는 모드는 fixed로
+  s = run(s, 'setFeedPlan', { actor: '엄마', mode: 'nonsense' });
+  assert.equal(s.feedPlan.mode, 'fixed');
+
+  console.log('PASS  수유 계획 (setFeedPlan)');
+})();

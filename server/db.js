@@ -31,6 +31,19 @@ const EMPTY_STATE = {
   ot: [],
   payPeriods: [],
   payroll: { daily: 800000, hourly: 70000, meal: 100000, otMul: 1.5, startDate: '2026-09-16' },
+  /* 수유 계획. 'fixed'는 정해진 시각에, 'interval'은 그날 첫 수유로부터
+     일정 간격으로. maxGapMin은 배고파하지 않아도 이 시간을 넘기지는 말라는
+     한계선이고, quietFrom 이후로는 밤이라 배너를 띄우지 않는다. */
+  feedPlan: {
+    mode: 'fixed',
+    times: ['07:00', '11:00', '15:00', '19:00'],
+    startTime: '07:00',
+    intervalMin: 240,
+    count: 4,
+    perFeed: 200,
+    maxGapMin: 240,
+    quietFrom: '22:00',
+  },
   profile: { nameKo: '지오', nameVi: 'Zio', birth: '2026-05-11' },
 };
 
