@@ -15,7 +15,7 @@ function clone(x) { return JSON.parse(JSON.stringify(x)); }
 // household both read every note. Stored alongside the note rather than
 // re-translated on each render (translation is a network call, and the stored
 // text is what every other viewer's poll picks up).
-const ALLOWED_ENTRY_FIELDS = ['type', 'start', 'end', 'amount', 'diaper', 'temp', 'note', 'noteLang', 'noteTranslated', 'author', 'sleepKind'];
+const ALLOWED_ENTRY_FIELDS = ['type', 'start', 'end', 'amount', 'diaper', 'temp', 'note', 'noteLang', 'noteTranslated', 'author', 'sleepKind', 'wakes'];
 
 /* ---------------------------------------------------------------
    WHO MAY DELETE WHAT
@@ -101,6 +101,8 @@ function pruneTrash(state) {
    내니가 넣은 것 중 오늘 도장만 바로 반영되고, 지난 날짜 도장과 모든
    오버타임은 status:'pending'으로 들어와 엄마가 승인해야 금액이 된다. */
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+/* 3분 안에 또 찍힌 깸은 같은 깸으로 본다 */
+const WAKE_DEDUPE_MS = 3 * 60 * 1000;
 const HM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 function payrollOf(state) {
@@ -209,6 +211,41 @@ function applyMutation(prevState, type, payload) {
        record not exist") is satisfied either way, so a delete that finds
        nothing to do answers quietly instead of raising. The same goes for a
        tap that lands twice on one phone. */
+    /* ================================================================
+       밤중에 깬 시각
+
+       수면 기록 안의 문자열 배열(entry.wakes)이다. updateEntry로 배열째
+       보내면 엄마 폰과 아빠 폰이 각자 자기가 들고 있던 배열로 덮어써서 서로의
+       기록을 지운다 — 그래서 '하나 더한다/하나 뺀다'만 서버에서 한다.
+
+       3분 규칙도 여기 있다. 새벽에 손이 미끄러져 두 번 눌리는 것과, 두 사람이
+       같은 깸을 각자 찍는 것은 같은 사고이고 둘 다 폰 한 대에서는 막을 수
+       없다. */
+    case 'addWake': {
+      const entry = state.entries.find((e) => e.id === payload.id);
+      if (!entry) throw httpError(404, 'entry not found');
+      if (entry.type !== 'sleep') throw httpError(400, 'wakes belong to a sleep record');
+      const at = payload.at || new Date().toISOString();
+      if (isNaN(new Date(at).getTime())) throw httpError(400, 'bad wake time');
+      const list = (entry.wakes || []).filter((w) => !isNaN(new Date(w).getTime()));
+      const t0 = new Date(at).getTime();
+      const near = list.find((w) => Math.abs(new Date(w).getTime() - t0) < WAKE_DEDUPE_MS);
+      if (near) return { state, result: { duplicate: true, at: near } };
+      list.push(at);
+      list.sort();
+      entry.wakes = list;
+      return { state, result: { entry, at } };
+    }
+
+    case 'deleteWake': {
+      const entry = state.entries.find((e) => e.id === payload.id);
+      if (!entry) throw httpError(404, 'entry not found');
+      const before = (entry.wakes || []).length;
+      entry.wakes = (entry.wakes || []).filter((w) => w !== payload.at);
+      /* 이미 지워진 걸 또 지우는 건 오류가 아니다 — 폰 세 대가 같은 목록을 본다 */
+      return { state, result: { removed: before - entry.wakes.length } };
+    }
+
     case 'deleteEntry': {
       const entry = state.entries.find((e) => e.id === payload.id);
       if (!entry) return { state, result: { alreadyGone: true } };

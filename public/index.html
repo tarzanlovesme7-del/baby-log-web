@@ -52,6 +52,7 @@
     --memo-fg: #8a6a00;
     --nf-bg: #ffe7c2;
     --nf-fg: #8a5300;
+    --sl-bg:#ece7ff; --sl-fg:#5b3fc4; --sl-ink:#3d2a8c;
     --radius-pill: 999px;
     --radius-card: 20px;
     --radius-sm: 14px;
@@ -125,6 +126,8 @@
       --danger:#d42535; --danger-text:#ff8b95;
       --memo-bg:#40330f; --memo-fg:#ffd84d;
       --nf-bg:#452b0d; --nf-fg:#ffc078;
+    --sl-bg:#2a2440; --sl-fg:#b9a6ff; --sl-ink:#d9cdff;
+      --sl-bg:#2a2440; --sl-fg:#b9a6ff; --sl-ink:#d9cdff;
       --ev-sky-bg:#1c3350;   --ev-sky-fg:#9cc4ff;
       --ev-mint-bg:#143829;  --ev-mint-fg:#7fe0ae;
       --ev-peach-bg:#46290f; --ev-peach-fg:#ffb877;
@@ -142,6 +145,7 @@
     --danger:#d42535; --danger-text:#ff8b95;
     --memo-bg:#40330f; --memo-fg:#ffd84d;
     --nf-bg:#452b0d; --nf-fg:#ffc078;
+    --sl-bg:#2a2440; --sl-fg:#b9a6ff; --sl-ink:#d9cdff;
     --ev-sky-bg:#1c3350;   --ev-sky-fg:#9cc4ff;
     --ev-mint-bg:#143829;  --ev-mint-fg:#7fe0ae;
     --ev-peach-bg:#46290f; --ev-peach-fg:#ffb877;
@@ -419,6 +423,23 @@
      preview above, stacked directly under it (margin-top:0 instead of the
      -16px header-flush pull, so the two bands read as one continuous strip)
      with its own peach tint instead of the memo's amber */
+  /* 자는 중 띠 — 수면 보라색 계열로, 다른 두 띠와 같은 납작한 밴드 언어 */
+  .announce-row.sleep-row{ background:var(--sl-bg); align-items:center; }
+  .announce-row.sleep-row .a-label{ color:var(--sl-fg); }
+  .announce-row.sleep-row .a-orig{ color:var(--sl-ink); font-variant-numeric:tabular-nums; white-space:normal; }
+  .announce-row.sleep-row .sl-sub{
+    font-size:var(--fs-micro); font-weight:var(--fw-medium);
+    color:var(--sl-fg); opacity:.85; margin-top:2px; font-variant-numeric:tabular-nums;
+  }
+  /* 새벽에 눈 반쯤 뜨고 누르는 버튼 — 손가락이 빗나갈 여지를 주려고 다른 어떤
+     버튼보다 크게 잡았다(최소 44×44보다 넉넉히) */
+  .sl-wake-btn{
+    flex:none; border:0; border-radius:12px;
+    background:var(--c-sleep); color:#fff;
+    font-family:inherit; font-size:var(--fs-caption); font-weight:var(--fw-strong);
+    padding:14px 18px; min-height:52px; white-space:nowrap;
+  }
+  .sl-wake-btn:active{ filter:brightness(.92); }
   .announce-row.next-feed-row{ background:var(--nf-bg); }
   /* 오늘 총량 + 차례 점. 본문보다 한 단 작고 흐리게 — 시각이 주인공이고
      이 줄은 곁눈으로 확인하는 것이다. */
@@ -434,6 +455,38 @@
     font-size:16px; line-height:1; padding:6px 4px 6px 2px; cursor:pointer;
   }
   .feed-time-x:active{ color:var(--danger-text); }
+  /* 깸 목록 — 시각 / 사이 간격 / 지우기 세 칸 */
+  .wake-list{ display:block; background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:2px 13px; }
+  .wake-item{
+    display:flex; align-items:center; gap:10px;
+    padding:9px 0; border-bottom:1px solid var(--border);
+  }
+  .wake-item:last-child{ border-bottom:0; }
+  .wake-item .wk-t{
+    font-size:var(--fs-caption); font-weight:var(--fw-strong);
+    font-variant-numeric:tabular-nums; min-width:76px; color:var(--fg);
+  }
+  .wake-item .wk-g{ flex:1; font-size:var(--fs-micro); color:var(--muted); }
+  .wake-item .wk-x{
+    flex:none; border:0; background:transparent; color:var(--muted-2);
+    font-size:15px; line-height:1; padding:8px 4px;
+  }
+  .wake-item .wk-x:active{ color:var(--danger-text); }
+  .wake-empty{ font-size:var(--fs-caption); color:var(--muted);
+    background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:13px; }
+  .wake-add{
+    margin-top:8px; width:100%; border:1.5px solid var(--c-sleep); background:transparent;
+    color:var(--c-sleep); border-radius:11px; padding:12px;
+    font-family:inherit; font-size:var(--fs-caption); font-weight:var(--fw-strong);
+  }
+  /* 타임라인 줄에 붙는 "밤에 3번 깸" */
+  .e-wake-chip{
+    display:inline-block; margin-top:4px;
+    font-size:var(--fs-micro); font-weight:var(--fw-strong);
+    color:var(--c-sleep); background:color-mix(in srgb, var(--c-sleep) 14%, var(--surface));
+    border-radius:var(--radius-pill); padding:2px 8px;
+  }
   .nf-dots{ display:inline-flex; gap:5px; align-items:center; }
   .nf-dots i{
     width:9px; height:9px; border-radius:50%;
@@ -1985,7 +2038,7 @@
 
   .field-hint{ margin-top:8px; font-size:var(--fs-caption); color:var(--primary); font-weight:var(--fw-strong); }
 
-  .confirm-sheet{ z-index:56; }
+  .confirm-sheet, .sheet.above-fullpage{ z-index:56; }
   .confirm-msg{ font-size:var(--fs-body); line-height:1.62; color:var(--fg); white-space:pre-line; }
 
   .toast{
@@ -1995,6 +2048,14 @@
     white-space:nowrap; max-width:88vw; overflow:hidden; text-overflow:ellipsis;
   }
   .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+  /* 토스트 자체는 pointer-events:none이라 뒤를 가리지 않는다. 되돌리기 버튼만
+     다시 켠다 — 아니면 눌리지 않는 버튼을 그려놓는 셈이 된다. */
+  .toast-undo{
+    pointer-events:auto; margin-left:14px; border:0; background:transparent;
+    color:var(--primary-on-dark, #7fb2ff); font-family:inherit;
+    font-size:var(--fs-label); font-weight:var(--fw-strong);
+    padding:4px 2px; text-decoration:underline; text-underline-offset:3px;
+  }
   /* ================================================================
      A RULE LINE RUNS THE FULL WIDTH OF WHAT IT DIVIDES.
 
@@ -2082,6 +2143,20 @@
           <div class="a-trans" id="memo-preview-trans" hidden></div>
         </div>
       </button>
+
+      <!-- 밤잠이 진행 중일 때만. 새벽에 앱을 열면 엄지가 닿는 첫 자리라
+           수유 배너보다 위에 둔다. -->
+      <div class="announce-row sleep-row" id="sleep-row" hidden>
+        <span class="a-emoji">🌙</span>
+        <div class="a-body">
+          <div class="a-top">
+            <span class="a-label" id="sl-label" data-i18n="sleepingLabel">자는 중</span>
+          </div>
+          <div class="a-orig" id="sl-main"></div>
+          <div class="sl-sub" id="sl-sub"></div>
+        </div>
+        <button type="button" class="sl-wake-btn" id="sl-wake" data-i18n="wokeBtn">깼어요</button>
+      </div>
 
       <!-- 정해진 수유 시각(설정에서 고정 시각 또는 첫 수유 기준 간격)의
            다음 차례 + 오늘 채운 양. 계산식은 feedPlanState() 한 곳에 있다. -->
@@ -2253,6 +2328,7 @@
         <span class="stat-badge" data-i18n="last7days">최근 7일</span>
       </div>
       <div class="stat-grid" id="stat-sleep-tiles"></div>
+      <div class="stat-note" id="stat-wake-note"></div>
       <div class="stat-note" id="stat-sleep-note"></div>
     </div>
       </div>
@@ -2597,6 +2673,33 @@
     <div class="sheet-foot">
       <button type="button" class="btn ghost" id="ot-sheet-cancel" data-i18n="cancel">취소</button>
       <button type="button" class="btn primary" id="ot-sheet-save" data-i18n="save">저장</button>
+    </div>
+  </div>
+
+  <!-- ============ SHEET: ADD A WAKE ============
+       시:분만 받는다. 날짜는 잠든 시각에서 끌어온다 — 21:40에 잠들어 02:10에
+       깼으면 그 02:10은 다음날이라는 걸 사람이 고르게 하면 틀린다. -->
+  <!-- 기록 상세(.fullpage, z-index 45) 안에서 열리는 시트다. 기본 시트
+       z-index(41)로 두면 상세 화면 뒤에 깔려서, 상세의 저장 버튼이 이 시트의
+       저장 버튼 위를 덮는다 — 확인 시트가 55/56을 쓰는 것과 같은 이유. -->
+  <div class="scrim" id="scrim8" style="z-index:55"></div>
+  <div class="sheet above-fullpage" id="wake-sheet" data-scrim="scrim8" role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="grabber"></div>
+      <button type="button" class="icon-btn" id="wake-sheet-close">✕</button>
+      <h2 data-i18n="wakeAddTitle">깬 시각 추가</h2>
+      <span style="width:30px"></span>
+    </div>
+    <div class="sheet-body">
+      <div class="field">
+        <label data-i18n="wakeAddLabel">깬 시각</label>
+        <input type="time" id="wake-time-input" />
+      </div>
+      <div class="hint-line" data-i18n="wakeAddHint">잠든 시각보다 이르면 다음날로 잡혀요.</div>
+    </div>
+    <div class="sheet-foot">
+      <button type="button" class="btn ghost" id="wake-sheet-cancel" data-i18n="cancel">취소</button>
+      <button type="button" class="btn primary" id="wake-sheet-save" data-i18n="save">저장</button>
     </div>
   </div>
 
@@ -2973,6 +3076,19 @@ ko: {
   noRecordYet:"기록 없음", justNow:"방금", agoSuffix:"전", hrShort:"시간", minShort:"분",
   wet:"소변", dirty:"대변", both:"소변+대변", diaperKind:"종류",
   nap:"낮잠", night:"밤잠", auto:"자동판별", sleepKind:"수면 종류",
+  sleepingLabel:"자는 중", wokeBtn:"깼어요",
+  sleepSinceTpl:"{time}부터",
+  wakeNoneYet:"아직 안 깼어요", wakeNone:"기록 없음",
+  wakeCountTpl:"밤에 {n}번 깸", wakeLastTpl:"마지막 {time}",
+  wakeSavedTpl:"{time} 깸 기록", undoBtn:"되돌리기",
+  wakeTooSoon:"방금 기록했어요",
+  wakeSectionLabel:"밤에 깬 횟수", wakeAddBtn:"깸 추가",
+  wakeAddTitle:"깬 시각 추가", wakeAddLabel:"깬 시각",
+  wakeAddHint:"잠든 시각보다 이르면 다음날로 잡혀요.", wakeBadTime:"시각을 확인해 주세요",
+  wakeAfterSleepTpl:"잠든 지 {d}", wakeAfterPrevTpl:"{d} 뒤",
+  avgWakes:"밤중 깸", wakeTimesTpl:"{n}번",
+  wakeStatNoteTpl:"최근 7일 {nights}밤 중 {zero}밤은 안 깼어요 · 합계 {total}번",
+  wakeStatEmpty:"아직 밤잠 기록이 없어요",
   nextDayShort:"다음날", prevDayShort:"전날", sleepCont:"이어짐",
   crossMidTitle:"다음날 아침인가요?", crossMidMsgTpl:"시작 {start} → 종료 {end}\n종료 시간이 더 빨라요. 다음날 {end}까지 잔 거면 '다음날 맞아'를 눌러줘.", totalPrefix:"총",
   crossMidYes:"다음날 맞아", crossMidNo:"시간 고칠래",
@@ -3121,6 +3237,19 @@ vi: {
   noRecordYet:"Chưa có dữ liệu", justNow:"Vừa xong", agoSuffix:"", hrShort:" giờ", minShort:" phút",
   wet:"Nước tiểu", dirty:"Phân", both:"Cả hai", diaperKind:"Loại",
   nap:"Ngủ ngày", night:"Ngủ đêm", auto:"Tự nhận diện", sleepKind:"Loại giấc ngủ",
+  sleepingLabel:"Đang ngủ", wokeBtn:"Bé dậy",
+  sleepSinceTpl:"Từ {time}",
+  wakeNoneYet:"Chưa dậy lần nào", wakeNone:"Chưa có",
+  wakeCountTpl:"Dậy {n} lần", wakeLastTpl:"Lần cuối {time}",
+  wakeSavedTpl:"Đã ghi {time}", undoBtn:"Hoàn tác",
+  wakeTooSoon:"Vừa ghi rồi",
+  wakeSectionLabel:"Số lần dậy đêm", wakeAddBtn:"Thêm lần dậy",
+  wakeAddTitle:"Thêm giờ bé dậy", wakeAddLabel:"Giờ bé dậy",
+  wakeAddHint:"Sớm hơn giờ ngủ thì tính sang ngày hôm sau.", wakeBadTime:"Vui lòng kiểm tra giờ",
+  wakeAfterSleepTpl:"Sau khi ngủ {d}", wakeAfterPrevTpl:"{d} sau đó",
+  avgWakes:"Dậy đêm", wakeTimesTpl:"{n} lần",
+  wakeStatNoteTpl:"7 ngày qua: {zero}/{nights} đêm không dậy · tổng {total} lần",
+  wakeStatEmpty:"Chưa có dữ liệu ngủ đêm",
   nextDayShort:"Hôm sau", prevDayShort:"Hôm trước", sleepCont:"tiếp tục",
   crossMidTitle:"Là sáng hôm sau?", crossMidMsgTpl:"Bắt đầu {start} → Kết thúc {end}\nGiờ kết thúc sớm hơn. Nếu bé ngủ đến {end} sáng hôm sau, hãy chọn 'Đúng, hôm sau'.", totalPrefix:"tổng",
   crossMidYes:"Đúng, hôm sau", crossMidNo:"Sửa lại giờ",
@@ -4079,6 +4208,10 @@ function readEntries(){
       note: e.note || '', noteLang: e.noteLang || '',
       noteTranslated: glossaryFix(e.note || '', e.noteLang || '', e.noteTranslated || ''),
       author: e.author || '', sleepKind: e.sleepKind || '',
+      /* 밤중에 깬 시각들. 늘 정렬된 채로 화면에 내려간다 */
+      wakes: Array.isArray(e.wakes)
+        ? e.wakes.filter(function(w){ return w && !isNaN(new Date(w).getTime()); }).slice().sort()
+        : [],
       /* the marks other people left on this record — this normaliser lists
          every field the screens are allowed to see, so a field left out here
          simply does not exist as far as the UI is concerned */
@@ -4449,6 +4582,27 @@ function toast(msg){
   elx.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function(){ elx.classList.remove('show'); }, 1600);
+}
+/* 되돌릴 수 있는 토스트. 확인 창을 띄우지 않기로 한 동작(새벽의 깸 기록)이
+   잘못 눌렸을 때 빠져나갈 유일한 문인데, 그 문이 몇 초 뒤에 닫힌다는 걸
+   전제로 만들어졌다 — 그래서 여기서만 조금 더 오래 띄운다. */
+function toastUndo(msg, label, onUndo){
+  var elx = document.getElementById('toast');
+  elx.textContent = '';
+  elx.appendChild(document.createTextNode(msg));
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'toast-undo';
+  btn.textContent = label;
+  btn.addEventListener('click', function(){
+    clearTimeout(toastTimer);
+    elx.classList.remove('show');
+    onUndo();
+  });
+  elx.appendChild(btn);
+  elx.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ elx.classList.remove('show'); }, 5000);
 }
 
 /* ================================================================
@@ -4999,6 +5153,41 @@ function fitDashValues(row){
 }
 
 /* ================================================================
+   밤중에 깬 시각
+
+   밤잠을 찍어놓고 아직 종료 시각을 넣지 않은 기록이 '자는 중'이다 — 그게
+   실제로 이 집이 쓰는 방식이라, 스톱워치를 돌리고 있는지와는 상관이 없다.
+   자는 동안 기록 화면 맨 위에 띠가 뜨고, 그 위의 버튼 한 번이 깸 하나다.
+   새벽 세 시에 눈 반쯤 감고 누르는 버튼이라 확인 창은 없고, 대신 몇 초간
+   되돌릴 수 있다.
+   ================================================================ */
+var WAKE_DEDUPE_MS = 3 * 60 * 1000;
+/* 자정을 넘겨 이어지는 밤잠이라도 하루를 넘게 열어두진 않는다 — 종료를 넣는 걸
+   잊은 지난 기록이 며칠 뒤까지 "자는 중"으로 떠 있으면 안 된다. */
+var SLEEP_OPEN_MAX_MS = 20 * 3600 * 1000;
+function isOpenSleep(e){
+  if (!e || e.type !== 'sleep') return false;
+  if (e.end && e.end !== e.start) return false;   /* 종료를 넣었으면 끝난 것 */
+  return classifySleep(e) === 'night';            /* 지금은 밤잠만 */
+}
+function openNightSleep(nowMs){
+  var now = nowMs == null ? Date.now() : nowMs;
+  return readEntries().filter(function(e){
+    if (!isOpenSleep(e)) return false;
+    var t0 = new Date(e.start).getTime();
+    return !isNaN(t0) && t0 <= now && (now - t0) < SLEEP_OPEN_MAX_MS;
+  }).sort(function(a,b){ return new Date(b.start) - new Date(a.start); })[0] || null;
+}
+function wakesOf(e){ return (e && e.wakes) || []; }
+/* 직전 깸에서 3분 안이면 같은 깸 — 서버도 같은 규칙으로 막지만, 화면이 먼저
+   거절해야 눌렀는데 아무 일도 안 일어난 것처럼 보이지 않는다 */
+function wakeTooClose(e, atMs){
+  return wakesOf(e).some(function(w){
+    return Math.abs(new Date(w).getTime() - atMs) < WAKE_DEDUPE_MS;
+  });
+}
+
+/* ================================================================
    수유 계획 — 정해진 시간에 먹인다
 
    예전에는 "마지막 수유량 × 1.5분"으로 다음 시각을 추산했다(40ml에 한 시간).
@@ -5184,6 +5373,153 @@ function fmtRemain(min){
   var h = Math.floor(min/60), m = min%60;
   return h > 0 ? (h + t('hrShort') + ' ' + m + t('minShort')) : (m + t('minShort'));
 }
+/* 띠 하나에 세 가지가 들어간다: 언제부터 자고 있나, 얼마나 잤나, 밤에 몇 번
+   깼나. 셋 다 지금 궁금한 것이고, 새벽엔 화면을 더 뒤질 여력이 없다. */
+function renderSleepBand(){
+  var box = document.getElementById('sleep-row');
+  if (!box) return;
+  var nowMs = Date.now();
+  var e = openNightSleep(nowMs);
+  if (!e){ box.hidden = true; syncAnnounceStack(); return; }
+  box.hidden = false;
+  syncAnnounceStack();
+  box.dataset.entry = e.id;
+
+  document.getElementById('sl-main').textContent =
+    t('sleepSinceTpl').replace('{time}', fmtTime(e.start)) + ' · ' +
+    fmtDur(Math.max(0, nowMs - new Date(e.start).getTime()));
+
+  var ws = wakesOf(e);
+  var sub = document.getElementById('sl-sub');
+  if (!ws.length){
+    sub.textContent = t('wakeNoneYet');
+  } else {
+    sub.textContent = t('wakeCountTpl').replace('{n}', String(ws.length)) +
+      ' · ' + t('wakeLastTpl').replace('{time}', fmtTime(ws[ws.length-1]));
+  }
+}
+/* 탭 한 번 = 깸 하나. 확인 창 없이 바로 들어가고, 되돌리기가 몇 초 남는다. */
+function tapWoke(){
+  var e = openNightSleep(Date.now());
+  if (!e){ renderSleepBand(); return; }
+  var at = new Date().toISOString();
+  if (wakeTooClose(e, new Date(at).getTime())){
+    /* 3분 안에 또 눌렸다 — 손이 미끄러진 것으로 보고 조용히 넘기되, 아무
+       일도 안 일어난 것처럼 보이면 안 되니 말은 해준다 */
+    toast(t('wakeTooSoon'));
+    return;
+  }
+  /* 화면 먼저, 서버 나중 — 다른 모든 쓰기와 같은 순서 */
+  var raw = (appState.entries || []).filter(function(x){ return x.id === e.id; })[0];
+  if (raw){ raw.wakes = (raw.wakes || []).concat([at]).sort(); }
+  renderSleepBand(); renderTimeline();
+  if (navigator.vibrate) try{ navigator.vibrate(10); }catch(err){}
+  toastUndo(t('wakeSavedTpl').replace('{time}', fmtTime(at)), t('undoBtn'), function(){
+    removeWake(e.id, at);
+  });
+  apiMutate('addWake', { id: e.id, at: at, actor: state.author })
+    .then(function(){ renderSleepBand(); renderTimeline(); })
+    .catch(function(err){
+      if (raw) raw.wakes = (raw.wakes || []).filter(function(w){ return w !== at; });
+      renderSleepBand(); renderTimeline();
+      toast(err.message);
+    });
+}
+function removeWake(entryId, at){
+  var raw = (appState.entries || []).filter(function(x){ return x.id === entryId; })[0];
+  var prev = raw ? (raw.wakes || []).slice() : null;
+  if (raw) raw.wakes = (raw.wakes || []).filter(function(w){ return w !== at; });
+  renderSleepBand(); renderTimeline();
+  if (state.entryId === entryId) renderWakeCard();
+  apiMutate('deleteWake', { id: entryId, at: at, actor: state.author })
+    .then(function(){ renderSleepBand(); renderTimeline(); if (state.entryId === entryId) renderWakeCard(); })
+    .catch(function(err){
+      if (raw && prev) raw.wakes = prev;
+      renderSleepBand(); renderTimeline();
+      if (state.entryId === entryId) renderWakeCard();
+      toast(err.message);
+    });
+}
+/* 수면 상세 안의 깸 목록. 시각만 나열하면 "세 번 깼네"에서 끝나지만, 사이
+   간격을 같이 적으면 몇 시간씩 이어 잤는지가 보인다 — 실제로 알고 싶은 건
+   그쪽이다. */
+function renderWakeCard(){
+  var box = document.getElementById('f-wakes');
+  if (!box) return;
+  var e = readEntries().filter(function(x){ return x.id === state.entryId; })[0];
+  if (!e){ box.innerHTML = ''; return; }
+  var ws = wakesOf(e);
+  var startMs = new Date(e.start).getTime();
+  /* 라벨이 이미 "밤에 깬 횟수"라고 말했으니 뒤에 또 "밤에 3번 깸"을 붙이면
+     같은 말이 두 번 나온다 — 숫자만 잇는다 */
+  var html = '<label>' + esc(t('wakeSectionLabel')) +
+    (ws.length ? ' · ' + esc(t('wakeTimesTpl').replace('{n}', String(ws.length))) : '') + '</label>';
+  if (!ws.length){
+    html += '<div class="wake-empty">' + esc(t('wakeNone')) + '</div>';
+  } else {
+    html += '<div class="wake-list">' + ws.map(function(w, i){
+      var ms = new Date(w).getTime();
+      var prev = i === 0 ? startMs : new Date(ws[i-1]).getTime();
+      var gap = Math.max(0, ms - prev);
+      var gapTxt = i === 0
+        ? t('wakeAfterSleepTpl').replace('{d}', fmtDur(gap))
+        : t('wakeAfterPrevTpl').replace('{d}', fmtDur(gap));
+      return '<div class="wake-item">' +
+        '<span class="wk-t">' + esc(fmtTime(w)) + '</span>' +
+        '<span class="wk-g">' + esc(gapTxt) + '</span>' +
+        '<button type="button" class="wk-x" data-wake-del="' + esc(w) + '" aria-label="' + esc(t('delete')) + '">✕</button>' +
+      '</div>';
+    }).join('') + '</div>';
+  }
+  html += '<button type="button" class="wake-add" id="wake-add">+ ' + esc(t('wakeAddBtn')) + '</button>';
+  box.innerHTML = html;
+
+  $$('[data-wake-del]', box).forEach(function(btn){
+    btn.addEventListener('click', function(){ removeWake(e.id, btn.dataset.wakeDel); });
+  });
+  var add = document.getElementById('wake-add');
+  if (add) add.addEventListener('click', function(){ openWakeAdd(e); });
+}
+/* 나중에 떠올라 채워 넣는 경우. 앱의 다른 시각 입력과 똑같이 시:분만 받고,
+   날짜는 잠든 시각에서 끌어온다 — 21:40에 잠들어 02:10에 깼으면 그 02:10은
+   다음날이다. 사람이 날짜를 고르게 하면 그걸 틀리는 게 이 앱의 단골 버그였다. */
+function wakeIsoFromTime(e, hm){
+  if (!/^\d{2}:\d{2}$/.test(hm || '')) return '';
+  var st = new Date(e.start);
+  var d = new Date(st.getFullYear(), st.getMonth(), st.getDate(),
+                   Number(hm.slice(0,2)), Number(hm.slice(3)), 0, 0);
+  if (d.getTime() < st.getTime()) d.setDate(d.getDate() + 1);
+  return d.toISOString();
+}
+function openWakeAdd(e){
+  var inp = document.getElementById('wake-time-input');
+  var sheet = document.getElementById('wake-sheet');
+  if (!inp || !sheet) return;
+  inp.value = toTimeValue(new Date().toISOString());
+  sheet.dataset.entry = e.id;
+  openSheet('wake-sheet');
+}
+function saveWakeAdd(){
+  var sheet = document.getElementById('wake-sheet');
+  var inp = document.getElementById('wake-time-input');
+  var id = sheet.dataset.entry;
+  var ent = readEntries().filter(function(x){ return x.id === id; })[0];
+  var at = ent ? wakeIsoFromTime(ent, inp.value) : '';
+  if (!at || isNaN(new Date(at).getTime())){ toast(t('wakeBadTime')); return; }
+  var e = readEntries().filter(function(x){ return x.id === id; })[0];
+  if (e && wakeTooClose(e, new Date(at).getTime())){ toast(t('wakeTooSoon')); return; }
+  closeSheet('wake-sheet');
+  var raw = (appState.entries || []).filter(function(x){ return x.id === id; })[0];
+  if (raw){ raw.wakes = (raw.wakes || []).concat([at]).sort(); }
+  renderWakeCard(); renderSleepBand(); renderTimeline();
+  apiMutate('addWake', { id: id, at: at, actor: state.author })
+    .then(function(){ renderWakeCard(); renderSleepBand(); renderTimeline(); })
+    .catch(function(err){
+      if (raw) raw.wakes = (raw.wakes || []).filter(function(w){ return w !== at; });
+      renderWakeCard(); renderSleepBand(); renderTimeline();
+      toast(err.message);
+    });
+}
 function renderNextFeed(){
   var box = document.getElementById('next-feed-row');
   if (!box) return;
@@ -5222,9 +5558,13 @@ function renderNextFeed(){
   if (sub){
     /* 먹인 양과 목표를 나란히. "목표까지 615ml"은 한 숫자지만 얼마나 먹였는지가
        사라지고, 그 자리에서 다시 빼야 알 수 있다. */
-    sub.innerHTML = (fs.goal > 0
+    /* 분모는 최소량(1회량 × 횟수). 목표를 분모로 두면 낮 동안 반드시 채워야
+       하는 선이 화면 어디에도 안 남는다 — 목표를 넘기면 800을 넘는 숫자가
+       그대로 찍히고, 그게 넘겼다는 뜻이다. 목표까지의 나머지는 점선 뒤
+       보충 칸이 맡는다. */
+    sub.innerHTML = (fs.minTarget > 0
       ? '<span class="nf-total">' + esc(t('feedTodayTpl')
-          .replace('{n}', String(fs.total)).replace('{t}', String(fs.goal))
+          .replace('{n}', String(fs.total)).replace('{t}', String(fs.minTarget))
           .replace('{u}', t('mlUnit'))) + '</span>'
       : '') + feedDotsHtml(fs, nowMs);
   }
@@ -5734,6 +6074,11 @@ function entryRowHtml(e, isCont){
       /* under the words it is answering, tight against them */
       reactionRowHtml('entry', e.id, e.reactions);
   }
+  /* 밤에 몇 번 깼는지는 줄을 열어보지 않아도 보여야 한다 — 아침에 훑는
+     사람에게는 그게 그 밤에 대한 요약이다 */
+  var wakeChip = (e.type === 'sleep' && wakesOf(e).length)
+    ? '<div class="e-wake-chip">' + esc(t('wakeCountTpl').replace('{n}', String(wakesOf(e).length))) + '</div>'
+    : '';
   var locked = !canTouch(e.author);
   return '<div class="entry-swipe'+(locked?' is-locked':'')+'" data-id="'+esc(e.id)+'"'+(locked?' data-locked="1"':'')+'>' +
     (locked ? '' : '<div class="entry-delete-bg" data-swipe-del="'+esc(e.id)+'"><span>'+esc(t('deleteSwipeLabel'))+'</span></div>') +
@@ -5748,7 +6093,8 @@ function entryRowHtml(e, isCont){
       (e.author?('<span class="e-author">'+esc(localizeAuthorName(e.author))+'</span>'):'') + '</div>' +
       typeIconHtml(meta, 'e-icon', 'color:'+meta.color) +
       '<div class="e-main"><div class="e-title-line"><span class="e-title"'+colorAttr(meta.color)+'>'+esc(title)+'</span>' +
-      (subParts.length ? '<span class="e-sub">'+esc(subParts.join(' · '))+'</span>' : '') + '</div>' + noteHtml + '</div>' +
+      (subParts.length ? '<span class="e-sub">'+esc(subParts.join(' · '))+'</span>' : '') + '</div>' +
+      wakeChip + noteHtml + '</div>' +
     '</button>' +
   '</div>';
 }
@@ -5951,10 +6297,39 @@ function renderStats(){
 
   var sleepNote = document.getElementById('stat-sleep-note');
   if (sleepNote) sleepNote.textContent = t('avgOverDaysTpl').replace('{n}', sleepDone);
+  /* 밤중 깸 — 최근 7일. 기록이 있는 밤만 센다: 아무도 안 찍은 밤은 0번 깬
+     밤이 아니라 모르는 밤이고, 그걸 0으로 세면 평균이 조용히 좋아진다. */
+  var wakeStat = (function(){
+    var since = now.getTime() - 7 * 86400000;
+    var nights = entries.filter(function(e){
+      if (e.type !== 'sleep' || classifySleep(e) !== 'night') return false;
+      if (!e.end || e.end === e.start) return false;      /* 아직 자는 중인 밤은 빼고 */
+      var t0 = new Date(e.start).getTime();
+      return !isNaN(t0) && t0 >= since;
+    });
+    if (!nights.length) return null;
+    var total = nights.reduce(function(a, e){ return a + wakesOf(e).length; }, 0);
+    var zero = nights.filter(function(e){ return !wakesOf(e).length; }).length;
+    return { nights: nights.length, total: total, zero: zero,
+             avg: Math.round((total / nights.length) * 10) / 10 };
+  })();
+
   document.getElementById('stat-sleep-tiles').innerHTML =
     statTile(t('avgNap'), '<span style="font-size:17px">'+fmtDur(avgNap)+'</span>') +
     statTile(t('avgNight'), '<span style="font-size:17px">'+fmtDur(avgNight)+'</span>') +
-    statTile(t('longestSleep'), '<span style="font-size:17px">'+fmtDur(longestSleepMs)+'</span>');
+    statTile(t('longestSleep'), '<span style="font-size:17px">'+fmtDur(longestSleepMs)+'</span>') +
+    statTile(t('avgWakes'), '<span style="font-size:17px">' +
+      (wakeStat ? esc(t('wakeTimesTpl').replace('{n}', String(wakeStat.avg))) : '-') + '</span>');
+
+  var wakeNote = document.getElementById('stat-wake-note');
+  if (wakeNote){
+    wakeNote.textContent = wakeStat
+      ? t('wakeStatNoteTpl')
+          .replace('{nights}', String(wakeStat.nights))
+          .replace('{total}', String(wakeStat.total))
+          .replace('{zero}', String(wakeStat.zero))
+      : t('wakeStatEmpty');
+  }
 
   /* -------- today's pace: is he behind, or is it just early? --------
      The daily average can only answer "did he eat enough" at bedtime. This
@@ -9163,6 +9538,10 @@ function buildEntryFields(meta, e){
     html += '<div class="field"><label>'+esc(t('sleepKind'))+'</label><div class="seg" id="f-sleep">' +
       ['auto','nap','night'].map(function(k){ return '<button type="button" data-val="'+k+'" aria-pressed="'+((e.sleepKind||'auto')===k)+'">'+esc(t(k))+'</button>'; }).join('') +
       '</div></div>';
+    /* 깬 시각 목록. 다른 칸들과 달리 저장 버튼을 기다리지 않고 바로 반영된다 —
+       하나 지우자고 폼 전체를 저장시키면 다른 칸의 미저장 편집을 같이 밀어넣게
+       되고, 애초에 이 목록은 폼이 아니라 기록이다. */
+    html += '<div class="field" id="f-wakes"></div>';
   }
   if (meta.hasTemp){
     html += '<div class="field"><label>'+esc(t('temperature'))+'</label>' +
@@ -9223,6 +9602,7 @@ function wireEntryFields(meta){
       chip.setAttribute('aria-pressed','true');
     });
   });
+  renderWakeCard();
   var quickWordBox = document.getElementById('f-note-quick');
   if (quickWordBox){
     var noteEl = document.getElementById('f-note');
@@ -9555,10 +9935,12 @@ function syncAnnounceStack(){
   if (!stack) return;
   var memoRow = document.getElementById('memo-open-btn');
   var feedRow = document.getElementById('next-feed-row');
-  /* TWO things live in here now. The stopwatch moved down into the log
+  var sleepRow = document.getElementById('sleep-row');
+  /* THREE things live in here now. The stopwatch moved down into the log
      sheet — appearing up here shoved the quick-record buttons out from
      under the finger that was still holding one. */
-  var anyVisible = (memoRow && !memoRow.hidden) || (feedRow && !feedRow.hidden);
+  var anyVisible = (memoRow && !memoRow.hidden) || (feedRow && !feedRow.hidden) ||
+                   (sleepRow && !sleepRow.hidden);
   stack.hidden = !anyVisible;
 }
 /* A REPLY GETS EXACTLY ONE SHOT AT BEING TRANSLATED, and until now that was
@@ -10531,6 +10913,7 @@ function renderAll(){
   applyTheme();
   renderHeader();
   renderSinceLast();
+  renderSleepBand();
   renderNextFeed();
   renderQuickActions();
   renderTimeline();   /* slides #active-bar-slot under the first date band */
@@ -10916,6 +11299,17 @@ function wireEvents(){
   // profile sheet
   document.getElementById('profile-save-btn').addEventListener('click', saveProfilePicker);
   document.getElementById('scrim3').addEventListener('click', function(){ closeSheet('profile-sheet'); });
+  /* 자는 중 띠의 깼어요 — 이 앱에서 확인 창 없이 즉시 쓰는 유일한 버튼 */
+  var wokeBtn = document.getElementById('sl-wake');
+  if (wokeBtn) wokeBtn.addEventListener('click', tapWoke);
+  ['wake-sheet-close','wake-sheet-cancel'].forEach(function(id){
+    var b = document.getElementById(id);
+    if (b) b.addEventListener('click', function(){ closeSheet('wake-sheet'); });
+  });
+  var wkSave = document.getElementById('wake-sheet-save');
+  if (wkSave) wkSave.addEventListener('click', saveWakeAdd);
+  var scrim8 = document.getElementById('scrim8');
+  if (scrim8) scrim8.addEventListener('click', function(){ closeSheet('wake-sheet'); });
 
 }
 
@@ -11099,7 +11493,7 @@ function init(){
     if (darkQ.addEventListener) darkQ.addEventListener('change', onScheme);
     else if (darkQ.addListener) darkQ.addListener(onScheme);
   }catch(e){}
-  setInterval(function(){ renderActiveBar(); renderSinceLast(); renderNextFeed(); positionPatternNow(); }, 1000);
+  setInterval(function(){ renderActiveBar(); renderSinceLast(); renderSleepBand(); renderNextFeed(); positionPatternNow(); }, 1000);
   setInterval(pollState, 4000);
 }
 
