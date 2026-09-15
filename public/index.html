@@ -53,6 +53,7 @@
     --nf-bg: #ffe7c2;
     --nf-fg: #8a5300;
     --sl-bg:#ece7ff; --sl-fg:#5b3fc4; --sl-ink:#3d2a8c;
+    --nfu-bg:#ffe1e1; --nfu-fg:#b3202e; --nfu-ink:#8f0f1c;
     --radius-pill: 999px;
     --radius-card: 20px;
     --radius-sm: 14px;
@@ -127,7 +128,10 @@
       --memo-bg:#40330f; --memo-fg:#ffd84d;
       --nf-bg:#452b0d; --nf-fg:#ffc078;
     --sl-bg:#2a2440; --sl-fg:#b9a6ff; --sl-ink:#d9cdff;
+    --nfu-bg:#421a1e; --nfu-fg:#ff9aa2; --nfu-ink:#ffcdd1;
       --sl-bg:#2a2440; --sl-fg:#b9a6ff; --sl-ink:#d9cdff;
+    --nfu-bg:#421a1e; --nfu-fg:#ff9aa2; --nfu-ink:#ffcdd1;
+      --nfu-bg:#421a1e; --nfu-fg:#ff9aa2; --nfu-ink:#ffcdd1;
       --ev-sky-bg:#1c3350;   --ev-sky-fg:#9cc4ff;
       --ev-mint-bg:#143829;  --ev-mint-fg:#7fe0ae;
       --ev-peach-bg:#46290f; --ev-peach-fg:#ffb877;
@@ -146,6 +150,7 @@
     --memo-bg:#40330f; --memo-fg:#ffd84d;
     --nf-bg:#452b0d; --nf-fg:#ffc078;
     --sl-bg:#2a2440; --sl-fg:#b9a6ff; --sl-ink:#d9cdff;
+    --nfu-bg:#421a1e; --nfu-fg:#ff9aa2; --nfu-ink:#ffcdd1;
     --ev-sky-bg:#1c3350;   --ev-sky-fg:#9cc4ff;
     --ev-mint-bg:#143829;  --ev-mint-fg:#7fe0ae;
     --ev-peach-bg:#46290f; --ev-peach-fg:#ffb877;
@@ -504,11 +509,20 @@
   }
   /* 지난 차례인데 아직 안 먹인 것 — 안이 비어 있는 채로 빨갛게 */
   .nf-dots i.miss{ border-color:var(--danger-text); }
-  /* 시간이 지났거나 최대 간격을 넘겼을 때. 배경째로 붉게 바꾸면 기록 화면
-     맨 위가 통째로 경고판이 되어버려서, 글자와 점만 색을 바꾼다. */
-  .announce-row.next-feed-row.urgent .a-orig,
-  .announce-row.next-feed-row.urgent .a-label{ color:var(--danger-text); }
-  .announce-row.next-feed-row.urgent .a-emoji{ filter:saturate(1.4); }
+  /* 시간이 지났거나 최대 간격을 넘겼을 때. 처음엔 글자만 붉게 했는데, 주황
+     바탕에 빨간 글씨만 얹히니 색이 두 개로 갈려서 고장난 것처럼 보였다.
+     상태가 바뀌면 띠가 통째로 바뀐다 — 한 덩어리로 읽혀야 한 상태다. */
+  .announce-row.next-feed-row.urgent{ background:var(--nfu-bg); }
+  .announce-row.next-feed-row.urgent .a-label{ color:var(--nfu-fg); }
+  .announce-row.next-feed-row.urgent .a-orig{ color:var(--nfu-ink); }
+  .announce-row.next-feed-row.urgent .nf-sub{ color:var(--nfu-fg); opacity:1; }
+  /* 붉은 바탕에서는 --danger-text가 바탕에 묻힌다. 걸른 차례는 테두리를
+     굵게 해서 구분한다 — 색이 아니라 두께로. */
+  .announce-row.next-feed-row.urgent .nf-dots i{ opacity:.55; }
+  .announce-row.next-feed-row.urgent .nf-dots i.on{ opacity:.8; }
+  .announce-row.next-feed-row.urgent .nf-dots i.miss{
+    opacity:1; border-color:var(--nfu-ink); border-width:2.2px;
+  }
   .announce-row.next-feed-row .a-label,
   .announce-row.next-feed-row .a-orig{ color:var(--nf-fg); }
   .announce-row.next-feed-row .a-orig{ font-variant-numeric:tabular-nums; white-space:normal; }
@@ -3834,6 +3848,29 @@ function outboxSave(){
   try { localStorage.setItem(LS_OUTBOX, JSON.stringify(outbox)); } catch (e) {}
 }
 function outboxAdd(w){ outbox.push(w); outboxSave(); }
+/* THE TEMP ID THAT OUTLIVED ITS RECORD.
+   A quick tap draws the row before the server has heard of it, under an id
+   this phone invented (tmp_…). Opening that row and saving queues an
+   updateEntry — and the outbox sends one write at a time, so that update
+   always leaves AFTER the addEntry it depends on, carrying the temp id
+   frozen into its payload. The server has never heard of tmp_… and answers
+   404 'entry not found'; 404 is a permanent error, so the write is dropped
+   and whatever she typed is gone. She saw "저장했어요" first — the edit looked
+   like it landed.
+
+   Fixing state.entryId afterwards was not enough: the queued payload is a
+   separate copy. So when the real id comes back, every write still waiting
+   in the queue gets rewritten too. */
+function remapEntryId(tempId, realId){
+  if (!tempId || !realId || tempId === realId) return;
+  var touched = false;
+  outbox.forEach(function(w){
+    if (w && w.payload && w.payload.id === tempId){ w.payload.id = realId; touched = true; }
+  });
+  if (touched) outboxSave();
+  if (state.entryId === tempId) state.entryId = realId;
+  (appState.entries || []).forEach(function(e){ if (e.id === tempId) e.id = realId; });
+}
 function outboxDrop(mid){
   outbox = outbox.filter(function(w){ return w.mid !== mid; });
   outboxSave();
@@ -3880,6 +3917,12 @@ function outboxDrain(){
   if (mutationsInFlight === 0) oldestMutationAt = Date.now();
   mutationsInFlight++;
   sendWrite(w).then(function(json){
+    /* 새 기록이 진짜 id를 받았다 — 큐에 남아 이 기록을 가리키는 쓰기들을
+       먼저 고치고 나서 상태를 갈아끼운다. 앱이 재시작된 뒤 큐만 남아
+       재전송되는 경우에도 여기를 지나므로, 호출부 콜백이 사라졌어도 낫는다. */
+    if (w.payload && w.payload.tempId && json && json.result && json.result.entry){
+      remapEntryId(w.payload.tempId, json.result.entry.id);
+    }
     applyServerState(json);
     outboxDrop(w.mid);
     outboxTries = 0;
@@ -4939,7 +4982,7 @@ function finishActive(){
      itself carries the start on screen, so nothing is owed afterwards */
   clearTimeout(adjustSendTimer);
   adjustPendingStart = null; adjustPrevStart = null;
-  var finishPayload = { author: state.author, end: end };
+  var finishPayload = { author: state.author, end: end, tempId: tempId };
   if (activeStartTouched) finishPayload.start = a.start;
   activeStartTouched = false;
   apiMutate('finishActive', finishPayload)
@@ -4947,7 +4990,7 @@ function finishActive(){
       /* same trap as quickCreate: the row on screen carries an id this phone
          invented, and tapping it before the server answers would leave the
          open record pointing at nothing */
-      if (state.entryId === tempId) state.entryId = result.entry.id;
+      remapEntryId(tempId, result.entry.id);
       renderAll();
       flashRow(result.entry.id);
     })
@@ -5666,7 +5709,8 @@ function quickCreate(typeId){
   if (navigator.vibrate) try{ navigator.vibrate(8); }catch(e){}
   flashRow(tempId);
 
-  apiMutate('addEntry', { type: typeId, start: now, end: now, author: state.author })
+  apiMutate('addEntry', { type: typeId, start: now, end: now, author: state.author,
+                         tempId: tempId })
     .then(function(result){
       /* THE DEAD SAVE BUTTON.
          The row on screen was made here, with an id this phone invented, and
@@ -5675,7 +5719,7 @@ function quickCreate(typeId){
          longer existed, so Save looked at the list, found nothing, and
          returned without a word — for as long as the panel stayed open.
          Follow the record to its real id instead. */
-      if (state.entryId === tempId) state.entryId = result.entry.id;
+      remapEntryId(tempId, result.entry.id);
       renderAll();               /* server state replaced the temp row */
       flashRow(result.entry.id);
     })
