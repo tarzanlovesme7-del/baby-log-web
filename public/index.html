@@ -434,15 +434,21 @@
     font-size:16px; line-height:1; padding:6px 4px 6px 2px; cursor:pointer;
   }
   .feed-time-x:active{ color:var(--danger-text); }
-  .nf-dots{ display:inline-flex; gap:4px; align-items:center; }
+  .nf-dots{ display:inline-flex; gap:5px; align-items:center; }
   .nf-dots i{
-    width:7px; height:7px; border-radius:50%;
-    border:1.5px solid currentColor; box-sizing:border-box;
+    width:9px; height:9px; border-radius:50%;
+    border:1.6px solid currentColor; box-sizing:border-box;
   }
   .nf-dots i.on{ background:currentColor; }
-  /* 보충 수유 칸 — 반드시 채워야 하는 네 칸과 구분되게 점선으로 */
-  .nf-dots i.bonus{ border-style:dashed; }
-  .nf-dots i.bonus.on{ border-style:solid; background:currentColor; }
+  /* 보충 수유 칸. 처음엔 점선으로 그렸는데 9px짜리 원의 점선은 그냥 지저분한
+     원으로 보인다 — 이 크기에서 테두리 모양으로 뜻을 전달할 수는 없다.
+     대신 세로 구분선 뒤로 한 칸 떼어놓는다. "반드시 넷, 그리고 하나 더"가
+     모양이 아니라 배치로 읽힌다. */
+  .nf-dots i.bonus{ position:relative; margin-left:9px; }
+  .nf-dots i.bonus::before{
+    content:''; position:absolute; left:-7px; top:-1.5px;
+    width:1px; height:12px; background:currentColor; opacity:.38;
+  }
   /* 지난 차례인데 아직 안 먹인 것 — 안이 비어 있는 채로 빨갛게 */
   .nf-dots i.miss{ border-color:var(--danger-text); }
   /* 시간이 지났거나 최대 간격을 넘겼을 때. 배경째로 붉게 바꾸면 기록 화면
@@ -2903,7 +2909,7 @@ ko: {
   since_poop:"마지막 똥", authorViPh:"베트남어 이름 (자동 번역)",
   nextFeedLabel:"다음 수유", nextFeedDueLabel:"수유 시간이 지났어요", feedInTpl:"{remain} 후",
   mlUnit:"ml",
-  feedToGoalTpl:"목표까지 {n}{u}", feedGoalMet:"목표 달성",
+  feedTodayTpl:"오늘 {n} / {t}{u}",
   feedTopUpLabel:"보충 수유", feedBelowMinLabel:"아직 부족해요", feedShortTpl:"{n}{u} 더",
   feedDoneLabel:"오늘 수유 완료", feedDoneValue:"목표를 채웠어요",
   feedOverGapTpl:"{n}시간 넘었어요",
@@ -3051,7 +3057,7 @@ vi: {
   since_poop:"Ị gần nhất", authorViPh:"Tên tiếng Việt (tự dịch)",
   nextFeedLabel:"Cữ bú tiếp theo", nextFeedDueLabel:"Đã quá giờ bú", feedInTpl:"còn {remain}",
   mlUnit:"ml",
-  feedToGoalTpl:"Còn {n}{u} nữa", feedGoalMet:"Đã đạt mục tiêu",
+  feedTodayTpl:"Hôm nay {n} / {t}{u}",
   feedTopUpLabel:"Bú bù", feedBelowMinLabel:"Vẫn chưa đủ", feedShortTpl:"Thêm {n}{u}",
   feedDoneLabel:"Đã đủ cữ hôm nay", feedDoneValue:"Đã đạt mục tiêu",
   feedOverGapTpl:"Đã quá {n} tiếng",
@@ -5214,12 +5220,12 @@ function renderNextFeed(){
   document.getElementById('nf-text').textContent = text;
   var sub = document.getElementById('nf-sub');
   if (sub){
-    /* 숫자는 하나만. "오늘 400 / 800ml"은 두 개를 읽고 빼야 하지만
-       "목표까지 600ml"은 그대로 할 일이다 — 진행 정도는 점이 말해준다. */
+    /* 먹인 양과 목표를 나란히. "목표까지 615ml"은 한 숫자지만 얼마나 먹였는지가
+       사라지고, 그 자리에서 다시 빼야 알 수 있다. */
     sub.innerHTML = (fs.goal > 0
-      ? '<span class="nf-total">' + esc(fs.toGoal > 0
-          ? t('feedToGoalTpl').replace('{n}', String(fs.toGoal)).replace('{u}', t('mlUnit'))
-          : t('feedGoalMet')) + '</span>'
+      ? '<span class="nf-total">' + esc(t('feedTodayTpl')
+          .replace('{n}', String(fs.total)).replace('{t}', String(fs.goal))
+          .replace('{u}', t('mlUnit'))) + '</span>'
       : '') + feedDotsHtml(fs, nowMs);
   }
 }
