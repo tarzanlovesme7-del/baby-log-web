@@ -41,6 +41,7 @@ const EMPTY_STATE = {
     intervalMin: 240,
     count: 4,
     perFeed: 200,
+    goal: 1000,
     maxGapMin: 240,
     quietFrom: '22:00',
   },

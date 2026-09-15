@@ -146,9 +146,15 @@ console.log('ALL MUTATION TESTS PASSED');
   assert.equal(s.feedPlan.perFeed, 180);
   assert.deepEqual(s.feedPlan.times, ['07:00', '11:00', '15:00', '19:00']);
 
-  // target을 보내도 저장되지 않는다
+  // 최소 하루량은 저장하지 않는다 (1회량 × 횟수로 화면에서 낸다)
   s = run(s, 'setFeedPlan', { actor: '엄마', target: 9999 });
   assert.equal(s.feedPlan.target, undefined);
+  // 목표량(goal)은 저장한다
+  assert.equal(s.feedPlan.goal, 1000);
+  s = run(s, 'setFeedPlan', { actor: '엄마', goal: 1100 });
+  assert.equal(s.feedPlan.goal, 1100);
+  s = run(s, 'setFeedPlan', { actor: '엄마', goal: 99999 });
+  assert.equal(s.feedPlan.goal, 5000);
 
   // 시각은 정렬되어 저장된다
   s = run(s, 'setFeedPlan', { actor: '엄마', times: ['19:00', '07:00', '13:00'] });

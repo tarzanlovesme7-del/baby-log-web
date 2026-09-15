@@ -120,6 +120,7 @@ const FEED_PLAN_DEFAULT = {
   intervalMin: 240,
   count: 4,
   perFeed: 200,
+  goal: 1000,
   maxGapMin: 240,
   quietFrom: '22:00',
 };
@@ -137,6 +138,7 @@ function feedPlanOf(state) {
     intervalMin: clampNum(p.intervalMin, 30, 12 * 60, FEED_PLAN_DEFAULT.intervalMin),
     count: clampNum(p.count, 1, 12, FEED_PLAN_DEFAULT.count),
     perFeed: clampNum(p.perFeed, 0, 2000, FEED_PLAN_DEFAULT.perFeed),
+    goal: clampNum(p.goal, 0, 5000, FEED_PLAN_DEFAULT.goal),
     maxGapMin: clampNum(p.maxGapMin, 30, 24 * 60, FEED_PLAN_DEFAULT.maxGapMin),
     quietFrom: HM_RE.test(p.quietFrom || '') ? p.quietFrom : FEED_PLAN_DEFAULT.quietFrom,
   };
@@ -716,8 +718,9 @@ function applyMutation(prevState, type, payload) {
       ['mode', 'startTime', 'quietFrom'].forEach((k) => {
         if (payload[k] !== undefined) merged[k] = payload[k];
       });
-      /* target은 저장하지 않는다 — 1회량 × 횟수로 화면에서 계산한다 */
-      ['intervalMin', 'count', 'perFeed', 'maxGapMin'].forEach((k) => {
+      /* 최소 하루량(1회량 × 횟수)은 저장하지 않는다 — 화면에서 계산한다.
+         goal은 보충 수유까지 더한 하루 목표라 따로 받는다. */
+      ['intervalMin', 'count', 'perFeed', 'goal', 'maxGapMin'].forEach((k) => {
         if (payload[k] !== undefined) merged[k] = payload[k];
       });
       if (payload.times !== undefined) {
