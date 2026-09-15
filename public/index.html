@@ -5250,6 +5250,9 @@ function wakeTooClose(e, atMs){
    떠서 두 번 먹이는 일이 없다. 수유 하나는 차례 하나만, 가장 가까운 것부터.
    ================================================================ */
 var SLOT_WINDOW_MIN = 120;
+/* 이만큼 넘게 밀렸을 때만 범위로 보여준다 — 몇 분 차이까지 들추면 배너가
+   쉴 새 없이 바뀌어서 읽히지 않는다 */
+var FEED_DRIFT_MIN_MS = 15 * 60 * 1000;
 var FEED_PLAN_FALLBACK = {
   mode:'fixed', times:['07:00','11:00','15:00','19:00'], startTime:'07:00',
   intervalMin:240, count:4, perFeed:200, goal:1000, maxGapMin:240, quietFrom:'22:00'
@@ -5383,6 +5386,20 @@ function feedPlanState(nowMs){
     out.kind = next.min <= nowMin ? 'due' : 'next';
     out.slotMs = next.ms;
     out.urgent = out.kind === 'due' || overGap;
+    /* 3시 차례를 3시 20분에 먹였으면 다음도 그만큼 밀린다. 정해진 시각은
+       기준으로 남겨두되(안 그러면 하루가 통째로 뒤로 흘러간다), 실제로
+       예상되는 시각까지를 범위로 같이 보여준다 — "7:00"만 떠 있으면 방금
+       3시 20분에 먹인 사람에게는 틀린 숫자로 읽힌다. */
+    var si = slots.indexOf(next);
+    for (var k = si - 1; k >= 0; k--){
+      var prev = slots[k];
+      if (!prev.fed) continue;
+      var spacing = next.ms - prev.ms;            /* 계획된 간격 */
+      var shifted = new Date(prev.fed.start).getTime() + spacing;
+      var drift = shifted - next.ms;
+      if (drift >= FEED_DRIFT_MIN_MS){ out.shiftedMs = shifted; out.driftMs = drift; }
+      break;
+    }
     return out;
   }
   /* 차례는 다 돌았다. 남은 것은 보충 수유 한 번.
@@ -5411,6 +5428,15 @@ function feedDotsHtml(fs, nowMs){
     html += '<i class="bonus' + (fs.toGoal <= 0 ? ' on' : '') + '"></i>';
   }
   return '<span class="nf-dots" aria-hidden="true">' + html + '</span>';
+}
+/* "오후 07:00~07:20" — 같은 오전/오후면 뒤쪽 접두사를 뗀다. 베트남어는
+   24시간제라 접두사가 없어서 그대로 이어붙으면 된다. */
+function fmtTimeRange(aIso, bIso){
+  var a = fmtTime(aIso), b = fmtTime(bIso);
+  var ah = new Date(aIso).getHours(), bh = new Date(bIso).getHours();
+  if ((ah < 12) !== (bh < 12)) return a + '~' + b;   /* 오전→오후를 넘어가면 둘 다 */
+  var sp = b.lastIndexOf(' ');
+  return a + '~' + (sp > 0 ? b.slice(sp + 1) : b);
 }
 function fmtRemain(min){
   var h = Math.floor(min/60), m = min%60;
@@ -5577,7 +5603,9 @@ function renderNextFeed(){
      베트남어에서 두 줄로 접히면서 배너 높이가 들쭉날쭉해진다. */
   var label, text;
   if (fs.kind === 'next' || fs.kind === 'due'){
-    var timeStr = fmtTime(new Date(fs.slotMs).toISOString());
+    var timeStr = fs.shiftedMs
+      ? fmtTimeRange(new Date(fs.slotMs).toISOString(), new Date(fs.shiftedMs).toISOString())
+      : fmtTime(new Date(fs.slotMs).toISOString());
     label = fs.overGap ? t('feedOverGapTpl').replace('{n}', String(Math.round(fs.plan.maxGapMin/60)))
           : fs.kind === 'due' ? t('nextFeedDueLabel')
           : t('nextFeedLabel');
