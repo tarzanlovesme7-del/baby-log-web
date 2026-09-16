@@ -3983,6 +3983,22 @@ function remapEntryId(tempId, realId){
   if (state.entryId === tempId) state.entryId = realId;
   (appState.entries || []).forEach(function(e){ if (e.id === tempId) e.id = realId; });
 }
+/* 도장도 같은 병을 앓는다: 낙관적으로 찍은 줄은 임시 id를 갖는데, 서버가
+   응답하기 전에 그 줄을 겨냥한 다음 쓰기(취소·근무 시간 넣기)가 큐에 실리면
+   'shift not found'로 죽는다 — 기록에서 겪었던 그 버그와 같은 것이다.
+   기록과 같은 자리에서 같은 방식으로 고친다(아웃박스 안에서 갈아끼우므로
+   앱을 껐다 켜도 낫는다). */
+function remapShiftId(tempId, realId){
+  if (!tempId || !realId || tempId === realId) return;
+  var touched = false;
+  outbox.forEach(function(w){
+    if (w && w.payload && w.payload.id === tempId){ w.payload.id = realId; touched = true; }
+  });
+  if (touched) outboxSave();
+  (appState.shifts || []).forEach(function(s){ if (s.id === tempId) s.id = realId; });
+  /* 시트는 readShifts()가 만든 복사본을 들고 있어서 위 루프가 닿지 않는다 */
+  if (endSheetShift && endSheetShift.id === tempId) endSheetShift.id = realId;
+}
 function outboxDrop(mid){
   outbox = outbox.filter(function(w){ return w.mid !== mid; });
   outboxSave();
@@ -4042,6 +4058,9 @@ function outboxDrain(){
        재전송되는 경우에도 여기를 지나므로, 호출부 콜백이 사라졌어도 낫는다. */
     if (w.payload && w.payload.tempId && json && json.result && json.result.entry){
       remapEntryId(w.payload.tempId, json.result.entry.id);
+    }
+    if (w.payload && w.payload.tempId && json && json.result && json.result.shift){
+      remapShiftId(w.payload.tempId, json.result.shift.id);
     }
     applyServerState(json);
     outboxDrop(w.mid);
@@ -9077,19 +9096,46 @@ function renderPayHistory(){
   }
 }
 /* ---- 쓰기 ---- */
+/* ---- 출근 도장 — 화면 먼저, 서버 나중 ----
+   이 앱의 제1 규칙을 이 버튼만 어기고 있었다. 무료 티어가 15분 자고 나면 첫
+   쓰기의 응답이 30~60초 뒤에 오는데, 내니가 앱을 여는 아침 6시가 정확히 그
+   순간이다. 느린 서버(2.5초)로 재보니 띠가 사라지기까지 2,593ms — 화면에서
+   아무 일도 일어나지 않는 2.6초다. 그러면 사람은 다시 누른다.
+   그래서 도장은 먼저 찍고(임시 id), 서버가 응답하면 진짜 기록으로 갈린다.
+   실패하면 넣었던 그 줄만 정확히 빼고 토스트로 말한다. */
+function localShiftAdd(row){
+  appState.shifts = (appState.shifts || []).concat([row]);
+  renderPay(); renderStampRow();
+}
+function localShiftDrop(id){
+  appState.shifts = (appState.shifts || []).filter(function(x){ return x.id !== id; });
+  renderPay(); renderStampRow();
+}
 function doStamp(ds){
   var today = toDateValue();
-  var mutation = (isMasterUser() || ds === today) ? 'stampIn' : 'requestStamp';
+  var mine = (isMasterUser() || ds === today);
+  var mutation = mine ? 'stampIn' : 'requestStamp';
   if (mutation === 'requestStamp' && !confirm(t('payStampAsk'))) return;
-  apiMutate(mutation, { date: ds, today: today, at: new Date().toISOString(), author: state.author })
-    .then(function(){ renderPay(); toast(mutation === 'stampIn' ? t('savedToast') : t('otSent')); })
-    .catch(function(e){ toast(e.message); });
+  if (shiftOn(ds)) return;          /* 연타 — 이미 화면에 찍혀 있다 */
+  var at = new Date().toISOString();
+  var tempId = 'tmp_sh_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  localShiftAdd({ id: tempId, date: ds, at: at, by: canonAuthorName(state.author),
+                  status: mine ? 'ok' : 'pending' });
   if (navigator.vibrate) try{ navigator.vibrate(8); }catch(e){}
+  apiMutate(mutation, { date: ds, today: today, at: at, author: state.author, tempId: tempId })
+    .then(function(result){
+      if (result && result.shift) remapShiftId(tempId, result.shift.id);
+      renderPay(); renderStampRow(); toast(mine ? t('savedToast') : t('otSent'));
+    })
+    .catch(function(e){ localShiftDrop(tempId); toast(e.message); });
 }
 function doUnstamp(sh){
   if (!sh) return;
-  apiMutate('deleteShift', { id: sh.id }).then(function(){ renderPay(); toast(t('deletedToast')); })
-    .catch(function(e){ toast(e.message); });
+  /* 지우는 쪽도 같은 규칙. 되돌릴 것은 지운 그 줄 하나뿐이라 그대로 들고 있는다. */
+  var kept = sh.id, row = (appState.shifts || []).filter(function(x){ return x.id === kept; })[0];
+  localShiftDrop(kept);
+  apiMutate('deleteShift', { id: kept }).then(function(){ renderPay(); renderStampRow(); toast(t('deletedToast')); })
+    .catch(function(e){ if (row) localShiftAdd(row); toast(e.message); });
 }
 /* ---- 퇴근 시각 시트 ----
    고른 시각이 그날 얼마가 되는지 그 자리에서 보여준다. 급여가 바뀌는 입력을
