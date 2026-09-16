@@ -3081,7 +3081,7 @@ ko: {
   payReqStamp:"출근 요청", payReqOt:"오버타임 요청",
   payNoWork:"아직 근무 기록이 없어요", payNotStarted:"9월 16일부터 기록해요",
   payNotStartedTpl:"{d}부터 기록해요",
-  payDay:"이 날", payAddOt:"+ 오버타임", payDayWage:"이 날 일당", payStampAt:"출근 도장",
+  payDay:"이 날", payAddOt:"+ 오버타임", payDayWage:"이 날 일당", payStampAt:"도장 누른 시각",
   payLegendOn:"출근", payLegendWait:"승인 대기", payStampShort:"출근 도장",
   payNoStamp:"이 날은 출근 기록이 없어요", payRemove:"지우기",
   payNext:"다음 지급일", payPeriodTpl:"{from} – {to}", payDaysTpl:"근무 {n}일",
@@ -3248,7 +3248,7 @@ vi: {
   payReqStamp:"Yêu cầu chấm công", payReqOt:"Yêu cầu tăng ca",
   payNoWork:"Chưa có ngày công nào", payNotStarted:"Bắt đầu từ 16/9",
   payNotStartedTpl:"Bắt đầu từ {d}",
-  payDay:"Ngày này", payAddOt:"+ Tăng ca", payDayWage:"Lương ngày này", payStampAt:"Giờ điểm danh",
+  payDay:"Ngày này", payAddOt:"+ Tăng ca", payDayWage:"Lương ngày này", payStampAt:"Giờ bấm nút",
   payLegendOn:"Đi làm", payLegendWait:"Chờ duyệt", payStampShort:"Điểm danh",
   payNoStamp:"Ngày này chưa điểm danh", payRemove:"Xoá",
   payNext:"Kỳ lương tới", payPeriodTpl:"{from} – {to}", payDaysTpl:"{n} ngày công",
@@ -8634,15 +8634,18 @@ function renderPayToday(){
        두었더니 도장은 맨 위에서 찍고 수정은 한참 스크롤해야 해서, 있는 줄도
        모르고 지나쳤다. */
     var todayLocked = !!paidPeriod(periodOf(today).from, periodOf(today).to);
-    if (sh.start || sh.end){
-      var tPend = sh.timeStatus !== 'ok';
-      html += '<div class="pay-line"><span>' + esc(t('payWorkTime')) +
-        (tPend ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
-        '<span class="num' + (tPend ? ' muted' : '') + '">' + esc(shiftTimeLabel(sh)) +
-        ' · ' + esc(fmtWorkDur(shiftMins(sh) || 0)) + '</span></div>' +
-        '<div class="pay-line"><b>' + esc(t('payDayWage')) + '</b>' +
-        '<span class="num">' + esc(fmtVnd(shiftWage(sh))) + '</span></div>';
+    var tEdited = !!(sh.start || sh.end), tPend = tEdited && sh.timeStatus !== 'ok';
+    if (sh.at){
+      html += '<div class="pay-line"><span class="pay-sub">' + esc(t('payStampAt')) + '</span>' +
+        '<span class="num muted">' + esc(fmtTime(sh.at)) + '</span></div>';
     }
+    html += '<div class="pay-line"><span>' + esc(t('payWorkTime')) +
+      (tPend ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
+      '<span class="num' + (tPend ? ' muted' : '') + '">' + esc(shiftTimeLabel(sh)) +
+      ' · ' + esc(fmtWorkDur(shiftMins(sh) !== null ? shiftMins(sh) : stdWorkMin())) +
+      (tEdited ? '' : ' <span class="pay-sub">' + esc(t('payFullDay')) + '</span>') + '</span></div>' +
+      '<div class="pay-line"><b>' + esc(t('payDayWage')) + '</b>' +
+      '<span class="num">' + esc(fmtVnd(shiftWage(sh))) + '</span></div>';
     html += '<div class="pay-actions">';
     if (!todayLocked){
       html += '<button type="button" class="pay-textbtn" id="pay-time-today">' +
@@ -8774,8 +8777,11 @@ function renderPayDay(){
     (locked ? '<span class="pay-chip ok" style="margin-left:auto">' + esc(t('payPaidAt').replace('{d}', '')) + '</span>' : '') +
     '</div>';
   if (sh){
-    html += '<div class="pay-line"><span>' + esc(t('payStampAt')) + '</span>' +
-      '<span class="num">' + (sh.at ? esc(fmtTime(sh.at)) : '—') + '</span></div>';
+    /* 이 시각은 버튼을 누른 순간일 뿐 급여와 무관하다 — 그런데 "출근 도장
+       11:14"로 적어놓으니 출근 시각으로 읽혀서, 고쳐야 하는 줄 알고 찾아
+       헤매게 만들었다. 흐리게 두고, 급여의 근거인 '근무'를 그 아래 늘 세운다. */
+    html += '<div class="pay-line"><span class="pay-sub">' + esc(t('payStampAt')) + '</span>' +
+      '<span class="num muted">' + (sh.at ? esc(fmtTime(sh.at)) : '—') + '</span></div>';
   } else {
     html += '<div class="pay-line"><span class="pay-sub">' + esc(t('payNoStamp')) + '</span></div>';
   }
@@ -8791,18 +8797,15 @@ function renderPayDay(){
   });
   /* 퇴근 시각. 평소엔 비어 있고(정상 근무 = 일당 전액), 짧게 일한 날만 채운다 */
   if (sh && sh.status === 'ok'){
-    if (sh.start || sh.end){
-      var pend = sh.timeStatus !== 'ok';
-      html += '<div class="pay-line"><span>' + esc(t('payWorkTime')) +
-        (pend ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
-        '<span class="num' + (pend ? ' muted' : '') + '">' + esc(shiftTimeLabel(sh)) +
-        ' · ' + esc(fmtWorkDur(shiftMins(sh) || 0)) + '</span>' +
-        (!locked && (isMasterUser() || (pend && sameAuthor(sh.timeBy, state.author)))
-          ? '<button type="button" class="pay-chip" data-clear-end="' + esc(sh.id) + '">' + esc(t('payRemove')) + '</button>' : '') +
-        '</div>';
-    } else {
-      html += '<div class="pay-line"><span class="pay-sub">' + esc(t('payFullDay')) + '</span></div>';
-    }
+    var edited = !!(sh.start || sh.end), pend = edited && sh.timeStatus !== 'ok';
+    html += '<div class="pay-line"><span>' + esc(t('payWorkTime')) +
+      (pend ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
+      '<span class="num' + (pend ? ' muted' : '') + '">' + esc(shiftTimeLabel(sh)) +
+      ' · ' + esc(fmtWorkDur(shiftMins(sh) !== null ? shiftMins(sh) : stdWorkMin())) +
+      (edited ? '' : ' <span class="pay-sub">' + esc(t('payFullDay')) + '</span>') + '</span>' +
+      (edited && !locked && (isMasterUser() || (pend && sameAuthor(sh.timeBy, state.author)))
+        ? '<button type="button" class="pay-chip" data-clear-end="' + esc(sh.id) + '">' + esc(t('payRemove')) + '</button>' : '') +
+      '</div>';
     html += '<div class="pay-line"><b>' + esc(t('payDayWage')) + '</b>' +
       '<span class="num">' + esc(fmtVnd(shiftWage(sh) + Math.round(dayMin * otPerMinute()))) + '</span></div>';
   }
