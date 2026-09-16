@@ -3119,7 +3119,7 @@ ko: {
   noRecordYet:"기록 없음", justNow:"방금", agoSuffix:"전", hrShort:"시간", minShort:"분",
   wet:"소변", dirty:"대변", both:"소변+대변", diaperKind:"종류",
   nap:"낮잠", night:"밤잠", auto:"자동판별", sleepKind:"수면 종류",
-  paySetEnd:"근무 시간 수정", payStartAt:"출근", payEndAt:"퇴근", payWorkTime:"근무",
+  paySetEnd:"근무 시간 넣기", payEditTimes:"근무 시간 고치기", payStartAt:"출근", payEndAt:"퇴근", payWorkTime:"근무",
   payTimesHint:"손대지 않은 쪽은 계약상 시각으로 쳐요.",
   payFullDay:"정상 근무 (하루)",
   payEndSumTpl:"{start}부터 {d} · {amt}",
@@ -3286,7 +3286,7 @@ vi: {
   noRecordYet:"Chưa có dữ liệu", justNow:"Vừa xong", agoSuffix:"", hrShort:" giờ", minShort:" phút",
   wet:"Nước tiểu", dirty:"Phân", both:"Cả hai", diaperKind:"Loại",
   nap:"Ngủ ngày", night:"Ngủ đêm", auto:"Tự nhận diện", sleepKind:"Loại giấc ngủ",
-  paySetEnd:"Sửa giờ làm", payStartAt:"Giờ đến", payEndAt:"Giờ về", payWorkTime:"Giờ làm",
+  paySetEnd:"Nhập giờ làm", payEditTimes:"Sửa giờ làm", payStartAt:"Giờ đến", payEndAt:"Giờ về", payWorkTime:"Giờ làm",
   payTimesHint:"Bên nào không sửa thì tính theo giờ hợp đồng.",
   payFullDay:"Làm đủ ngày",
   payEndSumTpl:"Từ {start} · {d} · {amt}",
@@ -8630,9 +8630,30 @@ function renderPayToday(){
         ? '<button type="button" class="pay-chip" id="pay-unstamp" style="margin-left:auto">' + esc(t('payStampCancel')) + '</button>' : '') +
       '</div>';
     if (sh.status === 'pending') html += '<div class="pay-chip soft" style="align-self:flex-start">' + esc(t('payPending')) + '</div>';
-    html += '<button type="button" class="pay-textbtn" id="pay-ot-today">' + esc(t('payAddOt')) + '</button>';
+    /* 근무 시간은 도장 찍은 바로 그 자리에서 고친다. 캘린더 아래 날짜 카드에만
+       두었더니 도장은 맨 위에서 찍고 수정은 한참 스크롤해야 해서, 있는 줄도
+       모르고 지나쳤다. */
+    var todayLocked = !!paidPeriod(periodOf(today).from, periodOf(today).to);
+    if (sh.start || sh.end){
+      var tPend = sh.timeStatus !== 'ok';
+      html += '<div class="pay-line"><span>' + esc(t('payWorkTime')) +
+        (tPend ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
+        '<span class="num' + (tPend ? ' muted' : '') + '">' + esc(shiftTimeLabel(sh)) +
+        ' · ' + esc(fmtWorkDur(shiftMins(sh) || 0)) + '</span></div>' +
+        '<div class="pay-line"><b>' + esc(t('payDayWage')) + '</b>' +
+        '<span class="num">' + esc(fmtVnd(shiftWage(sh))) + '</span></div>';
+    }
+    html += '<div class="pay-actions">';
+    if (!todayLocked){
+      html += '<button type="button" class="pay-textbtn" id="pay-time-today">' +
+        esc(sh.start || sh.end ? t('payEditTimes') : t('paySetEnd')) + '</button>';
+    }
+    html += '<button type="button" class="pay-textbtn" id="pay-ot-today" style="margin-left:auto">' +
+      esc(t('payAddOt')) + '</button></div>';
   }
   box.innerHTML = html;
+  var tBtn = document.getElementById('pay-time-today');
+  if (tBtn) tBtn.addEventListener('click', function(){ openEndSheet(sh); });
   var stamp = document.getElementById('pay-stamp');
   if (stamp) stamp.addEventListener('click', function(){ doStamp(today); });
   var un = document.getElementById('pay-unstamp');
@@ -8793,8 +8814,9 @@ function renderPayDay(){
     } else if (canTouch(sh.by) || sh.status === 'pending'){
       html += '<button type="button" class="pay-textbtn" id="pay-day-unstamp">' + esc(t('payRemove')) + '</button>';
     }
-    if (sh && sh.status === 'ok' && !sh.start && !sh.end){
-      html += '<button type="button" class="pay-textbtn" id="pay-day-end">' + esc(t('paySetEnd')) + '</button>';
+    if (sh && sh.status === 'ok'){
+      html += '<button type="button" class="pay-textbtn" id="pay-day-end">' +
+        esc(sh.start || sh.end ? t('payEditTimes') : t('paySetEnd')) + '</button>';
     }
     html += '<button type="button" class="pay-textbtn" id="pay-day-ot" style="margin-left:auto">' + esc(t('payAddOt')) + '</button></div>';
   }
