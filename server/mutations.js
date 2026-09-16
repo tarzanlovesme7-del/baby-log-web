@@ -113,6 +113,9 @@ function payrollOf(state) {
     meal: Number(p.meal) || 100000,
     otMul: Number(p.otMul) || 1.5,
     startDate: DATE_RE.test(p.startDate || '') ? p.startDate : '2026-09-16',
+    /* 계약상 근무는 07:00~17:00(10시간). 단축 근무한 날의 실근시간을 여기서부터
+       센다 — 도장 찍은 시각부터 세면 깜빡하고 늦게 찍은 날 급여가 깎인다. */
+    startTime: HM_RE.test(p.startTime || '') ? p.startTime : '07:00',
   };
 }
 const FEED_PLAN_DEFAULT = {
@@ -149,6 +152,31 @@ function clampNum(v, lo, hi, dflt) {
   const n = Math.round(Number(v));
   if (!isFinite(n)) return dflt;
   return Math.min(hi, Math.max(lo, n));
+}
+/* 도장 하나 = 일당 전액. 퇴근 시각이 (승인된 채로) 들어와 있으면 그날만
+   시급 × 실근시간 + 식대로 계산한다. 정상 근무 시간을 넘겨 적어도 일당을
+   넘지는 않는다 — 그 위는 오버타임이 맡는 몫이다. */
+const hm2min = (hm) => Number(hm.slice(0, 2)) * 60 + Number(hm.slice(3));
+/* 정상 근무가 몇 분인지는 계약에서 나온다: (일당 - 식대) / 시급.
+   800,000 - 100,000 = 700,000 / 70,000 = 10시간. */
+function stdMinutes(r) {
+  if (!r.hourly) return 600;
+  return Math.round(((r.daily - r.meal) / r.hourly) * 60);
+}
+/* 그날 실제로 일한 분. 손대지 않은 쪽은 계약상 시각을 쓴다 — 늦게 왔다고만
+   적은 날에 퇴근까지 적게 만들 이유가 없다. */
+function shiftMinutes(sh, r) {
+  if (!sh || (!HM_RE.test(sh.start || '') && !HM_RE.test(sh.end || ''))) return null;
+  const a = HM_RE.test(sh.start || '') ? hm2min(sh.start) : hm2min(r.startTime);
+  const b = HM_RE.test(sh.end || '') ? hm2min(sh.end) : hm2min(r.startTime) + stdMinutes(r);
+  return b > a ? b - a : 0;
+}
+function shiftWage(sh, r) {
+  if (!sh || sh.status !== 'ok') return 0;
+  if (sh.timeStatus !== 'ok') return r.daily;     /* 대기 중이면 아직 일당 */
+  const mins = shiftMinutes(sh, r);
+  if (mins === null) return r.daily;
+  return Math.min(r.daily, Math.round(r.hourly * mins / 60) + r.meal);
 }
 function otMinutes(o) {
   if (!HM_RE.test(o.start || '') || !HM_RE.test(o.end || '')) return 0;
@@ -660,6 +688,56 @@ function applyMutation(prevState, type, payload) {
       return { state, result: { shift } };
     }
 
+    /* ================================================================
+       근무 시간 수정 (출근·퇴근)
+
+       내니가 몇 시간만 일하고 가는 날이 있다. 매일 퇴근 도장을 찍게 하는 건
+       번거로우니(정상 근무가 압도적으로 많다) 평소에는 출근 도장 하나로 두고,
+       짧게 일한 날만 퇴근 시각을 적어 넣는다.
+
+       출근·퇴근 어느 쪽이든 손댈 수 있고, 손대지 않은 쪽은 계약상 시각으로
+       친다. 엄마가 넣으면 바로 반영되고, 내니가 넣으면 승인 대기다 — 자기
+       급여를 스스로 깎거나 늘리는 입력이라 오버타임과 같은 규칙을 탄다. */
+    case 'setShiftTimes': {
+      const sh = (state.shifts || []).find((x) => x.id === payload.id);
+      if (!sh) throw httpError(404, 'shift not found');
+      const hasStart = payload.start !== undefined && payload.start !== '';
+      const hasEnd = payload.end !== undefined && payload.end !== '';
+      if (!hasStart && !hasEnd) throw httpError(400, 'setShiftTimes needs a start or an end');
+      if (hasStart && !HM_RE.test(payload.start)) throw httpError(400, 'start must be HH:MM');
+      if (hasEnd && !HM_RE.test(payload.end)) throw httpError(400, 'end must be HH:MM');
+      const r = payrollOf(state);
+      const next = { start: hasStart ? payload.start : '', end: hasEnd ? payload.end : '' };
+      if (shiftMinutes(next, r) <= 0) throw httpError(400, 'end must be after start');
+      if (hasStart) sh.start = payload.start; else delete sh.start;
+      if (hasEnd) sh.end = payload.end; else delete sh.end;
+      sh.timeStatus = isMaster(payload.actor) ? 'ok' : 'pending';
+      sh.timeBy = payload.actor || '';
+      return { state, result: { shift: sh } };
+    }
+
+    case 'approveShiftTimes': {
+      assertMaster(payload.actor, 'shiftTimes');
+      const sh = (state.shifts || []).find((x) => x.id === payload.id);
+      if (!sh) throw httpError(404, 'shift not found');
+      if (!sh.start && !sh.end) return { state, result: { alreadyGone: true } };
+      sh.timeStatus = 'ok';
+      return { state, result: { shift: sh } };
+    }
+
+    /* 거절도 지우기도 같은 동작 — 떼어내면 그날은 다시 정상 근무 */
+    case 'clearShiftTimes': {
+      const sh = (state.shifts || []).find((x) => x.id === payload.id);
+      if (!sh) return { state, result: { alreadyGone: true } };
+      /* 승인된 것을 되돌리는 건 엄마만. 내니는 자기가 올린 대기 건만 뗀다 */
+      if (sh.timeStatus === 'ok') assertMaster(payload.actor, 'shiftTimes');
+      else if (!isMaster(payload.actor) && !sameAuthor(sh.timeBy, payload.actor)) {
+        throw httpError(403, 'not-owner:shiftTimes');
+      }
+      delete sh.start; delete sh.end; delete sh.timeStatus; delete sh.timeBy;
+      return { state, result: { shift: sh } };
+    }
+
     case 'approveShift': {
       assertMaster(payload.actor, 'shift');
       const sh = (state.shifts || []).find((x) => x.id === payload.id);
@@ -726,7 +804,9 @@ function applyMutation(prevState, type, payload) {
         .filter((x) => x.status === 'ok' && x.date >= from && x.date <= to)
         .reduce((n, x) => n + otMinutes(x), 0);
       const perMin = (rate.hourly * rate.otMul) / 60;
-      const amount = days.length * rate.daily + Math.round(mins * perMin);
+      /* 단축 근무한 날은 그날치만 — 굳는 금액이 화면이 보여준 금액과 같아야 한다 */
+      const dayWages = days.reduce((n, sh) => n + shiftWage(sh, rate), 0);
+      const amount = dayWages + Math.round(mins * perMin);
       const period = {
         id: uid('pp_'), from, to, payday: payload.payday || to,
         days: days.length, otMin: mins, amount,
@@ -754,6 +834,7 @@ function applyMutation(prevState, type, payload) {
         meal: payload.meal !== undefined ? Math.max(0, Math.round(Number(payload.meal) || 0)) : cur.meal,
         otMul: payload.otMul !== undefined ? Math.max(1, Number(payload.otMul) || 1.5) : cur.otMul,
         startDate: DATE_RE.test(payload.startDate || '') ? payload.startDate : cur.startDate,
+        startTime: HM_RE.test(payload.startTime || '') ? payload.startTime : cur.startTime,
       };
       state.payroll = next;
       return { state, result: { payroll: next } };

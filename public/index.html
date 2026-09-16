@@ -2690,6 +2690,35 @@
     </div>
   </div>
 
+  <!-- ============ SHEET: 퇴근 시각 ============
+       매일 퇴근 도장을 찍게 하지 않는다 — 정상 근무가 대부분이라 그건 번거롭기만
+       하다. 짧게 일한 날만 여기서 시각을 적는다. -->
+  <div class="scrim" id="scrim9"></div>
+  <div class="sheet" id="end-sheet" data-scrim="scrim9" role="dialog" aria-modal="true">
+    <div class="sheet-head">
+      <div class="grabber"></div>
+      <button type="button" class="icon-btn" id="end-sheet-close">✕</button>
+      <h2 data-i18n="paySetEnd">근무 시간</h2>
+      <span style="width:30px"></span>
+    </div>
+    <div class="sheet-body">
+      <div class="field">
+        <label data-i18n="payStartAt">출근</label>
+        <input type="time" id="shift-start-input" />
+      </div>
+      <div class="field">
+        <label data-i18n="payEndAt">퇴근</label>
+        <input type="time" id="shift-end-input" />
+      </div>
+      <div class="ot-sum" id="end-sum"></div>
+      <div class="hint-line" data-i18n="payTimesHint">손대지 않은 쪽은 계약상 시각으로 쳐요.</div>
+    </div>
+    <div class="sheet-foot">
+      <button type="button" class="btn ghost" id="end-sheet-cancel" data-i18n="cancel">취소</button>
+      <button type="button" class="btn primary" id="end-sheet-save" data-i18n="save">저장</button>
+    </div>
+  </div>
+
   <!-- ============ SHEET: ADD A WAKE ============
        시:분만 받는다. 날짜는 잠든 시각에서 끌어온다 — 21:40에 잠들어 02:10에
        깼으면 그 02:10은 다음날이라는 걸 사람이 고르게 하면 틀린다. -->
@@ -3090,6 +3119,12 @@ ko: {
   noRecordYet:"기록 없음", justNow:"방금", agoSuffix:"전", hrShort:"시간", minShort:"분",
   wet:"소변", dirty:"대변", both:"소변+대변", diaperKind:"종류",
   nap:"낮잠", night:"밤잠", auto:"자동판별", sleepKind:"수면 종류",
+  paySetEnd:"근무 시간 수정", payStartAt:"출근", payEndAt:"퇴근", payWorkTime:"근무",
+  payTimesHint:"손대지 않은 쪽은 계약상 시각으로 쳐요.",
+  payFullDay:"정상 근무 (하루)",
+  payEndSumTpl:"{start}부터 {d} · {amt}",
+  payEndFullNote:"일당 전액", payEndTooEarly:"출근 시각보다 늦어야 해요",
+  payStartTime:"기준 출근 시각",
   sleepingLabel:"자는 중", wokeBtn:"깼어요",
   sleepSinceTpl:"{time}부터",
   wakeNoneYet:"아직 안 깼어요", wakeNone:"기록 없음",
@@ -3251,6 +3286,12 @@ vi: {
   noRecordYet:"Chưa có dữ liệu", justNow:"Vừa xong", agoSuffix:"", hrShort:" giờ", minShort:" phút",
   wet:"Nước tiểu", dirty:"Phân", both:"Cả hai", diaperKind:"Loại",
   nap:"Ngủ ngày", night:"Ngủ đêm", auto:"Tự nhận diện", sleepKind:"Loại giấc ngủ",
+  paySetEnd:"Sửa giờ làm", payStartAt:"Giờ đến", payEndAt:"Giờ về", payWorkTime:"Giờ làm",
+  payTimesHint:"Bên nào không sửa thì tính theo giờ hợp đồng.",
+  payFullDay:"Làm đủ ngày",
+  payEndSumTpl:"Từ {start} · {d} · {amt}",
+  payEndFullNote:"Đủ lương ngày", payEndTooEarly:"Phải sau giờ bắt đầu",
+  payStartTime:"Giờ bắt đầu chuẩn",
   sleepingLabel:"Đang ngủ", wokeBtn:"Bé dậy",
   sleepSinceTpl:"Từ {time}",
   wakeNoneYet:"Chưa dậy lần nào", wakeNone:"Chưa có",
@@ -8330,13 +8371,19 @@ function payroll(){
     hourly: Number(p.hourly) || 70000,
     meal: Number(p.meal) || 100000,
     otMul: Number(p.otMul) || 1.5,
-    startDate: /^\d{4}-\d{2}-\d{2}$/.test(p.startDate || '') ? p.startDate : '2026-09-16'
+    startDate: /^\d{4}-\d{2}-\d{2}$/.test(p.startDate || '') ? p.startDate : '2026-09-16',
+    /* 계약상 근무는 07:00~17:00. 단축 근무한 날의 실근시간을 여기서부터 센다 */
+    startTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(p.startTime || '') ? p.startTime : '07:00'
   };
 }
 function otPerMinute(){ var r = payroll(); return (r.hourly * r.otMul) / 60; }
 function readShifts(){
   return (appState.shifts || []).map(function(x){
-    return { id: x.id, date: x.date, at: x.at || '', by: x.by || '', status: x.status || 'ok' };
+    return { id: x.id, date: x.date, at: x.at || '', by: x.by || '', status: x.status || 'ok',
+             /* 손댄 날만 채워진다. 없으면 정상 근무 = 일당 전액. 한쪽만
+                채워져 있으면 나머지는 계약상 시각으로 친다. */
+             start: x.start || '', end: x.end || '',
+             timeStatus: x.timeStatus || '', timeBy: x.timeBy || '' };
   }).sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
 }
 function readOt(){
@@ -8385,13 +8432,45 @@ function prevPeriod(pr){
   d.setDate(d.getDate() - 1);
   return periodOf(toDateValue(d));
 }
+/* 서버의 shiftWage와 같은 식. 화면이 보여준 금액과 굳는 금액이 달라지면
+   그건 그냥 틀린 급여다. */
+var HM4 = /^\d{2}:\d{2}$/;
+/* 정상 근무 분량은 계약에서 나온다: (일당 - 식대) / 시급 */
+function stdWorkMin(){
+  var r = payroll();
+  return r.hourly ? Math.round(((r.daily - r.meal) / r.hourly) * 60) : 600;
+}
+/* 손대지 않은 쪽은 계약상 시각으로 친다 */
+function shiftMins(sh){
+  var r = payroll();
+  if (!sh || (!HM4.test(sh.start || '') && !HM4.test(sh.end || ''))) return null;
+  var a = HM4.test(sh.start || '') ? hmToMin(sh.start) : hmToMin(r.startTime);
+  var b = HM4.test(sh.end || '') ? hmToMin(sh.end) : hmToMin(r.startTime) + stdWorkMin();
+  return b > a ? b - a : 0;
+}
+function shiftWage(sh){
+  var r = payroll();
+  if (!sh || sh.status !== 'ok') return 0;
+  if (sh.timeStatus !== 'ok') return r.daily;
+  var mins = shiftMins(sh);
+  if (mins === null) return r.daily;
+  return Math.min(r.daily, Math.round(r.hourly * mins / 60) + r.meal);
+}
+/* 시각을 손대 실제로 급여를 바꾸고 있는 날인가 */
+function isShortDay(sh){ return !!(sh && sh.timeStatus === 'ok' && shiftMins(sh) !== null); }
+/* "07:00 → 11:30" — 손대지 않은 쪽은 계약상 시각을 흐리게 */
+function shiftTimeLabel(sh){
+  var r = payroll();
+  return (sh.start || r.startTime) + '→' + (sh.end || minToHm(hmToMin(r.startTime) + stdWorkMin()));
+}
 function periodTotals(from, to){
   var days = readShifts().filter(function(x){ return x.status === 'ok' && x.date >= from && x.date <= to; });
   var mins = readOt().filter(function(x){ return x.status === 'ok' && x.date >= from && x.date <= to; })
     .reduce(function(n, x){ return n + otMins(x); }, 0);
-  var r = payroll();
   return { days: days.length, otMin: mins,
-           amount: days.length * r.daily + Math.round(mins * otPerMinute()) };
+           short: days.filter(isShortDay).length,
+           amount: days.reduce(function(n, sh){ return n + shiftWage(sh); }, 0) +
+                   Math.round(mins * otPerMinute()) };
 }
 function paidPeriod(from, to){
   return readPayPeriods().filter(function(p){ return p.from === from && p.to === to; })[0] || null;
@@ -8400,9 +8479,10 @@ function shiftOn(ds){ return readShifts().filter(function(x){ return x.date === 
 function otOn(ds){ return readOt().filter(function(x){ return x.date === ds; }); }
 function payPending(){
   return { shifts: readShifts().filter(function(x){ return x.status === 'pending'; }),
+           ends: readShifts().filter(function(x){ return x.status === 'ok' && x.timeStatus === 'pending'; }),
            ot: readOt().filter(function(x){ return x.status === 'pending'; }) };
 }
-function payPendingCount(){ var p = payPending(); return p.shifts.length + p.ot.length; }
+function payPendingCount(){ var p = payPending(); return p.shifts.length + p.ends.length + p.ot.length; }
 /* 근무를 시작한 날 이전은 이 앱의 일이 아니다 */
 function payStarted(ds){ return ds >= payroll().startDate; }
 function paySelectedDate(){ return state.payDate || toDateValue(); }
@@ -8594,22 +8674,31 @@ function renderPayApprovals(){
   var box = document.getElementById('pay-approvals');
   if (!box) return;
   var p = payPending();
-  if (!isMasterUser() || (!p.shifts.length && !p.ot.length)){ box.innerHTML = ''; return; }
+  if (!isMasterUser() || (!p.shifts.length && !p.ends.length && !p.ot.length)){ box.innerHTML = ''; return; }
   var rows = p.shifts.map(function(x){
     return payApprovalRow(esc(payDateLabel(x.date)) + ' · ' + esc(t('payReqStamp')),
       fmtVnd(payroll().daily), 'shift', x.id);
-  }).concat(p.ot.map(function(x){
+  }).concat(p.ends.map(function(x){
+    /* 금액은 승인됐을 때 얼마가 되는지를 보여준다 — 승인 버튼을 누르기 전에
+       알아야 하는 숫자가 그거다 */
+    return payApprovalRow(esc(payDateLabel(x.date)) + ' · ' + esc(shiftTimeLabel(x)),
+      fmtVnd(shiftWage({ status: 'ok', start: x.start, end: x.end, timeStatus: 'ok' })), 'end', x.id);
+  })).concat(p.ot.map(function(x){
     return payApprovalRow(esc(payDateLabel(x.date)) + ' · ' + esc(x.start) + '–' + esc(x.end),
       fmtVnd(otMins(x) * otPerMinute()), 'ot', x.id);
   })).join('');
   box.innerHTML = '<div class="card" style="border-color:var(--primary)">' +
     '<div class="pay-row"><b>' + esc(t('payApprovals')) + '</b>' +
-      '<span class="pay-chip soft" style="margin-left:auto">' + (p.shifts.length + p.ot.length) + '</span></div>' +
+      '<span class="pay-chip soft" style="margin-left:auto">' + (p.shifts.length + p.ends.length + p.ot.length) + '</span></div>' +
     rows + '</div>';
   $$('[data-ok-shift]', box).forEach(function(b){ b.addEventListener('click', function(){
     apiMutate('approveShift', { id: b.dataset.okShift }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
   $$('[data-no-shift]', box).forEach(function(b){ b.addEventListener('click', function(){
     apiMutate('deleteShift', { id: b.dataset.noShift }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
+  $$('[data-ok-end]', box).forEach(function(b){ b.addEventListener('click', function(){
+    apiMutate('approveShiftTimes', { id: b.dataset.okEnd }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
+  $$('[data-no-end]', box).forEach(function(b){ b.addEventListener('click', function(){
+    apiMutate('clearShiftTimes', { id: b.dataset.noEnd }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
   $$('[data-ok-ot]', box).forEach(function(b){ b.addEventListener('click', function(){
     apiMutate('approveOt', { id: b.dataset.okOt }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
   $$('[data-no-ot]', box).forEach(function(b){ b.addEventListener('click', function(){
@@ -8679,9 +8768,22 @@ function renderPayDay(){
         ? '<button type="button" class="pay-chip" data-del-ot="' + esc(o.id) + '">' + esc(t('payRemove')) + '</button>' : '') +
       '</div>';
   });
+  /* 퇴근 시각. 평소엔 비어 있고(정상 근무 = 일당 전액), 짧게 일한 날만 채운다 */
   if (sh && sh.status === 'ok'){
+    if (sh.start || sh.end){
+      var pend = sh.timeStatus !== 'ok';
+      html += '<div class="pay-line"><span>' + esc(t('payWorkTime')) +
+        (pend ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
+        '<span class="num' + (pend ? ' muted' : '') + '">' + esc(shiftTimeLabel(sh)) +
+        ' · ' + esc(fmtWorkDur(shiftMins(sh) || 0)) + '</span>' +
+        (!locked && (isMasterUser() || (pend && sameAuthor(sh.timeBy, state.author)))
+          ? '<button type="button" class="pay-chip" data-clear-end="' + esc(sh.id) + '">' + esc(t('payRemove')) + '</button>' : '') +
+        '</div>';
+    } else {
+      html += '<div class="pay-line"><span class="pay-sub">' + esc(t('payFullDay')) + '</span></div>';
+    }
     html += '<div class="pay-line"><b>' + esc(t('payDayWage')) + '</b>' +
-      '<span class="num">' + esc(fmtVnd(r.daily + Math.round(dayMin * otPerMinute()))) + '</span></div>';
+      '<span class="num">' + esc(fmtVnd(shiftWage(sh) + Math.round(dayMin * otPerMinute()))) + '</span></div>';
   }
   if (!locked && payStarted(ds)){
     html += '<div class="pay-actions">';
@@ -8691,11 +8793,18 @@ function renderPayDay(){
     } else if (canTouch(sh.by) || sh.status === 'pending'){
       html += '<button type="button" class="pay-textbtn" id="pay-day-unstamp">' + esc(t('payRemove')) + '</button>';
     }
+    if (sh && sh.status === 'ok' && !sh.start && !sh.end){
+      html += '<button type="button" class="pay-textbtn" id="pay-day-end">' + esc(t('paySetEnd')) + '</button>';
+    }
     html += '<button type="button" class="pay-textbtn" id="pay-day-ot" style="margin-left:auto">' + esc(t('payAddOt')) + '</button></div>';
   }
   box.innerHTML = html;
   $$('[data-del-ot]', box).forEach(function(b){ b.addEventListener('click', function(){
     apiMutate('deleteOt', { id: b.dataset.delOt }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
+  $$('[data-clear-end]', box).forEach(function(b){ b.addEventListener('click', function(){
+    apiMutate('clearShiftTimes', { id: b.dataset.clearEnd }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
+  var endBtn = document.getElementById('pay-day-end');
+  if (endBtn) endBtn.addEventListener('click', function(){ openEndSheet(sh); });
   var st = document.getElementById('pay-day-stamp');
   if (st) st.addEventListener('click', function(){ doStamp(ds); });
   var un = document.getElementById('pay-day-unstamp');
@@ -8807,6 +8916,64 @@ function doUnstamp(sh){
   apiMutate('deleteShift', { id: sh.id }).then(function(){ renderPay(); toast(t('deletedToast')); })
     .catch(function(e){ toast(e.message); });
 }
+/* ---- 퇴근 시각 시트 ----
+   고른 시각이 그날 얼마가 되는지 그 자리에서 보여준다. 급여가 바뀌는 입력을
+   숫자 없이 저장하게 두면, 나중에 정산 화면에서야 알게 된다. */
+var endSheetShift = null;
+function openEndSheet(sh){
+  if (!sh) return;
+  endSheetShift = sh;
+  var r = payroll();
+  /* 기본값은 계약상 시각 — 대개 한쪽만 고치니까, 나머지는 그대로 두면 된다 */
+  document.getElementById('shift-start-input').value = sh.start || r.startTime;
+  document.getElementById('shift-end-input').value =
+    sh.end || minToHm(hmToMin(r.startTime) + stdWorkMin());
+  renderEndSum();
+  openSheet('end-sheet');
+}
+function endSheetValues(){
+  var r = payroll();
+  var a = document.getElementById('shift-start-input').value;
+  var bb = document.getElementById('shift-end-input').value;
+  return {
+    /* 계약상 시각과 같으면 '손대지 않은 것'으로 두어, 나중에 계약이 바뀌면
+       같이 따라가게 한다 */
+    start: (HM4.test(a) && a !== r.startTime) ? a : '',
+    end: (HM4.test(bb) && bb !== minToHm(hmToMin(r.startTime) + stdWorkMin())) ? bb : '',
+    rawStart: a, rawEnd: bb
+  };
+}
+function renderEndSum(){
+  var box = document.getElementById('end-sum');
+  if (!box) return;
+  var v = endSheetValues(), r = payroll();
+  if (!HM4.test(v.rawStart) || !HM4.test(v.rawEnd)){ box.textContent = t('payEndTooEarly'); return; }
+  var mins = hmToMin(v.rawEnd) - hmToMin(v.rawStart);
+  if (mins <= 0){ box.textContent = t('payEndTooEarly'); return; }
+  var amt = (!v.start && !v.end)
+    ? r.daily
+    : Math.min(r.daily, Math.round(r.hourly * mins / 60) + r.meal);
+  box.textContent = t('payEndSumTpl')
+    .replace('{start}', v.rawStart).replace('{d}', fmtWorkDur(mins))
+    .replace('{amt}', fmtVnd(amt)) +
+    (amt >= r.daily ? ' · ' + t('payEndFullNote') : '');
+}
+function saveEndSheet(){
+  var v = endSheetValues();
+  if (!endSheetShift || !HM4.test(v.rawStart) || !HM4.test(v.rawEnd)){ toast(t('wakeBadTime')); return; }
+  if (hmToMin(v.rawEnd) - hmToMin(v.rawStart) <= 0){ toast(t('payEndTooEarly')); return; }
+  closeSheet('end-sheet');
+  if (!v.start && !v.end){
+    /* 둘 다 계약상 시각으로 돌려놨다 = 정상 근무로 되돌리기 */
+    apiMutate('clearShiftTimes', { id: endSheetShift.id })
+      .then(function(){ renderPay(); toast(t('savedToast')); })
+      .catch(function(e){ toast(e.message); });
+    return;
+  }
+  apiMutate('setShiftTimes', { id: endSheetShift.id, start: v.start, end: v.end })
+    .then(function(){ renderPay(); toast(isMasterUser() ? t('savedToast') : t('otSent')); })
+    .catch(function(e){ toast(e.message); });
+}
 /* ---- 오버타임 시트 ---- */
 var otSheetDate = null;
 function openOtSheet(ds){
@@ -8863,6 +9030,9 @@ function renderPaySettings(){
     row(t('payHourly'), r.hourly, 'hourly', '₫') +
     row(t('payMeal'), r.meal, 'meal', '₫') +
     row(t('payOtMul'), r.otMul, 'otMul', '×') +
+    '<div class="pay-line"><span>' + esc(t('payStartTime')) + '</span>' +
+      (master ? '<input class="num" type="time" data-pay-set="startTime" value="' + esc(r.startTime) + '" style="margin-left:auto;border:1px solid var(--border);background:var(--surface);color:var(--fg);border-radius:9px;padding:6px 8px;font-size:var(--fs-caption)" />'
+              : '<span class="num">' + esc(r.startTime) + '</span>') + '</div>' +
     '<div class="pay-line"><span>' + esc(t('payStart')) + '</span>' +
       (master ? '<input class="num" type="date" data-pay-set="startDate" value="' + esc(r.startDate) + '" style="margin-left:auto;border:1px solid var(--border);background:var(--surface);color:var(--fg);border-radius:9px;padding:6px 8px;font-size:var(--fs-caption)" />'
               : '<span class="num">' + esc(r.startDate) + '</span>') + '</div>' +
@@ -8873,7 +9043,8 @@ function renderPaySettings(){
   $$('[data-pay-set]', box).forEach(function(inp){
     inp.addEventListener('change', function(){
       var payload = {};
-      payload[inp.dataset.paySet] = inp.dataset.paySet === 'startDate' ? inp.value : Number(inp.value);
+      var k = inp.dataset.paySet;
+      payload[k] = (k === 'startDate' || k === 'startTime') ? inp.value : Number(inp.value);
       apiMutate('setPayroll', payload).then(function(){ renderPaySettings(); renderPay(); })
         .catch(function(e){ toast(e.message); renderPaySettings(); });
     });
@@ -11393,6 +11564,18 @@ function wireEvents(){
   /* 자는 중 띠의 깼어요 — 이 앱에서 확인 창 없이 즉시 쓰는 유일한 버튼 */
   var wokeBtn = document.getElementById('sl-wake');
   if (wokeBtn) wokeBtn.addEventListener('click', tapWoke);
+  ['end-sheet-close','end-sheet-cancel'].forEach(function(id){
+    var b = document.getElementById(id);
+    if (b) b.addEventListener('click', function(){ closeSheet('end-sheet'); });
+  });
+  var endSave = document.getElementById('end-sheet-save');
+  if (endSave) endSave.addEventListener('click', saveEndSheet);
+  ['shift-start-input','shift-end-input'].forEach(function(id){
+    var inp = document.getElementById(id);
+    if (inp) inp.addEventListener('change', renderEndSum);
+  });
+  var scrim9 = document.getElementById('scrim9');
+  if (scrim9) scrim9.addEventListener('click', function(){ closeSheet('end-sheet'); });
   ['wake-sheet-close','wake-sheet-cancel'].forEach(function(id){
     var b = document.getElementById(id);
     if (b) b.addEventListener('click', function(){ closeSheet('wake-sheet'); });
