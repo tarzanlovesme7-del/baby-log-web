@@ -298,7 +298,10 @@ function applyMutation(prevState, type, payload) {
 
     case 'togglePauseActive': {
       const a = state.active;
-      if (!a) throw httpError(409, 'nothing active');
+      /* 이미 끝난 스톱워치를 또 만지는 건 오류가 아니라 '이미 그렇게 됨'이다 —
+         폰 세 대가 같은 화면을 보고 있고, 두 번째 손가락은 늘 늦게 닿는다.
+         오류로 돌려보내면 그 쓰기가 아웃박스에 박혀서 뒤를 다 막는다. */
+      if (!a) return { state, result: { alreadyFinished: true } };
       // The phone draws the result of this the instant it is tapped, so it
       // has to be able to work out the same answer we do. It sends the moment
       // of the tap; without one (an older tab) we fall back to our own clock
@@ -321,7 +324,7 @@ function applyMutation(prevState, type, payload) {
 
     case 'adjustActiveStart': {
       const a = state.active;
-      if (!a) throw httpError(409, 'nothing active');
+      if (!a) return { state, result: { alreadyFinished: true } };
       if (!payload.start) throw httpError(400, 'adjustActiveStart requires start');
       a.start = payload.start;
       return { state, result: { active: a } };
@@ -334,7 +337,7 @@ function applyMutation(prevState, type, payload) {
 
     case 'finishActive': {
       const a = state.active;
-      if (!a) throw httpError(409, 'nothing active');
+      if (!a) return { state, result: { alreadyFinished: true } };
       /* the phone may still owe the server a start-time nudge from the
          adjust ruler (those are sent once the ruler settles) — the finish
          carries the start the phone is showing, so what lands is what the
@@ -630,7 +633,11 @@ function applyMutation(prevState, type, payload) {
       const date = payload.date;
       if (!DATE_RE.test(date || '')) throw httpError(400, 'stampIn requires a date');
       state.shifts = state.shifts || [];
-      if (state.shifts.some((x) => x.date === date)) throw httpError(409, 'already stamped');
+      /* 같은 날 도장은 하나. 두 번째는 '이미 찍혀 있다'는 사실을 돌려줄 뿐,
+         오류가 아니다 — 두 번 누르는 건 사고가 아니라 흔한 일이다. */
+      if (state.shifts.some((x) => x.date === date)) {
+        return { state, result: { alreadyStamped: true } };
+      }
       /* 오늘 것은 누구나 바로. 지난 날짜는 엄마만 — 내니는 requestStamp로. */
       const today = payload.today && DATE_RE.test(payload.today) ? payload.today : date;
       const status = (date === today || isMaster(payload.actor)) ? 'ok' : 'pending';
@@ -643,7 +650,11 @@ function applyMutation(prevState, type, payload) {
       const date = payload.date;
       if (!DATE_RE.test(date || '')) throw httpError(400, 'requestStamp requires a date');
       state.shifts = state.shifts || [];
-      if (state.shifts.some((x) => x.date === date)) throw httpError(409, 'already stamped');
+      /* 같은 날 도장은 하나. 두 번째는 '이미 찍혀 있다'는 사실을 돌려줄 뿐,
+         오류가 아니다 — 두 번 누르는 건 사고가 아니라 흔한 일이다. */
+      if (state.shifts.some((x) => x.date === date)) {
+        return { state, result: { alreadyStamped: true } };
+      }
       const shift = { id: uid('s_'), date, at: payload.at || '', by: payload.author || payload.actor || '', status: 'pending' };
       state.shifts.push(shift);
       return { state, result: { shift } };
@@ -704,7 +715,9 @@ function applyMutation(prevState, type, payload) {
       const from = payload.from, to = payload.to;
       if (!DATE_RE.test(from || '') || !DATE_RE.test(to || '')) throw httpError(400, 'markPaid requires from and to');
       state.payPeriods = state.payPeriods || [];
-      if (state.payPeriods.some((p) => p.from === from && p.to === to)) throw httpError(409, 'already paid');
+      if (state.payPeriods.some((p) => p.from === from && p.to === to)) {
+        return { state, result: { alreadyPaid: true } };
+      }
       /* 금액은 지금 이 순간의 계산으로 굳는다 — 나중에 일급이 올라도 지난
          급여는 움직이지 않는다 */
       const rate = payrollOf(state);

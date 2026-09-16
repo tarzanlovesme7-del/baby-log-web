@@ -139,7 +139,12 @@ app.post('/api/mutate', async (req, res, next) => {
       }
       // version conflict — someone else wrote in between; retry
     }
-    return res.status(409).json({ error: 'too many concurrent writes, please retry' });
+    /* THE ONLY 409 WORTH RETRYING. 이 한 줄만 "잠시 뒤 다시 보내면 되는" 충돌이고,
+       mutations.js가 던지는 다른 409들(이미 도장 찍음, 진행 중인 게 없음 …)은
+       몇 번을 다시 보내도 같은 답이 온다. 폰이 둘을 구분할 수 있도록 이쪽에만
+       표식을 단다 — 없으면 폰의 아웃박스가 영영 이 쓰기를 붙들고 재시도하면서
+       뒤에 줄 선 모든 기록을 같이 막는다. */
+    return res.status(409).json({ error: 'too many concurrent writes, please retry', retryable: true });
   } catch (err) { next(err); }
 });
 

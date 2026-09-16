@@ -92,8 +92,13 @@ console.log('ALL MUTATION TESTS PASSED');
   s = applyMutation(s, 'requestStamp', { date: '2026-09-17', actor: '내니', author: '내니' }).state;
   assert.equal(s.shifts[1].status, 'pending');
 
-  // 같은 날 두 번은 안 된다
-  assert.throws(() => applyMutation(s, 'stampIn', { date: '2026-09-16', today: '2026-09-16', actor: '내니' }), /already stamped/);
+  // 같은 날 두 번 눌러도 도장은 하나 — 오류로 돌려보내면 그 쓰기가 폰의
+  // 아웃박스 머리에 박혀서 뒤에 줄 선 기록을 전부 막는다
+  {
+    const again = applyMutation(s, 'stampIn', { date: '2026-09-16', today: '2026-09-16', actor: '내니' });
+    assert.equal(again.result.alreadyStamped, true);
+    assert.equal(again.state.shifts.filter((x) => x.date === '2026-09-16').length, 1);
+  }
 
   // 내니가 넣은 오버타임은 승인 전까지 돈이 아니다
   s = applyMutation(s, 'addOt', { date: '2026-09-18', start: '18:00', end: '19:40', actor: '내니', author: '내니' }).state;

@@ -3833,6 +3833,7 @@ function apiGetState(){
    noticed for one she would not.
    ================================================================ */
 var LS_OUTBOX = 'bbl_outbox';
+var OUTBOX_GIVEUP_TRIES = 12;
 var OUTBOX_MAX_AGE_MS = 48 * 3600 * 1000;
 var outbox = [];
 function outboxLoad(){
@@ -3879,8 +3880,16 @@ function newMid(){
   return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 /* a refusal is final; anything else is the network and will be tried again */
-function isPermanentWriteError(status){
-  return status >= 400 && status < 500 && status !== 408 && status !== 409 && status !== 429;
+/* 다시 보내면 달라질 수 있는 오류인가.
+   409를 통째로 "재시도하면 되는 것"으로 놔뒀던 게 앱을 멈춰 세웠다. 409 중
+   다시 보낼 값어치가 있는 건 서버의 동시쓰기 충돌 하나뿐이고(이제 응답에
+   retryable 표식을 단다), '이미 도장 찍음' 같은 나머지는 백 번을 보내도 같은
+   답이 온다. 아웃박스는 한 번에 하나씩만 보내므로, 그런 쓰기 하나가 머리에
+   박히면 그 뒤에 줄 선 기록이 전부 나가지 못한다. */
+function isPermanentWriteError(status, json){
+  if (status === 408 || status === 429) return false;
+  if (status === 409) return !(json && json.retryable);
+  return status >= 400 && status < 500;
 }
 function sendWrite(w){
   return withTimeout(fetch('/api/mutate', {
@@ -3897,7 +3906,7 @@ function sendWrite(w){
         if (String(msg).indexOf('not-owner') === 0) msg = t('notMine');
         var e = new Error(msg);
         e.status = res.status;
-        e.permanent = isPermanentWriteError(res.status);
+        e.permanent = isPermanentWriteError(res.status, json);
         throw e;
       }
       return json;
@@ -3948,6 +3957,16 @@ function outboxDrain(){
          the next load or the next bar of signal still gets to try it */
       w.reject(err);
       w.resolve = null; w.reject = null;
+    }
+    /* 그래도 영원히 붙들지는 않는다. 위 규칙에 안 걸리는 오류가 하나라도
+       생기면 그 쓰기가 큐의 머리에 박혀 뒤를 전부 막는데, 그건 '기록이 안
+       된다'로 나타난다 — 신호 문제라면 OUTBOX_GIVEUP_TRIES 번을 시도하는
+       동안(약 4분) 한 번은 붙는다. 그 뒤로는 포기하고 다음 것을 보낸다. */
+    if (outboxTries >= OUTBOX_GIVEUP_TRIES){
+      outboxDrop(w.mid);
+      outboxTries = 0;
+      if (outbox.length) outboxDrain();
+      return;
     }
     var wait = Math.min(30000, 1000 * Math.pow(2, Math.min(outboxTries, 5)));
     clearTimeout(outboxTimer);
