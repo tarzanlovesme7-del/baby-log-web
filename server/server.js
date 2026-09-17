@@ -77,10 +77,25 @@ app.get('/healthz', (req, res) => res.json({ ok: true }));
    ~23KB gzipped, every tick, or about 21MB an hour on a phone left open,
    growing as the log grows. The version counter answers the same question
    in a few bytes, and the whole document is fetched only when it moved. */
+/* 이 서버가 지금 내주고 있는 화면의 지문. index.html의 내용 해시라서
+   배포할 때마다 바뀌고, 같은 배포에서는 절대 안 바뀐다.
+
+   왜 필요한가: 이 앱은 홈 화면에 얹은 PWA로 쓰인다. 켜둔 채 며칠이 지나도
+   탭이 살아 있고, 폴링은 '데이터'만 새로 받아온다 — 코드(index.html)는 그
+   탭이 처음 열렸을 때 것 그대로다. 그래서 우리가 새 기능을 배포해도 그 폰은
+   영영 모른다. 실제로 9/17 아침, 내니 폰은 정상으로 기록을 올리고 있었는데
+   전날 배포한 아침 출근 도장 띠는 나오지 않았다. 데이터는 최신인데 화면만
+   옛날인 상태가 눈에 안 띄는 게 이 버그의 성질이다. */
+let BUILD_ID = 'dev';
+try {
+  const html = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'));
+  BUILD_ID = crypto.createHash('sha256').update(html).digest('hex').slice(0, 12);
+} catch (e) { /* 파일이 없으면 'dev' 그대로 — 버전 비교를 막지는 않는다 */ }
+
 app.get('/api/version', async (req, res, next) => {
   try {
     res.set('Cache-Control', 'no-store');
-    res.json({ version: await db.getVersion() });
+    res.json({ version: await db.getVersion(), build: BUILD_ID });
   } catch (err) { next(err); }
 });
 

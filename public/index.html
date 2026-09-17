@@ -4191,7 +4191,7 @@ function outboxDrain(){
     if (w.resolve) w.resolve(json.result);
     outboxDraining = false; mutationsInFlight--;
     if (outbox.length) outboxDrain();
-    else renderAll();
+    else { renderAll(); maybeReloadForBuild(); }
   }, function(err){
     outboxDraining = false; mutationsInFlight--;
     if (err && err.permanent){
@@ -4500,12 +4500,49 @@ function pollState(){
     if (!res.ok) throw new Error('no version endpoint');
     return res.json();
   }).then(function(v){
+    noteServerBuild(v.build);
     if (v.version === appVersion) return;   /* nothing to fetch */
     return pullEverything();
   }).then(done)
     /* an older server that doesn't know /api/version, or a hiccup: fall back
        to the way it always worked rather than going stale */
     .catch(function(){ pullEverything().then(done).catch(done); });
+}
+
+/* ================================================================
+   새 배포를 알아차리기 — 이 앱의 조용한 실패 모드
+   ================================================================
+   홈 화면 PWA는 한 번 열면 며칠씩 그 탭으로 산다. 폴링이 가져오는 건
+   '데이터'뿐이고 코드는 처음 열렸을 때 것 그대로라, 배포를 해도 그 폰은
+   영영 모른다. 데이터는 최신인데 화면만 옛날 — 아무도 눈치 못 챈다.
+   9/17 아침 내니 폰이 그랬다: 기록은 멀쩡히 올라오는데 전날 배포한 출근
+   도장 띠가 없었다.
+
+   그래서 서버가 내주는 화면의 지문(build)을 폴링에 얹어 보내고, 부팅할 때
+   본 값과 달라지면 새로고침한다. 단, 잃을 게 없을 때만:
+     - 아직 못 보낸 쓰기가 있으면 안 된다(아웃박스가 비어야 한다)
+     - 시트·전체화면이 열려 있으면 안 된다(입력 중일 수 있다)
+     - 부팅 직후 20초 안에는 안 한다(새로고침 고리를 만들지 않는다)
+   조건이 안 맞으면 표시만 해두고 다음 폴링에서 다시 본다. */
+var bootBuild = null;
+var buildStale = false;
+var bootAt = Date.now();
+function noteServerBuild(b){
+  if (!b) return;                      /* build를 모르는 옛 서버 */
+  if (bootBuild === null){ bootBuild = b; return; }
+  if (b === bootBuild) return;
+  buildStale = true;
+  maybeReloadForBuild();
+}
+function maybeReloadForBuild(){
+  if (!buildStale) return;
+  if (Date.now() - bootAt < 20000) return;
+  if (outbox.length || mutationsInFlight > 0) return;
+  /* 전체화면은 hidden이 아니라 transform으로 숨는다 — :not([hidden])으로
+     물으면 다섯 개가 늘 걸려서 새로고침이 영영 안 일어난다. 여는 건 .show다. */
+  if (document.querySelector('.sheet.show, .fullpage.show')) return;
+  if (document.visibilityState !== 'visible') return;
+  location.reload();
 }
 
 /* ================================================================

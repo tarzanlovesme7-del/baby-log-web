@@ -31,7 +31,11 @@ function send(res, status, body){
 const server = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
   if (req.method === 'GET' && u.pathname === '/api/version'){
-    return send(res, 200, { version });
+    /* MOCK_BUILD로 배포 지문을 바꿔칠 수 있다 — '새 배포를 알아차리는지'를
+       스위트에서 물어보려면 서버가 다른 지문을 내줘야 한다 */
+    let build = process.env.MOCK_BUILD || 'mockbuild1';
+    try { build = require('fs').readFileSync('/tmp/mock_build.txt', 'utf8').trim() || build; } catch (e) {}
+    return send(res, 200, { version, build });
   }
   if (req.method === 'GET' && u.pathname === '/api/state'){
     /* MOCK_GOOD_TRANSLATOR=1 plays a server that has a DeepL key, so the
