@@ -1486,6 +1486,29 @@
   .gweek-evt .tx{ min-width:0; overflow:hidden; text-overflow:ellipsis; }
   .gweek-sub{ font-size:var(--fs-caption); color:var(--muted); }
   .gweek-empty{ font-size:var(--fs-micro); color:var(--muted-2); padding-top:4px; }
+  /* ---------- 설정: 목차 + 하위 화면 ---------- */
+  /* 입력칸 폭이 값마다 달랐다: 일급 132px, 배율 56px, 시각 72px, 수유량 92px.
+     오른쪽 모서리가 한 줄로 서지 않으면 값끼리 비교가 안 된다. 폭은 하나,
+     단위는 칸 밖에 매달지 말고 안쪽에 붙여 한 덩어리로 읽히게. */
+  .set-field{ margin-left:auto; display:inline-flex; align-items:center; gap:6px;
+    width:128px; border:1px solid var(--border); background:var(--surface);
+    border-radius:10px; padding:7px 10px; }
+  .set-field input{ flex:1; min-width:0; border:0; background:transparent; color:var(--fg);
+    text-align:right; font-size:var(--fs-label); font-weight:var(--fw-strong);
+    font-variant-numeric:tabular-nums; padding:0; }
+  .set-field input[type="time"], .set-field input[type="date"]{ text-align:right; }
+  .set-field .u{ flex:0 0 auto; font-size:var(--fs-micro); font-weight:var(--fw-body); color:var(--muted-2); }
+  .set-field.ro{ border-color:transparent; background:transparent; }
+  .set-field.ro .v{ flex:1; text-align:right; font-size:var(--fs-label);
+    font-weight:var(--fw-strong); font-variant-numeric:tabular-nums; }
+  .set-back{ display:flex; align-items:center; gap:6px; width:100%; border:0;
+    background:transparent; padding:4px 2px 12px; text-align:left;
+    font-size:var(--fs-title); font-weight:var(--fw-strong); color:var(--fg); letter-spacing:-.02em; }
+  .set-back > span:first-child{ color:var(--muted-2); font-weight:var(--fw-body); }
+  #set-index .card + .section-title{ margin-top:20px; }
+  .set-row{ width:100%; border:0; background:transparent; text-align:left; }
+  .set-row .grow{ flex:1; min-width:0; }
+  .set-row .r-sub{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   /* ---------- 급여 ---------- */
   /* 헤더 톱니. .ui-ico를 빌려 쓰면 그 클래스가 다른 곳에서 받는 크기 규칙에
      끌려가 점 하나로 쪼그라든다 — 자기 규칙을 갖는다. */
@@ -2068,7 +2091,10 @@
   .scrub-strip .sv.pad{ flex:0 0 auto; }
   .seg{ display:flex; gap:2px; border-radius:14px; background:var(--surface-2); padding:3px; }
   .seg button{ flex:1; border:0; background:transparent; border-radius:11px; padding:10px 4px; font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted); }
-  .seg button[aria-pressed="true"]{ background:var(--primary); color:var(--primary-fg); }
+  /* 선택된 칸을 파랗게 채우면 그 화면의 주요 버튼처럼 보인다 — 필터는
+     회색 트랙 위 흰 손잡이로. 파란 채움은 저장·추가 같은 진짜 동작에만. */
+  .seg button[aria-pressed="true"]{ background:var(--surface); color:var(--fg);
+    box-shadow:0 1px 2px rgba(0,0,0,.08); }
   /* quick-insert words below a note field — visually lighter than the pill
      chips used for selection (author/type/diaper-kind) since tapping one
      doesn't set a value, it appends into the text field next to it */
@@ -2576,7 +2602,19 @@
 
   <!-- ============ TAB: SETTINGS ============ -->
   <section class="panel" id="tab-settings" data-tab-panel hidden>
-    <div>
+    <!-- 설정은 한 화면에 전부 쌓여 있었다 — 급여 설정에 닿으려면 5,200px를
+         긁어 내려야 했고, 그 길에 입력칸 폭이 네 가지, "추가" 링크가 세 가지,
+         같은 빈 문구가 세 번 반복됐다. 이제 목차 한 화면 + 하위 화면들이다.
+         목차의 각 줄이 지금 값을 요약해서, 열지 않아도 읽을 수 있다.
+         구현은 기존 마크업을 그대로 감싸기만 한다 — id가 하나도 바뀌지 않아야
+         거기 걸린 이벤트 배선이 전부 살아 있는다. -->
+    <div id="set-index"></div>
+    <div id="set-sub" hidden>
+      <button type="button" class="set-back" id="set-back">
+        <span aria-hidden="true">‹</span><span id="set-sub-title"></span>
+      </button>
+    </div>
+    <div class="set-page" data-set-page="baby" hidden>
       <div class="section-title" data-i18n="babyInfo">아기 정보</div>
       <div class="card">
         <div class="row-item">
@@ -2594,7 +2632,7 @@
       </div>
     </div>
 
-    <div>
+    <div class="set-page" data-set-page="who" hidden>
       <div class="section-title" data-i18n="whoAmI">나는 누구</div>
       <div class="card">
         <div class="chip-row" id="author-chip-row"></div>
@@ -2605,10 +2643,7 @@
         <div id="author-manage-list"></div>
       </div>
       <div class="hint-line" data-i18n="permissionHint">기록은 누구나 고칠 수 있어요. 지우는 건 자기가 쓴 것만 — 엄마는 모두 지울 수 있어요.</div>
-    </div>
-
-    <!-- the lock on becoming 엄마, and the bin deleted records fall into -->
-    <div>
+      <!-- PIN은 "누구로 쓰나"의 잠금이다 — 같은 화면에 있어야 한다 -->
       <div class="section-title" data-i18n="masterTitle">엄마 권한</div>
       <div class="card">
         <button type="button" class="row-item" id="pin-row" style="width:100%;border:0;background:transparent;text-align:left;">
@@ -2618,14 +2653,18 @@
         </button>
       </div>
       <div class="hint-line" data-i18n="masterPinHint">PIN을 걸어두면 다른 사람이 설정에서 '엄마'로 바꿀 수 없어요.</div>
-      <div class="section-title" data-i18n="feedPlanTitle">수유 계획</div>
+    </div>
+
+    <div class="set-page" data-set-page="feed" hidden>
       <div class="card" id="feed-settings"></div>
       <div class="hint-line" id="feed-settings-hint"></div>
-      <div class="section-title" data-i18n="payTitle">급여</div>
+    </div>
+
+    <div class="set-page" data-set-page="pay" hidden>
       <div class="card" id="pay-settings"></div>
     </div>
 
-    <div>
+    <div class="set-page" data-set-page="trash" hidden>
       <div class="section-title" data-i18n="trashTitle">휴지통</div>
       <div class="card">
         <button type="button" class="row-item" id="trash-row" style="width:100%;border:0;background:transparent;text-align:left;">
@@ -2637,17 +2676,17 @@
       <div class="hint-line" data-i18n="trashHint">지운 기록은 30일 동안 여기 남아 있어요.</div>
     </div>
 
-    <div>
+    <div class="set-page" data-set-page="types" hidden>
       <div class="section-title" data-i18n="customTypes">커스텀 항목 관리</div>
       <div class="card">
-        <button type="button" class="row-item" id="settings-add-type-btn" style="width:100%;border:0;background:transparent;text-align:left;">
-          <span class="r-label" style="color:var(--link);font-weight:var(--fw-strong)">+ <span data-i18n="addNew">항목 추가</span></span>
-        </button>
+        <div class="row-item">
+          <button type="button" class="text-btn" id="settings-add-type-btn">+ <span data-i18n="addNew">항목 추가</span></button>
+        </div>
         <div id="custom-type-manage-list"></div>
       </div>
     </div>
 
-    <div>
+    <div class="set-page" data-set-page="quick" hidden>
       <div class="section-title" data-i18n="quickWordsTitle">메모 퀵버튼 관리</div>
       <div style="font-size:var(--fs-caption);color:var(--muted);font-weight:var(--fw-strong);margin:2px 2px 6px" data-i18n="t_med">투약</div>
       <div class="card">
@@ -2675,12 +2714,12 @@
       </div>
     </div>
 
-    <div>
+    <div class="set-page" data-set-page="order" hidden>
       <div class="section-title" data-i18n="typeOrder">항목 순서</div>
       <div class="card" id="type-order-list"></div>
     </div>
 
-    <div>
+    <div class="set-page" data-set-page="screen" hidden>
       <div class="section-title" data-i18n="appearance">화면</div>
       <div class="card">
         <div class="row-item">
@@ -2692,11 +2731,10 @@
           </div>
         </div>
       </div>
+      <p class="hint-line" style="text-align:center" data-i18n="shareHint">
+        가족 모두와 함께 쓰려면 이 페이지를 "편집 가능"으로 공유해 주세요. 기록은 이 페이지를 여는 모든 사람과 실시간으로 공유됩니다.
+      </p>
     </div>
-
-    <p style="font-size:var(--fs-caption);color:var(--muted-2);text-align:center;line-height:1.5;padding:6px 10px 0" data-i18n="shareHint">
-      가족 모두와 함께 쓰려면 이 페이지를 "편집 가능"으로 공유해 주세요. 기록은 이 페이지를 여는 모든 사람과 실시간으로 공유됩니다.
-    </p>
   </section>
 
   <!-- ============ TAB: PAY — 내니 근무와 급여 ============
@@ -3190,7 +3228,7 @@ ko: {
   feedPlanMasterOnly:"엄마만 바꿀 수 있어요",
   feedPlanHintFixed:"배고파하면 시각 전에 줘도 돼요. 앞뒤 2시간 안의 수유는 그 차례로 칩니다. 최소량을 넘는 몫은 보충 수유로 점선 표시돼요.",
   feedPlanHintInterval:"그날 첫 수유 시각부터 간격을 세요. 아직 안 먹였으면 기준 시각부터.",
-  minUnit:"분", timesUnit:"회",
+  timesUnit:"회",
   patternTitle:"시간대 패턴", patternCaption:"세로축은 하루 24시간 · 항목을 눌러 켜고 끄세요", patternEmpty:"이 기간엔 기록이 없어요",
   /* ---- 내니 근무와 급여 ---- */
   tabPay:"급여", payTitle:"급여", payToday:"오늘 근무", payStamp:"출근 도장 찍기",
@@ -3284,6 +3322,12 @@ ko: {
   permissionHint:"기록은 누구나 고칠 수 있어요. 지우는 건 자기가 쓴 것만 — 엄마는 모두 지울 수 있어요.",
   masterTitle:"엄마 권한", masterPin:"엄마 전환 PIN",
   masterPinHint:"PIN을 걸어두면 다른 사람이 설정에서 '엄마'로 바꿀 수 없어요. 네 자리 숫자는 이 폰에서만 입력되고, 서버에는 알아볼 수 없는 형태로 저장돼요.",
+  pinSetShort:"있음", pinNoneShort:"없음",
+  hourUnitShort:"시간",
+  setGroupBaby:"아기와 사람", setGroupCare:"돌봄", setGroupRecord:"기록과 화면",
+  feedTimesCountTpl:"정해진 시각 {n}회", feedEveryTpl:"{h}마다",
+  customCountTpl:"커스텀 {n}개", typeCountTpl:"항목 {n}개",
+  quickCountTpl:"문구 {n}개", trashCountTpl:"{n}개 들어 있음", trashNone:"비어 있음",
   pinOn:"설정됨 · 눌러서 해제", pinOff:"없음 · 눌러서 설정", pinMasterOnlyShort:"엄마만 설정할 수 있어요",
   pinSetTitle:"PIN 설정", pinSetMsg:"'엄마'로 바꿀 때 물어볼 네 자리 숫자를 정해줘.",
   pinEnterTitle:"엄마 PIN", pinEnterMsg:"'엄마'로 바꾸려면 PIN 네 자리를 입력해줘.",
@@ -3366,7 +3410,7 @@ vi: {
   feedPlanMasterOnly:"Chỉ mẹ mới đổi được",
   feedPlanHintFixed:"Bé đói thì cho bú sớm hơn cũng được. Cữ bú trong vòng 2 tiếng trước/sau được tính cho giờ đó. Phần vượt mức tối thiểu hiện là cữ bú bù (nét đứt).",
   feedPlanHintInterval:"Tính cách quãng từ cữ bú đầu tiên trong ngày. Chưa bú thì tính từ giờ cữ đầu.",
-  minUnit:" phút", timesUnit:" cữ",
+  timesUnit:" cữ",
   patternTitle:"Mẫu hình theo giờ", patternCaption:"Trục dọc là 24 giờ · chạm để bật/tắt từng mục", patternEmpty:"Chưa có nhật ký trong khoảng này",
   /* ---- Chấm công và lương ---- */
   tabPay:"Lương", payTitle:"Lương", payToday:"Hôm nay", payStamp:"Điểm danh hôm nay",
@@ -3460,6 +3504,12 @@ vi: {
   permissionHint:"Ai cũng có thể sửa mọi ghi chép. Chỉ được xoá ghi chép của mình — Mẹ xoá được tất cả.",
   masterTitle:"Quyền của mẹ", masterPin:"Mã PIN để chuyển sang Mẹ",
   masterPinHint:"Đặt mã PIN thì người khác không thể tự đổi tên thành 'Mẹ' trong cài đặt. Bốn chữ số chỉ nhập trên máy này; máy chủ chỉ lưu dạng đã mã hoá.",
+  pinSetShort:"Có", pinNoneShort:"Chưa",
+  hourUnitShort:"giờ",
+  setGroupBaby:"Bé và người dùng", setGroupCare:"Chăm sóc", setGroupRecord:"Ghi chép và màn hình",
+  feedTimesCountTpl:"{n} cữ theo giờ cố định", feedEveryTpl:"Mỗi {h}",
+  customCountTpl:"{n} mục riêng", typeCountTpl:"{n} mục",
+  quickCountTpl:"{n} cụm từ", trashCountTpl:"Có {n} mục", trashNone:"Trống",
   pinOn:"Đã đặt · chạm để gỡ", pinOff:"Chưa đặt · chạm để đặt", pinMasterOnlyShort:"Chỉ Mẹ mới đặt được",
   pinSetTitle:"Đặt mã PIN", pinSetMsg:"Chọn bốn chữ số sẽ được hỏi khi chuyển sang 'Mẹ'.",
   pinEnterTitle:"Mã PIN của Mẹ", pinEnterMsg:"Nhập bốn chữ số để chuyển sang 'Mẹ'.",
@@ -3808,6 +3858,7 @@ var state = {
   lang: localStorage.getItem(LS_LANG) || 'ko',
   author: localStorage.getItem(LS_AUTHOR) || '',
   theme: localStorage.getItem(LS_THEME) || 'system',
+  setPage: null,      // 설정: null이면 목차, 아니면 그 하위 화면
   tab: 'record',
   entryId: null,
   adjustOpen: false,
@@ -9380,11 +9431,7 @@ function renderPaySettings(){
   var r = payroll(), master = isMasterUser();
   function row(label, value, key, unit){
     return '<div class="pay-line"><span>' + esc(label) + '</span>' +
-      (master
-        ? '<input class="num" data-pay-set="' + key + '" inputmode="decimal" value="' + esc(String(value)) + '" ' +
-          'style="width:110px;text-align:right;border:1px solid var(--border);background:var(--surface);color:var(--fg);border-radius:9px;padding:6px 8px;font-size:var(--fs-caption)" />'
-        : '<span class="num">' + esc(String(value)) + '</span>') +
-      (unit ? '<span class="pay-sub">' + esc(unit) + '</span>' : '') + '</div>';
+      setField(master, 'data-pay-set="' + key + '"', value, unit) + '</div>';
   }
   box.innerHTML =
     row(t('payDaily'), r.daily, 'daily', '₫') +
@@ -9392,11 +9439,9 @@ function renderPaySettings(){
     row(t('payMeal'), r.meal, 'meal', '₫') +
     row(t('payOtMul'), r.otMul, 'otMul', '×') +
     '<div class="pay-line"><span>' + esc(t('payStartTime')) + '</span>' +
-      (master ? '<input class="num" type="time" data-pay-set="startTime" value="' + esc(r.startTime) + '" style="margin-left:auto;border:1px solid var(--border);background:var(--surface);color:var(--fg);border-radius:9px;padding:6px 8px;font-size:var(--fs-caption)" />'
-              : '<span class="num">' + esc(r.startTime) + '</span>') + '</div>' +
+      setField(master, 'data-pay-set="startTime"', r.startTime, '', 'type="time"') + '</div>' +
     '<div class="pay-line"><span>' + esc(t('payStart')) + '</span>' +
-      (master ? '<input class="num" type="date" data-pay-set="startDate" value="' + esc(r.startDate) + '" style="margin-left:auto;border:1px solid var(--border);background:var(--surface);color:var(--fg);border-radius:9px;padding:6px 8px;font-size:var(--fs-caption)" />'
-              : '<span class="num">' + esc(r.startDate) + '</span>') + '</div>' +
+      setField(master, 'data-pay-set="startDate"', r.startDate, '', 'type="date"') + '</div>' +
     '<div class="hint-line" style="padding-top:8px">' +
       esc(t('payPerMin').replace('{n}', String(Math.round(otPerMinute())).replace(/\B(?=(\d{3})+(?!\d))/g, state.lang === 'vi' ? '.' : ','))) +
       (master ? '' : ' · ' + esc(t('payMasterOnly'))) + '</div>';
@@ -9438,37 +9483,46 @@ function renderGrowth(){
    ================================================================ */
 /* 수유 계획 설정. 규칙은 이미 한 번 바뀌었고 또 바뀐다 — 코드에 박아두면
    그때마다 배포를 해야 하므로 여기서 고칠 수 있게 둔다. 엄마만 수정. */
+/* 설정의 값 칸은 한 모양이다: 폭 하나, 단위는 칸 안쪽. 엄마가 아니면
+   테두리 없이 값만 — 읽는 줄과 고치는 줄이 같은 자리에 선다. */
+function setField(master, attrs, value, unit, extra){
+  if (!master){
+    return '<span class="set-field ro"><span class="v">' + esc(String(value)) +
+      '</span>' + (unit ? '<span class="u">' + esc(unit) + '</span>' : '') + '</span>';
+  }
+  return '<span class="set-field"><input ' + attrs + ' ' + (extra || 'inputmode="decimal"') +
+    ' value="' + esc(String(value)) + '" />' +
+    (unit ? '<span class="u">' + esc(unit) + '</span>' : '') + '</span>';
+}
 function renderFeedSettings(){
   var box = document.getElementById('feed-settings');
   if (!box) return;
   var p = readFeedPlan(), master = isMasterUser();
-  var inpStyle = 'border:1px solid var(--border);background:var(--surface);color:var(--fg);' +
-    'border-radius:9px;padding:6px 8px;font-size:var(--fs-caption)';
-  function numRow(label, value, key, unit){
+  function numRow(label, value, key, unit, attr){
     return '<div class="pay-line"><span>' + esc(label) + '</span>' +
-      (master
-        ? '<input class="num" data-feed-set="' + key + '" inputmode="numeric" value="' + esc(String(value)) + '" ' +
-          'style="width:92px;text-align:right;' + inpStyle + '" />'
-        : '<span class="num">' + esc(String(value)) + '</span>') +
-      (unit ? '<span class="pay-sub">' + esc(unit) + '</span>' : '') + '</div>';
+      setField(master, 'data-feed-set="' + key + '"', value, unit, attr) + '</div>';
   }
   function timeRow(label, value, key){
     return '<div class="pay-line"><span>' + esc(label) + '</span>' +
-      (master
-        ? '<input data-feed-set="' + key + '" type="time" value="' + esc(value) + '" ' +
-          'style="margin-left:auto;' + inpStyle + '" />'
-        : '<span class="num">' + esc(value) + '</span>') + '</div>';
+      setField(master, 'data-feed-set="' + key + '"', value, '', 'type="time"') + '</div>';
+  }
+  /* 사람은 "네 시간에 한 번"이라고 말하지 240분이라고 하지 않는다. 메모에도
+     그렇게 썼다. 저장은 분으로 하되 보여주는 건 시간 — 30분 단위까지. */
+  function hourRow(label, minutes, key){
+    return '<div class="pay-line"><span>' + esc(label) + '</span>' +
+      setField(master, 'data-feed-hours="' + key + '"', (Math.round(minutes / 3) / 20),
+               t('hourUnitShort'), 'inputmode="decimal" step="0.5"') + '</div>';
   }
   /* 모드 칩은 라벨 오른쪽에 붙이면 베트남어에서 320px를 넘겨 화면이 옆으로
      밀린다 — 라벨 아래 줄에 깔고 좁아지면 감싸게 둔다 */
   var html = '<div class="pay-line" style="display:block"><span>' + esc(t('feedPlanMode')) + '</span>' +
-    '<span style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">' +
+    '<div class="seg" style="margin-top:8px">' +
       ['fixed','interval'].map(function(m){
-        return '<button type="button" class="chip" data-feed-mode="' + m + '"' +
+        return '<button type="button" data-feed-mode="' + m + '"' +
           (master ? '' : ' disabled') +
           ' aria-pressed="' + (p.mode === m) + '">' +
           esc(t(m === 'fixed' ? 'feedPlanModeFixed' : 'feedPlanModeInterval')) + '</button>';
-      }).join('') + '</span></div>';
+      }).join('') + '</div></div>';
 
   if (p.mode === 'fixed'){
     /* 시각 칸도 라벨 오른쪽에 밀어넣으면 "수유 시각"이 두 줄로 접히면서
@@ -9478,7 +9532,8 @@ function renderFeedSettings(){
       p.times.map(function(hm, i){
         return master
           ? '<span style="display:inline-flex;align-items:center">' +
-              '<input data-feed-time="' + i + '" type="time" value="' + esc(hm) + '" style="' + inpStyle + '" />' +
+              '<span class="set-field" style="margin-left:0;width:auto">' +
+                '<input data-feed-time="' + i + '" type="time" value="' + esc(hm) + '" style="text-align:center" /></span>' +
               (p.times.length > 1
                 ? '<button type="button" class="feed-time-x" data-feed-time-del="' + i + '" aria-label="' + esc(t('delete')) + '">×</button>'
                 : '') +
@@ -9491,18 +9546,18 @@ function renderFeedSettings(){
       '</span></div>';
   } else {
     html += timeRow(t('feedPlanStartTime'), p.startTime, 'startTime');
-    html += numRow(t('feedPlanInterval'), p.intervalMin, 'intervalMin', t('minUnit'));
+    html += hourRow(t('feedPlanInterval'), p.intervalMin, 'intervalMin');
     html += numRow(t('feedPlanCount'), p.count, 'count', t('timesUnit'));
   }
   html += numRow(t('feedPlanPerFeed'), p.perFeed, 'perFeed', t('mlUnit'));
   /* 최소량은 위의 두 값에서 나온다 — 고칠 수 있게 두면 어긋나기만 한다 */
   html += '<div class="pay-line"><span>' + esc(t('feedPlanMinTarget')) + '</span>' +
-    '<span class="num" style="margin-left:auto">' + p.minTarget + esc(t('mlUnit')) + '</span>' +
+    '<div class="pay-val"><span class="num">' + p.minTarget + esc(t('mlUnit')) + '</span>' +
     '<span class="pay-sub">' + esc(t('feedTargetCalcTpl')
       .replace('{n}', String(p.perFeed)).replace('{u}', t('mlUnit'))
-      .replace('{c}', String(p.slotCount))) + '</span></div>';
+      .replace('{c}', String(p.slotCount))) + '</span></div></div>';
   html += numRow(t('feedPlanTarget'), p.goal, 'goal', t('mlUnit'));
-  html += numRow(t('feedPlanMaxGap'), p.maxGapMin, 'maxGapMin', t('minUnit'));
+  html += hourRow(t('feedPlanMaxGap'), p.maxGapMin, 'maxGapMin');
   html += timeRow(t('feedPlanQuiet'), p.quietFrom, 'quietFrom');
   box.innerHTML = html;
 
@@ -9518,6 +9573,15 @@ function renderFeedSettings(){
       .then(function(){ renderFeedSettings(); renderNextFeed(); })
       .catch(function(e){ toast(e.message); renderFeedSettings(); });
   }
+  $$('[data-feed-hours]', box).forEach(function(inp){
+    inp.addEventListener('change', function(){
+      var h = Number(inp.value);
+      if (!isFinite(h) || h <= 0){ renderFeedSettings(); return; }
+      var payload = {};
+      payload[inp.dataset.feedHours] = Math.round(h * 60);
+      push(payload);
+    });
+  });
   $$('[data-feed-mode]', box).forEach(function(b){
     b.addEventListener('click', function(){ push({ mode: b.dataset.feedMode }); });
   });
@@ -9548,7 +9612,93 @@ function renderFeedSettings(){
     push({ times: p.times.concat([minToHm(Math.min(23*60+30, last + p.intervalMin))]) });
   });
 }
+/* ---- 설정 라우터 ----
+   목차 한 화면 + 하위 화면 여덟. 하위 화면의 마크업은 예전 그대로이고
+   감싸기만 했으므로 id에 걸린 배선이 전부 살아 있다. */
+var SET_PAGES = [
+  { key:'baby',   group:'baby',   title:'babyInfo' },
+  { key:'who',    group:'baby',   title:'whoAmI' },
+  { key:'feed',   group:'care',   title:'feedPlanTitle' },
+  { key:'pay',    group:'care',   title:'payTitle' },
+  { key:'types',  group:'record', title:'customTypes' },
+  { key:'order',  group:'record', title:'typeOrder' },
+  { key:'quick',  group:'record', title:'quickWordsTitle' },
+  { key:'trash',  group:'record', title:'trashTitle' },
+  { key:'screen', group:'record', title:'appearance' }
+];
+function openSetPage(key){
+  state.setPage = key || null;
+  renderSettings();
+  var panel = document.getElementById('tab-settings');
+  if (panel) panel.scrollTop = 0;
+  window.scrollTo(0, 0);
+}
+/* 목차 줄마다 지금 값을 한 줄로 요약한다 — 열지 않아도 "일급 800,000 ₫"을
+   읽을 수 있어야 목차가 목차값을 한다. */
+function setPageSummary(key){
+  var r = payroll(), p = readFeedPlan();
+  if (key === 'baby'){
+    var n = babyNames(), prof = appState.profile || {};
+    return [n.ko, n.vi, prof.birth || ''].filter(Boolean).join(' · ');
+  }
+  if (key === 'who'){
+    return canonAuthorName(state.author) + ' · ' + t('masterPin') + ' ' +
+      (hasMasterPin() ? t('pinSetShort') : t('pinNoneShort'));
+  }
+  if (key === 'feed'){
+    return (p.mode === 'fixed'
+        ? t('feedTimesCountTpl').replace('{n}', p.times.length)
+        : t('feedEveryTpl').replace('{h}', fmtWorkDur(p.intervalMin))) +
+      ' · ' + p.perFeed + t('mlUnit') +
+      ' · ' + t('feedPlanMinTarget') + ' ' + p.minTarget + t('mlUnit');
+  }
+  if (key === 'pay') return t('payDaily') + ' ' + fmtVnd(r.daily) + ' · ' + t('payStart') + ' ' + r.startDate;
+  if (key === 'types'){
+    var n = readCustomTypes().length;
+    return n ? t('customCountTpl').replace('{n}', n) : t('noCustomTypes');
+  }
+  if (key === 'order') return t('typeCountTpl').replace('{n}', allTypesInOrder().length);
+  if (key === 'quick'){
+    var tot = (appState.quickWords || []).length;
+    return tot ? t('quickCountTpl').replace('{n}', tot) : t('noQuickWords');
+  }
+  if (key === 'trash'){
+    var n2 = (appState.trash || []).length;
+    return n2 ? t('trashCountTpl').replace('{n}', n2) : t('trashNone');
+  }
+  if (key === 'screen') return t('theme') + ' · ' + t(state.theme === 'light' ? 'themeLight' : state.theme === 'dark' ? 'themeDark' : 'themeAuto');
+  return '';
+}
+function renderSetIndex(){
+  var box = document.getElementById('set-index');
+  if (!box) return;
+  var groups = [['baby','setGroupBaby'], ['care','setGroupCare'], ['record','setGroupRecord']];
+  box.innerHTML = groups.map(function(g){
+    var rows = SET_PAGES.filter(function(x){ return x.group === g[0]; }).map(function(x){
+      return '<button type="button" class="row-item set-row" data-set-go="' + x.key + '">' +
+        '<div class="grow"><div class="r-label">' + esc(t(x.title)) + '</div>' +
+        '<div class="r-sub">' + esc(setPageSummary(x.key)) + '</div></div>' +
+        '<span class="r-chev">›</span></button>';
+    }).join('');
+    return '<div class="section-title">' + esc(t(g[1])) + '</div><div class="card">' + rows + '</div>';
+  }).join('');
+  $$('[data-set-go]', box).forEach(function(b){
+    b.addEventListener('click', function(){ openSetPage(b.dataset.setGo); });
+  });
+}
 function renderSettings(){
+  /* 목차냐 하위 화면이냐 */
+  var key = state.setPage;
+  var meta = SET_PAGES.filter(function(x){ return x.key === key; })[0] || null;
+  if (!meta) key = state.setPage = null;
+  var idx = document.getElementById('set-index');
+  var sub = document.getElementById('set-sub');
+  if (idx) idx.hidden = !!key;
+  if (sub) sub.hidden = !key;
+  $$('.set-page').forEach(function(el){ el.hidden = el.dataset.setPage !== key; });
+  var ttl = document.getElementById('set-sub-title');
+  if (ttl) ttl.textContent = meta ? t(meta.title) : '';
+  if (!key) renderSetIndex();
   renderFeedSettings();
   renderPaySettings();
   renderAuthorChips('author-chip-row', state.author, function(name){ setAuthor(name); });
@@ -11588,7 +11738,7 @@ function switchTab(name){
   if (name === 'stats') syncInsight();
   if (name === 'growth') renderGrowth();
   if (name === 'pay') renderPay();
-  if (name === 'settings') renderSettings();
+  if (name === 'settings'){ state.setPage = null; renderSettings(); }
   /* 메모탭에 들어가 있는 동안에는 뱃지를 달아두지 않는다 — 눈앞에 있는 걸
      가리킬 이유가 없고, 나갈 때 markMemosRead가 정리한다 */
   syncMemoBadge();
@@ -11708,6 +11858,8 @@ function wireEvents(){
     renderGrowthAlbum();
   });
   document.getElementById('btn-settings').addEventListener('click', function(){ switchTab('settings'); });
+  var setBack = document.getElementById('set-back');
+  if (setBack) setBack.addEventListener('click', function(){ openSetPage(null); });
   $$('#pay-tabs button').forEach(function(b){
     b.addEventListener('click', function(){ state.paySub = b.dataset.pv; renderPay(); window.scrollTo(0, 0); });
   });
