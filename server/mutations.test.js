@@ -190,3 +190,57 @@ console.log('ALL MUTATION TESTS PASSED');
 
   console.log('PASS  수유 계획 (setFeedPlan)');
 })();
+
+/* ---- 유급 연차 ---- */
+(function leaveTests(){
+  const base = () => ({ shifts: [], leaves: [], ot: [], payPeriods: [],
+    payroll: { daily: 800000, hourly: 70000, meal: 100000, otMul: 1.5,
+               startDate: '2026-08-07', leaveDays: 11, leavePay: 800000 } });
+  let st = base();
+  let r = applyMutation(st, 'addLeave', { date: '2026-09-22', actor: '내니', author: '내니' });
+  assert.equal(r.result.leave.status, 'pending', '내니가 넣으면 승인 대기');
+  st = r.state;
+  r = applyMutation(st, 'approveLeave', { id: r.result.leave.id, actor: '엄마' });
+  assert.equal(r.result.leave.status, 'ok', '엄마가 승인하면 확정');
+  st = r.state;
+
+  /* 엄마가 직접 넣으면 승인 절차 없이 바로 */
+  r = applyMutation(st, 'addLeave', { date: '2026-09-23', actor: '엄마', author: '엄마' });
+  assert.equal(r.result.leave.status, 'ok', '엄마가 넣으면 바로 확정');
+  st = r.state;
+
+  /* 같은 날 두 번은 오류가 아니다 */
+  r = applyMutation(st, 'addLeave', { date: '2026-09-23', actor: '엄마' });
+  assert.equal(r.result.alreadyLeave, true, '같은 날 두 번은 그냥 알려준다');
+  st = r.state;
+  assert.equal(st.leaves.length, 2, '...연차가 늘지 않는다');
+
+  /* 연차인 날은 출근이 될 수 없고, 그 반대도 */
+  assert.throws(() => applyMutation(st, 'stampIn', { date: '2026-09-23', today: '2026-09-23', actor: '내니' }),
+    /on leave/, '연차인 날엔 도장을 못 찍는다');
+  let st2 = applyMutation(st, 'stampIn', { date: '2026-09-25', today: '2026-09-25', actor: '내니' }).state;
+  assert.throws(() => applyMutation(st2, 'addLeave', { date: '2026-09-25', actor: '엄마' }),
+    /work day/, '출근한 날은 연차가 될 수 없다');
+
+  /* 승인 전에는 본인이 거둘 수 있고, 승인된 것은 엄마만 */
+  let st3 = applyMutation(base(), 'addLeave', { date: '2026-09-22', actor: '내니', author: '내니' }).state;
+  const pid = st3.leaves[0].id;
+  st3 = applyMutation(st3, 'deleteLeave', { id: pid, actor: '내니' }).state;
+  assert.equal(st3.leaves.length, 0, '승인 전 자기 신청은 스스로 거둔다');
+  let st4 = applyMutation(base(), 'addLeave', { date: '2026-09-22', actor: '엄마' }).state;
+  assert.throws(() => applyMutation(st4, 'deleteLeave', { id: st4.leaves[0].id, actor: '내니' }),
+    /not-owner/, '승인된 연차는 내니가 못 지운다');
+
+  /* 급여에 하루치로 들어가고, 굳는다 */
+  let st5 = base();
+  st5 = applyMutation(st5, 'stampIn', { date: '2026-09-16', today: '2026-09-16', actor: '엄마' }).state;
+  st5 = applyMutation(st5, 'addLeave', { date: '2026-09-22', actor: '엄마' }).state;
+  r = applyMutation(st5, 'markPaid', { from: '2026-09-16', to: '2026-09-30', actor: '엄마' });
+  assert.equal(r.result.period.amount, 1600000, '근무 1일 + 연차 1일 = 1,600,000');
+  assert.equal(r.result.period.days, 1, '...근무일은 1일');
+  assert.equal(r.result.period.leaveDays, 1, '...연차는 따로 1일');
+  /* 연차 금액을 바꿔도 굳은 기간은 안 움직인다 */
+  let st6 = applyMutation(r.state, 'setPayroll', { actor: '엄마', leavePay: 700000 }).state;
+  assert.equal(st6.payPeriods[0].amount, 1600000, '굳은 금액은 안 움직인다');
+  console.log('PASS  유급 연차 (addLeave/approveLeave/deleteLeave/markPaid)');
+})();

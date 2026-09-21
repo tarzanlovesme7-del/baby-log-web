@@ -24,13 +24,17 @@ const EMPTY_STATE = {
   /* ---- 내니 근무와 급여 ----
      shifts   [{id,date,at,by,status}]           status: 'ok' | 'pending'(소급 요청)
      ot       [{id,date,start,end,by,status}]    시각으로 넣고 분 단위로 계산
-     payPeriods [{id,from,to,payday,amount,days,otMin,paidAt,paidBy}]
+     leaves   [{id,date,at,by,status}]           유급 연차. 엄마가 넣으면 바로 'ok',
+                 내니가 넣으면 'pending'. 같은 날 출근과 연차는 서로를 막는다.
+     payPeriods [{id,from,to,payday,amount,days,otMin,leaveDays,paidAt,paidBy}]
                  입금 완료를 누른 순간의 금액으로 굳는다
-     payroll  일급·시급·식대·배율·시작일 */
+     payroll  일급·시급·식대·배율·시작일·연차(일수·하루 금액) */
   shifts: [],
   ot: [],
+  leaves: [],
   payPeriods: [],
-  payroll: { daily: 800000, hourly: 70000, meal: 100000, otMul: 1.5, startDate: '2026-09-16' },
+  payroll: { daily: 800000, hourly: 70000, meal: 100000, otMul: 1.5, startDate: '2026-09-16',
+             leaveDays: 11, leavePay: 800000 },
   /* 수유 계획. 'fixed'는 정해진 시각에, 'interval'은 그날 첫 수유로부터
      일정 간격으로. maxGapMin은 배고파하지 않아도 이 시간을 넘기지는 말라는
      한계선이고, quietFrom 이후로는 밤이라 배너를 띄우지 않는다. */

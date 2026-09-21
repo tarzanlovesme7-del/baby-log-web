@@ -1512,6 +1512,8 @@
   /* ---------- 급여 ---------- */
   /* 헤더 톱니. .ui-ico를 빌려 쓰면 그 클래스가 다른 곳에서 받는 크기 규칙에
      끌려가 점 하나로 쪼그라든다 — 자기 규칙을 갖는다. */
+  /* 이름이 정해지지 않은 채로는 기록이 나가지 않는다. 그래도 눈에 보여야 한다 */
+  #btn-profile.no-author{ box-shadow:0 0 0 2px var(--danger); }
   .hd-gear{ border:0; background:transparent; padding:6px; margin-left:2px; color:var(--muted);
     display:inline-flex; align-items:center; flex:0 0 auto; }
   .hd-gear svg{ width:22px; height:22px; display:block; fill:none; stroke:currentColor;
@@ -1655,6 +1657,11 @@
   .gcal-day .pay-dot{ width:7px; height:7px; border-radius:50%; background:var(--fg); display:block;
     margin:2px auto 0; }
   .gcal-day .pay-dot.pending{ background:transparent; border:1.5px solid var(--muted-2); }
+  /* 연차는 초록. 브랜드 색을 하나 더 만드는 게 아니라 의미색(--ok-fg)을
+     쓰는 것이다 — "쉬는 날/출근"이 색 하나로 갈린다. 승인 대기는 출근과 같은
+     규칙으로 속을 비운다(채워지면 확정). */
+  .gcal-day .pay-dot.leave{ background:var(--ok-fg); }
+  .gcal-day .pay-dot.leave.pending{ background:transparent; border:1.5px solid var(--ok-fg); }
   .gcal-day .pay-ot{ position:absolute; top:2px; right:4px; font-size:var(--fs-micro); line-height:1;
     color:var(--primary-weak-fg, var(--primary)); font-weight:var(--fw-body); }
   .ot-sum{ margin-top:6px; padding:12px; border-radius:12px; background:var(--surface-2);
@@ -2754,6 +2761,9 @@
       <div class="card pay-today" id="pay-today"></div>
       <!-- 엄마 폰에만, 승인 기다리는 것이 있을 때만 -->
       <div id="pay-approvals"></div>
+      <!-- 내니 폰에만: 내가 보낸 것이 어떻게 됐는지. 연차는 미리 신청하는
+           것이라, 승인됐는지 모르면 그날 출근해야 할지를 알 수 없다. -->
+      <div id="pay-mine"></div>
       <div class="card gcal-card" id="pay-cal-card">
         <div class="pay-cal-head">
           <div class="t-card" id="pay-title"></div>
@@ -2778,6 +2788,9 @@
     <div class="ins-panel" data-pv-panel="settle" hidden>
       <!-- 얼마인지가 먼저. 내니는 이걸 보러 들어오고, 엄마는 이걸 보고 보낸다 -->
       <div class="card" id="pay-period"></div>
+      <!-- 올해 연차: 몇 일 중 몇 일 썼는지. 내니가 물어보면 이 화면을 보여준다 -->
+      <div class="section-title t-label" data-i18n="leaveYearTitle" style="margin-bottom:0">올해 연차</div>
+      <div class="card" id="pay-leave-year"></div>
       <div class="section-title t-label" data-i18n="payPast" style="margin-bottom:0">지난 급여</div>
       <div class="card" id="pay-history"></div>
     </div>
@@ -3245,14 +3258,24 @@ ko: {
   payNoStamp:"이 날은 출근 기록이 없어요", payRemove:"지우기",
   payClose:"닫기",
   payStampNotYet:"아직 출근 도장 전이에요",
-  payCalHint:"날짜를 눌러 그 날 시간 고치기",
+  payCalHint:"날짜를 눌러 그 날 고치기",
+  payFutureDay:"아직 안 온 날",
+  leaveLabel:"연차", leaveMark:"연차로 표시", leaveAsk:"연차 신청", leaveCancel:"신청 취소",
+  leaveDaysTpl:"연차 {n}일", leaveLeftTpl:"남은 연차 {n}일",
+  leaveLeftOfTpl:"남은 연차 {left}일 중 {n}일",
+  leaveOverWarn:"남은 연차가 없어요 — 초과분이에요",
+  leaveYearTitle:"올해 연차", leaveUsedTpl:"{y}년 · {total}일 중 {n}일 씀",
+  leaveWaitingTpl:"승인 기다리는 것 {n}일",
+  leaveResetHint:"12월 31일에 다시 채워져요 (이월 없음)",
+  leaveDaysLabel:"연차 일수", leavePayLabel:"연차 하루 금액", dayUnitShort:"일",
+  mineWaitingTpl:"엄마 승인 기다리는 중 · {n}",
   payPendingCountTpl:"승인 대기 {n}",
   payDueTitleTpl:"{d}에 드릴 금액",
   payDueToday:"오늘", payInDaysTpl:"{n}일 뒤", payInWeeksTpl:"{n}주 뒤", payOverdueTpl:"{n}일 지남",
   payUnpaidCountTpl:"지난 급여 · 안 드린 게 {n}건 있어요",
   payUnpaidSoft:"아직 안 드림", payOverdueChip:"지급일 지남",
   payOtLabel:"오버타임",
-  payNext:"다음 지급일", payPeriodTpl:"{from} – {to}", payDaysTpl:"근무 {n}일",
+  payPeriodTpl:"{from} – {to}", payDaysTpl:"근무 {n}일",
   payOtTpl:"오버타임 {t}", payPast:"지난 급여", payNoPast:"아직 없어요. 첫 지급은 {d}이에요.",
   payMarkPaid:"입금 완료로 표시", payPaidAt:"입금 완료 {d}",
   payPaidUndo:"입금 취소", payFrozen:"입금 완료된 기간은 금액이 바뀌지 않아요",
@@ -3322,6 +3345,7 @@ ko: {
   permissionHint:"기록은 누구나 고칠 수 있어요. 지우는 건 자기가 쓴 것만 — 엄마는 모두 지울 수 있어요.",
   masterTitle:"엄마 권한", masterPin:"엄마 전환 PIN",
   masterPinHint:"PIN을 걸어두면 다른 사람이 설정에서 '엄마'로 바꿀 수 없어요. 네 자리 숫자는 이 폰에서만 입력되고, 서버에는 알아볼 수 없는 형태로 저장돼요.",
+  whoAmIFirst:"먼저 이름을 골라주세요",
   pinSetShort:"있음", pinNoneShort:"없음",
   hourUnitShort:"시간",
   setGroupBaby:"아기와 사람", setGroupCare:"돌봄", setGroupRecord:"기록과 화면",
@@ -3427,14 +3451,24 @@ vi: {
   payNoStamp:"Ngày này chưa điểm danh", payRemove:"Xoá",
   payClose:"Đóng",
   payStampNotYet:"Chưa điểm danh",
-  payCalHint:"Chạm vào một ngày để sửa giờ",
+  payCalHint:"Chạm vào một ngày để sửa",
+  payFutureDay:"Chưa đến ngày",
+  leaveLabel:"Nghỉ phép", leaveMark:"Đánh dấu nghỉ phép", leaveAsk:"Xin nghỉ phép", leaveCancel:"Huỷ yêu cầu",
+  leaveDaysTpl:"{n} ngày phép", leaveLeftTpl:"Còn {n} ngày phép",
+  leaveLeftOfTpl:"{n} ngày trong {left} ngày còn lại",
+  leaveOverWarn:"Đã hết ngày phép — vượt quá",
+  leaveYearTitle:"Ngày phép năm nay", leaveUsedTpl:"Năm {y} · đã dùng {n}/{total} ngày",
+  leaveWaitingTpl:"Đang chờ duyệt {n} ngày",
+  leaveResetHint:"Làm mới ngày 31/12 (không cộng dồn)",
+  leaveDaysLabel:"Số ngày phép", leavePayLabel:"Tiền một ngày phép", dayUnitShort:"ngày",
+  mineWaitingTpl:"Đang chờ mẹ duyệt · {n}",
   payPendingCountTpl:"Chờ duyệt {n}",
   payDueTitleTpl:"Sẽ trả ngày {d}",
   payDueToday:"Hôm nay", payInDaysTpl:"{n} ngày nữa", payInWeeksTpl:"{n} tuần nữa", payOverdueTpl:"Trễ {n} ngày",
   payUnpaidCountTpl:"Lương kỳ trước · còn {n} kỳ chưa trả",
   payUnpaidSoft:"Chưa trả", payOverdueChip:"Quá hạn",
   payOtLabel:"Tăng ca",
-  payNext:"Kỳ lương tới", payPeriodTpl:"{from} – {to}", payDaysTpl:"{n} ngày công",
+  payPeriodTpl:"{from} – {to}", payDaysTpl:"{n} ngày công",
   payOtTpl:"Tăng ca {t}", payPast:"Lương đã trả", payNoPast:"Chưa có · kỳ đầu tiên là {d}",
   payMarkPaid:"Đánh dấu đã trả", payPaidAt:"Đã trả {d}",
   payPaidUndo:"Bỏ đánh dấu", payFrozen:"Kỳ đã trả thì số tiền không đổi nữa",
@@ -3504,6 +3538,7 @@ vi: {
   permissionHint:"Ai cũng có thể sửa mọi ghi chép. Chỉ được xoá ghi chép của mình — Mẹ xoá được tất cả.",
   masterTitle:"Quyền của mẹ", masterPin:"Mã PIN để chuyển sang Mẹ",
   masterPinHint:"Đặt mã PIN thì người khác không thể tự đổi tên thành 'Mẹ' trong cài đặt. Bốn chữ số chỉ nhập trên máy này; máy chủ chỉ lưu dạng đã mã hoá.",
+  whoAmIFirst:"Hãy chọn tên của bạn trước",
   pinSetShort:"Có", pinNoneShort:"Chưa",
   hourUnitShort:"giờ",
   setGroupBaby:"Bé và người dùng", setGroupCare:"Chăm sóc", setGroupRecord:"Ghi chép và màn hình",
@@ -4122,6 +4157,19 @@ function remapShiftId(tempId, realId){
   /* 시트는 readShifts()가 만든 복사본을 들고 있어서 위 루프가 닿지 않는다 */
   if (endSheetShift && endSheetShift.id === tempId) endSheetShift.id = realId;
 }
+/* 이름을 고르기 전에 아웃박스에 실려 있던 쓰기가 있다면(앱을 껐다 켠 사이에
+   쌓인 것들), 그것들도 이 이름으로 나간다. 안 그러면 방금 이름을 골랐는데도
+   그 몇 건만 이름 없이 도착한다. */
+function adoptAuthorInOutbox(name){
+  if (!name) return;
+  var touched = false;
+  outbox.forEach(function(w){
+    if (!w || !w.payload) return;
+    if (w.payload.author === '' || w.payload.author === undefined){ w.payload.author = name; touched = true; }
+    if (w.payload.actor === '' || w.payload.actor === undefined){ w.payload.actor = name; touched = true; }
+  });
+  if (touched) outboxSave();
+}
 function outboxDrop(mid){
   outbox = outbox.filter(function(w){ return w.mid !== mid; });
   outboxSave();
@@ -4185,6 +4233,9 @@ function outboxDrain(){
     if (w.payload && w.payload.tempId && json && json.result && json.result.shift){
       remapShiftId(w.payload.tempId, json.result.shift.id);
     }
+    if (w.payload && w.payload.tempId && json && json.result && json.result.leave){
+      remapLeaveId(w.payload.tempId, json.result.leave.id);
+    }
     applyServerState(json);
     outboxDrop(w.mid);
     outboxTries = 0;
@@ -4226,7 +4277,22 @@ function outboxDrain(){
     outboxTimer = setTimeout(outboxDrain, wait);
   });
 }
+/* 이름 없이 기록이 나가는 것을 여기 한 곳에서 막는다.
+
+   2026-09-21 아침, 내니 폰의 localStorage에서 이름이 사라진 채로 앱이 열렸다.
+   첫 실행 시트가 뜨긴 했지만 바깥을 누르면 닫히는 시트여서, 닫힌 뒤로는
+   출근 도장 하나와 기록 11건이 전부 `author: ""`로 저장됐다 — 누가 썼는지
+   영영 알 수 없는 기록이다. 작성자 시스템이 막으려던 바로 그 일이다.
+
+   그래서 두 겹으로 막는다: 시트를 못 닫게 하고(아래 openProfilePicker),
+   그래도 새어나갈 길이 있을지 모르니 쓰기 자체를 여기서 세운다. 이름을
+   정하는 쓰기(addCustomAuthor)만 통과시킨다 — 그게 막히면 나갈 길이 없다. */
+var AUTHORLESS_OK = { addCustomAuthor: 1, setMasterPin: 1 };
 function apiMutate(type, payload){
+  if (!state.author && !AUTHORLESS_OK[type]){
+    openProfilePicker();
+    return Promise.reject(new Error(t('whoAmIFirst')));
+  }
   /* a caller may pin the write id — the payday memo does, so that three phones
      posting the same summary end up with one memo, not three */
   var pinned = payload && typeof payload.mid === 'string' ? payload.mid : '';
@@ -5050,9 +5116,11 @@ function renderProfilePill(){
   var pill = document.getElementById('profile-pill-text');
   if (!pill || !btn) return;
   var name = state.author ? localizeAuthorName(state.author) : t('whoAmI');
-  pill.textContent = (name.trim().charAt(0) || '?').toUpperCase();
+  /* 이름이 없는 상태가 조용하면 안 된다 — 그대로 하루를 기록해버린 적이 있다 */
+  pill.textContent = state.author ? (name.trim().charAt(0) || '?').toUpperCase() : '!';
+  btn.classList.toggle('no-author', !state.author);
   btn.title = name;
-  var hue = state.author ? avatarColor(name) : 'var(--muted-2)';
+  var hue = state.author ? avatarColor(name) : 'var(--danger)';
   btn.style.background = 'color-mix(in srgb, '+hue+' 35%, var(--surface))';
   /* the letter leans toward the theme's text colour, so it stays legible on
      that pale chip in light mode and on the dark one at night */
@@ -8654,7 +8722,10 @@ function payroll(){
     otMul: Number(p.otMul) || 1.5,
     startDate: /^\d{4}-\d{2}-\d{2}$/.test(p.startDate || '') ? p.startDate : '2026-09-16',
     /* 계약상 근무는 07:00~17:00. 단축 근무한 날의 실근시간을 여기서부터 센다 */
-    startTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(p.startTime || '') ? p.startTime : '07:00'
+    startTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(p.startTime || '') ? p.startTime : '07:00',
+    /* 유급 연차 — 합의한 고정값(11일), 하루 금액은 일당 그대로 */
+    leaveDays: isFinite(Number(p.leaveDays)) && Number(p.leaveDays) >= 0 ? Number(p.leaveDays) : 11,
+    leavePay: isFinite(Number(p.leavePay)) && Number(p.leavePay) >= 0 ? Number(p.leavePay) : 800000
   };
 }
 function otPerMinute(){ var r = payroll(); return (r.hourly * r.otMul) / 60; }
@@ -8665,6 +8736,12 @@ function readShifts(){
                 채워져 있으면 나머지는 계약상 시각으로 친다. */
              start: x.start || '', end: x.end || '',
              timeStatus: x.timeStatus || '', timeBy: x.timeBy || '' };
+  }).sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+}
+/* 유급 연차. shifts와 같은 모양이라 읽는 방식도 같다. */
+function readLeaves(){
+  return (appState.leaves || []).map(function(x){
+    return { id: x.id, date: x.date, at: x.at || '', by: x.by || '', status: x.status || 'ok' };
   }).sort(function(a, b){ return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
 }
 function readOt(){
@@ -8748,22 +8825,40 @@ function periodTotals(from, to){
   var days = readShifts().filter(function(x){ return x.status === 'ok' && x.date >= from && x.date <= to; });
   var mins = readOt().filter(function(x){ return x.status === 'ok' && x.date >= from && x.date <= to; })
     .reduce(function(n, x){ return n + otMins(x); }, 0);
-  return { days: days.length, otMin: mins,
+  var lv = readLeaves().filter(function(x){ return x.status === 'ok' && x.date >= from && x.date <= to; });
+  return { days: days.length, otMin: mins, leaveDays: lv.length,
            short: days.filter(isShortDay).length,
+           dayWages: days.reduce(function(n, sh){ return n + shiftWage(sh); }, 0),
+           leaveWages: lv.length * payroll().leavePay,
            amount: days.reduce(function(n, sh){ return n + shiftWage(sh); }, 0) +
+                   lv.length * payroll().leavePay +
                    Math.round(mins * otPerMinute()) };
 }
 function paidPeriod(from, to){
   return readPayPeriods().filter(function(p){ return p.from === from && p.to === to; })[0] || null;
 }
 function shiftOn(ds){ return readShifts().filter(function(x){ return x.date === ds; })[0] || null; }
+function leaveOn(ds){ return readLeaves().filter(function(x){ return x.date === ds; })[0] || null; }
+/* 남은 연차는 역년 기준으로 센다 — 12월 31일에 리셋되고 이월은 없다.
+   승인된 것만 쓴 것으로 치고, 대기 중인 건 따로 보여준다(승인되면 줄어든다). */
+function leaveYear(ds){ return (ds || toDateValue()).slice(0, 4); }
+function leaveStat(ds){
+  var y = leaveYear(ds), r = payroll();
+  var mine = readLeaves().filter(function(x){ return x.date.slice(0,4) === y; });
+  var used = mine.filter(function(x){ return x.status === 'ok'; }).length;
+  var waiting = mine.length - used;
+  return { year: y, total: r.leaveDays, used: used, waiting: waiting,
+           left: Math.max(0, r.leaveDays - used), over: used > r.leaveDays };
+}
 function otOn(ds){ return readOt().filter(function(x){ return x.date === ds; }); }
 function payPending(){
   return { shifts: readShifts().filter(function(x){ return x.status === 'pending'; }),
            ends: readShifts().filter(function(x){ return x.status === 'ok' && x.timeStatus === 'pending'; }),
-           ot: readOt().filter(function(x){ return x.status === 'pending'; }) };
+           ot: readOt().filter(function(x){ return x.status === 'pending'; }),
+           leaves: readLeaves().filter(function(x){ return x.status === 'pending'; }) };
 }
-function payPendingCount(){ var p = payPending(); return p.shifts.length + p.ends.length + p.ot.length; }
+function payPendingCount(){ var p = payPending();
+  return p.shifts.length + p.ends.length + p.ot.length + p.leaves.length; }
 /* 근무를 시작한 날 이전은 이 앱의 일이 아니다 */
 function payStarted(ds){ return ds >= payroll().startDate; }
 function paySelectedDate(){ return state.payDate || toDateValue(); }
@@ -8818,6 +8913,8 @@ function renderPay(){
   syncPayOrder();
   renderPayToday();
   renderPayApprovals();
+  renderPayMine();
+  renderPayLeaveYear();
   renderPayGlance();
   renderPayCalendar();
   renderPayDay();
@@ -8841,11 +8938,12 @@ function renderPayGlance(){
       '<div class="grow"><span class="t-caption">' + esc(range) + '</span>' +
         '<span class="t-value">' +
           esc(t('payDaysTpl').replace('{n}', paid ? paid.days : tot.days)) +
+          ((paid ? (paid.leaveDays||0) : tot.leaveDays) ? ' · ' + esc(t('leaveDaysTpl').replace('{n}', paid ? paid.leaveDays : tot.leaveDays)) : '') +
           ((paid ? paid.otMin : tot.otMin) ? ' · ' + esc(t('payOtTpl').replace('{t}', fmtWorkDur(paid ? paid.otMin : tot.otMin))) : '') +
         '</span></div>' +
       '<div class="pay-val"><span class="t-money">' +
         esc(fmtVnd(paid ? paid.amount : tot.amount)) + '</span>' +
-        '<span class="t-caption">' + esc(t('payNext')) + ' ' + esc(payDateLabel(pr.payday).replace(/\s*\(.*\)$/, '')) + '</span></div>' +
+        '<span class="t-caption">' + esc(t('leaveLeftTpl').replace('{n}', leaveStat(toDateValue()).left)) + '</span></div>' +
       '<span class="r-chev">›</span>' +
     '</button>';
   var go = document.getElementById('pay-glance-go');
@@ -8912,6 +9010,12 @@ function renderPayToday(){
        손바닥만 해진다 */
     html += '<div class="pay-line"><span>' +
       esc(t('payNotStartedTpl').replace('{d}', payDateLabel(payroll().startDate).replace(/\s*\(.*\)$/, ''))) + '</span></div>';
+  } else if (leaveOn(today)){
+    /* 오늘이 연차면 도장 버튼을 내밀지 않는다 — 눌러도 서버가 거절한다 */
+    var lvT = leaveOn(today);
+    html += '<div class="pay-line"><span>' + esc(t('leaveLabel')) +
+      (lvT.status !== 'ok' ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
+      '<span class="t-money">' + esc(fmtVnd(payroll().leavePay)) + '</span></div>';
   } else if (!sh){
     html += '<button type="button" class="pay-stamp-btn" id="pay-stamp">' + esc(t('payStamp')) + '</button>';
     if (state.lang !== 'vi') html += '<div class="pay-vi" style="text-align:center">Điểm danh hôm nay</div>';
@@ -9011,7 +9115,7 @@ function renderPayApprovals(){
   var box = document.getElementById('pay-approvals');
   if (!box) return;
   var p = payPending();
-  if (!isMasterUser() || (!p.shifts.length && !p.ends.length && !p.ot.length)){ box.innerHTML = ''; return; }
+  if (!isMasterUser() || (!p.shifts.length && !p.ends.length && !p.ot.length && !p.leaves.length)){ box.innerHTML = ''; return; }
   var rows = p.shifts.map(function(x){
     return payApprovalRow(esc(payDateLabel(x.date)) + ' · ' + esc(t('payReqStamp')),
       fmtVnd(payroll().daily), 'shift', x.id);
@@ -9023,6 +9127,16 @@ function renderPayApprovals(){
   })).concat(p.ot.map(function(x){
     return payApprovalRow(esc(payDateLabel(x.date)) + ' · ' + esc(x.start) + '–' + esc(x.end),
       fmtVnd(otMins(x) * otPerMinute()), 'ot', x.id);
+  })).concat(p.leaves.map(function(x){
+    /* 승인을 누르기 전에 알아야 하는 숫자는 "남은 연차 중 몇 일째인가"다.
+       남은 게 없으면 초과라고 말해준다 — 실수로 12일째를 승인하지 않게. */
+    var st = leaveStat(x.date);
+    var sub = st.left > 0
+      ? t('leaveLeftOfTpl').replace('{left}', st.left).replace('{n}', 1)
+      : t('leaveOverWarn');
+    return payApprovalRow(esc(payDateLabel(x.date)) + ' · ' + esc(t('leaveLabel')) +
+        '<br><span class="pay-sub' + (st.left > 0 ? '' : '" style="color:var(--warn-fg)') + '">' + esc(sub) + '</span>',
+      fmtVnd(payroll().leavePay), 'leave', x.id);
   })).join('');
   box.innerHTML = '<div class="card" style="border-color:var(--primary)">' +
     '<div class="pay-row"><b class="t-card">' + esc(t('payApprovals')) + '</b>' +
@@ -9038,8 +9152,59 @@ function renderPayApprovals(){
     apiMutate('clearShiftTimes', { id: b.dataset.noEnd }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
   $$('[data-ok-ot]', box).forEach(function(b){ b.addEventListener('click', function(){
     apiMutate('approveOt', { id: b.dataset.okOt }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
+  $$('[data-ok-leave]', box).forEach(function(b){ b.addEventListener('click', function(){
+    apiMutate('approveLeave', { id: b.dataset.okLeave }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
+  $$('[data-no-leave]', box).forEach(function(b){ b.addEventListener('click', function(){
+    apiMutate('deleteLeave', { id: b.dataset.noLeave }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
   $$('[data-no-ot]', box).forEach(function(b){ b.addEventListener('click', function(){
     apiMutate('deleteOt', { id: b.dataset.noOt }).then(renderPay).catch(function(e){ toast(e.message); }); }); });
+}
+/* 올해 연차 한 장. 왜 그 숫자인지(합의한 일수)를 같이 적는다. */
+function renderPayLeaveYear(){
+  var box = document.getElementById('pay-leave-year');
+  if (!box) return;
+  var st = leaveStat(toDateValue());
+  box.innerHTML = '<div class="pay-line"><div class="grow">' +
+    '<div class="t-value">' + esc(t('leaveUsedTpl').replace('{y}', st.year)
+      .replace('{total}', st.total).replace('{n}', st.used)) + '</div>' +
+    '<div class="pay-sub">' + esc(st.waiting
+        ? t('leaveWaitingTpl').replace('{n}', st.waiting)
+        : t('leaveResetHint')) + '</div></div>' +
+    '<span class="t-money" style="color:var(--ok-fg)">' +
+      esc(t('leaveLeftTpl').replace('{n}', st.left)) + '</span></div>';
+}
+/* 내니 폰의 "엄마 승인 기다리는 중". 엄마 폰에는 승인할 것 카드가 이미 있다. */
+function renderPayMine(){
+  var box = document.getElementById('pay-mine');
+  if (!box) return;
+  if (isMasterUser()){ box.innerHTML = ''; return; }
+  var mine = readLeaves().filter(function(x){
+    return x.status === 'pending' && sameAuthor(x.by, state.author); });
+  var ends = readShifts().filter(function(x){
+    return x.timeStatus === 'pending' && sameAuthor(x.timeBy, state.author); });
+  if (!mine.length && !ends.length){ box.innerHTML = ''; return; }
+  var rows = mine.map(function(x){
+    return '<div class="pay-line"><div class="grow">' +
+      '<div class="t-value">' + esc(payDateLabel(x.date)) + '</div>' +
+      '<div class="pay-sub">' + esc(t('leaveLabel')) + '</div></div>' +
+      '<div class="pay-val"><span class="t-value">' + esc(fmtVnd(payroll().leavePay)) + '</span>' +
+      '<span class="pay-chip soft">' + esc(t('payRequested')) + '</span></div>' +
+      '<button type="button" class="pay-chip" data-mine-leave="' + esc(x.id) + '">' +
+        esc(t('leaveCancel')) + '</button></div>';
+  }).concat(ends.map(function(x){
+    return '<div class="pay-line"><div class="grow">' +
+      '<div class="t-value">' + esc(payDateLabel(x.date)) + '</div>' +
+      '<div class="pay-sub">' + esc(shiftTimeLabel(x)) + '</div></div>' +
+      '<span class="pay-chip soft">' + esc(t('payRequested')) + '</span></div>';
+  })).join('');
+  box.innerHTML = '<div class="card">' +
+    '<div class="pay-row"><b class="t-card">' + esc(t('mineWaitingTpl')
+      .replace('{n}', mine.length + ends.length)) + '</b></div>' + rows + '</div>';
+  $$('[data-mine-leave]', box).forEach(function(b){
+    b.addEventListener('click', function(){
+      doLeaveRemove(readLeaves().filter(function(x){ return x.id === b.dataset.mineLeave; })[0]);
+    });
+  });
 }
 function renderPayCalendar(){
   var grid = document.getElementById('pay-grid');
@@ -9057,16 +9222,22 @@ function renderPayCalendar(){
     var inMonth = readShifts().filter(function(x){ return x.date.slice(0,7) === mk; });
     var okN = inMonth.filter(function(x){ return x.status === 'ok'; }).length;
     var waitN = inMonth.length - okN;
+    var lvMonth = readLeaves().filter(function(x){ return x.date.slice(0,7) === mk; });
+    var lvOk = lvMonth.filter(function(x){ return x.status === 'ok'; }).length;
+    var waitAll = waitN + (lvMonth.length - lvOk);
     sumEl.textContent = t('payDaysTpl').replace('{n}', okN) +
-      (waitN ? ' · ' + t('payPendingCountTpl').replace('{n}', waitN) : '');
+      (lvOk ? ' · ' + t('leaveDaysTpl').replace('{n}', lvOk) : '') +
+      (waitAll ? ' · ' + t('payPendingCountTpl').replace('{n}', waitAll) : '');
   }
   /* 범례와 안내를 한 줄로. 승인 대기 점은 기다리는 것이 있을 때만 — 대개 0인데
      늘 자리를 차지하고 있었다. 그리고 "그 날 기록이 열려요"로는 거기서 시간을
      고칠 수 있다는 말이 안 돼서, 내니가 찾지 못했다. */
   if (legEl){
-    var hasWait = readShifts().some(function(x){ return x.date.slice(0,7) === mk && x.status !== 'ok'; });
+    var hasWait = readShifts().some(function(x){ return x.date.slice(0,7) === mk && x.status !== 'ok'; }) ||
+                  readLeaves().some(function(x){ return x.date.slice(0,7) === mk && x.status !== 'ok'; });
     legEl.innerHTML = esc(t('payCalHint')) + ' · ' +
       '<i style="background:var(--fg)"></i>' + esc(t('payLegendOn')) +
+      ' <i style="background:var(--ok-fg)"></i>' + esc(t('leaveLabel')) +
       (hasWait ? ' <i style="background:transparent;border:1.5px solid var(--muted-2)"></i>' + esc(t('payLegendWait')) : '') +
       ' <i style="background:var(--primary-weak-fg,var(--primary))"></i>' + esc(t('otTitle'));
   }
@@ -9079,14 +9250,17 @@ function renderPayCalendar(){
   for (var i = 0; i < firstDow; i++) cells += '<div class="gcal-day is-out"></div>';
   for (var d = 1; d <= days; d++){
     var ds = mk + '-' + String(d).padStart(2, '0');
-    var sh = shiftOn(ds), ots = otOn(ds);
+    var sh = shiftOn(ds), ots = otOn(ds), lv = leaveOn(ds);
     var okOt = ots.some(function(x){ return x.status === 'ok'; });
     var pendOt = ots.some(function(x){ return x.status === 'pending'; });
+    /* 출근은 검정 점, 연차는 초록 점. 승인 대기는 둘 다 속 빈 원 — 채워지면
+       확정이라는 규칙 하나로 읽힌다. */
+    var mark = lv ? '<i class="pay-dot leave' + (lv.status === 'pending' ? ' pending' : '') + '"></i>'
+             : sh ? '<i class="pay-dot' + (sh.status === 'pending' ? ' pending' : '') + '"></i>' : '';
     cells += '<button type="button" class="gcal-day' +
       (ds === todayStr ? ' is-today' : '') + (ds === sel ? ' is-sel' : '') +
       (payStarted(ds) ? '' : ' is-dim') + '" data-payday="' + ds + '">' +
-      '<span class="gcal-num">' + d + '</span>' +
-      (sh ? '<i class="pay-dot' + (sh.status === 'pending' ? ' pending' : '') + '"></i>' : '') +
+      '<span class="gcal-num">' + d + '</span>' + mark +
       ((okOt || pendOt) ? '<span class="pay-ot"' + (pendOt && !okOt ? ' style="opacity:.45"' : '') + '>+</span>' : '') +
     '</button>';
   }
@@ -9115,8 +9289,9 @@ function renderPayDay(){
      푸터로 들어갔다 — 카드 밖 회색 줄이 층을 하나 더 만들고 있었다. */
   if (!state.payDate){ box.innerHTML = ''; box.hidden = true; return; }
   var ds = state.payDate;
-  var sh = shiftOn(ds), ots = otOn(ds);
+  var sh = shiftOn(ds), ots = otOn(ds), lv = leaveOn(ds);
   var locked = !!paidPeriod(periodOf(ds).from, periodOf(ds).to);
+  var future = ds > toDateValue();
   if (!payStarted(ds)){
     box.hidden = false;
     box.innerHTML = '<div class="pay-row"><b class="t-card">' + esc(payDateLabel(ds)) + '</b>' +
@@ -9132,12 +9307,36 @@ function renderPayDay(){
     (locked ? '<span class="pay-chip ok">' + esc(t('payPaidAt').replace('{d}', '')) + '</span>' : '') +
     '<button type="button" class="pay-chip" id="pay-day-close" style="margin-left:auto">' + esc(t('payClose')) + '</button>' +
     '</div>';
+  /* 연차인 날은 근무 이야기를 하지 않는다 — 하루가 두 번 계산될 수 없으니
+     이 카드에 있을 것은 연차 하나뿐이다. */
+  if (lv){
+    html += '<div class="pay-line"><span>' + esc(t('leaveLabel')) +
+      (lv.status !== 'ok' ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
+      '<span class="t-money' + (lv.status !== 'ok' ? ' is-quiet' : '') + '">' +
+        esc(fmtVnd(payroll().leavePay)) + '</span></div>';
+    if (!locked && (isMasterUser() || (lv.status === 'pending' && sameAuthor(lv.by, state.author)))){
+      html += '<div class="pay-actions"><button type="button" class="pay-textbtn quiet" id="pay-day-leave-del">' +
+        esc(lv.status === 'pending' ? t('leaveCancel') : t('payRemove')) + '</button></div>';
+    }
+    box.innerHTML = html;
+    var lvDel = document.getElementById('pay-day-leave-del');
+    if (lvDel) lvDel.addEventListener('click', function(){ doLeaveRemove(lv); });
+    var cl0 = document.getElementById('pay-day-close');
+    if (cl0) cl0.addEventListener('click', function(){ state.payDate = null; renderPay(); });
+    return;
+  }
   if (sh){
     /* 이 시각은 버튼을 누른 순간일 뿐 급여와 무관하다 — 그런데 "출근 도장
        11:14"로 적어놓으니 출근 시각으로 읽혀서, 고쳐야 하는 줄 알고 찾아
        헤매게 만들었다. 흐리게 두고, 급여의 근거인 '근무'를 그 아래 늘 세운다. */
     html += '<div class="pay-line"><span>' + esc(t('payStampAt')) + '</span>' +
       '<span class="t-value is-quiet">' + (sh.at ? esc(fmtTime(sh.at)) : '—') + '</span></div>';
+  } else if (future){
+    /* 앞날은 연차를 넣으러 누르는 자리다 — 출근 기록이 없는 게 당연하다 */
+    html += '<div class="pay-line"><span>' + esc(t('payFutureDay')) + '</span>' +
+      '<span class="t-value is-quiet">' + esc(t('payInDaysTpl')
+        .replace('{n}', Math.round((new Date(ds+'T00:00:00') - new Date(toDateValue()+'T00:00:00'))/86400000))) +
+      '</span></div>';
   } else {
     html += '<div class="pay-line"><span>' + esc(t('payNoStamp')) + '</span></div>';
   }
@@ -9173,17 +9372,20 @@ function renderPayDay(){
   }
   if (!locked && payStarted(ds)){
     html += '<div class="pay-actions">';
-    if (!sh){
+    if (!sh && !future){
       html += '<button type="button" class="pay-textbtn" id="pay-day-stamp">' +
         esc(isMasterUser() || ds === toDateValue() ? t('payStampShort') : t('payReqStamp')) + '</button>';
-    } else if (canTouch(sh.by) || sh.status === 'pending'){
+    } else if (sh && (canTouch(sh.by) || sh.status === 'pending')){
       html += '<button type="button" class="pay-textbtn quiet" id="pay-day-unstamp">' + esc(t('payRemove')) + '</button>';
     }
     if (sh && sh.status === 'ok'){
       html += '<button type="button" class="pay-textbtn" id="pay-day-end">' +
         esc(sh.start || sh.end ? t('payEditTimes') : t('paySetEnd')) + '</button>';
     }
-    html += '<button type="button" class="pay-textbtn quiet" id="pay-day-ot">' + esc(t('payAddOt')) + '</button></div>';
+    if (!sh) html += '<button type="button" class="pay-textbtn" id="pay-day-leave">' +
+      esc(isMasterUser() ? t('leaveMark') : t('leaveAsk')) + '</button>';
+    if (!future) html += '<button type="button" class="pay-textbtn quiet" id="pay-day-ot">' + esc(t('payAddOt')) + '</button>';
+    html += '</div>';
   }
   box.innerHTML = html;
   var closeBtn = document.getElementById('pay-day-close');
@@ -9200,6 +9402,8 @@ function renderPayDay(){
   if (un) un.addEventListener('click', function(){ doUnstamp(sh); });
   var ot = document.getElementById('pay-day-ot');
   if (ot) ot.addEventListener('click', function(){ openOtSheet(ds); });
+  var lvBtn = document.getElementById('pay-day-leave');
+  if (lvBtn) lvBtn.addEventListener('click', function(){ doLeave(ds); });
 }
 function renderPayPeriodCard(){
   var box = document.getElementById('pay-period');
@@ -9224,6 +9428,8 @@ function renderPayPeriodCard(){
      이제 지급일은 제목이 말하고(t-card), 기간·근무일은 캡션 한 줄로 내려간다.
      D-14는 내니가 읽는 화면에서 아무 뜻이 없어서 말로 적는다. */
   var oMoney = Math.round(oMin * otPerMinute());
+  var lvDays = already ? (already.leaveDays || 0) : tot.leaveDays;
+  var lvMoney = lvDays * payroll().leavePay;
   var html = '<div class="pay-row"><b class="t-card">' +
       esc(t('payDueTitleTpl').replace('{d}', payDateLabel(pr.payday).replace(/\s*\(.*\)$/, ''))) + '</b>' +
     (already ? '<span class="pay-chip ok" style="margin-left:auto">' + esc(t('payPaidAt').replace('{d}', payDateLabel(already.paidAt.slice(0,10)))) + '</span>'
@@ -9235,7 +9441,9 @@ function renderPayPeriodCard(){
       esc(payDateLabel(pr.from).replace(/\s*\(.*\)$/, '')) + ' – ' +
       esc(payDateLabel(pr.to).replace(/\s*\(.*\)$/, '')) + '</div>' +
     '<div class="pay-line"><span>' + esc(t('payDaysTpl').replace('{n}', days)) + '</span><span class="t-value">' +
-      esc(fmtVnd(Math.max(0, amt - oMoney))) + '</span></div>' +
+      esc(fmtVnd(Math.max(0, amt - oMoney - lvMoney))) + '</span></div>' +
+    (lvDays ? '<div class="pay-line"><span>' + esc(t('leaveDaysTpl').replace('{n}', lvDays)) + '</span>' +
+      '<span class="t-value">' + esc(fmtVnd(lvMoney)) + '</span></div>' : '') +
     (oMin ? '<div class="pay-line"><span>' + esc(t('payOtLabel')) + ' ' + esc(fmtWorkDur(oMin)) + '</span>' +
       '<span class="t-value">' + esc(fmtVnd(oMoney)) + '</span></div>'
           : '<div class="pay-line"><span>' + esc(t('payOtLabel')) + '</span><span class="t-value is-quiet">—</span></div>');
@@ -9356,6 +9564,47 @@ function doStamp(ds){
       renderPay(); renderStampRow(); toast(mine ? t('savedToast') : t('otSent'));
     })
     .catch(function(e){ localShiftDrop(tempId); toast(e.message); });
+}
+/* 연차도 도장과 같은 규칙으로 쓴다: 화면 먼저, 서버 나중.
+   엄마가 넣으면 바로 확정('ok'), 내니가 넣으면 승인 대기('pending'). */
+function localLeaveAdd(row){
+  appState.leaves = (appState.leaves || []).concat([row]);
+  renderPay();
+}
+function localLeaveDrop(id){
+  appState.leaves = (appState.leaves || []).filter(function(x){ return x.id !== id; });
+  renderPay();
+}
+function doLeave(ds){
+  if (leaveOn(ds) || shiftOn(ds)) return;      /* 연타·충돌 — 화면이 이미 말하고 있다 */
+  var master = isMasterUser();
+  var tempId = 'tmp_lv_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+  var at = new Date().toISOString();
+  localLeaveAdd({ id: tempId, date: ds, at: at, by: canonAuthorName(state.author),
+                  status: master ? 'ok' : 'pending' });
+  if (navigator.vibrate) try{ navigator.vibrate(8); }catch(e){}
+  apiMutate('addLeave', { date: ds, at: at, author: state.author, tempId: tempId })
+    .then(function(result){
+      if (result && result.leave) remapLeaveId(tempId, result.leave.id);
+      renderPay(); toast(master ? t('savedToast') : t('otSent'));
+    })
+    .catch(function(e){ localLeaveDrop(tempId); toast(e.message); });
+}
+function remapLeaveId(tempId, realId){
+  if (!tempId || !realId || tempId === realId) return;
+  var touched = false;
+  outbox.forEach(function(w){
+    if (w && w.payload && w.payload.id === tempId){ w.payload.id = realId; touched = true; }
+  });
+  if (touched) outboxSave();
+  (appState.leaves || []).forEach(function(x){ if (x.id === tempId) x.id = realId; });
+}
+function doLeaveRemove(lv){
+  if (!lv) return;
+  var kept = lv.id, row = (appState.leaves || []).filter(function(x){ return x.id === kept; })[0];
+  localLeaveDrop(kept);
+  apiMutate('deleteLeave', { id: kept }).then(function(){ renderPay(); toast(t('deletedToast')); })
+    .catch(function(e){ if (row) localLeaveAdd(row); toast(e.message); });
 }
 function doUnstamp(sh){
   if (!sh) return;
@@ -9479,6 +9728,10 @@ function renderPaySettings(){
       setField(master, 'data-pay-set="startTime"', r.startTime, '', 'type="time"') + '</div>' +
     '<div class="pay-line"><span>' + esc(t('payStart')) + '</span>' +
       setField(master, 'data-pay-set="startDate"', r.startDate, '', 'type="date"') + '</div>' +
+    '<div class="pay-line"><span>' + esc(t('leaveDaysLabel')) + '</span>' +
+      setField(master, 'data-pay-set="leaveDays"', r.leaveDays, t('dayUnitShort')) + '</div>' +
+    '<div class="pay-line"><span>' + esc(t('leavePayLabel')) + '</span>' +
+      setField(master, 'data-pay-set="leavePay"', r.leavePay, '₫') + '</div>' +
     '<div class="hint-line" style="padding-top:8px">' +
       esc(t('payPerMin').replace('{n}', String(Math.round(otPerMinute())).replace(/\B(?=(\d{3})+(?!\d))/g, state.lang === 'vi' ? '.' : ','))) +
       (master ? '' : ' · ' + esc(t('payMasterOnly'))) + '</div>';
@@ -9689,7 +9942,8 @@ function setPageSummary(key){
       ' · ' + p.perFeed + t('mlUnit') +
       ' · ' + t('feedPlanMinTarget') + ' ' + p.minTarget + t('mlUnit');
   }
-  if (key === 'pay') return t('payDaily') + ' ' + fmtVnd(r.daily) + ' · ' + t('payStart') + ' ' + r.startDate;
+  if (key === 'pay') return t('payDaily') + ' ' + fmtVnd(r.daily) +
+    ' · ' + t('leaveDaysLabel') + ' ' + t('leaveDaysTpl').replace('{n}', r.leaveDays);
   if (key === 'types'){
     var n = readCustomTypes().length;
     return n ? t('customCountTpl').replace('{n}', n) : t('noCustomTypes');
@@ -10003,6 +10257,7 @@ function setAuthor(name){
     if (!ok){ renderSettings(); return; }   /* put the chips back as they were */
     state.author = name;
     localStorage.setItem(LS_AUTHOR, name);
+    adoptAuthorInOutbox(name);
     renderAll();
     /* renderAll이 설정 화면에서 내보냈을 수 있으니, 아직 거기 있을 때만 */
     if (state.tab === 'settings') renderSettings();
@@ -11658,6 +11913,9 @@ function renderProfilePickerChips(){
     });
   });
 }
+/* 이름이 아직 없으면 이 시트는 도망갈 구멍이 없어야 한다 — 바깥을 눌러도,
+   손잡이를 내려도 닫히지 않는다. 이름이 이미 있으면 평소대로 닫힌다. */
+function profilePickerRequired(){ return !state.author; }
 function openProfilePicker(){
   renderProfilePickerChips();
   document.getElementById('profile-custom-input').value = '';
@@ -11675,6 +11933,7 @@ function saveProfilePicker(){
 function finishProfilePicker(picked, custom){
   state.author = picked;
   localStorage.setItem(LS_AUTHOR, picked);
+  adoptAuthorInOutbox(picked);
   closeSheet('profile-sheet');
   syncSettingsAccess();
   /* typing a brand-new name here (first-run, before anyone could have added it
@@ -12112,7 +12371,10 @@ function wireEvents(){
 
   // profile sheet
   document.getElementById('profile-save-btn').addEventListener('click', saveProfilePicker);
-  document.getElementById('scrim3').addEventListener('click', function(){ closeSheet('profile-sheet'); });
+  document.getElementById('scrim3').addEventListener('click', function(){
+    if (profilePickerRequired()){ toast(t('whoAmIFirst')); return; }
+    closeSheet('profile-sheet');
+  });
   /* 자는 중 띠의 깼어요 — 이 앱에서 확인 창 없이 즉시 쓰는 유일한 버튼 */
   var wokeBtn = document.getElementById('sl-wake');
   if (wokeBtn) wokeBtn.addEventListener('click', tapWoke);

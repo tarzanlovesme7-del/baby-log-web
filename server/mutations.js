@@ -116,6 +116,11 @@ function payrollOf(state) {
     /* 계약상 근무는 07:00~17:00(10시간). 단축 근무한 날의 실근시간을 여기서부터
        센다 — 도장 찍은 시각부터 세면 깜빡하고 늦게 찍은 날 급여가 깎인다. */
     startTime: HM_RE.test(p.startTime || '') ? p.startTime : '07:00',
+    /* 유급 연차. 계약은 원래 "일급제라 연차는 무급"이었고, 2026-09에 유급으로
+       바꾸기로 했다. 일수는 근무 개월 비례가 아니라 합의한 고정값(11일)이고,
+       하루 금액은 일당 그대로다 — 근무와 같은 금액이라 설명할 것이 없다. */
+    leaveDays: Number.isFinite(Number(p.leaveDays)) && Number(p.leaveDays) >= 0 ? Number(p.leaveDays) : 11,
+    leavePay: Number.isFinite(Number(p.leavePay)) && Number(p.leavePay) >= 0 ? Number(p.leavePay) : 800000,
   };
 }
 const FEED_PLAN_DEFAULT = {
@@ -661,6 +666,10 @@ function applyMutation(prevState, type, payload) {
       const date = payload.date;
       if (!DATE_RE.test(date || '')) throw httpError(400, 'stampIn requires a date');
       state.shifts = state.shifts || [];
+      /* 연차로 잡힌 날은 출근이 될 수 없다 — 하루가 두 번 계산된다 */
+      if ((state.leaves || []).some((x) => x.date === date)) {
+        throw httpError(409, 'that day is on leave');
+      }
       /* 같은 날 도장은 하나. 두 번째는 '이미 찍혀 있다'는 사실을 돌려줄 뿐,
          오류가 아니다 — 두 번 누르는 건 사고가 아니라 흔한 일이다. */
       if (state.shifts.some((x) => x.date === date)) {
@@ -678,6 +687,10 @@ function applyMutation(prevState, type, payload) {
       const date = payload.date;
       if (!DATE_RE.test(date || '')) throw httpError(400, 'requestStamp requires a date');
       state.shifts = state.shifts || [];
+      /* 연차로 잡힌 날은 출근이 될 수 없다 — 하루가 두 번 계산된다 */
+      if ((state.leaves || []).some((x) => x.date === date)) {
+        throw httpError(409, 'that day is on leave');
+      }
       /* 같은 날 도장은 하나. 두 번째는 '이미 찍혀 있다'는 사실을 돌려줄 뿐,
          오류가 아니다 — 두 번 누르는 건 사고가 아니라 흔한 일이다. */
       if (state.shifts.some((x) => x.date === date)) {
@@ -755,6 +768,50 @@ function applyMutation(prevState, type, payload) {
       return { state, result: { removed: payload.id } };
     }
 
+    /* ---------------- 유급 연차 ----------------
+       출근 도장과 같은 길을 쓴다: 엄마가 넣으면 바로 확정, 내니가 넣으면
+       승인 대기. 하루가 두 번 계산되는 일이 없도록 같은 날의 출근과 연차는
+       서로를 막는다. */
+    case 'addLeave': {
+      const date = payload.date;
+      if (!DATE_RE.test(date || '')) throw httpError(400, 'addLeave requires a date');
+      state.leaves = state.leaves || [];
+      /* 같은 날 두 번은 사고가 아니라 흔한 일이다 — 오류로 돌려보내지 않는다 */
+      if (state.leaves.some((x) => x.date === date)) {
+        return { state, result: { alreadyLeave: true } };
+      }
+      /* 이미 출근한 날은 연차가 될 수 없다. 이건 진짜 거절이라 오류로 말한다. */
+      if ((state.shifts || []).some((x) => x.date === date)) {
+        throw httpError(409, 'that day is already a work day');
+      }
+      const leave = {
+        id: uid('lv_'), date,
+        at: payload.at || '',
+        by: payload.author || payload.actor || '',
+        status: isMaster(payload.actor) ? 'ok' : 'pending',
+      };
+      state.leaves.push(leave);
+      return { state, result: { leave } };
+    }
+
+    case 'approveLeave': {
+      assertMaster(payload.actor, 'leave');
+      const lv = (state.leaves || []).find((x) => x.id === payload.id);
+      if (!lv) return { state, result: { alreadyGone: true } };
+      lv.status = 'ok';
+      return { state, result: { leave: lv } };
+    }
+
+    case 'deleteLeave': {
+      const lv = (state.leaves || []).find((x) => x.id === payload.id);
+      if (!lv) return { state, result: { alreadyGone: true } };
+      /* 승인 전 자기 신청은 스스로 거둘 수 있고, 승인된 것은 엄마만 —
+         이미 급여에 들어간 숫자이기 때문이다 */
+      if (lv.status !== 'pending' || !sameAuthor(lv.by, payload.actor)) assertMaster(payload.actor, 'leave');
+      state.leaves = (state.leaves || []).filter((x) => x.id !== payload.id);
+      return { state, result: { removed: payload.id } };
+    }
+
     /* ---------------- 오버타임 ---------------- */
     case 'addOt': {
       const date = payload.date;
@@ -806,10 +863,14 @@ function applyMutation(prevState, type, payload) {
       const perMin = (rate.hourly * rate.otMul) / 60;
       /* 단축 근무한 날은 그날치만 — 굳는 금액이 화면이 보여준 금액과 같아야 한다 */
       const dayWages = days.reduce((n, sh) => n + shiftWage(sh, rate), 0);
-      const amount = dayWages + Math.round(mins * perMin);
+      /* 승인된 연차도 하루치로 굳는다. 나중에 연차 금액을 바꿔도 지난 급여는
+         움직이지 않는다 — 입금 완료가 금액을 굳히는 것과 같은 이유. */
+      const leaves = (state.leaves || []).filter((x) => x.status === 'ok' && x.date >= from && x.date <= to);
+      const leaveWages = leaves.length * rate.leavePay;
+      const amount = dayWages + leaveWages + Math.round(mins * perMin);
       const period = {
         id: uid('pp_'), from, to, payday: payload.payday || to,
-        days: days.length, otMin: mins, amount,
+        days: days.length, otMin: mins, leaveDays: leaves.length, amount,
         paidAt: payload.paidAt || new Date().toISOString(),
         paidBy: payload.actor || '',
       };
@@ -835,6 +896,8 @@ function applyMutation(prevState, type, payload) {
         otMul: payload.otMul !== undefined ? Math.max(1, Number(payload.otMul) || 1.5) : cur.otMul,
         startDate: DATE_RE.test(payload.startDate || '') ? payload.startDate : cur.startDate,
         startTime: HM_RE.test(payload.startTime || '') ? payload.startTime : cur.startTime,
+        leaveDays: payload.leaveDays !== undefined ? Math.max(0, Math.round(Number(payload.leaveDays) || 0)) : cur.leaveDays,
+        leavePay: payload.leavePay !== undefined ? Math.max(0, Math.round(Number(payload.leavePay) || 0)) : cur.leavePay,
       };
       state.payroll = next;
       return { state, result: { payroll: next } };
