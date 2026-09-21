@@ -2016,8 +2016,11 @@
   }
   .field input[type="date"]::-webkit-date-and-time-value{ text-align:left; }
   /* fp-entry-body sits on the grey page canvas, where surface-2 barely differs from it —
-     use white here specifically so fields read as distinct fields, not a form-shaped page */
-  #fp-entry-body .field input, #fp-entry-body .seg{
+     use white here specifically so fields read as distinct fields, not a form-shaped page.
+     .seg는 일부러 뺐다: 트랙까지 희게 칠하면 선택된 칸(흰 손잡이)이 흰 트랙
+     위에 얹혀서 뭐가 골라졌는지 안 보인다 — 2026-09-21 '수면 종류'가 그랬다.
+     트랙은 회색(surface-2)으로 두고 손잡이만 희게 남긴다. */
+  #fp-entry-body .field input{
     background:var(--surface);
   }
 
@@ -2097,11 +2100,13 @@
   .scrub-strip .sv.on{ color:var(--primary); font-weight:var(--fw-display); }
   .scrub-strip .sv.pad{ flex:0 0 auto; }
   .seg{ display:flex; gap:2px; border-radius:14px; background:var(--surface-2); padding:3px; }
-  .seg button{ flex:1; border:0; background:transparent; border-radius:11px; padding:10px 4px; font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--muted); }
+  /* 안 고른 칸은 한 단계 연하고 한 단계 가볍다 — 손잡이가 안 보이는
+     상황에서도 글자만으로 어느 쪽이 골라졌는지 읽히게 */
+  .seg button{ flex:1; border:0; background:transparent; border-radius:11px; padding:10px 4px; font-size:var(--fs-label); font-weight:var(--fw-medium); color:var(--muted-2); }
   /* 선택된 칸을 파랗게 채우면 그 화면의 주요 버튼처럼 보인다 — 필터는
      회색 트랙 위 흰 손잡이로. 파란 채움은 저장·추가 같은 진짜 동작에만. */
   .seg button[aria-pressed="true"]{ background:var(--surface); color:var(--fg);
-    box-shadow:0 1px 2px rgba(0,0,0,.08); }
+    font-weight:var(--fw-strong); box-shadow:0 1px 3px rgba(0,0,0,.16); }
   /* quick-insert words below a note field — visually lighter than the pill
      chips used for selection (author/type/diaper-kind) since tapping one
      doesn't set a value, it appends into the text field next to it */
