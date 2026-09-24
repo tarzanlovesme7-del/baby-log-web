@@ -1587,21 +1587,21 @@
      여섯뿐이고, 토큰을 붙인 줄에는 font-size/color를 따로 쓰지 않는다 —
      어긋난 것 대부분이 "클래스는 맞는데 인라인으로 한 번 더 손댄" 자리였다.
      ============================================================ */
-  #tab-pay .t-screen { font-size:var(--fs-title);   font-weight:var(--fw-strong);  color:var(--fg); letter-spacing:-.02em; }
-  #tab-pay .t-card   { font-size:var(--fs-body);    font-weight:var(--fw-strong);  color:var(--fg); letter-spacing:-.01em; }
-  #tab-pay .t-value  { font-size:var(--fs-label);   font-weight:var(--fw-strong);  color:var(--fg); font-variant-numeric:tabular-nums; }
-  #tab-pay .t-label  { font-size:var(--fs-caption); font-weight:var(--fw-medium);  color:var(--muted); }
-  #tab-pay .t-caption{ font-size:var(--fs-micro);   font-weight:var(--fw-body);    color:var(--muted-2); }
-  #tab-pay .t-money  { font-size:var(--fs-title);   font-weight:var(--fw-display); color:var(--fg);
+  #tab-pay .t-screen, #fp-payperiod .t-screen { font-size:var(--fs-title);   font-weight:var(--fw-strong);  color:var(--fg); letter-spacing:-.02em; }
+  #tab-pay .t-card, #fp-payperiod .t-card { font-size:var(--fs-body);    font-weight:var(--fw-strong);  color:var(--fg); letter-spacing:-.01em; }
+  #tab-pay .t-value, #fp-payperiod .t-value { font-size:var(--fs-label);   font-weight:var(--fw-strong);  color:var(--fg); font-variant-numeric:tabular-nums; }
+  #tab-pay .t-label, #fp-payperiod .t-label { font-size:var(--fs-caption); font-weight:var(--fw-medium);  color:var(--muted); }
+  #tab-pay .t-caption, #fp-payperiod .t-caption{ font-size:var(--fs-micro);   font-weight:var(--fw-body);    color:var(--muted-2); }
+  #tab-pay .t-money, #fp-payperiod .t-money { font-size:var(--fs-title);   font-weight:var(--fw-display); color:var(--fg);
     letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
   /* 정산 히어로 하나만 쓰는 큰 변형. 26px가 스케일 밖인 건 맞지만 히어로라
      필요하다 — 떠 있는 값으로 두면 다음 사람이 27도 28도 쓴다. 공식으로 박는다. */
-  #tab-pay .t-money.big{ font-size:26px; line-height:1.15; }
-  #tab-pay .t-money.is-zero{ color:var(--muted-2); }
+  #tab-pay .t-money.big, #fp-payperiod .t-money.big{ font-size:26px; line-height:1.15; }
+  #tab-pay .t-money.is-zero, #fp-payperiod .t-money.is-zero{ color:var(--muted-2); }
   /* 파란 글씨는 한 값만. --primary(#1f6feb)와 --primary-weak-fg(#1b64da)가
      같은 "파란 글자"에 섞여 쓰였다. 눈으로 거의 구분이 안 돼서 더 나쁘다 —
      고쳐야 할 이유를 못 느끼면서 계속 어긋난다. */
-  #tab-pay .t-value.is-quiet{ color:var(--muted-2); }
+  #tab-pay .t-value.is-quiet, #fp-payperiod .t-value.is-quiet{ color:var(--muted-2); }
   /* 부가 설명·작성자·요일 — t-caption과 같은 값. 기존 호출부가 많아 이름은 둔다 */
   .pay-sub{ font-size:var(--fs-micro); font-weight:var(--fw-body); color:var(--muted-2); }
   .pay-vi{ font-size:var(--fs-micro); color:var(--muted-2); }
@@ -1638,6 +1638,39 @@
   /* "이 날 일당"만 14/700/검정이었다. 다른 라벨은 14/600/회색인데 합계라고
      <b>를 썼던 것 — 금액을 이미 t-money로 키웠으니 라벨까지 굵을 이유가 없다. */
   .pay-line > b{ color:var(--muted); font-weight:var(--fw-medium); }
+  /* 왼쪽 라벨은 줄이지 않는다. 오른쪽 캡션이 길어지면 라벨이 먼저 찌그러져서
+     "근/무" 두 글자가 세로로 쪼개졌다 — 접혀야 하는 건 긴 쪽이다. */
+  .pay-line > span:first-child, .pay-line > b:first-child{ flex:0 0 auto; }
+  /* ---- 기간 날짜별 상세 ----
+     날짜 · 무슨 일 · 얼마. 금액은 오른쪽 끝에 세로로 줄을 맞춘다 — 위아래로
+     훑으면 큰 날과 작은 날이 바로 보인다. 날짜 칸을 고정폭으로 두지 않으면
+     내용이 긴 날에만 날짜가 밀려서 그 줄이 삐뚤어진다. */
+  .pp-day{ display:flex; align-items:flex-start; gap:10px; padding:11px 0;
+    border-top:1px solid var(--border); }
+  .pp-day:first-child{ border-top:0; }
+  .pp-d{ flex:0 0 76px; font-size:var(--fs-value); font-weight:var(--fw-strong); color:var(--fg); }
+  .pp-sub{ flex:1; min-width:0; font-size:var(--fs-caption); font-weight:var(--fw-body);
+    color:var(--muted-2); line-height:1.5; }
+  .pp-amt{ flex:0 0 auto; margin-left:auto; text-align:right; white-space:nowrap;
+    font-size:var(--fs-value); font-weight:var(--fw-strong); color:var(--fg);
+    font-variant-numeric:tabular-nums; }
+  .pp-day.off .pp-d, .pp-day.off .pp-amt{ color:var(--muted-2); font-weight:var(--fw-medium); }
+  .pp-day.wait .pp-amt{ color:var(--muted-2); font-weight:var(--fw-body); }
+  .pp-sep{ font-size:var(--fs-caption); font-weight:var(--fw-strong); color:var(--muted-2);
+    padding:12px 0 4px; border-top:1px solid var(--border); }
+  .pp-total{ display:flex; align-items:center; gap:10px; padding:13px 0 2px;
+    border-top:2px solid var(--border); margin-top:4px; }
+  /* 정산 카드에서 그 화면을 여는 줄. 동작(입금 완료)이 아니라 이동이라
+     테두리 칸(.pay-textbtn)이 아니라 셰브론 붙은 줄로 둔다. */
+  .pp-open{ display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+    border:0; border-top:1px solid var(--border); background:transparent;
+    padding:12px 0 2px; font-size:var(--fs-label); font-weight:var(--fw-strong);
+    color:var(--primary-weak-fg, var(--primary)); }
+  .pp-open .r-chev{ margin-left:auto; color:var(--muted-2);
+    font-size:var(--fs-label); font-weight:var(--fw-body); }
+  /* 지난 급여 줄도 같은 화면으로 열린다 — 줄 전체가 눌리는 자리임을 셰브론이 말한다 */
+  .pay-line .r-chev{ color:var(--muted-2); font-size:var(--fs-label);
+    font-weight:var(--fw-body); align-self:center; }
   /* 오른쪽은 값 한 덩어리로 세로로 쌓는다. "07:00→17:00 · 10시간 정상 근무 (하루)"를
      한 줄에 이어붙이니 390px에서 줄이 터졌다 */
   .pay-val{ margin-left:auto; text-align:right; display:flex; flex-direction:column;
@@ -3040,6 +3073,21 @@
     </div>
   </div>
 
+  <!-- ============ FULL PAGE: 기간 날짜별 상세 ============ -->
+  <!-- 정산 카드의 "날짜별로 보기"에서 연다. 한 기간이 최대 16일이라 정산
+       화면 안에서 펼치면 그 아래 '지난 급여'가 저 멀리 밀려난다. 내니도
+       본다 — 자기 급여가 어떻게 나온 건지 읽을 수 있어야 한다. -->
+  <div class="fullpage" id="fp-payperiod">
+    <div class="fp-head">
+      <button type="button" class="fp-back" id="fp-pp-back">‹</button>
+      <h1 id="fp-pp-title">기간</h1>
+    </div>
+    <div class="fp-body">
+      <div class="card" id="pp-sum" style="margin:0 -16px 10px"></div>
+      <div class="card" id="pp-days" style="margin:0 -16px"></div>
+    </div>
+  </div>
+
   <!-- ============ FULL PAGE: FOR ZIO ============ -->
   <!-- Tapping the baby's name in the header. Everything else in this app is
        a number; this is the reason the numbers get written down. -->
@@ -3280,6 +3328,8 @@ ko: {
   payUnpaidCountTpl:"지난 급여 · 안 드린 게 {n}건 있어요",
   payUnpaidSoft:"아직 안 드림", payOverdueChip:"지급일 지남",
   payOtLabel:"오버타임",
+  payByDay:"날짜별로 보기", payDayOff:"쉬는 날",
+  payNotYetDays:"아직 오지 않은 날", payTotalLabel:"합계",
   payPeriodTpl:"{from} – {to}", payDaysTpl:"근무 {n}일",
   payOtTpl:"오버타임 {t}", payPast:"지난 급여", payNoPast:"아직 없어요. 첫 지급은 {d}이에요.",
   payMarkPaid:"입금 완료로 표시", payPaidAt:"입금 완료 {d}",
@@ -3473,6 +3523,8 @@ vi: {
   payUnpaidCountTpl:"Lương kỳ trước · còn {n} kỳ chưa trả",
   payUnpaidSoft:"Chưa trả", payOverdueChip:"Quá hạn",
   payOtLabel:"Tăng ca",
+  payByDay:"Xem theo ngày", payDayOff:"Ngày nghỉ",
+  payNotYetDays:"Những ngày chưa tới", payTotalLabel:"Tổng cộng",
   payPeriodTpl:"{from} – {to}", payDaysTpl:"{n} ngày công",
   payOtTpl:"Tăng ca {t}", payPast:"Lương đã trả", payNoPast:"Chưa có · kỳ đầu tiên là {d}",
   payMarkPaid:"Đánh dấu đã trả", payPaidAt:"Đã trả {d}",
@@ -8734,6 +8786,102 @@ function payroll(){
   };
 }
 function otPerMinute(){ var r = payroll(); return (r.hourly * r.otMul) / 60; }
+/* ---- 기간 날짜별 상세 ----
+   정산 카드는 "근무 8일 · 5,980,000 ₫"까지만 말한다. 어느 날이 800,000이고
+   어느 날이 왜 380,000인지는 여기서 본다. 엄마도 내니도 같은 화면을 본다 —
+   자기 급여가 어떻게 나온 건지 읽는 걸 막을 이유가 없다. */
+var ppRange = null;
+function ppNext(ds){
+  var d = new Date(ds + 'T00:00:00');
+  d.setDate(d.getDate() + 1);
+  return toDateValue(d.toISOString());
+}
+function openPayPeriodPage(from, to){
+  ppRange = { from: from, to: to };
+  renderPayPeriodPage();
+  openFullpage('fp-payperiod');
+}
+function renderPayPeriodPage(){
+  if (!ppRange) return;
+  var from = ppRange.from, to = ppRange.to;
+  var sumBox = document.getElementById('pp-sum'), box = document.getElementById('pp-days');
+  if (!sumBox || !box) return;
+  var pr = periodOf(from);
+  var paid = paidPeriod(from, to);
+  var tot = periodTotals(from, to);
+  var today = toDateValue();
+  var title = document.getElementById('fp-pp-title');
+  if (title) title.textContent = payDateLabel(from).replace(/\s*\(.*\)$/, '') + ' – ' +
+    payDateLabel(to).replace(/\s*\(.*\)$/, '');
+
+  /* 입금이 끝난 기간은 그때 얼어붙은 금액이 사실이다 — 나중에 시급을 바꿔도
+     지나간 급여가 따라 움직이면 안 된다. 합계는 언 값, 줄은 기록 그대로. */
+  var headAmt = paid ? paid.amount : tot.amount;
+  sumBox.innerHTML =
+    '<div class="t-money big' + (headAmt ? '' : ' is-zero') + '">' + esc(fmtVnd(headAmt)) + '</div>' +
+    '<div class="t-caption" style="margin-top:3px">' +
+      esc(t('payDaysTpl').replace('{n}', paid ? paid.days : tot.days)) +
+      ((paid ? (paid.leaveDays||0) : tot.leaveDays) ? ' · ' + esc(t('leaveDaysTpl')
+        .replace('{n}', paid ? paid.leaveDays : tot.leaveDays)) : '') +
+      ((paid ? paid.otMin : tot.otMin) ? ' · ' + esc(t('payOtTpl')
+        .replace('{t}', fmtWorkDur(paid ? paid.otMin : tot.otMin))) : '') +
+    '</div>' +
+    (paid ? '<div class="pay-chip ok" style="margin-top:9px">' +
+      esc(t('payPaidAt').replace('{d}', payDateLabel(paid.paidAt.slice(0,10)).replace(/\s*\(.*\)$/, ''))) +
+      '</div>' : '');
+
+  var html = '', sum = 0, notYetDrawn = false;
+  for (var ds = from; ds <= to; ds = ppNext(ds)){
+    /* 근무 시작일 전은 이 앱의 일이 아니다 */
+    if (!payStarted(ds)) continue;
+    var future = ds > today;
+    if (future && !notYetDrawn){
+      html += '<div class="pp-sep">' + esc(t('payNotYetDays')) + '</div>';
+      notYetDrawn = true;
+    }
+    var sh = shiftOn(ds), lv = leaveOn(ds), ots = otOn(ds);
+    var sub = [], amt = 0, cls = '', wait = false;
+    if (lv){
+      sub.push(t('leaveLabel'));
+      if (lv.status === 'ok') amt += payroll().leavePay; else wait = true;
+    } else if (sh){
+      /* 근무 시간을 손댄 건 따로 승인을 받는다 — 승인 전까지는 하루치가
+         그대로 계산되므로, 금액이 아니라 줄에 대기 표시를 붙인다. */
+      var tWait = !!(sh.start || sh.end) && sh.timeStatus !== 'ok';
+      sub.push(shiftTimeLabel(sh) + ' · ' +
+        fmtWorkDur(shiftMins(sh) !== null ? shiftMins(sh) : stdWorkMin()) +
+        (tWait ? ' (' + t('payRequested') + ')' : ''));
+      if (sh.status === 'ok') amt += shiftWage(sh); else wait = true;
+    }
+    ots.forEach(function(o){
+      sub.push(t('otTitle') + ' ' + o.start + '–' + o.end + ' · ' + fmtWorkDur(otMins(o)));
+      if (o.status === 'ok') amt += Math.round(otMins(o) * otPerMinute()); else wait = true;
+    });
+    if (!sub.length){ sub.push(future ? '—' : t('payDayOff')); cls = ' off'; }
+    if (!amt && !wait) cls = ' off';
+    if (wait) cls += ' wait';
+    sum += amt;
+    /* 날짜 칸은 '24일 (수)'까지만 — 달은 화면 제목이 이미 말한다. 앞을
+       탐욕적으로(.*월) 잘랐더니 월요일 줄에서 '(월'까지 먹고 ')'만 남았다.
+       탐욕적 매칭과 '요일 이름에도 월이 있다'는 것이 겹친 자리다. */
+    html += '<div class="pp-day' + cls + '">' +
+      '<span class="pp-d">' + esc(payDateLabel(ds).replace(/^\d+월\s*/, '')) + '</span>' +
+      '<span class="pp-sub">' + esc(sub.join(' · ')) + '</span>' +
+      '<span class="pp-amt">' + (amt ? esc(fmtVnd(amt)) : '—') +
+        (wait ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') +
+      '</span></div>';
+  }
+  html += '<div class="pp-total"><b class="t-card">' + esc(t('payTotalLabel')) + '</b>' +
+    '<span class="t-money" style="margin-left:auto">' + esc(fmtVnd(paid ? paid.amount : sum)) + '</span></div>';
+  box.innerHTML = html;
+}
+/* 오버타임 한 건의 캡션 — 언제, 그리고 그 금액이 어디서 나왔는지.
+   "17:00–20:00 · 70,000 ₫ × 1.5 × 3시간". 오늘 카드와 날짜 카드가 같은
+   문장을 쓰도록 한 곳에서 만든다(두 벌로 두면 한 벌만 자란다). */
+function otCaption(o){
+  var r = payroll();
+  return o.start + '–' + o.end + ' · ' + fmtVnd(r.hourly) + ' × ' + r.otMul + ' × ' + fmtWorkDur(otMins(o));
+}
 function readShifts(){
   return (appState.shifts || []).map(function(x){
     return { id: x.id, date: x.date, at: x.at || '', by: x.by || '', status: x.status || 'ok',
@@ -8925,6 +9073,8 @@ function renderPay(){
   renderPayDay();
   renderPayPeriodCard();
   renderPayHistory();
+  /* 열려 있는 동안 다른 폰이 도장을 찍으면 이 화면도 따라 바뀌어야 한다 */
+  if (document.getElementById('fp-payperiod').classList.contains('show')) renderPayPeriodPage();
   syncPayBadge();
 }
 /* 도장 화면에서도 이번 기간이 어디까지 찼는지는 알아야 한다 — 한 줄이면 된다.
@@ -9039,11 +9189,18 @@ function renderPayToday(){
     var tEdited = !!(sh.start || sh.end), tPend = tEdited && sh.timeStatus !== 'ok';
     /* 도장 누른 시각은 급여와 무관한데 카드의 첫 줄이었다 — 근무 줄의
        캡션으로 내린다. 줄 하나가 통째로 사라지고, 카드가 세 줄에서 한 줄이 된다. */
+    /* 큰 글씨 자리는 언제나 금액이다. 근무 줄만 시간이 크고 오버타임 줄은
+       금액이 커서, 같은 카드 안에서 눈이 두 가지 단위를 오갔다 — 시간은
+       캡션으로 내린다. */
+    var tQuiet = tPend || sh.status !== 'ok';
     html += '<div class="pay-line"' + (todayOts.length ? '' : ' style="padding-bottom:0"') + '><span>' + esc(t('payWorkTime')) +
       (tPend ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
-      '<div class="pay-val"><span class="t-value' + (tPend ? ' is-quiet' : '') + '">' + esc(shiftTimeLabel(sh)) + '</span>' +
-      '<span class="t-caption">' + esc(fmtWorkDur(shiftMins(sh) !== null ? shiftMins(sh) : stdWorkMin())) +
-        (tEdited ? '' : ' · ' + esc(t('payFullDay'))) +
+      '<div class="pay-val"><span class="t-value' + (tQuiet ? ' is-quiet' : '') + '">' +
+        esc(fmtVnd(sh.status === 'ok' ? shiftWage(sh) : payroll().daily)) + '</span>' +
+      /* 범위와 시간이 적혀 있으면 "정상 근무 (하루)"는 같은 말을 한 번 더
+         하는 것이다 — 캡션이 두 줄로 터지는 값을 치르면서까지 둘 이유가 없다 */
+      '<span class="t-caption">' + esc(shiftTimeLabel(sh)) + ' · ' +
+        esc(fmtWorkDur(shiftMins(sh) !== null ? shiftMins(sh) : stdWorkMin())) +
         (sh.at ? ' · ' + esc(t('payStampAt')) + ' ' + esc(fmtTime(sh.at)) : '') + '</span></div></div>';
     /* 오버타임은 근무 아래 제 줄로 선다. 근무 시간 범위에 합쳐 07:00→20:00으로
        적으면 쭉 이어서 일한 것처럼 읽히는데, 오버타임은 출근 전에도 붙을 수
@@ -9055,8 +9212,7 @@ function renderPayToday(){
         (oPend ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
         '<div class="pay-val"><span class="t-value' + (oPend ? ' is-quiet' : '') + '">' +
           esc(fmtVnd(otMins(o) * otPerMinute())) + '</span>' +
-        '<span class="t-caption">' + esc(o.start) + '–' + esc(o.end) +
-          ' · ' + esc(fmtWorkDur(otMins(o))) + '</span></div></div>';
+        '<span class="t-caption">' + esc(otCaption(o)) + '</span></div></div>';
     });
     /* 한 줄에 파란 글씨는 하나. 주 동작(근무 시간)만 파랑, 나머지는 중립. */
     html += '<div class="pay-actions">';
@@ -9369,10 +9525,13 @@ function renderPayDay(){
   /* 퇴근 시각. 평소엔 비어 있고(정상 근무 = 일당 전액), 짧게 일한 날만 채운다 */
   if (sh && sh.status === 'ok'){
     var edited = !!(sh.start || sh.end), pend = edited && sh.timeStatus !== 'ok';
+    /* 오늘 카드와 같은 규칙: 큰 글씨는 금액, 시간은 캡션 */
     html += '<div class="pay-line"><span>' + esc(t('payWorkTime')) +
       (pend ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
-      '<div class="pay-val"><span class="t-value' + (pend ? ' is-quiet' : '') + '">' + esc(shiftTimeLabel(sh)) + '</span>' +
-      '<span class="t-caption">' + esc(fmtWorkDur(shiftMins(sh) !== null ? shiftMins(sh) : stdWorkMin())) +
+      '<div class="pay-val"><span class="t-value' + (pend ? ' is-quiet' : '') + '">' +
+        esc(fmtVnd(shiftWage(sh))) + '</span>' +
+      '<span class="t-caption">' + esc(shiftTimeLabel(sh)) + ' · ' +
+        esc(fmtWorkDur(shiftMins(sh) !== null ? shiftMins(sh) : stdWorkMin())) +
         (edited ? '' : ' · ' + esc(t('payFullDay'))) + '</span></div>' +
       (edited && !locked && (isMasterUser() || (pend && sameAuthor(sh.timeBy, state.author)))
         ? '<button type="button" class="pay-chip" data-clear-end="' + esc(sh.id) + '">' + esc(t('payRemove')) + '</button>' : '') +
@@ -9385,7 +9544,7 @@ function renderPayDay(){
       (o.status === 'pending' ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
       '<div class="pay-val"><span class="t-value' + (o.status === 'pending' ? ' is-quiet' : '') + '">' +
         esc(fmtVnd(otMins(o) * otPerMinute())) + '</span>' +
-      '<span class="t-caption">' + esc(o.start) + '–' + esc(o.end) + '</span></div>' +
+      '<span class="t-caption">' + esc(otCaption(o)) + '</span></div>' +
       (!locked && (isMasterUser() || (o.status === 'pending' && sameAuthor(o.by, state.author)))
         ? '<button type="button" class="pay-chip" data-del-ot="' + esc(o.id) + '">' + esc(t('payRemove')) + '</button>' : '') +
       '</div>';
@@ -9471,6 +9630,9 @@ function renderPayPeriodCard(){
     (oMin ? '<div class="pay-line"><span>' + esc(t('payOtLabel')) + ' ' + esc(fmtWorkDur(oMin)) + '</span>' +
       '<span class="t-value">' + esc(fmtVnd(oMoney)) + '</span></div>'
           : '<div class="pay-line"><span>' + esc(t('payOtLabel')) + '</span><span class="t-value is-quiet">—</span></div>');
+  /* 이 숫자들이 어느 날에서 나왔는지 — 엄마도 내니도 열 수 있다 */
+  html += '<button type="button" class="pp-open" id="pay-bydays">' +
+    esc(t('payByDay')) + '<span class="r-chev">›</span></button>';
   /* 줄 것이 없으면 입금 버튼도 없다 — 0 ₫을 입금 완료로 표시하는 화면은
      아무 뜻이 없고, 파란 버튼이 화면에서 제일 큰 것이 되어 버린다 */
   if (isMasterUser() && (already || tot.days || tot.otMin)){
@@ -9486,6 +9648,8 @@ function renderPayPeriodCard(){
           : '<button type="button" class="pay-textbtn" id="pay-paid">' + esc(t('payMarkPaid')) + '</button>')) + '</div>';
   }
   box.innerHTML = html;
+  var byd = document.getElementById('pay-bydays');
+  if (byd) byd.addEventListener('click', function(){ openPayPeriodPage(pr.from, pr.to); });
   var b1 = document.getElementById('pay-paid');
   if (b1) b1.addEventListener('click', function(){
     apiMutate('markPaid', { from: pr.from, to: pr.to, payday: pr.payday })
@@ -9532,7 +9696,7 @@ function renderPayHistory(){
     ? t('payUnpaidCountTpl').replace('{n}', unpaidN) : t('payPast');
   box.innerHTML = rows.map(function(r){
     var overdue = !r.paid && r.pr.payday < todayStr;
-    return '<div class="pay-line"><div class="grow">' +
+    return '<div class="pay-line" data-pp-open="' + esc(r.pr.from) + '"><div class="grow">' +
       '<div class="t-value">' + esc(payDateLabel(r.pr.from).replace(/\s*\(.*\)$/, '')) + ' – ' +
         esc(payDateLabel(r.pr.to).replace(/\s*\(.*\)$/, '')) + '</div>' +
       '<div class="t-caption">' + esc(t('payDaysTpl').replace('{n}', r.tot.days)) +
@@ -9542,8 +9706,17 @@ function renderPayHistory(){
         ? '<span class="pay-chip ok">' + esc(t('payPaidAt').replace('{d}', payDateLabel(r.paid.paidAt.slice(0,10)).replace(/\s*\(.*\)$/, ''))) + '</span>'
         : '<span class="pay-chip' + (r.pr.from === oldestUnpaid ? ' warn' : '') + '" data-pay-period="' + esc(r.pr.from) + '">' +
           esc(overdue ? t('payOverdueChip') : t('payUnpaidSoft')) + '</span>') +
-      '</div></div>';
+      '</div><span class="r-chev">›</span></div>';
   }).join('');
+  /* 지난 기간도 눌러서 날짜별로 본다. 입금 완료 칩은 제 일이 따로 있으니
+     그 위를 누른 것은 이동으로 치지 않는다. */
+  $$('[data-pp-open]', box).forEach(function(row){
+    row.addEventListener('click', function(e){
+      if (e.target.closest('[data-pay-period]')) return;
+      var pr2 = periodOf(row.dataset.ppOpen);
+      openPayPeriodPage(pr2.from, pr2.to);
+    });
+  });
   if (isMasterUser()){
     $$('[data-pay-period]', box).forEach(function(b){
       b.addEventListener('click', function(){
@@ -12099,6 +12272,8 @@ function wireEvents(){
   if (pinRow) pinRow.addEventListener('click', openPinSettings);
   var trashRow = document.getElementById('trash-row');
   if (trashRow) trashRow.addEventListener('click', function(){ renderTrash(); openFullpage('fp-trash'); });
+  var ppBack = document.getElementById('fp-pp-back');
+  if (ppBack) ppBack.addEventListener('click', function(){ closeFullpage('fp-payperiod'); });
   var trashBack = document.getElementById('fp-trash-back');
   if (trashBack) trashBack.addEventListener('click', function(){ closeFullpage('fp-trash'); });
   wireLogNav();

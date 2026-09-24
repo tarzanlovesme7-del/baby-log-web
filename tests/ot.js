@@ -61,6 +61,41 @@ const money = s => { const m = String(s).replace(/[^\d]/g,''); return m ? Number
   check('...몇 시부터 몇 시까지인지 적혀 있다',
     await p.evaluate(()=>/17:00.20:00/.test(document.getElementById('pay-today').textContent)), true);
 
+  /* 카드 안에서 큰 글씨 자리의 단위가 줄마다 달라지면 안 된다 — 근무 줄은
+     시간이, 오버타임 줄은 금액이 커서 눈이 두 단위를 오갔다(2026-09-24). */
+  const bigOnEachLine = await p.evaluate(()=>
+    [...document.querySelectorAll('#pay-today .pay-line')].map(l=>{
+      const v = l.querySelector('.pay-val .t-value');
+      return v ? v.textContent.trim() : null;
+    }).filter(Boolean));
+  check('줄마다 큰 글씨는 전부 금액이다',
+    bigOnEachLine.length >= 2 && bigOnEachLine.every(x=>/₫|đ/.test(x)), true);
+  check('...근무 줄의 큰 글씨가 일당이다', money(bigOnEachLine[0]), 800000);
+  check('...오버타임 줄의 큰 글씨가 오버타임 금액이다', money(bigOnEachLine[1]), 315000);
+
+  check('오버타임 캡션에 산식이 적혀 있다',
+    await p.evaluate(()=>{ const x=document.getElementById('pay-today').textContent;
+      return /70,000\s*[₫đ]\s*×\s*1\.5\s*×/.test(x); }), true);
+
+  /* 캡션이 길어지면 왼쪽 라벨이 먼저 찌그러져 "근/무"로 쪼개졌다.
+     한 줄 높이를 넘으면 접힌 것이다. */
+  check('왼쪽 라벨이 세로로 쪼개지지 않는다',
+    await p.evaluate(()=>[...document.querySelectorAll('#pay-today .pay-line > span:first-child')]
+      .every(s => s.getBoundingClientRect().height
+                  < parseFloat(getComputedStyle(s).fontSize) * 2)), true);
+  /* 지금 캡션은 짧아서 위 검사만으로는 규칙이 살아 있는지 알 수 없다 —
+     캡션을 일부러 길게 만들어 라벨이 버티는지 본다 */
+  check('...캡션이 길어져도 버틴다', await p.evaluate(()=>{
+    const line = document.querySelector('#pay-today .pay-line');
+    const cap = line.querySelector('.t-caption'), label = line.querySelector('span:first-child');
+    const keep = cap.textContent;
+    cap.textContent = '가'.repeat(140);
+    const h = label.getBoundingClientRect().height;
+    const fs = parseFloat(getComputedStyle(label).fontSize);
+    cap.textContent = keep;
+    return h < fs * 2;
+  }), true);
+
   /* 같은 날을 캘린더에서 눌러 연 카드와 금액이 같아야 한다 — 이게 이 파일의 핵심 */
   await p.click('[data-payday="'+D(0)+'"]'); await p.waitForTimeout(800);
   check('날짜 카드의 이 날 일당과 같다', money(await dayMoney(p)), money(await topMoney(p)));
