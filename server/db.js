@@ -48,6 +48,10 @@ const EMPTY_STATE = {
     goal: 1000,
     maxGapMin: 240,
     quietFrom: '22:00',
+    rateMl: 200,
+    rateMin: 240,
+    nightFrom: '23:00',
+    nightTo: '06:00',
   },
   profile: { nameKo: '지오', nameVi: 'Zio', birth: '2026-05-11' },
 };

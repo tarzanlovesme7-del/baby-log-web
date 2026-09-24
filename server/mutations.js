@@ -133,6 +133,10 @@ const FEED_PLAN_DEFAULT = {
   goal: 1000,
   maxGapMin: 240,
   quietFrom: '22:00',
+  rateMl: 200,
+  rateMin: 240,
+  nightFrom: '23:00',
+  nightTo: '06:00',
 };
 /* 어느 필드가 빠져 있어도 기본값으로 메워서 돌려준다. 클라이언트는 이걸
    그대로 믿고 그리므로, 여기서 걸러지지 않은 값은 화면에 나오지 않는다. */
@@ -141,8 +145,9 @@ function feedPlanOf(state) {
   const times = Array.isArray(p.times)
     ? p.times.filter((x) => HM_RE.test(x || '')).slice(0, 12).sort()
     : [];
+  const MODES = ['fixed', 'interval', 'amount'];
   return {
-    mode: p.mode === 'interval' ? 'interval' : 'fixed',
+    mode: MODES.indexOf(p.mode) >= 0 ? p.mode : 'fixed',
     times: times.length ? times : FEED_PLAN_DEFAULT.times.slice(),
     startTime: HM_RE.test(p.startTime || '') ? p.startTime : FEED_PLAN_DEFAULT.startTime,
     intervalMin: clampNum(p.intervalMin, 30, 12 * 60, FEED_PLAN_DEFAULT.intervalMin),
@@ -151,6 +156,13 @@ function feedPlanOf(state) {
     goal: clampNum(p.goal, 0, 5000, FEED_PLAN_DEFAULT.goal),
     maxGapMin: clampNum(p.maxGapMin, 30, 24 * 60, FEED_PLAN_DEFAULT.maxGapMin),
     quietFrom: HM_RE.test(p.quietFrom || '') ? p.quietFrom : FEED_PLAN_DEFAULT.quietFrom,
+    /* 용량에 따라: 기준 용량 rateMl를 rateMin에 먹는 속도로 본다.
+       200 ml = 240분이면 150 ml는 180분 뒤가 다음 차례다. */
+    rateMl: clampNum(p.rateMl, 1, 2000, FEED_PLAN_DEFAULT.rateMl),
+    rateMin: clampNum(p.rateMin, 10, 12 * 60, FEED_PLAN_DEFAULT.rateMin),
+    /* 밤에는 안 먹인다 — 이 사이에 걸리는 차례는 끝 시각으로 미룬다 */
+    nightFrom: HM_RE.test(p.nightFrom || '') ? p.nightFrom : FEED_PLAN_DEFAULT.nightFrom,
+    nightTo: HM_RE.test(p.nightTo || '') ? p.nightTo : FEED_PLAN_DEFAULT.nightTo,
   };
 }
 function clampNum(v, lo, hi, dflt) {
@@ -909,12 +921,12 @@ function applyMutation(prevState, type, payload) {
       assertMaster(payload.actor, 'feed plan');
       const cur = feedPlanOf(state);
       const merged = Object.assign({}, cur);
-      ['mode', 'startTime', 'quietFrom'].forEach((k) => {
+      ['mode', 'startTime', 'quietFrom', 'nightFrom', 'nightTo'].forEach((k) => {
         if (payload[k] !== undefined) merged[k] = payload[k];
       });
       /* 최소 하루량(1회량 × 횟수)은 저장하지 않는다 — 화면에서 계산한다.
          goal은 보충 수유까지 더한 하루 목표라 따로 받는다. */
-      ['intervalMin', 'count', 'perFeed', 'goal', 'maxGapMin'].forEach((k) => {
+      ['intervalMin', 'count', 'perFeed', 'goal', 'maxGapMin', 'rateMl', 'rateMin'].forEach((k) => {
         if (payload[k] !== undefined) merged[k] = payload[k];
       });
       if (payload.times !== undefined) {
