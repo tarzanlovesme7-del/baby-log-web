@@ -1697,6 +1697,14 @@
   .pay-line .t-value, .pay-line .t-money{ margin-left:auto; }
   .pay-val .t-value, .pay-val .t-money{ margin-left:0; }
   .pay-line .t-value.is-quiet{ font-weight:var(--fw-body); }
+  /* 요일 칩 일곱 개가 한 줄에 — 고른 것은 채워서, 나머지는 테두리만 */
+  .dow-row{ display:flex; gap:5px; margin-top:8px; }
+  .dow-chip{ flex:1; min-width:0; border:1px solid var(--border); border-radius:10px;
+    background:transparent; padding:8px 0; text-align:center;
+    font-size:var(--fs-caption); font-weight:var(--fw-medium); color:var(--muted-2); }
+  .dow-chip[aria-pressed="true"]{ background:var(--primary-weak-bg); border-color:transparent;
+    color:var(--primary-weak-fg, var(--primary)); font-weight:var(--fw-strong); }
+  .dow-chip[disabled]{ opacity:.55; }
   .pay-btn{ border:1px solid var(--border); background:transparent; color:var(--fg);
     border-radius:11px; padding:7px 16px; font-size:var(--fs-caption); font-weight:var(--fw-strong); }
   .pay-btn.go{ background:var(--primary); border-color:var(--primary); color:var(--primary-fg, #fff); }
@@ -3330,6 +3338,7 @@ ko: {
   payNoWork:"아직 근무 기록이 없어요", payNotStarted:"9월 16일부터 기록해요",
   payNotStartedTpl:"{d}부터 기록해요",
   payDay:"이 날", payAddOt:"+ 오버타임", payDayWage:"이 날 일당", payStampAt:"도장 누른 시각",
+  payOffDays:"쉬는 요일", payProjectedTpl:"기간 끝나면 {n}일 · {amount}",
   payLegendOn:"출근", payLegendWait:"승인 대기", payStampShort:"출근 도장",
   payNoStamp:"이 날은 출근 기록이 없어요", payRemove:"지우기",
   payClose:"닫기",
@@ -3531,6 +3540,7 @@ vi: {
   payNoWork:"Chưa có ngày công nào", payNotStarted:"Bắt đầu từ 16/9",
   payNotStartedTpl:"Bắt đầu từ {d}",
   payDay:"Ngày này", payAddOt:"+ Tăng ca", payDayWage:"Lương ngày này", payStampAt:"Giờ bấm nút",
+  payOffDays:"Ngày nghỉ hằng tuần", payProjectedTpl:"Hết kỳ: {n} ngày · {amount}",
   payLegendOn:"Đi làm", payLegendWait:"Chờ duyệt", payStampShort:"Điểm danh",
   payNoStamp:"Ngày này chưa điểm danh", payRemove:"Xoá",
   payClose:"Đóng",
@@ -8893,8 +8903,49 @@ function payroll(){
     startTime: /^([01]\d|2[0-3]):[0-5]\d$/.test(p.startTime || '') ? p.startTime : '07:00',
     /* 유급 연차 — 합의한 고정값(11일), 하루 금액은 일당 그대로 */
     leaveDays: isFinite(Number(p.leaveDays)) && Number(p.leaveDays) >= 0 ? Number(p.leaveDays) : 11,
-    leavePay: isFinite(Number(p.leavePay)) && Number(p.leavePay) >= 0 ? Number(p.leavePay) : 800000
+    leavePay: isFinite(Number(p.leavePay)) && Number(p.leavePay) >= 0 ? Number(p.leavePay) : 800000,
+    /* 주중 쉬는 요일(0=일 … 6=토). 내니는 월~토 근무라 기본은 일요일 하나 */
+    offDays: cleanOffDays(p.offDays)
   };
+}
+function cleanOffDays(v){
+  if (!Array.isArray(v)) return [0];
+  var out = v.map(function(x){ return Math.round(Number(x)); })
+             .filter(function(x, i, a){ return x >= 0 && x <= 6 && a.indexOf(x) === i; })
+             .sort();
+  return out.length && out.length < 7 ? out : [0];
+}
+/* 이 기간이 끝나면 얼마가 될지. 지나간 날은 기록 그대로, 아직 안 온 날은
+   정상 근무로 친다 — "다 나왔으면 얼마"라는 고정 기준선보다 이쪽이 실제로
+   쓰인다(이번에 얼마 나갈지 보려고 여는 화면이라서).
+
+   오늘은 '아직 안 온 날'에 넣는다. 아침에 도장을 찍기 전이라고 해서 오늘이
+   0원으로 잡히면 하루 종일 금액이 하루치 낮게 보인다. */
+function projectPeriod(from, to){
+  var r = payroll(), today = toDateValue(), days = 0, amount = 0;
+  for (var ds = from; ds <= to; ds = ppNext(ds)){
+    if (ds < r.startDate) continue;
+    var sh = shiftOn(ds), lv = leaveOn(ds), ots = otOn(ds);
+    if (sh || lv || ots.length){
+      if (lv){ if (lv.status === 'ok'){ days++; amount += r.leavePay; } }
+      else if (sh && sh.status === 'ok'){ days++; amount += shiftWage(sh); }
+      ots.forEach(function(o){
+        if (o.status === 'ok') amount += Math.round(otMins(o) * otPerMinute()); });
+      continue;
+    }
+    if (ds >= today && r.offDays.indexOf(new Date(ds + 'T00:00:00').getDay()) < 0){
+      days++; amount += r.daily;
+    }
+  }
+  return { days: days, amount: amount };
+}
+/* 이미 끝난 기간에는 내다볼 것이 없다 — 예상과 실제가 같은 값이 되어
+   같은 숫자를 두 번 적는 꼴이 된다. 아직 도는 기간에만 세운다. */
+function projectionLine(from, to, paid){
+  if (paid || to < toDateValue()) return '';
+  var pj = projectPeriod(from, to);
+  return esc(t('payProjectedTpl').replace('{n}', String(pj.days))
+    .replace('{amount}', fmtVnd(pj.amount)));
 }
 function otPerMinute(){ var r = payroll(); return (r.hourly * r.otMul) / 60; }
 /* ---- 기간 날짜별 상세 ----
@@ -8937,6 +8988,9 @@ function renderPayPeriodPage(){
       ((paid ? paid.otMin : tot.otMin) ? ' · ' + esc(t('payOtTpl')
         .replace('{t}', fmtWorkDur(paid ? paid.otMin : tot.otMin))) : '') +
     '</div>' +
+    (projectionLine(from, to, paid)
+      ? '<div class="t-caption" style="margin-top:2px">' + projectionLine(from, to, paid) + '</div>'
+      : '') +
     (paid ? '<div class="pay-chip ok" style="margin-top:9px">' +
       esc(t('payPaidAt').replace('{d}', payDateLabel(paid.paidAt.slice(0,10)).replace(/\s*\(.*\)$/, ''))) +
       '</div>' : '');
@@ -9737,9 +9791,13 @@ function renderPayPeriodCard(){
         esc(payDueLabel(dleft)) + '</span>') +
     '</div>' +
     '<div class="t-money big' + (amt ? '' : ' is-zero') + '" style="margin:8px 0 2px">' + esc(fmtVnd(amt)) + '</div>' +
+    /* 큰 금액은 지금까지 찍힌 것뿐이다 — 기간이 끝나면 얼마가 될지를
+       그 아래 작게 붙인다. 지나간 날은 기록대로, 남은 날만 정상 근무로. */
     '<div class="t-caption" style="margin-bottom:10px">' +
       esc(payDateLabel(pr.from).replace(/\s*\(.*\)$/, '')) + ' – ' +
-      esc(payDateLabel(pr.to).replace(/\s*\(.*\)$/, '')) + '</div>' +
+      esc(payDateLabel(pr.to).replace(/\s*\(.*\)$/, '')) +
+      (projectionLine(pr.from, pr.to, already)
+        ? '<br>' + projectionLine(pr.from, pr.to, already) : '') + '</div>' +
     '<div class="pay-line"><span>' + esc(t('payDaysTpl').replace('{n}', days)) + '</span><span class="t-value">' +
       esc(fmtVnd(Math.max(0, amt - oMoney - lvMoney))) + '</span></div>' +
     (lvDays ? '<div class="pay-line"><span>' + esc(t('leaveDaysTpl').replace('{n}', lvDays)) + '</span>' +
@@ -10046,10 +10104,27 @@ function renderPaySettings(){
       setField(master, 'data-pay-set="leaveDays"', r.leaveDays, t('dayUnitShort')) + '</div>' +
     '<div class="pay-line"><span>' + esc(t('leavePayLabel')) + '</span>' +
       setField(master, 'data-pay-set="leavePay"', r.leavePay, '₫') + '</div>' +
+    /* 요일은 숫자 칸이 아니라 일곱 개 중 고르는 것이다 — 칩이 맞다.
+       하나는 남아야 한다(전부 쉬면 '정상 근무 시 금액'이 0이 된다). */
+    '<div class="pay-line" style="display:block"><span>' + esc(t('payOffDays')) + '</span>' +
+      '<div class="dow-row">' + t('weekday_short').map(function(w, i){
+        return '<button type="button" class="dow-chip" data-pay-off="' + i + '"' +
+          (master ? '' : ' disabled') +
+          ' aria-pressed="' + (r.offDays.indexOf(i) >= 0) + '">' + esc(w) + '</button>';
+      }).join('') + '</div></div>' +
     '<div class="hint-line" style="padding-top:8px">' +
       esc(t('payPerMin').replace('{n}', String(Math.round(otPerMinute())).replace(/\B(?=(\d{3})+(?!\d))/g, state.lang === 'vi' ? '.' : ','))) +
       (master ? '' : ' · ' + esc(t('payMasterOnly'))) + '</div>';
   if (!master) return;
+  $$('[data-pay-off]', box).forEach(function(b){
+    b.addEventListener('click', function(){
+      var d = Number(b.dataset.payOff), cur = payroll().offDays;
+      var next = cur.indexOf(d) >= 0 ? cur.filter(function(x){ return x !== d; }) : cur.concat([d]);
+      if (!next.length || next.length >= 7) return;   /* 전부 쉬거나 전부 일할 수는 없다 */
+      apiMutate('setPayroll', { offDays: next }).then(function(){ renderPaySettings(); renderPay(); })
+        .catch(function(e){ toast(e.message); renderPaySettings(); });
+    });
+  });
   $$('[data-pay-set]', box).forEach(function(inp){
     inp.addEventListener('change', function(){
       var payload = {};

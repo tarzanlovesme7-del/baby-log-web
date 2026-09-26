@@ -105,6 +105,13 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const WAKE_DEDUPE_MS = 3 * 60 * 1000;
 const HM_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
+/* 0~6 정수만, 중복 없이, 정렬해서. 전부 쉬는 날로 두면 근무일이 0이 되어
+   '정상 근무 시 금액'이 뜻을 잃으므로 그건 기본값으로 되돌린다. */
+function cleanOffDays(v) {
+  if (!Array.isArray(v)) return [0];
+  const out = [...new Set(v.map((x) => Math.round(Number(x))).filter((x) => x >= 0 && x <= 6))].sort();
+  return out.length && out.length < 7 ? out : [0];
+}
 function payrollOf(state) {
   const p = state.payroll || {};
   return {
@@ -121,6 +128,9 @@ function payrollOf(state) {
        하루 금액은 일당 그대로다 — 근무와 같은 금액이라 설명할 것이 없다. */
     leaveDays: Number.isFinite(Number(p.leaveDays)) && Number(p.leaveDays) >= 0 ? Number(p.leaveDays) : 11,
     leavePay: Number.isFinite(Number(p.leavePay)) && Number(p.leavePay) >= 0 ? Number(p.leavePay) : 800000,
+    /* 주중 쉬는 요일(0=일 … 6=토). 내니는 월~토 근무라 기본은 일요일 하나.
+       '정상 근무 시 얼마'를 세려면 어느 날이 원래 근무일인지 알아야 한다. */
+    offDays: cleanOffDays(p.offDays),
   };
 }
 const FEED_PLAN_DEFAULT = {
@@ -910,6 +920,7 @@ function applyMutation(prevState, type, payload) {
         startTime: HM_RE.test(payload.startTime || '') ? payload.startTime : cur.startTime,
         leaveDays: payload.leaveDays !== undefined ? Math.max(0, Math.round(Number(payload.leaveDays) || 0)) : cur.leaveDays,
         leavePay: payload.leavePay !== undefined ? Math.max(0, Math.round(Number(payload.leavePay) || 0)) : cur.leavePay,
+        offDays: payload.offDays !== undefined ? cleanOffDays(payload.offDays) : cur.offDays,
       };
       state.payroll = next;
       return { state, result: { payroll: next } };
