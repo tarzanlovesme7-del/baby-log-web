@@ -73,17 +73,33 @@ const D=d=>{const x=new Date();x.setDate(x.getDate()+d);
   await mom.click('#set-back'); await mom.waitForTimeout(500);
 
   await mom.click('.tab-btn[data-tab="pay"]'); await mom.waitForTimeout(800);
-  await mom.click('[data-payday="'+D(2)+'"]'); await mom.waitForTimeout(700);
-  check('앞날 카드에 연차 버튼이 있다',
-    await mom.evaluate(()=>!!document.getElementById('pay-day-leave')), true);
-  await mom.click('#pay-day-leave'); await mom.waitForTimeout(1600);
-  check('엄마가 넣은 연차는 바로 확정된다',
-    (await st()).leaves.filter(l=>l.date===D(2)).map(l=>l.status), ['ok']);
+  /* 연차는 이번 정산 기간(1~15 / 16~말일) 안의 앞날에 넣어야 정산 금액에
+     반영된 걸 볼 수 있다. 기간 밖에 넣으면 다음 급여로 가니 여기선 안 보인다.
+     오늘이 기간의 마지막 날이면 넣을 앞날이 없으므로 그 검사는 건너뛴다. */
+  var periodEnd = (function(){
+    var y = Number(D(0).slice(0,4)), m = Number(D(0).slice(5,7)), d = Number(D(0).slice(8,10));
+    var p2 = function(n){ return (n<10?'0':'')+n; };
+    if (d <= 15) return y+'-'+p2(m)+'-15';
+    return y+'-'+p2(m)+'-'+p2(new Date(y, m, 0).getDate());
+  })();
+  var leaveDay = D(1) <= periodEnd ? D(1) : (D(2) <= periodEnd ? D(2) : null);
+  if (leaveDay){
+    await mom.click('[data-payday="'+leaveDay+'"]'); await mom.waitForTimeout(700);
+    check('앞날 카드에 연차 버튼이 있다',
+      await mom.evaluate(()=>!!document.getElementById('pay-day-leave')), true);
+    await mom.click('#pay-day-leave'); await mom.waitForTimeout(1600);
+    check('엄마가 넣은 연차는 바로 확정된다',
+      (await st()).leaves.filter(l=>l.date===leaveDay).map(l=>l.status), ['ok']);
+  } else {
+    console.log('SKIP  오늘이 기간 마지막 날이라 연차 넣을 앞날이 없다');
+  }
 
   await mom.click('#pay-tabs button[data-pv="settle"]'); await mom.waitForTimeout(900);
   check('정산 화면이 그려진다', await drawn(mom, '#pay-period'), true);
-  check('...연차가 금액에 들어간다', /연차 1일/.test(
-    await mom.evaluate(()=>document.getElementById('pay-period').textContent)), true);
+  if (leaveDay){
+    check('...연차가 금액에 들어간다', /연차 1일/.test(
+      await mom.evaluate(()=>document.getElementById('pay-period').textContent)), true);
+  }
   await mom.close();
 
   const s9 = await st();

@@ -43,7 +43,10 @@ const ahead = min => new Date(BASE_MS + min*60000);
   const plan = (extra) => mut('setFeedPlan', Object.assign({
     actor:'엄마', mode:'amount', rateMl:200, rateMin:240,
     startTime:'07:00', goal:900, maxGapMin:300,
-    nightFrom:'23:00', nightTo:'06:00' }, extra||{}));
+    /* 안 먹이는 시간을 23:00-06:00으로 고정해두면, 테스트가 새벽에 돌 때
+       '지금'이 그 창 안에 들어가 배너가 숨어버린다 — 검사하려는 것과
+       상관없이 시각 때문에 빨간불이 난다. 지금에서 멀리 띄워둔다. */
+    nightFrom: hm(ahead(600)), nightTo: hm(ahead(660)) }, extra||{}));
   const feed = (d, ml) => mut('addEntry', { type:'feed',
     start:d.toISOString(), end:d.toISOString(), amount:ml, author:'엄마' });
 

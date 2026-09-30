@@ -96,6 +96,14 @@ const server = http.createServer((req, res) => {
   if (req.method === 'GET' && u.pathname === '/api/photo-count'){
     return send(res, 200, { count: photoStore.size, ids: [...photoStore.keys()] });
   }
+  /* 테스트용. 진짜 서버에는 없다 — 같은 write id(mid)를 두 번 쓰면 서버가
+     '이미 처리했다'고 답하고 넘어간다. 급여 메모처럼 mid가 기간에서 정해져
+     바뀌지 않는 글은, 지우고 다시 올리는 검사를 두 번째 실행부터 못 하게
+     된다. 그래서 검사 시작 전에 그 기억만 비운다. */
+  if (req.method === 'POST' && u.pathname === '/api/forget-mids'){
+    state.applied = [];
+    return send(res, 200, { ok: true });
+  }
   if (req.method === 'POST' && u.pathname === '/api/mutate'){
     let body = '';
     req.on('data', c => body += c);

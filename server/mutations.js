@@ -879,8 +879,16 @@ function applyMutation(prevState, type, payload) {
          급여는 움직이지 않는다 */
       const rate = payrollOf(state);
       const days = (state.shifts || []).filter((x) => x.status === 'ok' && x.date >= from && x.date <= to);
+      /* 오버타임은 '다음 날이 속한 기간'으로 센다 — 지급일(기간의 마지막
+         날) 오버타임은 퇴근 뒤 일이라 그날 오후 5시에 나간 급여 메모에
+         담길 수 없다. 화면과 같은 규칙이어야 굳는 금액이 보여준 금액과 같다. */
+      const nextDay = (ds) => {
+        const d = new Date(ds + 'T00:00:00Z');
+        d.setUTCDate(d.getUTCDate() + 1);
+        return d.toISOString().slice(0, 10);
+      };
       const mins = (state.ot || [])
-        .filter((x) => x.status === 'ok' && x.date >= from && x.date <= to)
+        .filter((x) => x.status === 'ok' && nextDay(x.date) >= from && nextDay(x.date) <= to)
         .reduce((n, x) => n + otMinutes(x), 0);
       const perMin = (rate.hourly * rate.otMul) / 60;
       /* 단축 근무한 날은 그날치만 — 굳는 금액이 화면이 보여준 금액과 같아야 한다 */

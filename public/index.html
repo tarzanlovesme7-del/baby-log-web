@@ -3339,6 +3339,7 @@ ko: {
   payNotStartedTpl:"{d}부터 기록해요",
   payDay:"이 날", payAddOt:"+ 오버타임", payDayWage:"이 날 일당", payStampAt:"도장 누른 시각",
   payOffDays:"쉬는 요일", payProjectedTpl:"기간 끝나면 {n}일 · {amount}",
+  payOtCarryIn:"앞 기간에서 넘어옴", payOtNext:"다음 급여에 반영",
   payLegendOn:"출근", payLegendWait:"승인 대기", payStampShort:"출근 도장",
   payNoStamp:"이 날은 출근 기록이 없어요", payRemove:"지우기",
   payClose:"닫기",
@@ -3541,6 +3542,7 @@ vi: {
   payNotStartedTpl:"Bắt đầu từ {d}",
   payDay:"Ngày này", payAddOt:"+ Tăng ca", payDayWage:"Lương ngày này", payStampAt:"Giờ bấm nút",
   payOffDays:"Ngày nghỉ hằng tuần", payProjectedTpl:"Hết kỳ: {n} ngày · {amount}",
+  payOtCarryIn:"Chuyển từ kỳ trước", payOtNext:"Tính vào kỳ lương sau",
   payLegendOn:"Đi làm", payLegendWait:"Chờ duyệt", payStampShort:"Điểm danh",
   payNoStamp:"Ngày này chưa điểm danh", payRemove:"Xoá",
   payClose:"Đóng",
@@ -8923,6 +8925,10 @@ function cleanOffDays(v){
    0원으로 잡히면 하루 종일 금액이 하루치 낮게 보인다. */
 function projectPeriod(from, to){
   var r = payroll(), today = toDateValue(), days = 0, amount = 0;
+  /* 앞 기간 마지막 날의 오버타임은 이 기간으로 넘어온다 — 기간 안을 도는
+     반복문은 그 날짜를 지나가지 않으므로 여기서 한 번 더한다 */
+  otOn(ppPrev(from)).forEach(function(o){
+    if (o.status === 'ok') amount += Math.round(otMins(o) * otPerMinute()); });
   for (var ds = from; ds <= to; ds = ppNext(ds)){
     if (ds < r.startDate) continue;
     var sh = shiftOn(ds), lv = leaveOn(ds), ots = otOn(ds);
@@ -8930,7 +8936,8 @@ function projectPeriod(from, to){
       if (lv){ if (lv.status === 'ok'){ days++; amount += r.leavePay; } }
       else if (sh && sh.status === 'ok'){ days++; amount += shiftWage(sh); }
       ots.forEach(function(o){
-        if (o.status === 'ok') amount += Math.round(otMins(o) * otPerMinute()); });
+        if (o.status === 'ok' && otInPeriod(o.date, from, to))
+          amount += Math.round(otMins(o) * otPerMinute()); });
       continue;
     }
     if (ds >= today && r.offDays.indexOf(new Date(ds + 'T00:00:00').getDay()) < 0){
@@ -8956,6 +8963,11 @@ var ppRange = null;
 function ppNext(ds){
   var d = new Date(ds + 'T00:00:00');
   d.setDate(d.getDate() + 1);
+  return toDateValue(d.toISOString());
+}
+function ppPrev(ds){
+  var d = new Date(ds + 'T00:00:00');
+  d.setDate(d.getDate() - 1);
   return toDateValue(d.toISOString());
 }
 function openPayPeriodPage(from, to){
@@ -8996,6 +9008,18 @@ function renderPayPeriodPage(){
       '</div>' : '');
 
   var html = '', sum = 0, notYetDrawn = false;
+  /* 앞 기간 마지막 날의 오버타임은 이 기간의 돈이다 — 기간 밖 날짜라
+     아래 반복문이 지나가지 않으므로 맨 위에 이월 줄로 세운다 */
+  var carry = otOn(ppPrev(from));
+  carry.forEach(function(o){
+    var okc = o.status === 'ok', amt = okc ? Math.round(otMins(o) * otPerMinute()) : 0;
+    sum += amt;
+    html += '<div class="pp-day' + (okc ? '' : ' wait') + '">' +
+      '<span class="pp-d">' + esc(payDateLabel(o.date).replace(/^\d+월\s*/, '')) + '</span>' +
+      '<span class="pp-sub">' + esc(t('otTitle') + ' ' + otWhen(o)) + '<br>' +
+        esc(t('payOtCarryIn')) + '</span>' +
+      '<span class="pp-amt">' + (amt ? esc(fmtVnd(amt)) : '—') + '</span></div>';
+  });
   for (var ds = from; ds <= to; ds = ppNext(ds)){
     /* 근무 시작일 전은 이 앱의 일이 아니다 */
     if (!payStarted(ds)) continue;
@@ -9018,9 +9042,14 @@ function renderPayPeriodPage(){
         (tWait ? ' (' + t('payRequested') + ')' : ''));
       if (sh.status === 'ok') amt += shiftWage(sh); else wait = true;
     }
+    var carriesOut = otCarriesOut(ds);
     ots.forEach(function(o){
-      sub.push(t('otTitle') + ' ' + o.start + '–' + o.end + ' · ' + fmtWorkDur(otMins(o)));
-      if (o.status === 'ok') amt += Math.round(otMins(o) * otPerMinute()); else wait = true;
+      /* 지급일 오버타임은 이 기간에 안 들어간다 — 금액은 적되 더하지 않고,
+         왜 안 더해지는지 그 줄이 스스로 말한다 */
+      sub.push(t('otTitle') + ' ' + o.start + '–' + o.end + ' · ' + fmtWorkDur(otMins(o)) +
+        (carriesOut ? ' (' + t('payOtNext') + ')' : ''));
+      if (o.status !== 'ok') wait = true;
+      else if (!carriesOut) amt += Math.round(otMins(o) * otPerMinute());
     });
     if (!sub.length){ sub.push(future ? '—' : t('payDayOff')); cls = ' off'; }
     if (!amt && !wait) cls = ' off';
@@ -9142,9 +9171,16 @@ function shiftTimeLabel(sh){
   var r = payroll();
   return (sh.start || r.startTime) + '→' + (sh.end || minToHm(hmToMin(r.startTime) + stdWorkMin()));
 }
+/* 지급일은 그 기간의 마지막 날이고, 급여 메모는 그날 오후 5시에 나간다.
+   오버타임은 퇴근 뒤에 붙는 일이라 이미 나간 메모에 담길 수 없다. 그래서
+   오버타임만 '다음 날이 속한 기간'으로 센다 — 마지막 날 오버타임 하나만
+   다음 기간으로 넘어가고 나머지 날은 그대로다. 규칙은 이 한 줄이 전부다. */
+function otInPeriod(ds, from, to){ var d = ppNext(ds); return d >= from && d <= to; }
+/* 이 날 오버타임이 이 기간이 아니라 다음 기간으로 가는가 */
+function otCarriesOut(ds){ return ds === periodOf(ds).to; }
 function periodTotals(from, to){
   var days = readShifts().filter(function(x){ return x.status === 'ok' && x.date >= from && x.date <= to; });
-  var mins = readOt().filter(function(x){ return x.status === 'ok' && x.date >= from && x.date <= to; })
+  var mins = readOt().filter(function(x){ return x.status === 'ok' && otInPeriod(x.date, from, to); })
     .reduce(function(n, x){ return n + otMins(x); }, 0);
   var lv = readLeaves().filter(function(x){ return x.status === 'ok' && x.date >= from && x.date <= to; });
   return { days: days.length, otMin: mins, leaveDays: lv.length,
@@ -9187,6 +9223,9 @@ function payMonthKey(){ return state.payMonth || paySelectedDate().slice(0, 7); 
 
 /* ---- 지급일 메모. 지급일이 지나면 그 기간 요약이 메모로 한 번 올라온다.
    세 대의 폰이 동시에 올리려 해도 mid가 같아서 서버가 한 번만 반영한다. ---- */
+/* 급여 메모가 나가는 시각(그 지역 시간). 내니 퇴근 시각과 같다 —
+   그 시각까지의 출근이 다 들어온 상태에서 한 번만 나간다. */
+var PAYDAY_MEMO_HOUR = 17;
 var paydayMemoTried = {};
 function paydayMemoKey(pr){ return 'payday_' + pr.from + '_' + pr.to; }
 function maybePostPaydayMemo(){
@@ -9196,6 +9235,12 @@ function maybePostPaydayMemo(){
   var pr = today >= cur.payday ? cur : prevPeriod(cur);
   if (pr.to < payroll().startDate) return;
   if (today < pr.payday) return;
+  /* 지급일 당일에는 오후 5시가 지나야 올린다. 아침에 올리면 그날 출근이
+     아직 안 찍혀 있어서 하루가 통째로 빠진 금액이 나간다 — 2026-09-30에
+     실제로 그랬다(근무 12일로 나갔고 실제는 13일). 퇴근 시각이 17:00이라
+     그때면 그날 것이 다 들어와 있다. 지급일이 지난 뒤에 처음 열었다면
+     기다릴 이유가 없으니 바로 올린다. */
+  if (today === pr.payday && new Date().getHours() < PAYDAY_MEMO_HOUR) return;
   var key = paydayMemoKey(pr);
   if (paydayMemoTried[key]) return;
   /* 이미 올라와 있으면 그만 — 서버 중복 방지와 별개로, 지운 뒤 다시 올리는 것도 막는다 */
@@ -9378,7 +9423,8 @@ function renderPayToday(){
       var oPend = o.status === 'pending';
       html += '<div class="pay-line"' + (o === todayOts[todayOts.length-1] ? ' style="padding-bottom:0"' : '') +
         '><span>' + esc(t('otTitle')) +
-        (oPend ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
+        (oPend ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') +
+        (otCarriesOut(o.date) ? ' <span class="pay-chip quiet">' + esc(t('payOtNext')) + '</span>' : '') + '</span>' +
         '<div class="pay-val"><span class="t-value' + (oPend ? ' is-quiet' : '') + '">' +
           esc(fmtVnd(otMins(o) * otPerMinute())) + '</span>' +
         '<span class="t-caption">' + esc(otWhen(o)) + '</span>' +
@@ -9711,7 +9757,8 @@ function renderPayDay(){
   ots.forEach(function(o){
     if (o.status === 'ok') dayMin += otMins(o);
     html += '<div class="pay-line"><span>' + esc(t('otTitle')) +
-      (o.status === 'pending' ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
+      (o.status === 'pending' ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') +
+      (otCarriesOut(o.date) ? ' <span class="pay-chip quiet">' + esc(t('payOtNext')) + '</span>' : '') + '</span>' +
       '<div class="pay-val"><span class="t-value' + (o.status === 'pending' ? ' is-quiet' : '') + '">' +
         esc(fmtVnd(otMins(o) * otPerMinute())) + '</span>' +
       '<span class="t-caption">' + esc(otWhen(o)) + '</span>' +

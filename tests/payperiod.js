@@ -40,7 +40,13 @@ const money = s => { const m = String(s).replace(/[^\d]/g,''); return m ? Number
     await mut('stampIn', { date: ds(d), actor:'내니', author:'내니',
       at: new Date(Y, M-1, d, 7, 42).toISOString() });
   }
-  await mut('addOt', { date: ds(TD), start:'17:00', end:'20:00', actor:'엄마', author:'엄마' });
+  /* 기간의 마지막 날(지급일) 오버타임은 다음 기간으로 넘어간다 — 여기서
+     보려는 건 '한 날에 근무+오버타임이 합쳐져 한 금액으로 적히는가'이니
+     마지막 날이 아닌 근무일에 붙인다. 17일은 위에서 쉬는 날로 비워뒀다. */
+  const LAST = new Date(Y, M, 0).getDate();
+  let otDay = TD === LAST ? TD - 1 : TD;
+  while (otDay === 17) otDay--;
+  await mut('addOt', { date: ds(otDay), start:'17:00', end:'20:00', actor:'엄마', author:'엄마' });
 
   const open = async (who) => {
     const p = await b.newPage({ viewport:{width:390,height:900} });
