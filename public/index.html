@@ -468,9 +468,14 @@
   /* 달력을 여닫는 손잡이. 처음엔 시트의 그랩바(회색 막대)였는데, 막대는
      '끌 수 있다'까지만 말하고 어느 쪽으로 가는지는 말하지 않는다 — 화살표는
      방향까지 말한다. 접혔을 때 아래, 펴졌을 때 위를 가리킨다. */
+  /* touch-action:none 이었다 — 이 줄은 화면 한가운데를 가로로 꽉 채우는
+     26px 띠라, 엄지를 여기 얹고 쓸어내리면 **페이지가 아예 안 움직였다**
+     (2026-10-20 "날짜 선택된 상태에서는 아래로 스크롤이 안되네").
+     여닫는 건 눌러서도 되니 손가락은 브라우저에 돌려준다. 폭도 가운데
+     화살표 자리만큼만 — 나머지 자리는 그냥 스크롤되는 빈 줄이다. */
   .wc-grab{ display:flex; justify-content:center; align-items:center;
-    height:26px; margin:0 calc(var(--pad, 16px) * -1); touch-action:none; cursor:pointer;
-    border:0; background:transparent; width:calc(100% + var(--pad, 16px) * 2); padding:0; }
+    height:30px; margin:0 auto; touch-action:manipulation; cursor:pointer;
+    border:0; background:transparent; width:120px; padding:0; }
   /* .ui-ico 는 .ico-btn 안에서만 fill/stroke 를 받는다 — 여기선 직접 준다 */
   .wc-grab svg{ width:22px; height:22px; fill:none; stroke:var(--muted-2); stroke-width:2;
     stroke-linecap:round; stroke-linejoin:round; transition:transform .18s ease; }
@@ -778,6 +783,13 @@
     color:var(--primary-weak-fg); font-family:inherit;
     font-size:var(--fs-caption); font-weight:var(--fw-strong); text-align:center;
   }
+  /* 타임라인 줄에 붙는 사진 섬네일 — 메모 줄의 사진과 같은 크기 체계 */
+  .e-pics{ display:flex; gap:5px; margin-top:7px; }
+  .e-pic{ width:44px; height:44px; border-radius:8px; overflow:hidden; flex:0 0 auto;
+    background:var(--surface-2); display:block; }
+  .e-pic img{ width:100%; height:100%; object-fit:cover; display:block; }
+  .e-pic.more{ display:grid; place-items:center; font-size:var(--fs-micro);
+    font-weight:var(--fw-strong); color:var(--muted); }
   /* 타임라인 줄에 붙는 "밤에 3번 깸" */
   .e-wake-chip{
     display:inline-block; margin-top:4px;
@@ -2585,13 +2597,14 @@
      한 칸 = 1분 8px, 30분마다 긴 틱과 **진짜 시각**. */
   .scrub-strip.is-time{ top:4px; height:30px; }
   .scrub-strip.is-time .tv{
-    flex:0 0 4px; width:4px; scroll-snap-align:center;
+    flex:0 0 12px; width:12px; scroll-snap-align:center;
     display:flex; flex-direction:column; align-items:center; position:relative;
   }
   .scrub-strip.is-time .tv i{ display:block; width:1.4px; height:7px; border-radius:1px;
     background:var(--muted-2); opacity:.32; }
+  .scrub-strip.is-time .tv.mid i{ height:9px; opacity:.5; }
   .scrub-strip.is-time .tv.maj i{ height:12px; opacity:.75; }
-  /* 라벨은 8px 칸보다 넓다 — 칸 밖으로 흘러도 서로 안 겹치게 가운데 띄운다 */
+  /* 라벨은 칸보다 넓다 — 칸 밖으로 흘러도 서로 안 겹치게 가운데 띄운다 */
   .scrub-strip.is-time .tv b{ position:absolute; top:15px; left:50%; transform:translateX(-50%);
     font-size:10px; font-weight:var(--fw-body); color:var(--muted-2);
     font-variant-numeric:tabular-nums; line-height:1; white-space:nowrap; }
@@ -8221,6 +8234,18 @@ function entryRowHtml(e, isCont){
   var wakeChip = (e.type === 'sleep' && wakesOf(e).length)
     ? '<div class="e-wake-chip">' + esc(t('wakeCountTpl').replace('{n}', String(wakesOf(e).length))) + '</div>'
     : '';
+  /* 사진이 붙은 기록은 줄에서도 사진이 보여야 한다 — 안 그러면 사진을
+     남겼는지 알 방법이 들어가 보는 것뿐이다. 줄 전체가 버튼이라 섬네일은
+     버튼이 아니라 그림만: 누르면 그냥 그 기록이 열린다. */
+  var pics = (e.photos || []).filter(function(p){ return p && p.id; });
+  var picHtml = pics.length
+    ? '<div class="e-pics">' + pics.slice(0, 3).map(function(p){
+        return '<span class="e-pic"><img src="' + esc(displayPhotoUrl(p.id, true)) +
+          '" alt="" loading="lazy" /></span>';
+      }).join('') +
+      (pics.length > 3 ? '<span class="e-pic more">+' + (pics.length - 3) + '</span>' : '') +
+      '</div>'
+    : '';
   var locked = !canTouch(e.author);
   return '<div class="entry-swipe'+(locked?' is-locked':'')+'" data-id="'+esc(e.id)+'"'+(locked?' data-locked="1"':'')+'>' +
     (locked ? '' : '<div class="entry-delete-bg" data-swipe-del="'+esc(e.id)+'"><span>'+esc(t('deleteSwipeLabel'))+'</span></div>') +
@@ -8236,7 +8261,7 @@ function entryRowHtml(e, isCont){
       typeIconHtml(meta, 'e-icon', 'color:'+meta.color) +
       '<div class="e-main"><div class="e-title-line"><span class="e-title"'+colorAttr(meta.color)+'>'+esc(title)+'</span>' +
       (subParts.length ? '<span class="e-sub">'+esc(subParts.join(' · '))+'</span>' : '') + '</div>' +
-      wakeChip + noteHtml + '</div>' +
+      wakeChip + noteHtml + picHtml + '</div>' +
     '</button>' +
   '</div>';
 }
@@ -12338,24 +12363,29 @@ function closeEntryDetail(){
 var SCRUB_TIME_SPAN_MIN = 120;
 var SCRUB_TIME_STEP_MIN = 1;
 
-/* 한 칸 = 1분. 44px이던 때는 **30분 옮기는 데 1,320px**을 밀어야 했다 —
-   화면을 세 번 넘게 쓸어야 낮잠 하나를 고친다. 8px이면 30분이 240px,
-   엄지 한 번이다. 멈추는 자리는 여전히 1분 단위. */
-var SCRUB_TIME_CELL_PX = 4;
-/* 눈금에 적는 간격 — 30분마다 긴 틱과 시각 */
-var SCRUB_TIME_LABEL_MIN = 30;
+/* 한 칸 = 1분 12px.
+   44px: 30분 옮기는 데 1,320px — 화면을 세 번 넘게 쓸어야 낮잠 하나를 고친다.
+   4px:  반대로 너무 빨랐다. 엄지를 1cm 미끄러뜨리면 10분이 날아가서 "5분만
+         앞으로"가 안 된다(2026-10-20 "조금만 움직여도 시간이 확 바뀌어버리네").
+   12px: 엄지 한 번(≈130px)이 10분, 화면 한 폭(390px)이 30분이다. 1분을 고치려면
+         12px만 밀면 되고, 그보다 멀리 갈 때는 −10분/+10분 버튼과 직접 입력이
+         있다. 먹은 양 눈금자(한 칸 26px)와도 손맛이 비슷해진다. */
+var SCRUB_TIME_CELL_PX = 12;
+/* 눈금에 적는 간격 — 10분마다 긴 틱과 시각. 30분마다로는 한 화면에 시각이
+   한 개뿐이라 지금 몇 시 언저리인지 눈으로 못 짚는다. */
+var SCRUB_TIME_LABEL_MIN = 10;
 
 function timeScrubHtml(id, timeValue){
   /* 바늘은 가운데에 박혀 있고 눈금이 움직인다. 예전에는 눈금에 '−3 −2 −1 0
      +1' 처럼 **지금 값에서 몇 분 떨어졌나**를 적었는데, 그러면 어느 눈금이
      몇 시인지 읽을 수가 없었다 — "다섯 시 반쯤이었나"를 눈으로 찾을 수가
      없는 눈금자였다. 이제 진짜 시각을 적는다(아래 paintScale). */
-  /* 멈추는 자리는 1분마다지만 **틱은 5분마다** 그린다. 1분마다 그으면
-     4px 간격이라 눈금이 아니라 회색 띠가 된다. */
+  /* 틱은 1분마다. 한 칸이 12px이라 1분짜리 틱도 눈금으로 읽힌다 — 4px이던
+     때는 회색 띠가 돼서 5분마다만 그었다. 긴 틱과 시각은 paintScale 이
+     기준 시각에 맞춰 10분 자리에 칠한다. */
   var scale = '';
   for (var m = -SCRUB_TIME_SPAN_MIN; m <= SCRUB_TIME_SPAN_MIN; m += SCRUB_TIME_STEP_MIN){
-    scale += '<span class="tv" data-m="' + m + '">' +
-      (m % 5 === 0 ? '<i></i>' : '') + '<b></b></span>';
+    scale += '<span class="tv" data-m="' + m + '"><i></i><b></b></span>';
   }
   return '<div class="scrub is-ruler is-timepick" data-scrub="time" data-for="' + id + '">' +
     '<div class="scrub-top">' +
@@ -12449,6 +12479,8 @@ function wireTimeScrub(box){
       var mins = ((anchor + Number(c.dataset.m)) % 1440 + 1440) % 1440;
       var maj = mins % SCRUB_TIME_LABEL_MIN === 0;
       c.classList.toggle('maj', maj);
+      /* 5분 자리는 중간 길이 — 1분 틱만 늘어서면 어디가 5분인지 세어야 한다 */
+      c.classList.toggle('mid', !maj && mins % 5 === 0);
       var b = c.querySelector('b');
       if (b) b.textContent = maj ? (Math.floor(mins / 60) + ':' + (mins % 60 < 10 ? '0' : '') + (mins % 60)) : '';
     });

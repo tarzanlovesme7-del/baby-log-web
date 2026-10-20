@@ -104,9 +104,15 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
   check('...눈금에 진짜 시각이 적힌다', await p.evaluate(()=>
     [...document.querySelectorAll('#f-tedit-start .tv.maj b')]
       .map(x=>x.textContent).filter(Boolean).every(x=>/^\d{1,2}:[0-5]\d$/.test(x))), true);
-  check('...30분마다 적힌다', await p.evaluate(()=>{
+  /* 10분마다 — 30분마다로는 한 화면에 시각이 한 개뿐이라 지금 몇 시 언저리인지
+     눈으로 못 짚는다(2026-10-20, 한 칸 4px→12px 과 함께) */
+  check('...10분마다 적힌다', await p.evaluate(()=>{
     const v=[...document.querySelectorAll('#f-tedit-start .tv.maj b')].map(x=>x.textContent).filter(Boolean);
-    return v.length > 2 && v.every(x=>/:(00|30)$/.test(x)); }), true);
+    return v.length > 2 && v.every(x=>/:[0-5]0$/.test(x)); }), true);
+  /* 한 칸 12px — 4px이던 때는 엄지를 조금만 밀어도 10분이 날아갔다 */
+  check('...한 칸은 12px이다', await p.evaluate(()=>{
+    const c=document.querySelector('#f-tedit-start .tv[data-m]');
+    return c ? Math.round(c.getBoundingClientRect().width) : 0; }), 12);
   check('...−10분과 +10분이 둘 다 있다', await p.evaluate(()=>
     [...document.querySelectorAll('#f-tedit-start [data-scrub-nudge]')].map(b=>b.dataset.scrubNudge).sort()),
     ['-10','10']);
