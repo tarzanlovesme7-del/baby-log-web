@@ -67,6 +67,16 @@ const ENTRIES = [
   { ko: '목욕시켰어요', vi: ['đã tắm', 'tắm cho bé', 'tắm rồi'] },
   { ko: '손톱 정리했어요', vi: ['đã cắt móng tay', 'cắt móng tay'] },
   { ko: '산책했어요', vi: ['đi dạo', 'đã đi dạo'] },
+
+  // ---- 빠른 단어 (설정에서 등록해 둔, 한두 글자짜리 놀이·투약 메모) -------
+  // 한 글자짜리를 번역기에 던지면 빈 값이 돌아오는 일이 있다. 실제로 '책'
+  // 하나가 번역 없이 저장됐다. 이것들은 목록이 정해져 있으니 표에서 답한다.
+  { ko: '책', vi: ['sách', 'đọc sách'] },
+  { ko: '거울', vi: ['gương', 'soi gương'] },
+  { ko: '노래', vi: ['hát', 'nghe hát'] },
+  { ko: '수영', vi: ['bơi', 'đi bơi'] },
+  { ko: '집안 산책', vi: ['đi dạo trong nhà'] },
+  { ko: '애벌레', vi: ['sâu bướm'] },
 ];
 
 /* Lower-case, one space between words, no trailing full stop or exclamation —

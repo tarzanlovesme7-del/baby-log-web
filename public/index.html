@@ -412,11 +412,11 @@
      --wc-slot = 알약 한 줄(그림 13 + 위아래 3) + 줄 사이 2. */
   .wc-slots{ --wc-slot:21px; min-height:calc(var(--wc-slot) * 3); }
   /* 날짜를 누르면 달력이 접히고 그 아래에 그날 끼니가 펼쳐진다(목업 2번 화면).
-     달력은 250px까지만 남기고 아래로 스크롤된다 — 고른 날 주변이 보이면서
-     그날 식단을 읽는 것이 요점이다. */
-  .wcal.is-mini{ max-height:250px; overflow-y:auto; -webkit-overflow-scrolling:touch;
-    padding-bottom:6px; border-bottom:1px solid var(--border); scrollbar-width:none; }
-  .wcal.is-mini::-webkit-scrollbar{ display:none; }
+     접힌 달력은 **고른 날이 든 한 주만** 보여준다.
+     처음에는 250px짜리 스크롤 상자로 만들었는데, 그 상자가 화면 대부분을
+     덮는 바람에 손가락이 거기 닿으면 페이지가 아니라 상자 안이 스크롤돼서
+     아래 식단으로 내려갈 수가 없었다. 한 주만 그리면 상자가 필요 없다. */
+  .wcal.is-mini{ padding-bottom:6px; border-bottom:1px solid var(--border); }
   .wc-dn{ position:relative; border:0; background:transparent; font:inherit; width:100%; }
   .wc-dn .wc-ring{ position:absolute; left:50%; top:48%; transform:translate(-50%,-50%);
     width:25px; height:25px; border:1.4px solid var(--fg); border-radius:50%; }
@@ -465,17 +465,27 @@
   .wd-card{ flex:1; min-width:0; display:flex; align-items:center; gap:11px;
     padding:11px 0; border:0; background:transparent; font:inherit; text-align:left; }
   .wd-card:active{ opacity:.6; }
-  /* 접힌 달력의 손잡이 — 시트의 그랩바와 같은 모양 */
+  /* 달력을 여닫는 손잡이. 처음엔 시트의 그랩바(회색 막대)였는데, 막대는
+     '끌 수 있다'까지만 말하고 어느 쪽으로 가는지는 말하지 않는다 — 화살표는
+     방향까지 말한다. 접혔을 때 아래, 펴졌을 때 위를 가리킨다. */
   .wc-grab{ display:flex; justify-content:center; align-items:center;
-    height:22px; margin:0 calc(var(--pad, 16px) * -1); touch-action:none; cursor:grab; }
-  .wc-grab span{ width:38px; height:4px; border-radius:2px; background:var(--border); }
+    height:26px; margin:0 calc(var(--pad, 16px) * -1); touch-action:none; cursor:pointer;
+    border:0; background:transparent; width:calc(100% + var(--pad, 16px) * 2); padding:0; }
+  /* .ui-ico 는 .ico-btn 안에서만 fill/stroke 를 받는다 — 여기선 직접 준다 */
+  .wc-grab svg{ width:22px; height:22px; fill:none; stroke:var(--muted-2); stroke-width:2;
+    stroke-linecap:round; stroke-linejoin:round; transition:transform .18s ease; }
+  .wc-grab.is-open svg{ transform:rotate(180deg); }
+  .wc-grab:active svg{ stroke:var(--fg); }
   .wd-thumb{ width:58px; height:58px; border-radius:10px; background:var(--pc, var(--wn-pill));
     display:grid; grid-template-columns:1fr 1fr; place-items:center;
     gap:1px; flex:0 0 auto; }
   .wd-thumb .wi{ width:19px; height:19px; }
   .wd-t{ flex:1; min-width:0; }
+  /* 재료 이름을 자르지 않는다. 말줄임표가 붙으면 뭐가 들어가는지 보려고
+     한 번 더 눌러야 하는데, 이 카드가 있는 이유가 바로 그걸 안 누르고
+     아는 것이다 — 넘치면 줄을 바꾼다. */
   .wd-t b{ display:block; font-size:var(--fs-caption); font-weight:var(--fw-strong);
-    letter-spacing:-.02em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    letter-spacing:-.02em; line-height:1.45; word-break:keep-all; }
   .wd-t span{ display:block; font-size:var(--fs-micro); color:var(--muted); margin-top:3px; }
   .wd-empty{ padding:18px 0 8px; }
 
@@ -569,18 +579,30 @@
   .announce-row.wean-row{ background:var(--wn-bg); }
   .announce-row.wean-row .a-label{ color:var(--wn-fg); }
   .announce-row.wean-row .a-chev{ color:var(--wn-fg); }
-  /* 한 끼뿐인 날엔 비어 있다 — 빈 알약이 떠 있으면 안 된다 */
+  /* 하루 식단을 통째로 — 끼니마다 한 줄. 한 끼뿐인 날엔 끼니 이름을 적지
+     않는다(적을 이유가 없다). 두 끼부터 앞에 '아침'·'점심'이 선다. */
+  .wn-meals{ display:flex; flex-direction:column; gap:6px; }
+  .wn-meals:empty{ display:none; }
+  .wn-mrow{ display:flex; align-items:center; gap:8px; min-width:0; }
   .wn-meal:empty{ display:none; }
   .wn-meal{ font-size:var(--fs-micro); font-weight:var(--fw-strong); color:var(--wn-fg);
     background:color-mix(in srgb, var(--wn-fg) 14%, transparent);
     border-radius:var(--radius-pill); padding:1px 8px; flex:0 0 auto; }
+  /* 띠 가운데 정렬 — 제목 줄이 빠지면서 화살표가 맞출 윗줄이 없어졌다 */
+  .announce-row.wean-row{ align-items:center; }
+  .announce-row.wean-row .a-chev{ margin-left:0; align-self:center; }
+  /* 시작 전 한 줄짜리일 때만 제목과 이모지가 선다 */
+  #wn-dn-line[hidden]{ display:none; }
   /* 그림 + 이름이 한 덩어리. 이름이 붙으니 그림은 작아도 된다 —
      그림은 눈이 먼저 걸리게 하는 표식이고, 읽는 것은 이름이다. */
   /* 재료는 통째로 흰 알약 하나에 담는다. 연두 바탕 위에 그림이 그냥 놓이면
      그림의 흰 부분이 바탕에 묻힌다 — 하나하나 싸면 알약이 여섯 개가 되어
      띠가 어지럽고, 전체를 하나로 싸면 '오늘 먹을 것 한 벌'로 읽힌다. */
+  /* 제목과 이 알약 사이가 띠의 위아래 여백보다 넓어 보였다. 줄 높이(21px)가
+     글자보다 커서, 잰 값(10.5px)에 글자 아래 여유 4px이 더 붙어 눈에는
+     14px쯤으로 보인 탓이다 — 띠 안이 바깥보다 성기면 덜 만든 것처럼 읽힌다. */
   .wn-icons{ display:inline-flex; flex-wrap:wrap; align-items:center; gap:5px 10px;
-    align-self:flex-start; margin-top:7px; max-width:100%;
+    flex:1; min-width:0; max-width:100%;
     background:rgba(255,255,255,.82); border-radius:999px; padding:5px 11px; }
   .wn-icons:empty{ display:none; }
   .wn-it{ display:inline-flex; align-items:center; gap:4px; min-width:0; }
@@ -609,7 +631,10 @@
     padding:0;
   }
   /* 선을 뺐으니 글자가 칸의 왼쪽 끝에 붙어 설 이유도 없어졌다 — 가운데로. */
-  .d4{ background:transparent; padding:10px 6px 11px; min-width:0; overflow:hidden;
+  /* 아래 여백이 11px이던 때는 큰 글씨가 22px이라 칸이 그만큼 높았다. 글자를
+     17/12로 내리면서 칸이 10px쯤 낮아졌고, 같은 11px이 갑자기 넓어 보였다 —
+     빠른기록 줄과의 사이를 배포 전 리듬으로 되돌린다. */
+  .d4{ background:transparent; padding:10px 6px 2px; min-width:0; overflow:hidden;
     text-align:center; border:0; font:inherit; color:inherit;
     display:flex; flex-direction:column; align-items:center; gap:0;
     border-radius:12px; }
@@ -637,12 +662,13 @@
      한 칸이 118px이라 "오후 7시 32분"이 들어가려면 줄바꿈을 허용해야 한다 —
      자르면 시각이 반만 남는다. */
   /* 두 줄이 되더라도 "2시간 46 / 분 전"처럼 낱말 가운데서 끊기면 안 된다 */
-  /* 둘째 줄은 값이지 라벨이 아니다. 위의 '다음 수유'와 같은 회색으로 두면
-     한 칸 안에 회색 줄이 둘이라 어느 쪽이 값인지 흐려진다 — 글자색을
-     본문 색으로 올리고, 크기는 큰 글씨처럼 함께 맞춘다. */
-  .d4-sub{ display:block; margin-top:3px; font-size:var(--fs-label);
-    font-weight:var(--fw-body); color:var(--fg); letter-spacing:-.01em;
-    line-height:1.3; word-break:keep-all; }
+  /* 둘째 줄을 본문 색 15px로 올려 뒀던 적이 있다(라벨과 구별하려고). 그런데
+     큰 글씨가 17px로 내려오면서 둘이 거의 같은 크기가 됐고, '기저귀 12시간
+     42분 전'이 한 줄을 넘겨 칸 높이를 밀었다. 위계는 큰 글씨가 이미 쥐고
+     있으므로 이 줄은 작게·회색·얇게 — 읽히되 소리내지 않는다. */
+  .d4-sub{ display:block; margin-top:3px; font-size:var(--d4-sub, var(--fs-micro));
+    font-weight:400; color:var(--muted); letter-spacing:-.01em;
+    line-height:1.35; word-break:keep-all; }
   /* 수유 시각이 지났을 때. 바탕을 칠하면 회색 띠 위에 분홍 상자 하나가
      떠서 그 칸만 다른 화면처럼 보인다 — 글자 색으로만 말한다. */
   .d4.urgent .d4-big{ color:var(--danger-text); }
@@ -2281,7 +2307,11 @@
     --pad:16px;
     flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch;
     padding:20px 16px 24px; display:flex; flex-direction:column; gap:20px;
+    scrollbar-width:none;
   }
+  /* 앱 안의 다른 스크롤 자리(.qa-grid · .scrub-strip · .wn-tabs)는 전부 막대를
+     감춘다. 전체화면과 시트만 빠져 있었다. */
+  .fp-body::-webkit-scrollbar{ display:none; }
   /* a docked bar, not a pill hovering over the form. Floating it meant the
      button sat on top of whatever field happened to be underneath, which read
      as a rendering bug rather than a deliberate control. */
@@ -2334,9 +2364,10 @@
   #fp-entry-body .field input{
     background:var(--surface);
   }
-  /* 개편 뒤 한 마디·약 이름·약 양은 .field 바깥에 바로 놓인다 — 흰 종이
+  /* 개편 뒤 한 마디·약 이름·약 양·날짜는 .field 바깥에 바로 놓인다 — 흰 종이
      위에서는 테두리가 그 칸이 '적는 자리'라고 말하는 유일한 표시다. */
   #fp-entry-body > input[type="text"], #fp-entry-body > input[type="number"],
+  #f-when-box > input[type="date"],
   #fp-entry-body .ent-row2 input{
     width:100%; padding:13px 14px; border-radius:12px; border:1px solid var(--border);
     background:var(--surface); font-size:16px; color:var(--fg);
@@ -2367,14 +2398,25 @@
   .ent-when b{ font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--fg); }
   .ent-when b span{ color:var(--muted-2); font-weight:var(--fw-body); margin-left:4px; }
   .ent-when em{ font-style:normal; font-size:var(--fs-micro); color:var(--muted); white-space:nowrap; }
+  /* .fp-body 가 세로 flex라 gap:20px 이 제목과 그 아래 부품 사이에도 들어간다 —
+     margin 9px 위에 20px이 더 얹혀 29px이 됐다. 제목은 제 부품에 붙어야 한다. */
   .ent-h{ font-size:var(--fs-caption); font-weight:var(--fw-strong); color:var(--muted);
-    margin:18px 0 9px; letter-spacing:-.01em; }
+    margin:18px 0 -11px; letter-spacing:-.01em; }
   #fp-entry-body > .ent-h:first-child{ margin-top:14px; }
   /* 숫자 고르개 — 눈금자(.scrub)를 그대로 쓰고 테두리와 끝말만 얹는다.
      먹은 양(세그먼트)과 잰 무게(눈금자)가 같은 질문이라 하나로 합쳤다.
      같은 부품이 분유(ml)·이유식(g)·체온(℃)에 그대로 쓰인다. */
   .amt{ border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden; }
   .amt .scrub{ padding:14px 0 4px; }
+  /* 시각 눈금자를 테두리에 담을 때는 아래 여백을 조금 더 — 눈금자 밑에
+     끝말 줄이 없어서 바닥이 바투 붙는다 */
+  .amt > .scrub:only-child{ padding-bottom:10px; }
+  /* 접힌 시각 칸 안에서도 제목과 부품이 붙어 있어야 한다 */
+  #f-when-box{ display:flex; flex-direction:column; gap:20px; }
+  #f-when-box > *{ flex:0 0 auto; }
+  /* 머리줄 바로 아래 첫 제목은 제 margin 을 쓰지 않는다 — 바깥 gap 20px 에
+     18px 이 또 얹혀 둘 사이가 손가락 두 개만큼 벌어졌다 */
+  #f-when-box > .ent-h:first-child{ margin-top:0; }
   .amt-hint{ text-align:center; font-size:var(--fs-micro); color:var(--muted-2); padding:0 14px; }
   .amt-ends{ display:flex; justify-content:space-between; gap:10px;
     font-size:var(--fs-micro); color:var(--muted-2); padding:4px 14px 11px; }
@@ -2419,11 +2461,6 @@
   .ent-unit{ border:1px solid var(--border); border-radius:12px; padding:13px 14px;
     font-size:var(--fs-caption); font-weight:var(--fw-medium); color:var(--fg);
     background:var(--surface); text-align:center; }
-  /* 바닥 버튼 둘 — 오른쪽은 늘 저장, 왼쪽은 그 종류의 '한 번 더' */
-  #fp-entry .fp-foot{ display:flex; gap:9px; }
-  #fp-entry .fp-foot .btn{ flex:1; }
-  #fp-entry .fp-foot .btn.ghost{ flex:0 0 40%; border:1px solid var(--border);
-    background:var(--surface); color:var(--fg); }
 
   .scrub{ background:var(--surface); border-radius:14px; padding:14px 0 12px; }
   .scrub-top{ position:relative; display:flex; align-items:center; justify-content:space-between; gap:8px; padding:0 14px; min-height:32px; }
@@ -2451,6 +2488,7 @@
      touch-action:none on the container tells the browser to do no panning at
      all — which on a real touchscreen means the ruler cannot be dragged. */
   .scrub-rail{ position:relative; height:44px; margin-top:6px; touch-action:pan-x; }
+  .scrub.is-ruler .scrub-rail{ height:38px; }
   .scrub-strip{ touch-action:pan-x; }
   .scrub-line{ position:absolute; left:14px; right:14px; top:9px; height:1px; background:var(--border); pointer-events:none; }
   .scrub-dot{
@@ -2461,6 +2499,7 @@
      the middle of the line and the MINUTES scroll underneath it, one label per
      minute. The earlier version moved the dot along a fixed scale, which meant
      aiming a thumb at a 13px target for a one-minute correction. */
+  .scrub-strip.is-time{ top:20px; height:24px; }
   .scrub-strip.is-time .tv{
     flex:0 0 44px; width:44px; scroll-snap-align:center; text-align:center;
     font-size:var(--fs-micro); color:var(--muted-2);
@@ -2469,10 +2508,13 @@
   .scrub-strip.is-time .tv.on{ color:var(--primary); font-weight:var(--fw-display); }
   .scrub-strip.is-time .tv.pad{ flex:0 0 auto; }
 
-  /* scrolling variant (amount): the scale itself scrolls, dot stays centred */
-  .scrub.is-ruler .scrub-dot{ left:50%; }
+  /* 눈금자의 '점'은 바늘이다 — 목업의 파란 세로선. 점(동그라미)은 틱 위에
+     얹히면 어느 틱을 가리키는지 흐려진다. */
+  .scrub.is-ruler .scrub-dot{ left:50%; top:1px; width:3px; height:18px; margin-left:-1.5px;
+    border-radius:2px; box-shadow:none; }
+  .scrub.is-ruler .scrub-line{ display:none; }
   .scrub-strip{
-    position:absolute; left:0; right:0; top:20px; height:24px; display:flex;
+    position:absolute; left:0; right:0; top:4px; height:30px; display:flex;
     overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch;
     scrollbar-width:none; overscroll-behavior-x:contain;
   }
@@ -2483,12 +2525,20 @@
     -webkit-mask-image:linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%);
             mask-image:linear-gradient(90deg, transparent 0, #000 14%, #000 86%, transparent 100%);
   }
+  /* 한 칸 = 틱 하나. 다섯 칸마다 긴 틱과 숫자가 선다(목업 .ruler). */
   .scrub-strip .sv{
-    flex:0 0 44px; width:44px; scroll-snap-align:center; text-align:center;
-    font-size:var(--fs-micro); color:var(--muted-2); font-variant-numeric:tabular-nums; line-height:20px;
+    flex:0 0 26px; width:26px; scroll-snap-align:center;
+    display:flex; flex-direction:column; align-items:center;
   }
-  .scrub-strip .sv.on{ color:var(--primary); font-weight:var(--fw-display); }
-  .scrub-strip .sv.pad{ flex:0 0 auto; }
+  /* 목업의 눈금 색(#c9ced6)에 맞춘다 — var(--border)는 선 색이라 눈금으로
+     쓰면 거의 안 보인다 */
+  .scrub-strip .sv i{ display:block; width:1.4px; height:8px; border-radius:1px;
+    background:var(--muted-2); opacity:.42; }
+  .scrub-strip .sv.maj i{ height:12px; opacity:.75; }
+  .scrub-strip .sv b{ font-size:10px; font-weight:var(--fw-body); color:var(--muted-2);
+    margin-top:3px; font-variant-numeric:tabular-nums; line-height:1; white-space:nowrap; }
+  .scrub-strip .sv.on b{ color:var(--primary); font-weight:var(--fw-strong); }
+  .scrub-strip .sv.pad{ flex:0 0 auto; width:auto; }
   .seg{ display:flex; gap:2px; border-radius:14px; background:var(--surface-2); padding:3px; }
   /* 안 고른 칸은 한 단계 연하고 한 단계 가볍다 — 손잡이가 안 보이는
      상황에서도 글자만으로 어느 쪽이 골라졌는지 읽히게 */
@@ -2530,8 +2580,9 @@
     position:fixed; left:0; right:0; bottom:0; z-index:41; max-width:560px; margin:0 auto;
     background:var(--surface); border-radius:24px 24px 0 0;
     max-height:88vh; overflow-y:auto; transform:translateY(100%); transition:transform .26s cubic-bezier(.32,.72,0,1);
-    padding-bottom:env(safe-area-inset-bottom);
+    padding-bottom:env(safe-area-inset-bottom); scrollbar-width:none;
   }
+  .sheet::-webkit-scrollbar{ display:none; }
   .sheet.show{ transform:translateY(0); }
   .sheet-head{ position:sticky; top:0; background:var(--surface); display:flex; align-items:center; justify-content:space-between; padding:14px 8px 10px 14px; }
   .sheet-head h2{ font-size:var(--fs-title); margin:0; font-weight:var(--fw-strong); }
@@ -3012,16 +3063,19 @@
       <!-- 오늘 이유식. 하루 종일 떠 있던 수유 배너를 걷어내고 그 자리를
            여기가 쓴다 — 수유는 아래 세 칸이 맡는다. 글자 대신 그날 쓰는
            재료 그림이 서고, 처음 먹는 재료에는 느낌표가 붙는다. -->
+      <!-- 시작 전에는 '🍽️ 이유식 D-17' 한 줄, 시작한 뒤에는 제목도 이모지도
+           없이 그날 식단만. 띠에 '이유식'이라고 적어 두지 않아도 재료 그림이
+           서 있으면 무엇인지 안다 — 제목은 자리만 먹었다. -->
       <button type="button" class="announce-row wean-row" id="wean-row" hidden>
-        <span class="a-emoji">🍽️</span>
+        <span class="a-emoji" id="wn-emoji">🍽️</span>
         <div class="a-body">
-          <div class="a-top">
+          <div class="a-top" id="wn-dn-line">
             <span class="a-label" id="wn-label">이유식</span>
-            <span class="wn-meal" id="wn-meal"></span>
-            <span class="a-chev">›</span>
+            <span class="wn-soon wn-dn" id="wn-dn"></span>
           </div>
-          <div class="wn-icons" id="wn-icons"></div>
+          <div class="wn-meals" id="wn-meals"></div>
         </div>
+        <span class="a-chev">›</span>
       </button>
 
       <button type="button" class="announce-row" id="memo-open-btn">
@@ -3656,10 +3710,10 @@
     </div>
     <div class="fp-body" id="fp-entry-body"></div>
     <input type="file" id="f-photo-input" accept="image/*" multiple hidden />
+    <!-- 바닥은 저장 하나. '다시 먹이기 / 이어서 재우기'를 왼쪽에 뒀더니
+         저장 옆에서 둘 다 똑같이 크게 서서, 고치고 나가는 길이 두 개로
+         보였다. 한 번 더 기록하는 길은 첫 화면 빠른기록이 이미 맡는다. -->
     <div class="fp-foot">
-      <!-- 왼쪽은 그 종류에서 '한 번 더'가 뜻하는 것 — 이유식은 다시 먹이기,
-           수면은 이어서 재우기, 나머지는 하나 더. 오른쪽은 늘 저장이다. -->
-      <button type="button" class="btn ghost" id="fp-entry-again">-</button>
       <button type="button" class="btn primary" id="fp-entry-save" data-i18n="save">저장</button>
     </div>
   </div>
@@ -4271,6 +4325,7 @@ ko: {
   wnWeekEmptySub:"식단이 정해지면 여기에 넣으면 돼요.",
   wnMonthTpl:"{y}년 {m}월", wnBadgeDayTpl:"{n}일차 · {d} 시작", wnBadgeDminusTpl:"D-{n} · {d} 시작",
   wnPickMonth:"달 고르기", wnDayNavTpl:"{m}월 {d}일 {w}요일", wnNoPlanDay:"이 날은 식단이 없어요.",
+  wnCalOpen:"달력 펴기", wnCalClose:"달력 접기",
   wnNoPlanToday:"오늘 식단이 없어요",
   wnMealSection:"식단", wnAteGTpl:"{n}g 먹음", wnAteRemove:"이 기록 지우기",
   wnLast7Sub:"막대 하나가 하루예요. 기록이 없는 날은 비어 있어요.", wnMonthDaysTpl:"{n}일", wnPickColor:"색 고르기",
@@ -4342,7 +4397,6 @@ ko: {
   entTempSiteQ:"어디서 쟀나요", tsite_ear:"귀", tsite_brow:"이마", tsite_arm:"겨드랑이",
   entMedQ:"무슨 약이었나요", entMedAmtQ:"얼마나", entMedOther:"+ 직접 적기",
   entPics:"사진",
-  entAgainWean:"다시 먹이기", entAgainSleep:"이어서 재우기", entAgainMore:"하나 더",
   wnOpenTitle:"식단표 · 장보기 · 재고", wnSetSummaryTpl:"{from}부터 {n}일치", wnSetEmpty:"아직 식단이 없어요",
   wnMoreTpl:"외 {n}", wnWatchMoreTpl:"그리고 {n}가지 더 지켜보는 중",
   wnEditMenu:"눌러서 먹은 양 적기",
@@ -4477,7 +4531,7 @@ ko: {
   startTime:"시작 시간", endTime:"종료 시간", nowBtn:"지금", dateLabel:"날짜",
   addEndTime:"+ 종료 시간", minusTen:"-10분",
   amount:"먹은 양", ml:"ml", note:"메모", medNote:"약 이름 / 메모",
-  celsius:"°C", author:"기록자",
+  celsius:"°C",
   savedToast:"저장했어요", deletedToast:"삭제했어요", startedToast:"타이머를 시작했어요", recordedToast:"기록했어요",
   alreadyActive:"이미 진행 중인 기록이 있어요", canceledToast:"취소했어요",
   adjustStart:"시작 시간 조정", discardActive:"기록하지 않고 취소",
@@ -4568,6 +4622,7 @@ vi: {
   wnWeekEmptySub:"Khi đã định thực đơn thì thêm vào đây.",
   wnMonthTpl:"Tháng {m}/{y}", wnBadgeDayTpl:"Ngày {n} · bắt đầu {d}", wnBadgeDminusTpl:"D-{n} · bắt đầu {d}",
   wnPickMonth:"Chọn tháng", wnDayNavTpl:"{m}/{d} ({w})", wnNoPlanDay:"Ngày này chưa có thực đơn.",
+  wnCalOpen:"Mở lịch", wnCalClose:"Thu lịch",
   wnNoPlanToday:"Hôm nay chưa có thực đơn",
   wnMealSection:"Thực đơn", wnAteGTpl:"Ăn {n}g", wnAteRemove:"Xoá ghi chép này",
   wnLast7Sub:"Mỗi cột là một ngày. Ngày chưa ghi thì để trống.", wnMonthDaysTpl:"{n} ngày", wnPickColor:"Chọn màu",
@@ -4637,7 +4692,6 @@ vi: {
   entTempSiteQ:"Đo ở đâu", tsite_ear:"Tai", tsite_brow:"Trán", tsite_arm:"Nách",
   entMedQ:"Thuốc gì", entMedAmtQ:"Bao nhiêu", entMedOther:"+ Tự ghi",
   entPics:"Ảnh",
-  entAgainWean:"Cho ăn lại", entAgainSleep:"Ngủ tiếp", entAgainMore:"Thêm một lần",
   wnOpenTitle:"Thực đơn · đi chợ · kho đông", wnSetSummaryTpl:"{n} ngày từ {from}", wnSetEmpty:"Chưa có thực đơn",
   wnMoreTpl:"và {n} nữa", wnWatchMoreTpl:"Và {n} loại nữa đang theo dõi",
   wnEditMenu:"Bấm để ghi lượng ăn",
@@ -4777,7 +4831,7 @@ vi: {
   startTime:"Giờ bắt đầu", endTime:"Giờ kết thúc", nowBtn:"Bây giờ", dateLabel:"Ngày",
   addEndTime:"+ Giờ kết thúc", minusTen:"-10 phút",
   amount:"Lượng bú", ml:"ml", note:"Ghi chú", medNote:"Tên thuốc / Ghi chú",
-  celsius:"°C", author:"Người ghi",
+  celsius:"°C",
   savedToast:"Đã lưu", deletedToast:"Đã xóa", startedToast:"Đã bắt đầu hẹn giờ", recordedToast:"Đã ghi nhận",
   alreadyActive:"Đang có một mục hẹn giờ chạy rồi", canceledToast:"Đã hủy",
   adjustStart:"Chỉnh giờ bắt đầu", discardActive:"Hủy, không lưu",
@@ -5622,7 +5676,13 @@ var GLOSSARY = [
   {ko:"약 먹였어요",vi:["đã cho uống thuốc","cho uống thuốc"]},
   {ko:"목욕시켰어요",vi:["đã tắm","tắm cho bé","tắm rồi"]},
   {ko:"손톱 정리했어요",vi:["đã cắt móng tay","cắt móng tay"]},
-  {ko:"산책했어요",vi:["đi dạo","đã đi dạo"]}
+  {ko:"산책했어요",vi:["đi dạo","đã đi dạo"]},
+  {ko:"책",vi:["sách","đọc sách"]},
+  {ko:"거울",vi:["gương","soi gương"]},
+  {ko:"노래",vi:["hát","nghe hát"]},
+  {ko:"수영",vi:["bơi","đi bơi"]},
+  {ko:"집안 산책",vi:["đi dạo trong nhà"]},
+  {ko:"애벌레",vi:["sâu bướm"]}
 ];
 /* GLOSSARY-TABLE-END */
 /* lower-case, single spaces, no trailing full stop, and NFC — the Vietnamese
@@ -6924,11 +6984,17 @@ function fitDash4(row, bigs, subs){
     if (!(widest > 0)) return null;
     return Math.max(lo, Math.min(hi, Math.floor(avail / widest * 100)));
   }
-  var pb = fit('.d4-big', bigs, 15, 17);
+  /* 아래끝이 언어마다 다르다. 15px은 한국어 기준(빠른기록 라벨과 같은 크기)
+     인데, 베트남어는 같은 말이 1.5배 길다 — "기저귀 12시간 41분 전"이
+     "tã 12 giờ 41 phút trước"가 된다. 한국어 아래끝을 그대로 들이대면 더
+     줄일 수가 없어서 글자가 칸 밖으로 삐져나갔다. */
+  var vi = state.lang === 'vi';
+  var pb = fit('.d4-big', bigs, vi ? 12 : 15, 17);
   if (pb) row.style.setProperty('--d4-big', pb + 'px');
-  /* 둘째 줄은 줄이지 않는다. "기저귀 2시간 46분 전"을 한 줄에 넣으려면
-     11px까지 내려가야 하는데, 그건 이 화면에서 제일 작은 글자를 새로
-     만드는 일이다 — 차라리 두 줄로 흘린다(칸 밑선은 격자가 맞춰준다). */
+  /* 둘째 줄은 한국어에서는 줄이지 않는다(12px = 앱에서 제일 작은 글자).
+     베트남어에서만 한 칸에 들어갈 만큼 더 내린다. */
+  var ps = vi ? fit('.d4-sub', subs, 10, 12) : 12;
+  if (ps) row.style.setProperty('--d4-sub', ps + 'px');
 }
 
 /* ── 오늘 이유식 배너 ──────────────────────────────────────────────
@@ -6956,53 +7022,65 @@ function weanNextMeal(ds, day){
     if (!weanEntriesForMeal(ds, meals[i]).length) return { meal: meals[i], idx: i };
   return { meal: meals[meals.length - 1], idx: meals.length - 1 };
 }
-function weanBandMeal(ds, day){
-  var nx = weanNextMeal(ds, day);
-  return { meal: nx.meal, many: day.meals.length > 1 };
-}
 function renderWeanBand(){
   var box = document.getElementById('wean-row');
   if (!box) return;
   var ds = toDateValue();
   var day = weanDay(ds);
+  var emo = document.getElementById('wn-emoji');
+  var dnLine = document.getElementById('wn-dn-line');
+  var meals = document.getElementById('wn-meals');
+
   if (!day || !day.meals || !day.meals.length){
-    /* 시작 전이면 남은 날을 세고, 식단이 끝난 뒤에는 띠를 걷는다 */
+    /* 시작 전이면 남은 날을 세고, 식단이 끝난 뒤에는 띠를 걷는다.
+       이 한 줄일 때만 🍽️ 과 '이유식'이 선다 — 식단이 서 있는 날에는
+       그림이 이미 무엇인지 말하고 있어서 둘 다 자리만 먹는다. */
     var first = weanFirstDay();
     if (first && ds < first){
       var n = Math.round((new Date(first + 'T00:00:00') - new Date(ds + 'T00:00:00')) / 86400000);
       box.hidden = false;
+      emo.hidden = false;
+      dnLine.hidden = false;
       document.getElementById('wn-label').textContent = t('wnBandLabel');
-      document.getElementById('wn-meal').textContent = '';
-      document.getElementById('wn-icons').innerHTML =
-        '<span class="wn-soon wn-dn">' + esc(t('dashDminusTpl').replace('{n}', String(n))) + '</span>';
+      document.getElementById('wn-dn').textContent = t('dashDminusTpl').replace('{n}', String(n));
+      meals.innerHTML = '';
       syncAnnounceStack();
       return;
     }
     box.hidden = true; syncAnnounceStack(); return;
   }
+
   box.hidden = false;
-  var pick = weanBandMeal(ds, day);
-  var seen = {}, items = [];
-  ((pick.meal.base || []).concat(pick.meal.tops || [])).forEach(function(x){
-    if (!seen[x.ing]){ seen[x.ing] = 1; items.push(x.ing); }
-  });
+  emo.hidden = true;
+  dnLine.hidden = true;
+  /* 하루를 통째로 — 끼니마다 한 줄. '다음 안 먹인 끼니' 하나만 보여주던
+     때는 아침을 먹이고 나면 점심이 나타나서, 아침에 뭘 줬는지 띠에서
+     사라졌다. 하루 식단은 하루 종일 같은 자리에 있어야 한다. */
   var news = {};
   weanNewOn(ds).forEach(function(id){ news[id] = 1; });
-  items = items.filter(function(x){ return news[x]; })
-    .concat(items.filter(function(x){ return !news[x]; }));
-  var rest = 0;
-  if (items.length > WEAN_BAND_SLOTS){
-    rest = items.length - (WEAN_BAND_SLOTS - 1);
-    items = items.slice(0, WEAN_BAND_SLOTS - 1);
-  }
-  document.getElementById('wn-label').textContent = t('wnBandLabel');
-  document.getElementById('wn-meal').textContent =
-    (pick.many && pick.meal.name) ? pick.meal.name : '';
-  document.getElementById('wn-icons').innerHTML = items.map(function(id){
-    return '<span class="wn-it">' + weanIngIcon(id) +
-      '<b>' + esc(weanIngName(id)) + '</b>' +
-      (news[id] ? '<em class="wn-new">' + esc(t('wnNewTag')) + '</em>' : '') + '</span>';
-  }).join('') + (rest ? '<span class="wn-soon">+' + rest + '</span>' : '');
+  var many = day.meals.length > 1;
+  meals.innerHTML = day.meals.map(function(m){
+    var seen = {}, items = [];
+    ((m.base || []).concat(m.tops || [])).forEach(function(x){
+      if (!seen[x.ing]){ seen[x.ing] = 1; items.push(x.ing); }
+    });
+    /* 처음 먹는 재료를 앞으로 — 뒤에 밀려 '+2'에 먹히면 안 되는 하나다 */
+    items = items.filter(function(x){ return news[x]; })
+      .concat(items.filter(function(x){ return !news[x]; }));
+    var rest = 0;
+    if (items.length > WEAN_BAND_SLOTS){
+      rest = items.length - (WEAN_BAND_SLOTS - 1);
+      items = items.slice(0, WEAN_BAND_SLOTS - 1);
+    }
+    return '<span class="wn-mrow">' +
+      (many ? '<span class="wn-meal">' + esc(m.name || '') + '</span>' : '') +
+      '<span class="wn-icons">' + items.map(function(id){
+        return '<span class="wn-it">' + weanIngIcon(id) +
+          '<b>' + esc(weanIngName(id)) + '</b>' +
+          (news[id] ? '<em class="wn-new">' + esc(t('wnNewTag')) + '</em>' : '') + '</span>';
+      }).join('') + (rest ? '<span class="wn-soon">+' + rest + '</span>' : '') + '</span>' +
+    '</span>';
+  }).join('');
   syncAnnounceStack();
 }
 
@@ -8566,7 +8644,10 @@ function patternTint(color){ return 'color-mix(in srgb, '+color+' 46%, var(--sur
    Anything else logged (a custom item, 외출, 약, 체온…) keeps the old
    coloured treatment, so nothing silently disappears from the chart.
    ================================================================ */
-var PATTERN_ICON_TYPES = ['diaper', 'tummy', 'probiotic', 'massage', 'bath', 'nails'];
+/* 일과표에서 '띠'가 아니라 '아이콘'으로 서는 항목들 — 얼마나 걸렸는지가
+   아니라 언제 있었는지가 전부인 일들이다. 투약이 여기 빠져 있어서 띠로만
+   그려졌는데, 약은 '몇 시에 먹였나'가 핵심이라 유산균·목욕과 같은 쪽이다. */
+var PATTERN_ICON_TYPES = ['diaper', 'tummy', 'probiotic', 'massage', 'bath', 'nails', 'med'];
 /* 직접 만든 항목(투약·체온·외출…)도 '있었냐 없었냐'인 것은 아이콘으로 그린다.
    길이가 없는 일을 띠로 그리면 머리카락 한 올짜리 선이 되어, 정작 챙겨야 할
    투약이 차트에서 제일 안 보인다. 무엇이 길이 없는 일인지는 설정이 아니라
@@ -12132,15 +12213,7 @@ function closeEntryDetail(){
   });
   entryPhotos = [];
 }
-/* 바닥 왼쪽 버튼 — 이 기록을 저장하고, 같은 종류를 지금으로 하나 더 만든다.
-   한 번 더 먹이거나 이어서 재울 때 목록으로 나갔다 다시 아이콘을 찾는 길을
-   없앤다. */
-function entryAgain(){
-  var raw = (appState.entries || []).filter(function(x){ return x.id === state.entryId; })[0];
-  var type = raw ? raw.type : null;
-  saveEntryDetail();
-  if (type) setTimeout(function(){ quickCreate(type); }, 120);
-}
+
 
 /* ================================================================
    SCRUB CONTROLS — the entry-detail time and amount inputs.
@@ -12192,15 +12265,21 @@ function timeScrubHtml(id, timeValue, withMinusHour){
    같은 눈금이 생기므로 자릿수를 세어 한 칸마다 끊어 맞춘다. */
 function scrubDec(step){ return (String(step).split('.')[1] || '').length; }
 function scrubRound(v, dec){ return Number(Number(v).toFixed(dec)); }
+/* 눈금 한 칸의 폭. 숫자를 한 칸마다 적던 때는 44px이 맞았지만, 목업처럼
+   눈금(틱)을 세우고 숫자는 다섯 칸마다 적으면 그 절반이 자다. */
+var SCRUB_RULER_CELL_PX = 26;
 function rulerScrubHtml(id, value, min, max, step, unit){
-  /* open-ended quantity: the scale scrolls under a dot pinned to the middle,
-     so the current value is always the centred number */
+  /* 목업의 눈금자: 회색 틱이 줄줄이 서고 다섯 칸마다 긴 틱 + 숫자,
+     가운데에 색 바늘이 꽂혀 있다. 숫자를 한 칸마다 적으면 눈금이 아니라
+     숫자 띠가 되어 어디가 지금 값인지 바늘보다 글자가 먼저 읽힌다. */
   var cells = '';
   var dec = scrubDec(step);
   var n = Math.round((max - min) / step);
   for (var i = 0; i <= n; i++){
     var v = scrubRound(min + i * step, dec);
-    cells += '<span class="sv" data-v="'+v+'">'+v.toFixed(dec)+'</span>';
+    var maj = (i % 5 === 0);
+    cells += '<span class="sv' + (maj ? ' maj' : '') + '" data-v="' + v + '"><i></i>' +
+      (maj ? '<b>' + v.toFixed(dec) + '</b>' : '') + '</span>';
   }
   return '<div class="scrub is-ruler" data-scrub="ruler" data-for="'+id+'" data-min="'+min+'" data-max="'+max+'" data-step="'+step+'">' +
     '<div class="scrub-top">' +
@@ -12323,7 +12402,7 @@ function wireRulerScrub(box){
   var valEl = box.querySelector('.scrub-val b');
   var min = Number(box.dataset.min), step = Number(box.dataset.step), max = Number(box.dataset.max);
   var cells = $$('.sv[data-v]', strip);
-  var CELL = 44;
+  var CELL = SCRUB_RULER_CELL_PX;
   var dec = scrubDec(step);
   var settle = null, silent = false;
 
@@ -12450,29 +12529,34 @@ function buildEntryFields(meta, e){
 
   /* 맨 위 한 줄: 언제 / 누가. 날짜·시작·종료 칸 셋은 접어 둔다 — 고치는
      일은 드물고, 읽을 일은 늘 있다. 누르면 지금처럼 눈금자가 펼쳐진다. */
+  /* 맨 윗줄은 늘 읽는 줄이다. 수면에서는 눌러서 시각 칸을 연다. */
   html += '<button type="button" class="ent-when" id="f-when">' +
     '<b>' + esc(entDateText(e.start)) +
       (isSleep ? '' : '<span>' + esc(fmtTime(e.start)) + '</span>') + '</b>' +
     '<em>' + esc(t('entByTpl').replace('{who}', localizeAuthorName(e.author))) + '</em>' +
   '</button>';
 
-  /* 접힌 칸 — 날짜 · 시작 · 종료. 수면은 '언제부터 언제까지' 줄에서도 연다 */
-  html += '<div id="f-when-box" hidden>';
-  html += '<div class="field"><label>' + esc(t('dateLabel')) + '</label>' +
-    '<input type="date" id="f-date" value="' + toDateValue(e.start) + '" /></div>';
-  html += '<div class="field"><label>' + esc(t('startTime')) + '</label>' +
-    timeScrubHtml('f-start', toTimeValue(e.start), true) + '</div>';
+  /* 날짜 · 시작 · 종료. 수면은 '언제부터 언제까지' 줄이 이미 시각을 말하니
+     접어 두고, 나머지 종류는 펼쳐 둔다 — 분유를 고치러 들어가서 시각이
+     안 보이면 접힌 줄을 눌러야 한다는 걸 알 길이 없다.
+     눈금자도 테두리 안에 넣는다. 흰 종이 위에서는 테두리가 '여기가 값을
+     고르는 자리'라고 말하는 유일한 표시다. */
+  html += '<div id="f-when-box"' + (isSleep ? ' hidden' : '') + '>';
+  html += entH(t('dateLabel'));
+  html += '<input type="date" id="f-date" value="' + toDateValue(e.start) + '" />';
+  html += entH(t('startTime'));
+  html += '<div class="amt">' + timeScrubHtml('f-start', toTimeValue(e.start), true) + '</div>';
   if (!hasEnd){
-    html += '<button type="button" class="scrub-chip ghost" id="f-add-end" style="align-self:flex-start">' +
+    html += '<button type="button" class="scrub-chip ghost" id="f-add-end" style="align-self:flex-start;margin-top:10px">' +
       esc(t('addEndTime')) + '</button>';
   }
   /* 자정을 넘긴 기록은 그렇다고 적어 둔다 — 눈금자는 시계 시각만 보여서
      그것만으로는 같은 날 아침으로 읽힌다 */
   var crossNote = crossesMidnight(e)
     ? '<div class="field-hint" id="f-end-note">' + esc(t('nextDayShort') + ' ' + fmtTime(e.end)) + '</div>' : '';
-  html += '<div class="field" id="f-end-field"' + (hasEnd ? '' : ' hidden') + '><label>' +
-    esc(t('endTime')) + '</label>' +
-    timeScrubHtml('f-end', toTimeValue(e.end || e.start), false) + crossNote + '</div>';
+  html += '<div id="f-end-field"' + (hasEnd ? '' : ' hidden') + '>' + entH(t('endTime')) +
+    '<div class="amt">' + timeScrubHtml('f-end', toTimeValue(e.end || e.start), false) + '</div>' +
+    crossNote + '</div>';
   html += '</div>';
 
   /* ── 수면: 시각 둘이 한 줄, 길이는 읽기만 ── */
@@ -12614,14 +12698,9 @@ function buildEntryFields(meta, e){
       quickWords.map(function(w){ return '<button type="button" class="qw-chip" data-quick-word="' +
         esc(w.text) + '">' + esc(w.text) + '</button>'; }).join('') + '</div>' : '');
 
-  /* ── 기록자 — 이름은 공용 목록에서만 고른다(한 기록에 직접 적지 않는다) ── */
-  html += entH(t('author'));
-  html += '<div class="chip-row" id="f-author" style="padding:0">' +
-    allAuthorChoices().map(function(c){
-      return '<button type="button" class="chip" data-author="' + esc(c.value) + '" ' +
-        'aria-pressed="' + isSameAuthorName(c.value, e.author) + '">' + esc(c.label) + '</button>';
-    }).join('') +
-  '</div>';
+  /* 기록자 칩은 없앴다 — 맨 윗줄이 이미 '누가 적었나'를 말하고, 그걸 남의
+     이름으로 바꿀 일은 거의 없는데 화면 끝에서 자리를 지키고 있었다.
+     저장할 때는 원래 기록자를 그대로 둔다(아래 saveEntryDetail 참고). */
 
   return html;
 }
@@ -12703,13 +12782,6 @@ function wireEntryFields(meta){
     });
   }
 
-  var authorBox = document.getElementById('f-author');
-  $$('.chip', authorBox).forEach(function(chip){
-    chip.addEventListener('click', function(){
-      $$('.chip', authorBox).forEach(function(x){ x.setAttribute('aria-pressed', 'false'); });
-      chip.setAttribute('aria-pressed', 'true');
-    });
-  });
   renderWakeCard();
   var quickWordBox = document.getElementById('f-note-quick');
   if (quickWordBox){
@@ -12725,10 +12797,6 @@ function wireEntryFields(meta){
     });
   }
   renderEntryPhotos();
-  /* 바닥 왼쪽 버튼의 말은 종류마다 다르다 */
-  var again = document.getElementById('fp-entry-again');
-  if (again) again.textContent = meta.isWean ? t('entAgainWean')
-    : meta.hasSleepKind ? t('entAgainSleep') : t('entAgainMore');
 }
 
 /* 'YYYY-MM-DD' one day later */
@@ -12846,9 +12914,9 @@ function saveEntryDetail(){
      silently swapping the identity in the corner and, with it, what this
      phone is allowed to delete. The two were the same line of code.
      They are not the same thing. */
-  var authorChip = $('.chip[aria-pressed="true"]', document.getElementById('f-author'));
-  var authorVal = (authorChip ? authorChip.dataset.author : '') || raw.author || state.author;
-  payload.author = authorVal;
+  /* 기록자 칸은 화면에서 뺐다 — 적힌 이름을 그대로 둔다. 없으면(옛 기록)
+     이 폰의 이름으로 채운다. */
+  payload.author = raw.author || state.author;
 
   /* A note in Korean or Vietnamese gets translated for the other reader — but
      the SAVE MUST NEVER WAIT FOR IT. This used to sit on the translation
@@ -14756,12 +14824,6 @@ function renderWean(){
   syncWeanTabs();
   if (state.weanView === 'plan'){
     box.innerHTML = weanPlanHtml();
-    /* 달력을 접으면 고른 날이 잘린 바깥에 있을 수 있다 — 그 주를 보이게 */
-    var ring = box.querySelector('.wc-ring');
-    if (ring){
-      var mini = box.querySelector('.wcal.is-mini'), wk = ring.closest('.wc-wk');
-      if (mini && wk) mini.scrollTop = Math.max(0, wk.offsetTop - mini.offsetTop - 60);
-    }
     wireWeanCalDrag(box);
   }
   else if (state.weanView === 'shop') box.innerHTML = weanShopHtml();
@@ -14928,19 +14990,24 @@ function weanMenuLabel(m){
 function wireWeanCalDrag(box){
   var grab = box.querySelector('[data-wn-grab]');
   if (!grab) return;
+  /* 고른 날은 그대로 둔다 — 손잡이는 달력을 여닫을 뿐, 보고 있던 날을
+     놓는 물건이 아니다. */
+  var isOpen = grab.classList.contains('is-open');
   var y0 = null;
-  function open(){ state.weanPick = ''; renderWean(); }
+  function toggle(){ state.weanCalOpen = !isOpen; renderWean(); }
   grab.addEventListener('pointerdown', function(ev){ y0 = ev.clientY; });
   grab.addEventListener('pointermove', function(ev){
     if (y0 === null) return;
-    if (ev.clientY - y0 > 20){ y0 = null; open(); }
+    var dy = ev.clientY - y0;
+    /* 접혀 있으면 끌어내려 펴고, 펴져 있으면 끌어올려 접는다 */
+    if (isOpen ? dy < -20 : dy > 20){ y0 = null; toggle(); }
   });
   ['pointerup', 'pointercancel', 'pointerleave'].forEach(function(e){
     grab.addEventListener(e, function(ev){
       if (y0 === null) return;
       var moved = Math.abs(ev.clientY - y0);
       y0 = null;
-      if (e === 'pointerup' && moved <= 20) open();   /* 눌러도 펴진다 */
+      if (e === 'pointerup' && moved <= 20) toggle();   /* 눌러도 여닫힌다 */
     });
   });
 }
@@ -15166,6 +15233,12 @@ function weanPlanHtml(){
   var cellW = (innerW - 16 - 12) / 7;
 
   var weeks = weanMonthWeeks(ym);
+  /* 고른 날이 이 달 안에 있으면 달력을 접는다 — 그 날이 든 한 주만 그린다.
+     '펴기'와 '날짜 고르기 해제'는 다른 일이다. 예전엔 손잡이가 weanPick 을
+     비워서 펴는 바람에, 달력을 펴면 보고 있던 날이 같이 사라지고 다시 접을
+     길도 없었다. 접힘 여부는 weanCalOpen 이 따로 쥔다. */
+  var pick = (state.weanPick && state.weanPick.slice(0, 7) === ym) ? state.weanPick : null;
+  var mini = !!pick && !state.weanCalOpen;
   var anyInMonth = weeks.some(function(row){
     return row.some(function(c){ return !c.out && weanDay(c.ds); });
   });
@@ -15181,6 +15254,12 @@ function weanPlanHtml(){
       (state.weanPick && state.weanPick.slice(0, 7) === ym ? weanDayPanelHtml(state.weanPick) : '');
   }
 
+  if (mini){
+    var only = weeks.filter(function(row){
+      return row.some(function(c){ return c.ds === pick; });
+    });
+    if (only.length) weeks = only;
+  }
   var wdNames = t('weekday_short');
   var html = '<div class="wcal">' + head + '<div class="wc-head">' +
     wdNames.map(function(w, i){
@@ -15223,10 +15302,14 @@ function weanPlanHtml(){
      다시 펴는 길은 접힌 달력 아래의 손잡이를 끌어내리는 것이다 — 날짜를
      한 번 더 누르게 하면 '이 날을 보고 싶다'와 '달력을 펴고 싶다'가 같은
      동작이 되어, 다른 날을 보려다 매번 달력이 접혔다 펴진다. */
-  if (state.weanPick && state.weanPick.slice(0, 7) === ym){
-    html = html.replace('<div class="wcal">', '<div class="wcal is-mini">');
-    html += '<div class="wc-grab" data-wn-grab><span></span></div>';
-    html += weanDayPanelHtml(state.weanPick);
+  if (pick){
+    /* 손잡이는 접혀 있을 때나 펴져 있을 때나 늘 있다 — 한 방향으로만 가는
+       손잡이는 손잡이가 아니다. 접혔으면 끌어내려 펴고, 펴졌으면 끌어올려 접는다. */
+    if (mini) html = html.replace('<div class="wcal">', '<div class="wcal is-mini">');
+    html += '<button type="button" class="wc-grab' + (mini ? '' : ' is-open') + '" data-wn-grab' +
+      ' aria-label="' + esc(t(mini ? 'wnCalOpen' : 'wnCalClose')) + '">' +
+      '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>';
+    html += weanDayPanelHtml(pick);
   }
   return html;
 }
@@ -16236,12 +16319,14 @@ function wireWean(){
     if ((el = ev.target.closest('[data-wn-colorpick]'))){
       openWeanColor(el.dataset.wnColorpick, el.dataset.wnColorlabel); return;
     }
-    /* 날짜를 누르면 그날을 펼친다. 다시 접는 길은 아래 손잡이뿐이다 —
-       날짜를 한 번 더 누르게 하면 '이 날을 보고 싶다'와 '달력을 펴고 싶다'가
-       같은 동작이 되어, 다른 날을 보려다 매번 달력이 접혔다 펴진다. */
+    /* 날짜를 누르면 그날을 펼치고 달력은 그 주만 남긴다. 여닫는 일은 아래
+       손잡이가 맡는다 — 날짜를 한 번 더 누르게 하면 '이 날을 보고 싶다'와
+       '달력을 펴고 싶다'가 같은 동작이 되어, 다른 날을 보려다 매번 달력이
+       접혔다 펴진다. */
     if ((el = ev.target.closest('[data-wn-pick]'))){
       state.weanPick = el.dataset.wnPick;
       state.weanMonth = weanMonthOf(state.weanPick);
+      state.weanCalOpen = false;
       renderWean(); return;
     }
     if ((el = ev.target.closest('[data-wn-pickadd]'))){
@@ -16837,7 +16922,6 @@ function wireEvents(){
   document.getElementById('fp-entry-back').addEventListener('click', closeEntryDetail);
   document.getElementById('fp-entry-save').addEventListener('click', saveEntryDetail);
   document.getElementById('fp-entry-delete').addEventListener('click', deleteEntryDetail);
-  document.getElementById('fp-entry-again').addEventListener('click', entryAgain);
   var entPhotoInput = document.getElementById('f-photo-input');
   entPhotoInput.addEventListener('change', function(){
     if (entPhotoInput.files && entPhotoInput.files.length) addEntryPhotos(entPhotoInput.files);
@@ -16961,6 +17045,64 @@ function backfillAuthorNames(){
         renderAll(); renderSettings();
       });
     }).catch(function(){}).then(function(){ next(i + 1); });
+  };
+  next(0);
+}
+
+/* ── 번역이 비어 있는 글을 나중에 다시 채운다 ──────────────────
+   번역은 저장을 기다리지 않는다(그래야 신호 없는 곳에서도 기록이 남는다).
+   그런데 그 한 번이 실패하면 다시 시도하는 데가 **아무 데도 없었다** —
+   번역기가 잠깐 흔들린 그 순간에 쓴 글 하나가 영영 원문만 남는다.
+   실제로 '책' 한 글자가 그렇게 번역 없이 남았다.
+
+   앱을 열 때 한 번, 최근 것부터 조금만 메운다. 많이 하면 뜨는 데 느려지고,
+   오래된 것은 이제 와서 읽을 사람이 없다. */
+var transBackfillDone = false;
+var TRANS_BACKFILL_MAX = 4;            /* 한 번 열 때 이만큼만 */
+var TRANS_BACKFILL_DAYS = 7;           /* 이보다 오래된 글은 그냥 둔다 */
+function backfillTranslations(){
+  if (transBackfillDone) return;
+  transBackfillDone = true;
+  var since = Date.now() - TRANS_BACKFILL_DAYS * 86400000;
+  var jobs = [];
+  (appState.entries || []).forEach(function(e){
+    if (!e.note || e.noteTranslated) return;
+    if ((e.noteLang || '') !== 'ko' && (e.noteLang || '') !== 'vi') return;
+    var ms = new Date(e.start).getTime();
+    if (!(ms > since)) return;
+    jobs.push({ ms: ms, text: e.note, lang: e.noteLang, kind: 'entry', id: e.id });
+  });
+  (appState.memos || []).forEach(function(m){
+    if (!m.text || m.translation) return;
+    if ((m.lang || '') !== 'ko' && (m.lang || '') !== 'vi') return;
+    var ms = new Date(m.ts).getTime();
+    if (!(ms > since)) return;
+    jobs.push({ ms: ms, text: m.text, lang: m.lang, kind: 'memo', id: m.id });
+  });
+  if (!jobs.length) return;
+  jobs.sort(function(a, b){ return b.ms - a.ms; });
+  jobs = jobs.slice(0, TRANS_BACKFILL_MAX);
+
+  var next = function(i){
+    if (i >= jobs.length) return;
+    var j = jobs[i];
+    var go = function(){ next(i + 1); };
+    apiTranslate(j.text, j.lang === 'ko' ? 'vi' : 'ko').then(function(out){
+      /* 번역기가 원문을 그대로 돌려주는 일이 있다 — 그건 번역이 아니다 */
+      if (!out || out === j.text) return;
+      if (j.kind === 'entry'){
+        var e = (appState.entries || []).filter(function(x){ return x.id === j.id; })[0];
+        if (!e || e.note !== j.text) return;        /* 그 사이 고쳐졌다 */
+        e.noteTranslated = out;
+        renderAll();
+        return apiMutate('updateEntry', { id: j.id, noteTranslated: out, noteLang: j.lang });
+      }
+      var m = (appState.memos || []).filter(function(x){ return x.id === j.id; })[0];
+      if (!m || m.text !== j.text) return;
+      m.translation = out;
+      renderMemoList(); updateMemoPreview();
+      return apiMutate('updateMemo', { id: j.id, translation: out });
+    }).catch(function(){ /* 다음에 열 때 또 해 본다 */ }).then(go, go);
   };
   next(0);
 }
@@ -17102,6 +17244,7 @@ function init(){
     splitWeanIfNeeded();
     /* after the first paint, never before it */
     setTimeout(backfillAuthorNames, 1500);
+    setTimeout(backfillTranslations, 2600);
   }).catch(function(err){
     /* it failed rather than being slow: an honest empty screen and the
        message, not a shimmer that never resolves */

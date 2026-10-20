@@ -258,10 +258,19 @@ async function translateText(text, targetLang) {
   }
 }
 
-/* 어느 엔진을 거쳤든 나가는 길은 여기 하나다 */
+/* 어느 엔진을 거쳤든 나가는 길은 여기 하나다.
+
+   되돌리기(숫자·약 이름)는 **다듬는 일**이다. 그게 실패했다고 번역문을
+   통째로 날려서는 안 된다 — 번역이 아예 안 된 것과 소수점이 쉼표인 것은
+   같은 크기의 사고가 아니다. 그래서 여기만 try 로 감싼다. */
 async function translate(text, targetLang) {
   const out = await translateText(text, targetLang);
-  return restoreDrugNames(text, restoreNumbers(text, out));
+  try {
+    return restoreDrugNames(text, restoreNumbers(text, out));
+  } catch (err) {
+    console.error('[baby-log] restore failed —', err && err.message);
+    return out;
+  }
 }
 
 module.exports = { translateText: translate, chunkByBytes, MYMEMORY_MAX_BYTES,

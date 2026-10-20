@@ -95,6 +95,21 @@ const orphans = fns.filter(f => {
 console.log('       ' + fns.length + ' functions');
 check('no function is defined and never called', orphans.sort(), []);
 
+/* ---- 용어집 두 벌이 같은가 ------------------------------------------------
+   같은 표가 서버(server/glossary.js)와 폰(public/index.html) 양쪽에 있다.
+   폰이 먼저 답하고 못 하면 서버로 가는 구조라, 둘이 어긋나면 같은 글이
+   어디서 번역됐느냐에 따라 다른 말이 된다 — 읽는 사람은 그걸 알 길이 없다. */
+{
+  const { ENTRIES } = require('./server/glossary.js');
+  const m = src.match(/var GLOSSARY = (\[[\s\S]*?\]);/);
+  const client = m ? eval(m[1]) : null;
+  const key = (e) => e.ko + '|' + e.vi.join(',');
+  const a2 = ENTRIES.map(key).sort();
+  const b2 = client ? client.map(key).sort() : [];
+  check('the two glossaries say the same thing',
+    [a2.filter((x) => !b2.includes(x)), b2.filter((x) => !a2.includes(x))], [[], []]);
+}
+
 // ---- the things a deploy needs --------------------------------------------
 for (const f of ['zio.jpg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.png',
                  'favicon.png', 'site.webmanifest']) {

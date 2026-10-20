@@ -194,8 +194,10 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   check('...언제/누가가 맨 윗줄에 있다',
     /내니|엄마|아빠/.test(await p.evaluate(()=>{ const e=document.querySelector('.ent-when'); return e?e.textContent:''; })), true);
   check('...사진 줄이 있다', await p.evaluate(()=>!!document.getElementById('f-pics')), true);
-  check('...바닥에 다시 먹이기가 있다',
-    await p.evaluate(()=>document.getElementById('fp-entry-again').textContent), '다시 먹이기');
+  /* 바닥은 저장 하나. '다시 먹이기'를 저장 옆에 두니 둘 다 똑같이 크게 서서
+     나가는 길이 두 개로 보였다 — 한 번 더 먹이는 길은 빠른기록이 맡는다. */
+  check('...바닥 버튼은 저장 하나다', await p.evaluate(()=>
+    [...document.querySelectorAll('#fp-entry .fp-foot .btn')].map(b=>b.id)), ['fp-entry-save']);
   await p.evaluate(()=>{ const i=document.getElementById('f-amount');
     i.value='45'; i.dispatchEvent(new Event('change',{bubbles:true})); });
   await p.waitForTimeout(400);
@@ -411,12 +413,32 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   await p.evaluate(() => window.dispatchEvent(new Event('focus')));
   await p.waitForTimeout(1600);
 
-  /* 접는 길은 아래 손잡이 하나뿐이다 — 날짜를 다시 눌러도 접히지 않는다 */
+  /* 여닫는 길은 아래 손잡이 하나뿐이다 — 날짜를 다시 눌러도 접히지 않는다 */
   check('...손잡이가 있다',
     await p.evaluate(()=>!!document.querySelector('[data-wn-grab]')), true);
+  /* 접힌 달력은 고른 날이 든 **한 주만** 그린다. 예전에는 250px짜리 스크롤
+     상자였는데, 그 상자가 화면을 덮어 손가락이 거기 닿으면 페이지가 아니라
+     상자 안이 스크롤돼서 아래 식단으로 내려갈 수가 없었다. */
+  check('...접히면 한 주만 남는다',
+    await p.evaluate(()=>document.querySelectorAll('.wcal.is-mini .wc-wk').length), 1);
+  check('...안쪽에 따로 스크롤되는 상자가 없다',
+    await p.evaluate(()=>{ const c=getComputedStyle(document.querySelector('.wcal.is-mini'));
+      return c.overflowY === 'visible' || c.overflowY === 'clip'; }), true);
   await p.click('[data-wn-grab]'); await p.waitForTimeout(600);
   check('...손잡이를 누르면 달력이 펴진다',
     await p.evaluate(()=>!!document.querySelector('.wcal.is-mini')), false);
+  /* 펴도 보고 있던 날은 놓지 않는다 — 예전엔 손잡이가 weanPick 을 비워서
+     달력을 펴면 그날 식단이 같이 사라졌고, 다시 접을 길도 없었다. */
+  check('...펴도 그날 식단은 그대로 있다',
+    await p.evaluate(()=>!!document.querySelector('.wd-panel')), true);
+  check('...달이 통째로 보인다',
+    await p.evaluate(()=>document.querySelectorAll('.wcal .wc-wk').length > 1), true);
+  check('...손잡이가 그대로 있다',
+    await p.evaluate(()=>!!document.querySelector('[data-wn-grab].is-open')), true);
+  await p.click('[data-wn-grab]'); await p.waitForTimeout(600);
+  check('...한 번 더 누르면 다시 접힌다',
+    await p.evaluate(()=>document.querySelectorAll('.wcal.is-mini .wc-wk').length), 1);
+  await p.click('[data-wn-grab]'); await p.waitForTimeout(600);
 
   // ═══ 하루 고치기 ═══
   /* 알약 자체는 누를 수 없다 — 달력에서 손가락이 닿는 곳은 '날짜' 하나뿐이다.
@@ -754,8 +776,12 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   p = await open('내니', 'vi');
   check('내니 폰에도 띠에 그림이 선다',
     await p.evaluate(()=>document.querySelectorAll('#wean-row .wn-it').length), 4);
-  check('...띠 이름이 베트남어',
-    /Ăn dặm/.test(await p.evaluate(()=>document.getElementById('wn-label').textContent)), true);
+  /* 식단이 서 있는 날에는 띠에 '이유식' 제목을 안 적는다(그림이 말한다).
+     그러니 베트남어인지는 재료 이름으로 본다 — 내니가 실제로 읽는 글자다. */
+  check('...띠에 제목을 적지 않는다',
+    await p.evaluate(()=>document.getElementById('wn-dn-line').hidden), true);
+  check('...재료 이름이 베트남어',
+    /thịt bò/.test(await p.evaluate(()=>document.getElementById('wn-meals').textContent)), true);
   /* '보인다'는 건 hidden이 아니라는 것만으로는 모자라다 — 조상이 숨으면
      글자는 남고 상자는 사라진다. 실제로 그런 적이 있다(.announce-stack).
      눌러서 열리는지까지가 '보인다'이다. */

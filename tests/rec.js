@@ -69,13 +69,15 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
 
   // ═══ 언제 / 누가 ═══
   check('맨 윗줄에 언제와 누가가 있다', /10:30/.test(await txt('.ent-when')) && /엄마/.test(await txt('.ent-when')), true);
-  check('...날짜·시간 칸은 접혀 있다',
-    await p.evaluate(()=>document.getElementById('f-when-box').hidden), true);
-  await p.click('#f-when'); await p.waitForTimeout(400);
-  check('...누르면 펼쳐진다',
+  /* 수면 말고는 시각 칸을 펼쳐 둔다 — 접어 두면 고치러 들어가서 시각이
+     안 보이고, 접힌 줄을 눌러야 한다는 걸 알 길이 없다. */
+  check('...날짜·시간 칸이 펼쳐져 있다',
     await p.evaluate(()=>document.getElementById('f-when-box').hidden), false);
   check('...그 안에 날짜와 시작 눈금자가 있다', await p.evaluate(()=>
     !!document.getElementById('f-date') && !!document.getElementById('f-start')), true);
+  /* 눈금자도 테두리 안에 — 흰 종이에서 테두리가 '값 고르는 자리'의 표시다 */
+  check('...시각 눈금자가 테두리 안에 있다',
+    await p.evaluate(()=>!!document.querySelector('#f-when-box .amt [data-scrub="time"]')), true);
 
   // ═══ 분유 — 같은 숫자 부품 + 오늘 먹은 양 ═══
   check('분유는 ml 눈금 고르개다', await p.evaluate(()=>{
@@ -88,7 +90,6 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
     return !!g && !!g.querySelector('.bar i');
   }), true);
   check('...오늘 먹은 양이 실제 합계다', /120/.test(await txt('.ent-goal b')), true);
-  check('...바닥 왼쪽은 하나 더다', await txt('#fp-entry-again'), '하나 더');
   await back();
 
   // ═══ 기저귀 — 똥 상태는 응가일 때만 ═══
@@ -129,14 +130,15 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
     const c=[...document.querySelectorAll('.amt .sv[data-v]')];
     return [c[0].dataset.v, c[c.length-1].dataset.v, c.length];
   }), ['35', '41', 61]);
-  check('...지금 값이 걸려 있다', await txt('.amt .scrub-val'), '37.2℃');
+  const amtVal = () => txt('[data-scrub="ruler"] .scrub-val');
+  check('...지금 값이 걸려 있다', await amtVal(), '37.2℃');
   check('...끝에 열 기준이 적힌다', /37.5 이상이면 열/.test(await txt('.amt-ends')), true);
   check('...어디서 쟀는지도 묻는다',
     await p.evaluate(()=>document.querySelectorAll('#f-tsite .chip').length), 3);
   await p.evaluate(()=>{ const i=document.getElementById('f-temp');
     i.value='38.4'; i.dispatchEvent(new Event('change',{bubbles:true})); });
   await p.waitForTimeout(400);
-  check('직접 적은 소수도 눈금에 걸린다', await txt('.amt .scrub-val'), '38.4℃');
+  check('직접 적은 소수도 눈금에 걸린다', await amtVal(), '38.4℃');
   await p.evaluate(()=>document.querySelector('#f-tsite [data-val="arm"]').click());
   await p.click('#fp-entry-save'); await p.waitForTimeout(1400);
   s = await st();
@@ -186,7 +188,6 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
   }), true);
   check('...어떤 잠인지는 칩 줄이다',
     await p.evaluate(()=>document.querySelectorAll('#f-sleep .chip').length), 3);
-  check('...바닥 왼쪽은 이어서 재우기다', await txt('#fp-entry-again'), '이어서 재우기');
   await back();
 
   // ═══ 사진 — 모든 기록에 ═══
@@ -221,6 +222,28 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
   s = await st();
   check('...저장하면 참조도 빠진다',
     (s.entries.filter(e=>e.type==='feed')[0].photos || []).length, 0);
+
+  /* 바닥은 저장 하나. '다시 먹이기 / 이어서 재우기'를 저장 옆에 두니 둘 다
+     똑같이 크게 서서 나가는 길이 두 개로 보였다. */
+  await openRow('분유');
+  check('바닥 버튼은 저장 하나다', await p.evaluate(()=>
+    [...document.querySelectorAll('#fp-entry .fp-foot .btn')].map(b=>b.id)), ['fp-entry-save']);
+  /* 기록자 칩은 뺐다 — 맨 윗줄이 이미 누가 적었는지 말한다 */
+  check('...기록자 칩은 없다', await p.evaluate(()=>!document.getElementById('f-author')), true);
+  check('...그래도 기록자는 안 바뀐다', await p.evaluate(async ()=>{
+    document.getElementById('fp-entry-save').click();
+    await new Promise(r=>setTimeout(r,1400));
+    return 1; }) && (await st()).entries.filter(e=>e.type==='feed')[0].author, '엄마');
+  /* 눈금자는 목업 모양 — 틱이 줄줄이 서고 다섯 칸마다 숫자 */
+  await openRow('체온');
+  check('눈금자가 틱으로 그려진다', await p.evaluate(()=>{
+    const c=[...document.querySelectorAll('[data-scrub="ruler"] .sv[data-v]')];
+    return [c.length, c.filter(x=>x.querySelector('i')).length,
+            c.filter(x=>x.classList.contains('maj')).length]; }), [61, 61, 13]);
+  check('...숫자는 긴 틱에만 붙는다', await p.evaluate(()=>
+    [...document.querySelectorAll('[data-scrub="ruler"] .sv[data-v]')]
+      .every(x => !!x.querySelector('b') === x.classList.contains('maj'))), true);
+  await back();
 
   check('페이지 오류 없음', errs, []);
   await b.close();
