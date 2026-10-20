@@ -69,15 +69,53 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
 
   // ═══ 언제 / 누가 ═══
   check('맨 윗줄에 언제와 누가가 있다', /10:30/.test(await txt('.ent-when')) && /엄마/.test(await txt('.ent-when')), true);
-  /* 수면 말고는 시각 칸을 펼쳐 둔다 — 접어 두면 고치러 들어가서 시각이
-     안 보이고, 접힌 줄을 눌러야 한다는 걸 알 길이 없다. */
-  check('...날짜·시간 칸이 펼쳐져 있다',
-    await p.evaluate(()=>document.getElementById('f-when-box').hidden), false);
-  check('...그 안에 날짜와 시작 눈금자가 있다', await p.evaluate(()=>
-    !!document.getElementById('f-date') && !!document.getElementById('f-start')), true);
-  /* 눈금자도 테두리 안에 — 흰 종이에서 테두리가 '값 고르는 자리'의 표시다 */
-  check('...시각 눈금자가 테두리 안에 있다',
-    await p.evaluate(()=>!!document.querySelector('#f-when-box .amt [data-scrub="time"]')), true);
+  /* 시각은 칸 하나다. 예전에는 '시작 시간'·'종료 시간'·'언제부터 언제까지'
+     셋이 같이 서 있었다 — 앞의 둘은 편집기고 마지막은 요약인데 둘 다 띄워
+     놨던 탓이다. */
+  check('...시각 칸은 하나다', await p.evaluate(()=>
+    [document.querySelectorAll('.tbox').length,
+     !!document.getElementById('f-when-box'),
+     !!document.getElementById('f-times')]), [1, false, false]);
+  check('...평소엔 눈금자가 닫혀 있다', await p.evaluate(()=>
+    ['start','end'].every(k=>{ const e=document.getElementById('f-tedit-'+k); return !e || e.hidden; })), true);
+  /* 날짜는 접어 둔다 — iOS 가 date 칸을 자기 컨트롤로 그리는데 그 폭이
+     상자를 넘겨 화면이 가로로 밀렸다. 고칠 일도 드물다. */
+  check('...날짜는 접혀 있다',
+    await p.evaluate(()=>document.getElementById('f-date-box').hidden), true);
+  check('...맨 윗줄을 누르면 날짜가 나온다', await p.evaluate(async ()=>{
+    document.getElementById('f-when').click();
+    await new Promise(r=>setTimeout(r,250));
+    return !document.getElementById('f-date-box').hidden && !!document.getElementById('f-date');
+  }), true);
+  /* 어느 폭에서도 가로로 밀리지 않는다 */
+  check('...가로 스크롤이 생기지 않는다', await p.evaluate(()=>{
+    const b2 = document.getElementById('fp-entry-body');
+    return b2.scrollWidth <= b2.clientWidth + 0.5 &&
+           document.documentElement.scrollWidth <= window.innerWidth + 0.5;
+  }), true);
+  /* 한쪽을 누르면 그 쪽만 열린다 — 편집기는 화면에 언제나 하나뿐 */
+  await p.click('[data-tslot="start"]'); await p.waitForTimeout(400);
+  check('...시각을 누르면 그 쪽만 열린다', await p.evaluate(()=>
+    [!document.getElementById('f-tedit-start').hidden,
+     document.getElementById('f-tedit-end').hidden,
+     document.querySelector('[data-tslot="start"]').classList.contains('on')]), [true, true, true]);
+  /* 눈금에 진짜 시각이 적힌다 — 예전엔 '−3 −2 −1 0 +1'(지금 값에서 몇 분)
+     이라 어느 눈금이 몇 시인지 읽을 수가 없었다 */
+  check('...눈금에 진짜 시각이 적힌다', await p.evaluate(()=>
+    [...document.querySelectorAll('#f-tedit-start .tv.maj b')]
+      .map(x=>x.textContent).filter(Boolean).every(x=>/^\d{1,2}:[0-5]\d$/.test(x))), true);
+  check('...30분마다 적힌다', await p.evaluate(()=>{
+    const v=[...document.querySelectorAll('#f-tedit-start .tv.maj b')].map(x=>x.textContent).filter(Boolean);
+    return v.length > 2 && v.every(x=>/:(00|30)$/.test(x)); }), true);
+  check('...−10분과 +10분이 둘 다 있다', await p.evaluate(()=>
+    [...document.querySelectorAll('#f-tedit-start [data-scrub-nudge]')].map(b=>b.dataset.scrubNudge).sort()),
+    ['-10','10']);
+  check('...지금 버튼은 끝말 줄에 있다', await p.evaluate(()=>
+    !!document.querySelector('#f-tedit-start .scrub-ends [data-scrub-now]')), true);
+  /* 다시 누르면 접힌다 — 눈금자가 자리를 많이 쓴다 */
+  await p.click('[data-tslot="start"]'); await p.waitForTimeout(350);
+  check('...다시 누르면 접힌다',
+    await p.evaluate(()=>document.getElementById('f-tedit-start').hidden), true);
 
   // ═══ 분유 — 같은 숫자 부품 + 오늘 먹은 양 ═══
   check('분유는 ml 눈금 고르개다', await p.evaluate(()=>{
@@ -175,17 +213,28 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
   s = await st();
   check('...직접 적은 이름이 저장된다', s.entries.filter(e=>e.type==='med')[0].med, 'Tylenol');
 
-  // ═══ 수면 — 시각 둘이 한 줄 ═══
+  // ═══ 수면 — 시각 둘이 한 칸 ═══
   await openRow('수면');
-  check('수면은 시각 둘이 한 줄이다', await p.evaluate(()=>!!document.getElementById('f-times')), true);
+  check('수면은 시각 둘이 한 줄이다', await p.evaluate(()=>
+    document.querySelectorAll('#f-tslots [data-tslot]:not([hidden])').length), 2);
   check('...잠든 시각과 깬 시각이 다 적힌다',
-    /10:30/.test(await txt('#f-times')) && /12:00/.test(await txt('#f-times')), true);
-  check('...길이는 읽기만 하는 칩이다', await txt('#f-times .dur'), '1시간 30분');
-  check('...시각 줄을 눌러도 같은 칸이 열린다', await p.evaluate(async ()=>{
-    document.getElementById('f-times').click();
-    await new Promise(r=>setTimeout(r,300));
-    return !document.getElementById('f-when-box').hidden;
-  }), true);
+    /10:30/.test(await txt('#f-tslots')) && /12:00/.test(await txt('#f-tslots')), true);
+  check('...길이는 읽기만 하는 칩이다', await txt('#f-dur'), '1시간 30분');
+  /* 두 시각이 탭처럼 — 누른 쪽이 고쳐지는 쪽이고 편집기는 하나뿐이다 */
+  await p.click('[data-tslot="end"]'); await p.waitForTimeout(400);
+  check('...깬 시각을 누르면 그 쪽으로 넘어간다', await p.evaluate(()=>
+    [document.getElementById('f-tedit-start').hidden,
+     !document.getElementById('f-tedit-end').hidden]), [true, true]);
+  /* 고치면 길이가 바로 따라온다 */
+  await p.evaluate(()=>{ const i=document.getElementById('f-end');
+    i.value='13:00'; i.dispatchEvent(new Event('change',{bubbles:true})); });
+  await p.waitForTimeout(400);
+  check('...고치면 길이가 바로 따라온다', await txt('#f-dur'), '2시간 30분');
+  await p.click('#fp-entry-save'); await p.waitForTimeout(1500);
+  s = await st();
+  check('...고친 끝 시각이 저장된다',
+    new Date(s.entries.filter(e=>e.type==='sleep')[0].end).getHours(), 13);
+  await openRow('수면');
   check('...어떤 잠인지는 칩 줄이다',
     await p.evaluate(()=>document.querySelectorAll('#f-sleep .chip').length), 3);
   await back();
