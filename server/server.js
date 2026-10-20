@@ -278,7 +278,17 @@ async function sweepOrphanPhotos() {
     /* diary pages carry photos through the same store — anything the sweep
        does not know about, it deletes, so this list must name them too */
     (data.diaries || []).forEach((d) => (d.photos || []).forEach((p) => referenced.push(p.id)));
-    const gone = await photos.sweepOrphans(referenced, 60);
+    /* 기록(entry)도 사진을 든다. 이 줄이 없으면 기록에 붙인 사진은 올린 지
+       하루 만에 청소기가 지운다 — 참조를 모르는 사진은 고아로 센다. */
+    (data.entries || []).forEach((e) => (e.photos || []).forEach((p) => referenced.push(p.id)));
+    /* 휴지통에 들어간 기록의 사진도 아직 살아 있어야 한다 — 되살리면
+       사진까지 돌아와야 '되살렸다'가 참이 된다. */
+    (data.trash || []).forEach((e) => (e.photos || []).forEach((p) => referenced.push(p.id)));
+    /* 24시간. 한 시간이었을 때의 구멍: 사진은 올라갔는데 그걸 참조하는 글이
+       아직 폰의 outbox에 묶여 있으면(신호 없는 곳에 하루 있었다면) 청소기가
+       그 사진을 먼저 지워버리고, 나중에 글이 도착해 깨진 네모만 남았다.
+       한 장 며칠 더 두는 값이 사진 한 장 잃는 값보다 싸다. */
+    const gone = await photos.sweepOrphans(referenced, 24 * 60);
     if (gone) console.log('[baby-log] swept ' + gone + ' orphaned photo(s)');
   } catch (err) { console.error('[baby-log] orphan sweep', err); }
 }

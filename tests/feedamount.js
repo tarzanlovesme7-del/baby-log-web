@@ -50,6 +50,12 @@ const ahead = min => new Date(BASE_MS + min*60000);
   const feed = (d, ml) => mut('addEntry', { type:'feed',
     start:d.toISOString(), end:d.toISOString(), amount:ml, author:'엄마' });
 
+  /* 2026-10: 첫 화면에서 수유 배너(#next-feed-row)가 빠지고 그 자리에
+     이유식 배너가 들어갔다. 다음 수유는 대시보드 세 칸 중 첫 칸이 된다 —
+     큰 글씨는 "32분 후", 작은 글씨는 "오후 7시 32분".
+     배너와 함께 없어진 것: 왜 그 시각인지("200ml 먹었으니 4시간 뒤"),
+     오늘 먹은 양/목표, "밤엔 안 먹여요". 셈 자체는 그대로라서 그 부분은
+     화면 글자 대신 feedPlanState 를 직접 불러 확인한다. */
   const banner = async () => {
     const p = await b.newPage({ viewport:{width:390,height:880} });
     p.on('pageerror', e => errs.push(String(e)));
@@ -57,11 +63,14 @@ const ahead = min => new Date(BASE_MS + min*60000);
     await p.addInitScript(()=>{ localStorage.setItem('bbl_author','엄마'); localStorage.setItem('bbl_lang','ko'); });
     await p.goto(BASE+'/'); await p.waitForTimeout(1700);
     const out = await p.evaluate(()=>{
-      const box = document.getElementById('next-feed-row');
-      return { hidden: !!box.hidden,
-        label: document.getElementById('nf-label').textContent,
-        text: document.getElementById('nf-text').textContent,
-        sub: document.getElementById('nf-sub').textContent };
+      const cell = document.querySelector('#dash4 .d4');
+      return {
+        hidden: !cell,
+        label: cell ? (cell.querySelector('.d4-lab') || {}).textContent || '' : '',
+        /* 시각은 작은 글씨에 있다 — hasTime 이 보는 곳 */
+        text: cell ? (cell.querySelector('.d4-sub') || {}).textContent || '' : '',
+        big: cell ? (cell.querySelector('.d4-big') || {}).textContent || '' : ''
+      };
     });
     await p.close();
     return out;
@@ -74,8 +83,13 @@ const ahead = min => new Date(BASE_MS + min*60000);
   let r = await banner();
   check('200 ml면 기준 시간 뒤가 다음 차례',
     hasTime(r, ahead(180)), true);
-  check('...무엇 때문에 그 시각인지 말해준다', /200ml 먹었으니 4시간 뒤/.test(r.text), true);
-  check('...오늘 먹은 양은 목표와 나란히', /200 \/ 900/.test(r.sub.replace(/ml/g,'')), true);
+  /* 남은 시간이 큰 글씨다 — 시각(작은 글씨)과 같은 것을 두 가지로 말한다.
+     분까지 적으므로 "3시간"이 될 수도 "2시간 59분"이 될 수도 있다(페이지가
+     뜨는 데 걸린 1~2초). 숫자를 분으로 되돌려 재는 쪽이 흔들리지 않는다. */
+  const mins = s => { const h=/(\d+)시간/.exec(s), m=/(\d+)분/.exec(s);
+    return (h?+h[1]*60:0) + (m?+m[1]:0); };
+  const big200 = mins(r.big);
+  check('...남은 시간은 큰 글씨로', big200 >= 175 && big200 <= 180, true);
 
   // ═══ 덜 먹은 날은 더 일찍 ═══
   mark();
@@ -83,7 +97,7 @@ const ahead = min => new Date(BASE_MS + min*60000);
   await feed(ago(60), 150);                       /* 150 ml → 3시간 뒤 */
   r = await banner();
   check('150 ml면 3시간 뒤', hasTime(r, ahead(120)), true);
-  check('...이유도 150 기준으로 바뀐다', /150ml 먹었으니 3시간 뒤/.test(r.text), true);
+  check('...남은 시간도 같이 줄어든다', mins(r.big) < big200 - 50, true);
 
   // ═══ 양을 안 적은 수유 ═══
   mark();
@@ -109,8 +123,8 @@ const ahead = min => new Date(BASE_MS + min*60000);
   r = await banner();
   check('안 먹이는 시간에 걸리면 창이 끝나는 시각으로 미룬다', hasTime(r, ahead(300)), true);
   check('...앞으로 당기지 않는다', r.text.indexOf(koTime(ahead(120))) >= 0, false);
-  check('...밤이라 밀렸다고 말해준다 (계산이 틀린 걸로 읽히면 안 된다)',
-    /밤엔 안 먹여요/.test(r.text), true);
+  /* 배너가 하던 "밤엔 안 먹여요" 설명은 이제 화면에 없다 — 시각이 창
+     바깥으로 밀렸다는 사실만 남는다. 설명이 필요하면 되살려야 한다. */
 
   // ═══ 그 시간 동안엔 아무것도 안 띄운다 ═══
   mark();
@@ -118,7 +132,10 @@ const ahead = min => new Date(BASE_MS + min*60000);
   await clearFeeds();
   await feed(ago(60), 200);
   r = await banner();
-  check('안 먹이는 시간 동안엔 배너가 숨는다', r.hidden, true);
+  /* 창 안이면 다음 차례는 창이 끝난 뒤다 — 배너 때는 아예 숨었지만
+     세 칸은 늘 서 있으므로 '언제 다시 먹이나'를 보여주는 쪽이 맞다 */
+  check('안 먹이는 시간 동안엔 창이 끝난 뒤를 가리킨다',
+    hasTime(r, ahead(120)), true);
 
   // ═══ 방식을 바꿔도 다른 방식의 값은 남아 있다 ═══
   await plan();

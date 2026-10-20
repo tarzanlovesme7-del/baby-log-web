@@ -40,7 +40,9 @@ const D=d=>{const x=new Date();x.setDate(x.getDate()+d);
   // ═══ 두 폰이 각자의 언어로 선다 ═══
   for (const [who, lang] of [['엄마','ko'], ['내니','vi']]){
     const p = await open(who, lang);
-    check(who + ' 폰이 뜬다', await drawn(p, '#since-row'), true);
+    /* 첫 화면의 요약은 2026-10-19에 '마지막 수유/잠/똥' 세 칸에서
+       '수유·이유식·똥·잠' 네 칸(#dash4)으로 바뀌었다 */
+    check(who + ' 폰이 뜬다', await drawn(p, '#dash4'), true);
     check(who + ' — 빠른 기록 타일이 그려진다',
       await p.evaluate(()=>document.querySelectorAll('#qa-grid .qa-btn').length > 0), true);
 

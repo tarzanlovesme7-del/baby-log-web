@@ -124,10 +124,14 @@ console.log('ALL MUTATION TESTS PASSED');
   assert.equal(s.payPeriods[0].amount, 3 * 800000 + 175000);
 
   // 자정을 넘긴 오버타임
-  const mid = applyMutation(s, 'addOt', { date: '2026-09-19', start: '22:30', end: '00:30', actor: '엄마' });
+  /* 기간을 하루짜리로 잡지 않는다: 오버타임은 '다음 날이 속한 기간'으로 세므로
+     (지급일 저녁 오버타임은 이미 나간 급여 메모에 담길 수 없어서 다음 급여로
+     넘어간다 — otcarry 참고) 25일 오버타임은 26일을 품는 기간에 들어간다.
+     앞의 18일 오버타임과 섞이지 않게 날짜를 멀리 띄워 둔다. */
+  const mid = applyMutation(s, 'addOt', { date: '2026-09-25', start: '22:30', end: '00:30', actor: '엄마' });
   const o = mid.result.ot;
   assert.equal(o.status, 'ok');
-  const paid2 = applyMutation(mid.state, 'markPaid', { from: '2026-09-19', to: '2026-09-19', actor: '엄마' });
+  const paid2 = applyMutation(mid.state, 'markPaid', { from: '2026-09-25', to: '2026-09-26', actor: '엄마' });
   assert.equal(paid2.result.period.otMin, 120);
   console.log('payroll: ok');
 })();

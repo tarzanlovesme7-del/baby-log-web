@@ -10,6 +10,7 @@ const { applyMutation } = require('./server/mutations');
 const EMPTY_STATE = {
   entries: [], trash: [], active: null, customTypes: [], memos: [], typeOrder: [], weights: [], heights: [], milestones: [], diaries: [], schedules: [],
   customAuthors: [], quickWords: [],
+  weanPlan: {}, weanIngs: [], weanRaw: [], weanShop: [], weanCubes: [], weanColors: {},
   profile: { nameKo: '지오', nameVi: 'Zio', birth: '2026-05-11' },
 };
 
@@ -168,6 +169,9 @@ const server = http.createServer((req, res) => {
       : ext === '.jpg' || ext === '.jpeg' ? 'image/jpeg'
       : ext === '.png' ? 'image/png'
       : ext === '.webmanifest' || ext === '.json' ? 'application/manifest+json'
+      /* 재료 그림이 파일로 나간 뒤로 이게 없으면 text/plain으로 내려가
+         브라우저가 깨진 그림 상자를 그린다 */
+      : ext === '.svg' ? 'image/svg+xml'
       : 'text/plain';
     res.writeHead(200, { 'Content-Type': type });
     res.end(data);

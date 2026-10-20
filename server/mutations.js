@@ -15,7 +15,16 @@ function clone(x) { return JSON.parse(JSON.stringify(x)); }
 // household both read every note. Stored alongside the note rather than
 // re-translated on each render (translation is a network call, and the stored
 // text is what every other viewer's poll picks up).
-const ALLOWED_ENTRY_FIELDS = ['type', 'start', 'end', 'amount', 'diaper', 'temp', 'note', 'noteLang', 'noteTranslated', 'author', 'sleepKind', 'wakes'];
+/* 이유식 기록이 더 얹는 것: 먹은 양(ate) · 이상 반응(react) · 그날 준 것의
+   사본(menu 글자, ings 목록). 사본을 들고 있는 이유는 식단표를 나중에 고쳐도
+   "그날 실제로 뭘 줬나"가 흔들리면 안 되기 때문이다. */
+const ALLOWED_ENTRY_FIELDS = ['type', 'start', 'end', 'amount', 'diaper', 'temp', 'note', 'noteLang', 'noteTranslated', 'author', 'sleepKind', 'wakes', 'ate', 'react', 'menu', 'mealName', 'ings',
+  /* 기록 화면 개편에서 들어온 칸들. photos 는 메모·일기와 같은 저장소를
+     가리키는 참조만 담는다(바이트는 photos 테이블에 있다) — server.js 의
+     고아 사진 청소기가 이 목록을 읽는다. */
+  'poop', 'tempSite', 'med', 'medUnit', 'photos'];
+const POOP_KINDS = ['', 'loose', 'normal', 'firm', 'mucus', 'blood'];
+const TSITE_KINDS = ['ear', 'brow', 'arm'];
 
 /* ---------------------------------------------------------------
    WHO MAY DELETE WHAT
@@ -219,6 +228,151 @@ function assertMaster(actor, what) {
   throw httpError(403, 'not-owner: ' + what);
 }
 
+/* ================================================================
+   이유식
+   ================================================================
+   식단표(weanPlan)가 단 하나의 출처다. 장보기는 거기서 계산하고, 저장하는
+   것은 계산과의 차이(weanShop)뿐이다. 재료 사전(weanIngs)이 이름·단위·
+   늘 이만큼·큐브 한 칸을 들고 있고 나머지 화면은 그걸 읽어 쓴다.
+
+   ATE 값은 네 가지뿐이고 ''(안 적음)이 기본이다 — 빠른 기록으로 한 번
+   눌러 저장하면 여기는 비어 있고, 나중에 기록 상세에서 채운다.
+   '다 먹음'을 임의로 넣지 않는다: 안 적은 것과 다 먹은 것은 다른 사실이다. */
+const ATE_KINDS = ['', 'full', 'half', 'little', 'refused'];
+const REACT_KINDS = ['', 'none', 'rash', 'diarrhea', 'vomit', 'other'];
+const WEAN_UNITS = ['g', 'ea', 'tbsp'];
+
+function num(v, dflt) {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : dflt;
+}
+/* 재료 목록은 {ing,g} 쌍만 통과시킨다. 통째로 받은 배열을 그대로 문서에
+   넣으면 폰 하나가 보낸 아무 모양이나 공유 상태에 들어앉는다. */
+function cleanIngList(v) {
+  if (!Array.isArray(v)) return [];
+  const out = [];
+  for (const raw of v) {
+    if (!raw || typeof raw !== 'object') continue;
+    const ing = String(raw.ing || '').trim();
+    if (!ing) continue;
+    out.push({ ing, g: Math.max(0, Math.round(num(raw.g, 0))) });
+    if (out.length >= 24) break;
+  }
+  return out;
+}
+/* from..to 를 날짜 문자열로 편다. to 포함. 400일이 넘으면 자른다 —
+   기간 칸에 손이 미끄러진 값이 들어와도 서버가 멈추지는 않게. */
+function dateRange(from, to) {
+  const out = [];
+  const d = new Date(from + 'T00:00:00Z');
+  const end = new Date(to + 'T00:00:00Z');
+  while (d <= end && out.length < 400) {
+    out.push(d.toISOString().slice(0, 10));
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return out;
+}
+/* 그 날에서 이름이 같은 끼니 하나를 뺀다. 그 날에 아무것도 안 남으면 날 자체를
+   지운다 — 빈 날이 남아 있으면 달력이 '식단 있음'으로 세어 버린다. */
+function dropMealOn(state, ds, name) {
+  const day = state.weanPlan && state.weanPlan[ds];
+  if (!day || !Array.isArray(day.meals)) return false;
+  const meals = day.meals.filter((m) => (m.name || '') !== name);
+  if (meals.length === day.meals.length) return false;
+  if (meals.length) state.weanPlan[ds] = { meals };
+  else delete state.weanPlan[ds];
+  return true;
+}
+
+function cleanMeals(v) {
+  if (!Array.isArray(v)) return [];
+  const out = [];
+  for (const raw of v) {
+    if (!raw || typeof raw !== 'object') continue;
+    out.push({
+      name: String(raw.name || '').slice(0, 20),
+      /* 베이스죽('쌀오트밀죽')은 그 자체가 재료다 — 곡물가루를 따로 재료로
+         두고 이름을 덧붙이면 냉동실에 있는 것(쌀죽 큐브)과 재료 목록에 있는
+         것(쌀가루)이 어긋나고, 식단표를 고칠 때마다 둘을 맞춰야 한다.
+         그래서 base는 isBase 재료 한 칸이다. */
+      base: cleanIngList(raw.base),
+      tops: cleanIngList(raw.tops),
+    });
+    if (out.length >= 6) break;
+  }
+  return out;
+}
+const WEAN_CATS = ['grain', 'veg', 'protein', 'fruit', 'etc'];
+const WEAN_REACTS = ['rash', 'diarrhea', 'vomit', 'other'];
+
+function weanIngsOf(state) {
+  return Array.isArray(state.weanIngs) ? state.weanIngs : [];
+}
+/* 큐브는 '만든 날'마다 한 덩어리다.
+
+   한 재료에 한 줄만 두면 9/28에 만든 여덟 칸과 9/30에 만든 열 칸이 한 줄로
+   합쳐지고, 만든 날은 나중 것으로 덮인다 — 그러면 9/28 것이 2주를 넘겨도
+   아무 말이 없다. 오래된 큐브를 잡아내는 것이 이 화면이 하는 일의 절반이라
+   덩어리째 들고 있는다. 먹일 때는 오래된 덩어리부터 빠진다. */
+function cubesOf(state, ing) {
+  state.weanCubes = Array.isArray(state.weanCubes) ? state.weanCubes : [];
+  return state.weanCubes
+    .filter((c) => c && c.ing === ing)
+    .sort((a, b) => String(a.madeOn || '').localeCompare(String(b.madeOn || '')));
+}
+function defaultPerG(state, ing) {
+  const meta = weanIngsOf(state).find((x) => x.id === ing);
+  return meta ? Math.max(1, Math.round(num(meta.cubeG, 10))) : 10;
+}
+/* 오래된 덩어리부터 n칸 뺀다. 빈 덩어리는 치운다. */
+function takeCubes(state, ing, n) {
+  let left = Math.max(0, Math.round(n));
+  for (const c of cubesOf(state, ing)) {
+    if (left <= 0) break;
+    const take = Math.min(left, Math.max(0, Math.round(num(c.n, 0))));
+    c.n = Math.max(0, Math.round(num(c.n, 0))) - take;
+    left -= take;
+  }
+  state.weanCubes = state.weanCubes.filter((c) => Math.round(num(c.n, 0)) > 0);
+}
+/* n칸 더한다. 같은 날 같은 용량이면 그 덩어리에 합치고, 아니면 새 덩어리. */
+function addCubes(state, ing, n, perG, madeOn) {
+  const add = Math.max(0, Math.round(n));
+  if (!add) return null;
+  state.weanCubes = Array.isArray(state.weanCubes) ? state.weanCubes : [];
+  const g = Math.max(1, Math.round(num(perG, defaultPerG(state, ing))));
+  const day = DATE_RE.test(madeOn || '') ? madeOn : new Date().toISOString().slice(0, 10);
+  let row = state.weanCubes.find((c) => c.ing === ing && c.madeOn === day && Math.round(num(c.perG, 0)) === g);
+  if (!row) { row = { id: uid('c_'), ing, n: 0, perG: g, madeOn: day }; state.weanCubes.push(row); }
+  row.n = Math.max(0, Math.round(num(row.n, 0))) + add;
+  return row;
+}
+/* 이유식을 한 건 기록하면 그날 쓴 재료가 한 칸씩 빠진다. 지우면 되돌아온다.
+   수정(updateEntry)에서는 건드리지 않는다 — 재료가 바뀌는 일은 드물고,
+   재고 화면의 − + 가 언제나 정답을 이긴다. */
+function bumpCubesForEntry(state, entry, sign) {
+  if (!entry || entry.type !== 'wean') return;
+  const list = cleanIngList(entry.ings);
+  for (const it of list) {
+    if (sign < 0) takeCubes(state, it.ing, 1);
+    else {
+      /* 되돌릴 때는 가장 오래된 덩어리로 — 그게 빠졌던 자리다.
+         남은 덩어리가 없으면 그날 만든 것으로 하나 세운다. */
+      const olds = cubesOf(state, it.ing);
+      if (olds.length) olds[0].n = Math.max(0, Math.round(num(olds[0].n, 0))) + 1;
+      else addCubes(state, it.ing, 1, defaultPerG(state, it.ing), (entry.start || '').slice(0, 10));
+    }
+  }
+}
+/* 월요일 기준 주 키. 장보기는 주 단위다. */
+function weekKey(ds) {
+  if (!DATE_RE.test(ds || '')) return '';
+  const d = new Date(ds + 'T00:00:00Z');
+  const dow = d.getUTCDay();             /* 0=일 */
+  d.setUTCDate(d.getUTCDate() - ((dow + 6) % 7));
+  return d.toISOString().slice(0, 10);
+}
+
 function applyMutation(prevState, type, payload) {
   const state = clone(prevState);
   payload = payload || {};
@@ -236,7 +390,15 @@ function applyMutation(prevState, type, payload) {
       entry.end = payload.end || entry.start;
       ALLOWED_ENTRY_FIELDS.forEach((f) => { if (payload[f] !== undefined) entry[f] = payload[f]; });
       if (!entry.type) throw httpError(400, 'entry requires a type');
+      cleanEntryExtras(entry);
+      if (entry.type === 'wean') {
+        entry.ate = ATE_KINDS.indexOf(entry.ate) > 0 ? entry.ate : '';
+        entry.react = REACT_KINDS.indexOf(entry.react) > 0 ? entry.react : '';
+        entry.menu = String(entry.menu || '').slice(0, 200);
+        entry.ings = cleanIngList(entry.ings);
+      }
       state.entries.unshift(entry);
+      bumpCubesForEntry(state, entry, -1);
       return { state, result: { entry } };
     }
 
@@ -251,6 +413,13 @@ function applyMutation(prevState, type, payload) {
          handover. Deleting is the one thing that destroys information, so
          it alone stays owner-or-mom (see deleteEntry below). */
       ALLOWED_ENTRY_FIELDS.forEach((f) => { if (payload[f] !== undefined) entry[f] = payload[f]; });
+      cleanEntryExtras(entry);
+      if (entry.type === 'wean') {
+        entry.ate = ATE_KINDS.indexOf(entry.ate) > 0 ? entry.ate : '';
+        entry.react = REACT_KINDS.indexOf(entry.react) > 0 ? entry.react : '';
+        if (entry.menu !== undefined) entry.menu = String(entry.menu || '').slice(0, 200);
+        if (entry.ings !== undefined) entry.ings = cleanIngList(entry.ings);
+      }
       return { state, result: { entry } };
     }
 
@@ -306,6 +475,7 @@ function applyMutation(prevState, type, payload) {
       if (!entry) return { state, result: { alreadyGone: true } };
       assertMayTouch(payload.actor, entry.author, 'entry');
       state.entries = state.entries.filter((e) => e.id !== payload.id);
+      bumpCubesForEntry(state, entry, +1);   /* 먹이지 않은 것이 되었으니 큐브도 돌아온다 */
       state.trash = state.trash || [];
       state.trash.unshift(Object.assign({}, entry, {
         deletedAt: new Date().toISOString(),
@@ -324,6 +494,7 @@ function applyMutation(prevState, type, payload) {
       delete entry.deletedAt; delete entry.deletedBy;
       state.trash = state.trash.filter((x) => x.id !== payload.id);
       state.entries.unshift(entry);
+      bumpCubesForEntry(state, entry, -1);
       return { state, result: { entry } };
     }
 
@@ -1214,6 +1385,341 @@ function applyMutation(prevState, type, payload) {
       return { state, result: {} };
     }
 
+    /* ================================================================
+       이유식 — 식단표 · 재료 · 장보기 · 냉동 큐브
+       엄마만 고친다. 내니 폰은 오늘 메뉴를 읽고 기록만 남긴다.
+       ================================================================ */
+    case 'setWeanDay': {
+      assertMaster(payload.actor, 'wean plan');
+      if (!DATE_RE.test(payload.date || '')) throw httpError(400, 'bad date');
+      state.weanPlan = state.weanPlan || {};
+      const meals = cleanMeals(payload.meals);
+      if (!meals.length) delete state.weanPlan[payload.date];
+      else state.weanPlan[payload.date] = { meals };
+      return { state, result: { date: payload.date, day: state.weanPlan[payload.date] || null } };
+    }
+
+    /* ── 식단 한 덩어리 ───────────────────────────────────────────
+       고치는 단위는 '하루'가 아니라 '기간을 가진 한 끼'다. 사흘 같은 메뉴를
+       먹이는 일이 흔한데 하루씩 세 번 적게 하면 틀리기만 쉽다.
+
+       저장은 여전히 하루 단위로 남는다(weanPlan['2026-11-15'].meals). 덩어리는
+       '연달아 있고 메뉴가 같은 날들'로 그때그때 세는 것이라, 쌓인 90일치를
+       옮기거나 다시 쓰는 일이 없다 — 달력도 이미 그렇게 그리고 있다.
+
+       payload:
+         from, to   기간 (to 는 포함)
+         meal       넣을 한 끼 {name, base, tops}
+         wasFrom/wasTo/wasName
+                    고치기 전 덩어리. 기간이 줄었으면 바깥으로 밀려난 날에서
+                    그 끼니를 뺀다. 새로 만들 때는 없다.
+         mode       'overwrite' | 'fill'
+                    fill 이면 이미 같은 이름의 끼니가 있는 날은 건드리지 않는다.
+       같은 날 같은 이름의 끼니는 하나뿐이다 — 이름이 그 날 안에서의 자리다. */
+    case 'setWeanSpan': {
+      assertMaster(payload.actor, 'wean plan');
+      const from = String(payload.from || ''), to = String(payload.to || '');
+      if (!DATE_RE.test(from) || !DATE_RE.test(to)) throw httpError(400, 'bad range');
+      if (to < from) throw httpError(400, 'bad range');
+      const meal = cleanMeals([payload.meal])[0];
+      if (!meal) throw httpError(400, 'bad meal');
+      if (!meal.base.length && !meal.tops.length) throw httpError(400, 'empty meal');
+      const fill = payload.mode === 'fill';
+      state.weanPlan = state.weanPlan || {};
+
+      /* 1) 줄어든 쪽 치우기 — 고치기 전 기간에는 있었는데 지금은 바깥인 날 */
+      const wasFrom = String(payload.wasFrom || ''), wasTo = String(payload.wasTo || '');
+      const wasName = payload.wasName === undefined ? meal.name : String(payload.wasName || '');
+      if (DATE_RE.test(wasFrom) && DATE_RE.test(wasTo)) {
+        for (const d of dateRange(wasFrom, wasTo)) {
+          if (d >= from && d <= to) continue;
+          dropMealOn(state, d, wasName);
+        }
+      }
+
+      /* 2) 기간 안의 날마다 쓴다 */
+      const written = [];
+      const skipped = [];
+      for (const d of dateRange(from, to)) {
+        const day = state.weanPlan[d] || { meals: [] };
+        const meals = Array.isArray(day.meals) ? day.meals.slice() : [];
+        /* 고치기 전 이름으로 찾은 뒤, 없으면 새 이름으로 찾는다 — 끼니 이름을
+           '아침'에서 '점심'으로 바꾼 경우에도 제자리를 찾아간다. */
+        let i = meals.findIndex((m) => (m.name || '') === wasName);
+        if (i < 0) i = meals.findIndex((m) => (m.name || '') === meal.name);
+        /* 고치기 전 기간에 들어 있던 날은 '우리 날'이라 빈 날만 채우기에서도
+           고쳐 쓴다. 그 바깥에서 이미 식단이 있는 날이 남의 덩어리다. */
+        const wasOurs = DATE_RE.test(wasFrom) && d >= wasFrom && d <= wasTo;
+        if (i < 0) {
+          meals.push(meal);
+        } else if (fill && !wasOurs && (meals[i].base || []).concat(meals[i].tops || []).length) {
+          /* 빈 날만 채우기 — 이미 뭔가 있는 자리는 그대로 둔다 */
+          skipped.push(d);
+          continue;
+        } else {
+          meals[i] = meal;
+        }
+        state.weanPlan[d] = { meals: cleanMeals(meals) };
+        written.push(d);
+      }
+      return { state, result: { written: written.length, skipped } };
+    }
+
+    /* 덩어리 지우기. 하루만 지우려면 from === to 로 부른다. */
+    case 'deleteWeanSpan': {
+      assertMaster(payload.actor, 'wean plan');
+      const from = String(payload.from || ''), to = String(payload.to || '');
+      if (!DATE_RE.test(from) || !DATE_RE.test(to) || to < from) throw httpError(400, 'bad range');
+      const name = String(payload.name || '');
+      state.weanPlan = state.weanPlan || {};
+      let n = 0;
+      for (const d of dateRange(from, to)) if (dropMealOn(state, d, name)) n++;
+      return { state, result: { removed: n } };
+    }
+
+    /* 식단 알약 색. 색은 하루가 아니라 '메뉴'에 붙는다 — 쌀죽+소고기를
+       노랑으로 바꾸면 그 메뉴가 나오는 날이 달력에서 전부 노랑이 된다.
+       키는 메뉴의 지문(끼니 이름 + 재료 id들)을 클라이언트가 추려 보낸 것이고,
+       서버는 그 문자열을 그대로 보관만 한다. 기본색(0)이면 줄을 지운다 —
+       식단을 고치면 쓰이지 않는 키가 남는데, 그게 쌓이지 않게. */
+    case 'setWeanColor': {
+      assertMaster(payload.actor, 'wean color');
+      const key = String(payload.key || '').slice(0, 64);
+      if (!key) throw httpError(400, 'bad key');
+      const c = Math.round(num(payload.color, 0));
+      state.weanColors = state.weanColors && typeof state.weanColors === 'object' ? state.weanColors : {};
+      if (c > 0 && c < 32) state.weanColors[key] = c;
+      else delete state.weanColors[key];
+      return { state, result: { key, color: state.weanColors[key] || 0 } };
+    }
+
+    case 'deleteWeanDay': {
+      assertMaster(payload.actor, 'wean plan');
+      state.weanPlan = state.weanPlan || {};
+      delete state.weanPlan[payload.date];
+      return { state, result: {} };
+    }
+
+    /* 식단표를 통째로 심는다. 이미 들어 있는 날은 건드리지 않으므로
+       두 번 눌러도 손으로 고친 식단을 덮어쓰지 않는다. */
+    case 'seedWean': {
+      assertMaster(payload.actor, 'wean seed');
+      state.weanPlan = state.weanPlan || {};
+      state.weanIngs = weanIngsOf(state);
+      let days = 0, ings = 0;
+      const plan = payload.plan && typeof payload.plan === 'object' ? payload.plan : {};
+      for (const ds of Object.keys(plan)) {
+        if (!DATE_RE.test(ds) || state.weanPlan[ds]) continue;
+        const meals = cleanMeals(plan[ds] && plan[ds].meals);
+        if (!meals.length) continue;
+        state.weanPlan[ds] = { meals };
+        days++;
+      }
+      for (const raw of (Array.isArray(payload.ings) ? payload.ings : [])) {
+        if (!raw || !raw.id) continue;
+        if (state.weanIngs.some((x) => x.id === raw.id)) continue;
+        state.weanIngs.push({
+          id: String(raw.id).slice(0, 40),
+          ko: String(raw.ko || raw.id).slice(0, 30),
+          vi: String(raw.vi || '').slice(0, 40),
+          unit: WEAN_UNITS.indexOf(raw.unit) >= 0 ? raw.unit : 'g',
+          always: raw.always === null || raw.always === undefined || raw.always === '' ? null : num(raw.always, null),
+          cubeG: Math.max(1, Math.round(num(raw.cubeG, 10))),
+          allergen: !!raw.allergen,
+          isBase: !!raw.isBase,
+        });
+        ings++;
+      }
+      return { state, result: { days, ings } };
+    }
+
+    /* 재료와 큐브를 가른다 (한 번만 돈다).
+         재료 = 사 오는 것   — 쌀, 오트밀, 소고기, 애호박 …
+         큐브 = 얼리는 것   — 쌀죽, 쌀오트밀죽, 소고기 …
+       하나가 아니다: 쌀오트밀죽 한 칸에 재료는 쌀과 오트밀 둘이다. 식단표와
+       냉동 큐브는 큐브 id를 그대로 쓰고(그래서 기존 기록이 하나도 안 깨진다),
+       장보기·알레르기·먹어본 것만 재료 쪽으로 옮겨 간다.
+       표(재료 목록과 큐브→재료 지도)는 클라이언트가 들고 와서 보낸다. */
+    case 'splitWeanRaw': {
+      assertMaster(payload.actor, 'wean split');
+      if (Array.isArray(state.weanRaw) && state.weanRaw.length) {
+        return { state, result: { already: true, raw: state.weanRaw.length } };
+      }
+      state.weanIngs = weanIngsOf(state);
+      const map = payload.map && typeof payload.map === 'object' ? payload.map : {};
+      const raw = [];
+      for (const r of (Array.isArray(payload.raw) ? payload.raw : [])) {
+        if (!r || !r.id || raw.some((x) => x.id === r.id)) continue;
+        raw.push({
+          id: String(r.id).slice(0, 40),
+          ko: String(r.ko || r.id).slice(0, 30),
+          vi: String(r.vi || '').slice(0, 40),
+          unit: WEAN_UNITS.indexOf(r.unit) >= 0 ? r.unit : 'g',
+          always: r.always === null || r.always === undefined || r.always === '' ? null : num(r.always, null),
+          allergen: !!r.allergen,
+          cat: WEAN_CATS.indexOf(r.cat) >= 0 ? r.cat : 'etc',
+        });
+      }
+      if (!raw.length) throw httpError(400, 'no raw');
+      /* 큐브마다 '무엇으로 만드는지'. 표에 없으면 제 이름과 같은 재료 하나. */
+      for (const row of state.weanIngs) {
+        const src = Array.isArray(map[row.id]) ? map[row.id] : [row.id];
+        row.raw = src.filter((x) => raw.some((r) => r.id === x));
+        if (!row.raw.length) row.raw = [];
+        /* 알레르기·늘 이만큼은 '사 오는 것'의 성질이라 재료 쪽으로 옮긴다 */
+        delete row.allergen;
+        delete row.always;
+      }
+      state.weanRaw = raw;
+      return { state, result: { raw: raw.length, cubes: state.weanIngs.length } };
+    }
+
+    /* 재료 한 줄 고치기 — 이름·베트남어·단위·늘 이만큼·알레르기 주의·분류·이상 반응 */
+    case 'setWeanRaw': {
+      assertMaster(payload.actor, 'wean raw');
+      state.weanRaw = Array.isArray(state.weanRaw) ? state.weanRaw : [];
+      const id = String(payload.id || '').trim() || uid('r_');
+      let row = state.weanRaw.find((x) => x.id === id);
+      if (!row) { row = { id, ko: id, vi: '', unit: 'g', always: null, allergen: false, cat: 'etc' }; state.weanRaw.push(row); }
+      if (payload.ko !== undefined) row.ko = String(payload.ko || '').slice(0, 30) || row.ko;
+      if (payload.vi !== undefined) row.vi = String(payload.vi || '').slice(0, 40);
+      if (payload.unit !== undefined && WEAN_UNITS.indexOf(payload.unit) >= 0) row.unit = payload.unit;
+      if (payload.always !== undefined) {
+        row.always = (payload.always === null || payload.always === '') ? null : Math.max(0, num(payload.always, 0));
+      }
+      if (payload.allergen !== undefined) row.allergen = !!payload.allergen;
+      if (payload.cat !== undefined) {
+        const cat = String(payload.cat || '');
+        row.cat = WEAN_CATS.indexOf(cat) >= 0 ? cat : 'etc';
+      }
+      /* 이 재료로 탈이 난 적. 먹인 기록의 '이상 반응'이 정석이지만, 기록을
+         안 남긴 날도 있어서 재료에도 한 줄 남길 수 있게 둔다. */
+      if (payload.reaction !== undefined) {
+        const rx = String(payload.reaction || '');
+        if (WEAN_REACTS.indexOf(rx) >= 0) row.reaction = rx; else delete row.reaction;
+      }
+      return { state, result: { id: row.id } };
+    }
+
+    case 'deleteWeanRaw': {
+      assertMaster(payload.actor, 'wean raw');
+      const id = String(payload.id || '');
+      state.weanRaw = (Array.isArray(state.weanRaw) ? state.weanRaw : []).filter((x) => x.id !== id);
+      for (const row of weanIngsOf(state)) {
+        if (Array.isArray(row.raw)) row.raw = row.raw.filter((x) => x !== id);
+      }
+      return { state, result: {} };
+    }
+
+    case 'setWeanIng': {
+      assertMaster(payload.actor, 'wean ingredient');
+      state.weanIngs = weanIngsOf(state);
+      const id = String(payload.id || '').trim() || uid('i_');
+      let row = state.weanIngs.find((x) => x.id === id);
+      if (!row) { row = { id, ko: id, vi: '', unit: 'g', always: null, cubeG: 10, allergen: false, isBase: false }; state.weanIngs.push(row); }
+      if (payload.ko !== undefined) row.ko = String(payload.ko || '').slice(0, 30) || row.ko;
+      if (payload.vi !== undefined) row.vi = String(payload.vi || '').slice(0, 40);
+      if (payload.unit !== undefined && WEAN_UNITS.indexOf(payload.unit) >= 0) row.unit = payload.unit;
+      /* 늘 이만큼은 비워둘 수 있다 — 비면 식단표에서 계산한 양이 나온다 */
+      if (payload.always !== undefined) {
+        row.always = (payload.always === null || payload.always === '') ? null : Math.max(0, num(payload.always, 0));
+      }
+      if (payload.cubeG !== undefined) row.cubeG = Math.max(1, Math.round(num(payload.cubeG, 10)));
+      if (payload.allergen !== undefined) row.allergen = !!payload.allergen;
+      /* 이 큐브를 무엇으로 만드는지 — 쌀오트밀죽이면 [쌀, 오트밀] */
+      if (payload.raw !== undefined) {
+        const known = Array.isArray(state.weanRaw) ? state.weanRaw : [];
+        row.raw = (Array.isArray(payload.raw) ? payload.raw : [])
+          .map((x) => String(x))
+          .filter((x, i, a) => a.indexOf(x) === i && known.some((r) => r.id === x))
+          .slice(0, 8);
+      }
+      /* 베이스죽이면 장보기에서 세지 않는다 — 곡물가루는 떨어질 때 사는 것이지
+         주마다 g으로 계산할 것이 아니다 */
+      if (payload.isBase !== undefined) row.isBase = !!payload.isBase;
+      return { state, result: { ing: row } };
+    }
+
+    case 'deleteWeanIng': {
+      assertMaster(payload.actor, 'wean ingredient');
+      state.weanIngs = weanIngsOf(state).filter((x) => x.id !== payload.id);
+      state.weanCubes = (state.weanCubes || []).filter((c) => c.ing !== payload.id);
+      state.weanShop = (state.weanShop || []).filter((s) => s.ing !== payload.id);
+      return { state, result: {} };
+    }
+
+    /* 장보기의 한 줄에 대한 '차이'를 적는다. 값을 null로 보내면 그 항목만
+       지워지고, 차이가 하나도 안 남으면 줄 자체가 사라져 계산값으로 돌아간다. */
+    case 'setWeanShop': {
+      assertMaster(payload.actor, 'wean shopping');
+      const week = weekKey(payload.week);
+      if (!week) throw httpError(400, 'bad week');
+      const ing = String(payload.ing || '').trim();
+      if (!ing) throw httpError(400, 'bad ingredient');
+      state.weanShop = Array.isArray(state.weanShop) ? state.weanShop : [];
+      let row = state.weanShop.find((s) => s.week === week && s.ing === ing);
+      if (!row) { row = { week, ing }; state.weanShop.push(row); }
+      if (payload.amount !== undefined) {
+        if (payload.amount === null || payload.amount === '') delete row.amount;
+        else row.amount = Math.max(0, num(payload.amount, 0));
+      }
+      if (payload.skip !== undefined) { if (payload.skip) row.skip = true; else delete row.skip; }
+      if (payload.extra !== undefined) { if (payload.extra) row.extra = true; else delete row.extra; }
+      if (payload.checked !== undefined) { if (payload.checked) row.checked = true; else delete row.checked; }
+      /* 직접 넣은 줄은 재료 사전에 없을 수 있다(큐브 트레이 같은 것) — 그래서
+         단위를 줄 자체가 들고 있어야 한다. 사전에 있는 재료는 사전 쪽이 이긴다. */
+      if (payload.unit !== undefined) {
+        if (WEAN_UNITS.indexOf(payload.unit) >= 0) row.unit = payload.unit; else delete row.unit;
+      }
+      const empty = row.amount === undefined && !row.skip && !row.extra && !row.checked;
+      if (empty) state.weanShop = state.weanShop.filter((s) => s !== row);
+      /* 지난 주의 담기 표시는 들고 있을 이유가 없다 — 장은 그 주에 본다 */
+      state.weanShop = state.weanShop.filter((s) => !(s.checked && !s.extra && s.amount === undefined && !s.skip && s.week < week));
+      return { state, result: { row: empty ? null : row } };
+    }
+
+    /* 재고 화면의 − + . 뺄 때는 오래된 덩어리부터, 더할 때는 가장 최근
+       덩어리에. n을 통째로 주면 덩어리를 하나로 접는다(쓰는 곳은 없지만
+       옛 클라이언트가 보낼 수 있다). */
+    case 'setWeanCube': {
+      assertMaster(payload.actor, 'wean cubes');
+      const ing = String(payload.ing || '').trim();
+      if (!ing) throw httpError(400, 'bad ingredient');
+      if (payload.n !== undefined) {
+        const want = Math.max(0, Math.round(num(payload.n, 0)));
+        state.weanCubes = (state.weanCubes || []).filter((c) => c.ing !== ing);
+        if (want) addCubes(state, ing, want, payload.perG, payload.madeOn);
+      } else if (payload.delta !== undefined) {
+        const d = Math.round(num(payload.delta, 0));
+        /* 재고 화면은 만든 날마다 한 줄이다 — 그 줄의 -/+는 그 덩어리만
+           건드린다. id 없이 오면 예전처럼 오래된 것부터 뺀다. */
+        const id = payload.id ? String(payload.id) : '';
+        if (id) {
+          const row = (state.weanCubes || []).filter((c) => c.id === id && c.ing === ing)[0];
+          if (!row) throw httpError(404, 'no such cube batch');
+          row.n = Math.max(0, Math.round(num(row.n, 0)) + d);
+          if (!row.n) state.weanCubes = state.weanCubes.filter((c) => c !== row);
+        } else if (d < 0) takeCubes(state, ing, -d);
+        else if (d > 0) {
+          const list = cubesOf(state, ing);
+          const last = list[list.length - 1];
+          if (last) last.n = Math.max(0, Math.round(num(last.n, 0))) + d;
+          else addCubes(state, ing, d, payload.perG, payload.madeOn);
+        }
+      }
+      return { state, result: { cubes: cubesOf(state, ing) } };
+    }
+
+    /* 큐브를 만들었을 때. 같은 날 같은 용량이면 그 덩어리에 합치고,
+       아니면 새 덩어리로 선다 — 9/28에 만든 것과 9/30에 만든 것은 다른 것이다. */
+    case 'addWeanCubes': {
+      assertMaster(payload.actor, 'wean cubes');
+      const ing = String(payload.ing || '').trim();
+      if (!ing) throw httpError(400, 'bad ingredient');
+      const row = addCubes(state, ing, num(payload.n, 0), payload.perG, payload.madeOn);
+      return { state, result: { cube: row, cubes: cubesOf(state, ing) } };
+    }
+
     default:
       throw httpError(400, 'unknown mutation type: ' + type);
   }
@@ -1223,6 +1729,30 @@ function applyMutation(prevState, type, payload) {
    sends is dropped rather than trusted into the shared document. */
 const PHOTO_ID_RE = /^p_[0-9a-f]{24,40}$/;
 const MAX_PHOTOS_PER_MEMO = 4;
+/* 기록의 새 칸들 — 들어온 값이 목록에 없으면 비워 둔다. 사진은 참조만
+   남기고(바이트는 photos 테이블), 하나도 없으면 칸째로 지운다 — 3000건의
+   기록마다 빈 배열이 하나씩 붙으면 문서가 그만큼 무거워진다. */
+function cleanEntryExtras(entry) {
+  if (entry.poop !== undefined) {
+    if (POOP_KINDS.indexOf(entry.poop) > 0) { /* keep */ } else delete entry.poop;
+  }
+  if (entry.tempSite !== undefined) {
+    if (TSITE_KINDS.indexOf(entry.tempSite) >= 0) { /* keep */ } else delete entry.tempSite;
+  }
+  if (entry.med !== undefined) {
+    const m = String(entry.med || '').trim().slice(0, 40);
+    if (m) entry.med = m; else delete entry.med;
+  }
+  if (entry.medUnit !== undefined) {
+    const u = String(entry.medUnit || '').trim().slice(0, 8);
+    if (u) entry.medUnit = u; else delete entry.medUnit;
+  }
+  if (entry.photos !== undefined) {
+    const ph = normalizePhotos(entry.photos);
+    if (ph.length) entry.photos = ph; else delete entry.photos;
+  }
+  return entry;
+}
 function normalizePhotos(list) {
   if (!Array.isArray(list)) return [];
   const out = [];

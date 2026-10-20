@@ -171,6 +171,55 @@ async function translatePiece(text, targetLang) {
   throw e;
 }
 
+/* ── 숫자는 번역하지 않는다 ─────────────────────────────────────
+   베트남어는 소수점이 쉼표다(3.4 → 3,4). 번역기는 그게 친절이라고 생각하고
+   숫자 표기를 현지식으로 바꿔 주는데, 약 용량에서는 그게 친절이 아니다 —
+   한국어 원문에 '헤만지올 3.4'라고 적은 것이 내니 폰에서 'Hemangiol 3,4'로
+   보이면, 둘이 같은 값인지 세 자리 구분인지 읽는 사람이 판단해야 한다.
+   그래서 원문에 있던 숫자를 번역문에 그대로 돌려놓는다.
+
+   원문에서 숫자를 순서대로 뽑고, 번역문의 숫자도 순서대로 뽑아서, 같은 자리
+   것끼리 짝을 지어 '구분기호만 다르고 자릿수는 같은' 경우에만 되돌린다.
+   개수가 다르거나(번역기가 숫자를 지우거나 더한 경우) 값 자체가 다르면
+   손대지 않는다 — 틀린 추측으로 숫자를 바꾸느니 그대로 두는 쪽이 낫다. */
+const NUM_RE = /\d[\d.,]*\d|\d/g;
+function sameDigits(a, b) {
+  return a.replace(/[.,]/g, '') === b.replace(/[.,]/g, '');
+}
+function restoreNumbers(src, out) {
+  if (!src || !out) return out;
+  const from = out.match(NUM_RE);
+  const to = src.match(NUM_RE);
+  if (!from || !to || from.length !== to.length) return out;
+  /* 자릿수가 하나라도 어긋나면 통째로 포기한다 */
+  for (let i = 0; i < from.length; i++) if (!sameDigits(from[i], to[i])) return out;
+  let i = 0;
+  return out.replace(NUM_RE, () => to[i++]);
+}
+
+/* ── 약 이름은 번역하지 않는다 ───────────────────────────────────
+   지오가 먹는 약 이름이 번역기를 거치면 'Hemangio'(끝 글자가 떨어짐),
+   'Hemangiole', '헤만지올' 세 가지로 갈렸다. 실제로 기록 19건이 그렇게
+   쌓여서 손으로 고쳤다. 같은 약이 표기만 달라 두 가지로 쌓이면 통계도
+   검색도 둘로 갈린다.
+
+   앞머리만 맞으면 통째로 제 이름으로 돌려놓는다 — 번역기가 어디를 어떻게
+   깎든 앞머리는 거의 늘 남는다. 한글로 옮겨 놓은 것도 같이 되돌린다. */
+const DRUG_TERMS = [
+  { name: 'Hemangiol', pats: [/Hemang[\p{L}]*/giu, /헤만지[가-힣]*/g] },
+];
+function restoreDrugNames(src, out) {
+  if (!src || !out) return out;
+  let s2 = out;
+  for (const d of DRUG_TERMS) {
+    /* 원문에 없던 이름을 만들어 넣지 않는다 — 고치는 것은 원문에 있던 것뿐 */
+    const inSrc = d.pats.some((re) => { re.lastIndex = 0; return re.test(src); });
+    if (!inSrc) continue;
+    for (const re of d.pats) { re.lastIndex = 0; s2 = s2.replace(re, d.name); }
+  }
+  return s2;
+}
+
 async function translateText(text, targetLang) {
   if (!text || !text.trim()) return '';
 
@@ -209,5 +258,12 @@ async function translateText(text, targetLang) {
   }
 }
 
-module.exports = { translateText, chunkByBytes, MYMEMORY_MAX_BYTES,
+/* 어느 엔진을 거쳤든 나가는 길은 여기 하나다 */
+async function translate(text, targetLang) {
+  const out = await translateText(text, targetLang);
+  return restoreDrugNames(text, restoreNumbers(text, out));
+}
+
+module.exports = { translateText: translate, chunkByBytes, MYMEMORY_MAX_BYTES,
+  restoreNumbers, restoreDrugNames,
   hasGoodEngine: () => !!DEEPL_API_KEY };

@@ -53,6 +53,31 @@ const EMPTY_STATE = {
     nightFrom: '23:00',
     nightTo: '06:00',
   },
+  /* ---- 이유식 ----
+     weanPlan   { 'YYYY-MM-DD': { meals:[{name, base:[{ing,g}], tops:[{ing,g}]}] } }
+                 식단표. 하루가 통째로 하나의 값이라 날짜를 키로 쓴다.
+     weanIngs   [{id,ko,vi,unit,always,cubeG,allergen}]
+                 큐브 사전 — '얼리는 것'. 쌀죽, 쌀오트밀죽, 소고기 …
+                 식단표와 냉동 큐브가 이 id를 쓴다. row.raw 가 '무엇으로
+                 만드는지'(재료 id 목록)다.
+     weanRaw    [{id,ko,vi,unit,always,allergen,cat,reaction}]
+                 재료 사전 — '사 오는 것'. 쌀, 오트밀, 소고기, 애호박 …
+                 장보기·알레르기·먹어본 것이 이걸 읽는다. 쌀오트밀죽 큐브
+                 한 칸에 재료는 쌀과 오트밀 둘이라 둘은 같은 것이 아니다.
+     weanColors {menuKey:n} 식단 알약 색. 색은 하루가 아니라 메뉴에 붙는다.
+     weanShop   [{week,ing,amount,skip,extra,checked}]
+                 장보기는 식단표에서 계산한다. 여기 저장하는 건 그 계산과의
+                 차이뿐 — 고친 양(amount) / 건너뛴 줄(skip) / 직접 넣은 줄
+                 (extra) / 담았다는 표시(checked). 목록 자체를 저장하면
+                 식단표를 고쳤을 때 둘이 조용히 어긋난다.
+                 'always'(늘 이만큼)는 주와 무관하므로 재료 쪽에 산다.
+     weanCubes  [{ing,n,perG,madeOn}] 냉동 큐브. 재료당 한 줄. */
+  weanPlan: {},
+  weanIngs: [],
+  weanRaw: [],
+  weanShop: [],
+  weanCubes: [],
+  weanColors: {},
   profile: { nameKo: '지오', nameVi: 'Zio', birth: '2026-05-11' },
 };
 
