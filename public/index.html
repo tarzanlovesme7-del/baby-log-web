@@ -752,14 +752,15 @@
     font-size:16px; line-height:1; padding:6px 4px 6px 2px; cursor:pointer;
   }
   .feed-time-x:active{ color:var(--danger-text); }
-  /* 깸 목록 — 시각 / 사이 간격 / 지우기 세 칸 */
-  .wake-list{ display:block; background:var(--surface); border:1px solid var(--border);
-    border-radius:12px; padding:2px 13px; }
+  /* 깸 목록 — 시각 / 사이 간격 / 지우기 세 칸.
+     '+ 깸 추가'는 따로 선 버튼이 아니라 이 상자의 마지막 줄이다 — 혼자
+     떠 있으면 무엇에 붙은 버튼인지 말해 주는 것이 아무것도 없다. */
+  .wake-box{ background:var(--surface); border:1px solid var(--border);
+    border-radius:12px; padding:0 13px; }
+  .wake-box > * + *{ border-top:1px solid var(--border); }
   .wake-item{
-    display:flex; align-items:center; gap:10px;
-    padding:9px 0; border-bottom:1px solid var(--border);
+    display:flex; align-items:center; gap:10px; padding:9px 0;
   }
-  .wake-item:last-child{ border-bottom:0; }
   .wake-item .wk-t{
     font-size:var(--fs-caption); font-weight:var(--fw-strong);
     font-variant-numeric:tabular-nums; min-width:76px; color:var(--fg);
@@ -770,12 +771,12 @@
     font-size:15px; line-height:1; padding:8px 4px;
   }
   .wake-item .wk-x:active{ color:var(--danger-text); }
-  .wake-empty{ font-size:var(--fs-caption); color:var(--muted);
-    background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:13px; }
+  .wake-none{ font-size:var(--fs-caption); color:var(--muted-2); padding:12px 0; }
   .wake-add{
-    margin-top:8px; width:100%; border:1.5px solid var(--c-sleep); background:transparent;
-    color:var(--c-sleep); border-radius:11px; padding:12px;
-    font-family:inherit; font-size:var(--fs-caption); font-weight:var(--fw-strong);
+    display:block; width:100%; border:0; border-top:1px solid var(--border);
+    background:transparent; padding:12px 0;
+    color:var(--primary-weak-fg); font-family:inherit;
+    font-size:var(--fs-caption); font-weight:var(--fw-strong); text-align:center;
   }
   /* 타임라인 줄에 붙는 "밤에 3번 깸" */
   .e-wake-chip{
@@ -2405,6 +2406,18 @@
      쓰면 칸마다 상자가 생겨 화면이 층층이 쌓여 보인다. 여기서는 흰 종이에
      회색 작은 제목과 부품만 놓고, 테두리는 '값을 고르는 부품'에만 둔다. */
   #fp-entry{ background:var(--surface); }
+  /* 머리줄도 목업 값으로 — 제목 16px/800, 삭제는 빨간 글씨 '삭제'(14px/600).
+     쓰레기통 그림은 목업에서 '지금 화면'(비교용) 쪽에만 있던 것이다. */
+  #fp-entry .fp-head{ padding:calc(14px + env(safe-area-inset-top)) 14px 12px 14px; }
+  #fp-entry .fp-back{ justify-content:flex-start; font-size:20px; }
+  #fp-entry .fp-head h1{ font-size:var(--fs-body); font-weight:var(--fw-display); gap:6px; }
+  #fp-entry-delete{ font-size:var(--fs-caption); font-weight:var(--fw-medium); padding:6px 0; }
+  /* 저장 — 목업 .btn (15px/700, 모서리 14, 세로 14) */
+  #fp-entry .fp-foot .btn{ font-size:var(--fs-label); font-weight:var(--fw-strong);
+    border-radius:14px; padding:14px 10px; }
+  /* 한 마디 — 목업은 12/13. 글자 크기만 16px로 둔다: iOS 는 16px 미만인
+     입력칸을 누르면 화면을 확대한다. */
+  #fp-entry-body > input#f-note{ padding:12px 13px; }
   #fp-entry-body{ padding-top:4px; }
   #fp-entry-body > *{ flex:0 0 auto; }
   /* 맨 위 한 줄: 언제 / 누가. 고치는 일은 드물고 읽을 일은 늘 있다. */
@@ -2415,9 +2428,11 @@
   .ent-when b span{ color:var(--muted-2); font-weight:var(--fw-body); margin-left:4px; }
   .ent-when em{ font-style:normal; font-size:var(--fs-micro); color:var(--muted); white-space:nowrap; }
   /* .fp-body 가 세로 flex라 gap:20px 이 제목과 그 아래 부품 사이에도 들어간다 —
-     margin 9px 위에 20px이 더 얹혀 29px이 됐다. 제목은 제 부품에 붙어야 한다. */
+     margin 9px 위에 20px이 더 얹혀 29px이 됐다. 제목은 제 부품에 붙어야 한다.
+     목업은 제목 위 18px · 아래 9px 이다. 20px gap 위에 margin-top 18px을 또
+     얹어 38px이 돼 있었다 — 부품 사이가 목업의 두 배였다. gap을 빼고 적는다. */
   .ent-h{ font-size:var(--fs-caption); font-weight:var(--fw-strong); color:var(--muted);
-    margin:18px 0 -11px; letter-spacing:-.01em; }
+    margin:-2px 0 -11px; letter-spacing:-.01em; }
   #fp-entry-body > .ent-h:first-child{ margin-top:14px; }
   /* 숫자 고르개 — 눈금자(.scrub)를 그대로 쓰고 테두리와 끝말만 얹는다.
      먹은 양(세그먼트)과 잰 무게(눈금자)가 같은 질문이라 하나로 합쳤다.
@@ -2432,6 +2447,14 @@
   #f-date-box{ display:flex; flex-direction:column; gap:20px; }
   #f-date-box > *{ flex:0 0 auto; }
   #f-date-box > .ent-h:first-child{ margin-top:0; }
+  /* ± 는 목업에서 36px 동그라미 — 테두리만 있고 속은 비었다. 회색으로 채운
+     알약은 시각 고르개의 '−10분/+10분' 쪽 부품이다(시각 목업 .tedit .chip). */
+  .amt .scrub-top .scrub-chip{
+    width:36px; height:36px; padding:0; border-radius:50%;
+    border:1px solid var(--border); background:var(--surface); color:var(--fg);
+    font-size:17px; font-weight:var(--fw-strong); display:grid; place-items:center;
+  }
+  .amt .scrub-val b{ font-size:30px; letter-spacing:-.04em; }
   .amt-hint{ text-align:center; font-size:var(--fs-micro); color:var(--muted-2); padding:0 14px; }
   .amt-ends{ display:flex; justify-content:space-between; gap:10px;
     font-size:var(--fs-micro); color:var(--muted-2); padding:4px 14px 11px; }
@@ -2439,7 +2462,7 @@
      길이는 두 시각에서 나오는 값이라 읽기만 한다. */
   .tbox{ border:1px solid var(--border); border-radius:var(--radius-sm); overflow:hidden;
     background:var(--surface); }
-  .tslots{ display:flex; align-items:center; gap:8px; padding:12px 12px; }
+  .tslots{ display:flex; align-items:center; gap:10px; padding:12px 14px; }
   .tslot{ flex:1; min-width:0; text-align:center; border:1.5px solid transparent;
     border-radius:10px; padding:4px 2px; background:transparent; font:inherit; }
   .tslot em{ display:block; font-style:normal; font-size:var(--fs-micro); color:var(--muted-2); }
@@ -2468,6 +2491,22 @@
   .ent-goal .bar i{ display:block; height:100%; background:var(--c-feed); }
   .ent-goal em{ display:block; font-style:normal; font-size:var(--fs-micro);
     color:var(--muted); margin-top:7px; }
+  /* 칩 줄 — 목업(rec.html .chip)은 흰 바탕에 테두리 한 줄이고, 고른 것만
+     테두리와 글씨가 진해진다. 앱은 회색으로 채운 알약에 고른 것만 파랗게
+     채우고 있었다 — 파란 채움은 저장 같은 진짜 동작에만 쓴다.
+     모서리는 목업의 알약이 아니라 네모(10px): 2026-10-20 "알약 아니고
+     네모난 거였어". 기록 상세 안에서만 바꾼다 — 설정·이유식 칩은 그대로. */
+  #fp-entry-body .chip-row{ gap:7px; }
+  #fp-entry-body .chip{
+    border:1px solid var(--border); background:var(--surface); border-radius:10px;
+    padding:8px 14px; font-size:var(--fs-caption); font-weight:var(--fw-medium);
+    color:var(--muted);
+  }
+  #fp-entry-body .chip[aria-pressed="true"]{
+    background:var(--surface); border-color:var(--fg); color:var(--fg);
+    font-weight:var(--fw-strong);
+  }
+  #fp-entry-body .chip.sm{ padding:7px 12px; font-size:var(--fs-micro); }
   /* 사진 — 찍은 것 먼저, 끝에 + 타일 */
   .ent-pics{ display:flex; gap:7px; flex-wrap:wrap; }
   .ent-pics .ep{ width:62px; height:62px; border-radius:12px; flex:0 0 auto; overflow:hidden;
@@ -2512,11 +2551,19 @@
   /* 숫자를 눌러 직접 적는 칸. time 도 date 와 같은 이유로 네이티브 모양을
      끄고 줄어들 수 있게 둔다 — 안 그러면 이 칸이 열리는 순간 화면이
      가로로 밀린다. */
+  /* 16px 미만이면 iOS 가 칸을 누르는 순간 화면을 확대한다 — 분유 양을 직접
+     적으려고 숫자를 누를 때마다 화면이 커졌다(2026-10-20). 이 칸은 글자
+     크기를 지정한 적이 없어서 브라우저 기본값(≈13px)이었다. */
   .scrub-exact input{
     width:100%; min-width:0; max-width:100%;
     -webkit-appearance:none; appearance:none;
+    font-family:inherit; font-size:16px; color:var(--fg);
+    padding:12px 13px; border-radius:12px; border:1px solid var(--border);
+    background:var(--surface);
   }
   .scrub-exact input[type="time"]{ height:44px; min-height:44px; line-height:18px; text-align:left; }
+  .scrub-exact input[type="number"]::-webkit-inner-spin-button,
+  .scrub-exact input[type="number"]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
 
   /* pan-x, NOT none: the ruler inside is scrolled by the finger, and
      touch-action:none on the container tells the browser to do no panning at
@@ -2562,9 +2609,12 @@
      얹히면 어느 틱을 가리키는지 흐려진다. */
   .scrub.is-ruler .scrub-dot{ left:50%; top:1px; width:3px; height:18px; margin-left:-1.5px;
     border-radius:2px; box-shadow:none; }
+  /* 시각 목업(.tedit .chip)의 값 — 작은 회색 알약. 먹은 양의 ± 동그라미와
+     다른 부품이다: 이쪽은 글(−10분)이고 저쪽은 기호(−)다. */
+  .scrub.is-timepick .scrub-chip{ padding:6px 10px; font-size:var(--fs-micro); }
   .scrub.is-timepick{ padding:12px 0 0; }
   .scrub.is-timepick .scrub-rail{ height:34px; }
-  .scrub.is-timepick .scrub-val b{ font-size:23px; }
+  .scrub.is-timepick .scrub-val b{ font-size:24px; letter-spacing:-.3px; }
   .scrub.is-ruler .scrub-line{ display:none; }
   .scrub-strip{
     position:absolute; left:0; right:0; top:4px; height:30px; display:flex;
@@ -3051,6 +3101,9 @@
     stroke-width:2.4; stroke-linecap:round; }
   .wn-fab:active{ filter:brightness(.94); }
   .wn-fab[hidden]{ display:none; }
+  /* + 는 화면 위에 떠 있다 — 스크롤이 끝까지 가도 마지막 줄이 그 밑에 깔린다.
+     54px 버튼 + 아래 18px + 숨 쉴 자리만큼 바닥을 비워 둔다. */
+  #fp-wean .fp-body{ padding-bottom:calc(92px + env(safe-area-inset-bottom)); }
 
   /* 정산 날짜별 보기가 쓰던 --fs-value는 어디에도 정의된 적이 없다.
      font-size:var(--없는토큰)은 계산 단계에서 무효가 되어 상속으로 떨어지므로,
@@ -3759,7 +3812,7 @@
     <div class="fp-head">
       <button type="button" class="fp-back" id="fp-entry-back">‹</button>
       <h1 id="fp-entry-title">-</h1>
-      <button type="button" class="fp-delete ico-btn danger" id="fp-entry-delete" aria-label="삭제 · Xoá"><svg class="ui-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 6.5h15"/><path d="M8.6 6.5V5a1.5 1.5 0 0 1 1.5-1.5h3.8A1.5 1.5 0 0 1 15.4 5v1.5"/><path d="M6.6 6.5l.7 12a2 2 0 0 0 2 1.9h5.4a2 2 0 0 0 2-1.9l.7-12"/><path d="M10.1 10.6v5.8M13.9 10.6v5.8"/></svg></button>
+      <button type="button" class="fp-delete danger" id="fp-entry-delete" data-i18n="delete">삭제</button>
     </div>
     <div class="fp-body" id="fp-entry-body"></div>
     <input type="file" id="f-photo-input" accept="image/*" multiple hidden />
@@ -4572,7 +4625,7 @@ ko: {
   wakeCountTpl:"밤에 {n}번 깸", wakeLastTpl:"마지막 {time}",
   wakeSavedTpl:"{time} 깸 기록", undoBtn:"되돌리기",
   wakeTooSoon:"방금 기록했어요",
-  wakeSectionLabel:"밤에 깬 횟수", wakeAddBtn:"깸 추가",
+  wakeAddBtn:"깸 추가",
   wakeAddTitle:"깬 시각 추가", wakeAddLabel:"깬 시각",
   wakeAddHint:"잠든 시각보다 이르면 다음날로 잡혀요.", wakeBadTime:"시각을 확인해 주세요",
   wakeAfterSleepTpl:"잠든 지 {d}", wakeAfterPrevTpl:"{d} 뒤",
@@ -4873,7 +4926,7 @@ vi: {
   wakeCountTpl:"Dậy {n} lần", wakeLastTpl:"Lần cuối {time}",
   wakeSavedTpl:"Đã ghi {time}", undoBtn:"Hoàn tác",
   wakeTooSoon:"Vừa ghi rồi",
-  wakeSectionLabel:"Số lần dậy đêm", wakeAddBtn:"Thêm lần dậy",
+  wakeAddBtn:"Thêm lần dậy",
   wakeAddTitle:"Thêm giờ bé dậy", wakeAddLabel:"Giờ bé dậy",
   wakeAddHint:"Sớm hơn giờ ngủ thì tính sang ngày hôm sau.", wakeBadTime:"Vui lòng kiểm tra giờ",
   wakeAfterSleepTpl:"Sau khi ngủ {d}", wakeAfterPrevTpl:"{d} sau đó",
@@ -7528,14 +7581,13 @@ function renderWakeCard(){
   if (!e){ box.innerHTML = ''; return; }
   var ws = wakesOf(e);
   var startMs = new Date(e.start).getTime();
-  /* 라벨이 이미 "밤에 깬 횟수"라고 말했으니 뒤에 또 "밤에 3번 깸"을 붙이면
-     같은 말이 두 번 나온다 — 숫자만 잇는다 */
-  var html = '<label>' + esc(t('wakeSectionLabel')) +
-    (ws.length ? ' · ' + esc(t('wakeTimesTpl').replace('{n}', String(ws.length))) : '') + '</label>';
+  /* 위에 이미 '중간에 깼나요' 제목이 서 있다 — 그 바로 밑에 '밤에 깬 횟수'를
+     또 적으면 같은 말이 두 번이다. 몇 번인지는 줄 수가 말한다. */
+  var html = '<div class="wake-box">';
   if (!ws.length){
-    html += '<div class="wake-empty">' + esc(t('wakeNone')) + '</div>';
+    html += '<div class="wake-none">' + esc(t('wakeNone')) + '</div>';
   } else {
-    html += '<div class="wake-list">' + ws.map(function(w, i){
+    html += ws.map(function(w, i){
       var ms = new Date(w).getTime();
       var prev = i === 0 ? startMs : new Date(ws[i-1]).getTime();
       var gap = Math.max(0, ms - prev);
@@ -7547,9 +7599,10 @@ function renderWakeCard(){
         '<span class="wk-g">' + esc(gapTxt) + '</span>' +
         '<button type="button" class="wk-x" data-wake-del="' + esc(w) + '" aria-label="' + esc(t('delete')) + '">✕</button>' +
       '</div>';
-    }).join('') + '</div>';
+    }).join('');
   }
   html += '<button type="button" class="wake-add" id="wake-add">+ ' + esc(t('wakeAddBtn')) + '</button>';
+  html += '</div>';
   box.innerHTML = html;
 
   $$('[data-wake-del]', box).forEach(function(btn){
@@ -12331,7 +12384,7 @@ function scrubRound(v, dec){ return Number(Number(v).toFixed(dec)); }
 /* 눈금 한 칸의 폭. 숫자를 한 칸마다 적던 때는 44px이 맞았지만, 목업처럼
    눈금(틱)을 세우고 숫자는 다섯 칸마다 적으면 그 절반이 자다. */
 var SCRUB_RULER_CELL_PX = 26;
-function rulerScrubHtml(id, value, min, max, step, unit){
+function rulerScrubHtml(id, value, min, max, step, unit, hint){
   /* 목업의 눈금자: 회색 틱이 줄줄이 서고 다섯 칸마다 긴 틱 + 숫자,
      가운데에 색 바늘이 꽂혀 있다. 숫자를 한 칸마다 적으면 눈금이 아니라
      숫자 띠가 되어 어디가 지금 값인지 바늘보다 글자가 먼저 읽힌다. */
@@ -12353,6 +12406,9 @@ function rulerScrubHtml(id, value, min, max, step, unit){
     '<div class="scrub-exact" hidden>' +
       '<input type="number" id="'+id+'" value="'+esc(value)+'" min="'+min+'" max="'+max+'" step="'+step+'" inputmode="numeric" />' +
     '</div>' +
+    /* 쓰는 법은 큰 숫자 바로 밑 — 목업은 '숫자 → 한 줄 설명 → 눈금자' 차례다.
+       눈금자 뒤로 내려가면 눈금을 다 읽고 나서야 "아 눌러도 되는구나" 한다. */
+    (hint ? '<div class="amt-hint">' + esc(hint) + '</div>' : '') +
     '<div class="scrub-rail">' +
       '<div class="scrub-line"></div>' +
       '<div class="scrub-dot"></div>' +
@@ -12594,8 +12650,7 @@ function entH(text){ return '<div class="ent-h">' + esc(text) + '</div>'; }
 /* 숫자 고르개 — 눈금자 위에 테두리와 끝말만 얹는다 */
 function entAmtHtml(id, value, min, max, step, unit, endLeft, endRight){
   return '<div class="amt">' +
-    rulerScrubHtml(id, value, min, max, step, unit) +
-    '<div class="amt-hint">' + esc(t('entAmtHint')) + '</div>' +
+    rulerScrubHtml(id, value, min, max, step, unit, t('entAmtHint')) +
     '<div class="amt-ends"><span>' + esc(endLeft) + '</span><span>' + esc(endRight) + '</span></div>' +
   '</div>';
 }
