@@ -581,7 +581,7 @@
   /* 오늘 이유식 배너 — 수유 배너가 쓰던 자리. */
   /* 세로 가운데 정렬은 쓰지 않는다 — 본문이 두 줄(제목 + 재료)이 되면서
      이모지가 배너 한가운데로 내려갔다. 다른 띠와 같이 윗줄에 붙인다. */
-  .announce-row.wean-row{ background:var(--wn-bg); }
+  .announce-row.wean-row{ background:var(--wn-band-bg); }
   .announce-row.wean-row .a-label{ color:var(--wn-fg); }
   .announce-row.wean-row .a-chev{ color:var(--wn-fg); }
   /* 하루 식단을 통째로 — 끼니마다 한 줄. 한 끼뿐인 날엔 끼니 이름을 적지
@@ -600,15 +600,13 @@
   #wn-dn-line[hidden]{ display:none; }
   /* 그림 + 이름이 한 덩어리. 이름이 붙으니 그림은 작아도 된다 —
      그림은 눈이 먼저 걸리게 하는 표식이고, 읽는 것은 이름이다. */
-  /* 재료는 통째로 흰 알약 하나에 담는다. 연두 바탕 위에 그림이 그냥 놓이면
-     그림의 흰 부분이 바탕에 묻힌다 — 하나하나 싸면 알약이 여섯 개가 되어
-     띠가 어지럽고, 전체를 하나로 싸면 '오늘 먹을 것 한 벌'로 읽힌다. */
-  /* 제목과 이 알약 사이가 띠의 위아래 여백보다 넓어 보였다. 줄 높이(21px)가
-     글자보다 커서, 잰 값(10.5px)에 글자 아래 여유 4px이 더 붙어 눈에는
-     14px쯤으로 보인 탓이다 — 띠 안이 바깥보다 성기면 덜 만든 것처럼 읽힌다. */
-  .wn-icons{ display:inline-flex; flex-wrap:wrap; align-items:center; gap:5px 10px;
-    flex:1; min-width:0; max-width:100%;
-    background:rgba(255,255,255,.82); border-radius:999px; padding:5px 11px; }
+  /* 재료를 흰 알약 하나에 담았던 자리. 알약이 하던 일은 '연두 바탕에서
+     그림의 흰 부분이 묻히는 것 막기'였는데, 재료마다 **이름**이 붙으면서
+     그 일이 없어졌다. 끼니가 둘이면 통통한 덩어리가 둘이 되어 띠가
+     층층이 쌓여 보였다(2026-10-21 "알약으로 감싸는거 별로인거 같기도").
+     바탕은 흰색 쪽으로 당겼다 — 연두는 '이유식'이라는 표시만 하면 된다. */
+  .wn-icons{ display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px 12px;
+    flex:1; min-width:0; max-width:100%; }
   .wn-icons:empty{ display:none; }
   .wn-it{ display:inline-flex; align-items:center; gap:4px; min-width:0; }
   .wn-it .wi{ width:18px; height:18px; }
@@ -2420,7 +2418,13 @@
     visibility:hidden;
     transition:transform .28s cubic-bezier(.32,.72,0,1), visibility 0s linear .28s;
   }
-  .fullpage.show{ transform:translateX(0); visibility:visible;
+  /* 열린 뒤에는 transform 을 **아예 없앤다**(translateX(0)이 아니라 none).
+     iOS 에서 transform 이 걸린 fixed 상자 안의 스크롤 박스는 막대는 뜨는데
+     손가락에 반응하지 않는 오래된 버그가 있다 — 이유식 식단표에서 날짜를
+     고르면 아래로 안 내려가던 것이 그 증상이었다(2026-10-20~21).
+     none 과 translateX(100%) 사이도 똑같이 애니메이션되므로 들어오는
+     움직임은 그대로다. */
+  .fullpage.show{ transform:none; visibility:visible;
     transition:transform .28s cubic-bezier(.32,.72,0,1), visibility 0s; }
   /* while it slides away it is still a full-screen layer sitting over the list,
      so for a third of a second after closing a record every touch underneath
@@ -2991,6 +2995,13 @@
        이쪽은 노랑 쪽으로 밀어 둘이 한 덩어리로 붙지 않게 했다. */
     --c-wean:#5d8a2b;
     --wn-bg:#eaf2d6; --wn-fg:#456b1c; --wn-ink:#35520f;
+    /* 첫 화면 띠 전용 바탕. 흰 알약을 떼고 나니 연두가 띠에 남은 유일한
+       색이라 한 번 더 옅게 간다 — #eaf2d6 → #f5f9ec → #f9fcf4
+       (2026-10-21 "연두색 배경 좀 더 흰색에 가깝게"). 여기서 더 빼면 흰
+       종이와 구별이 안 되고, 그러면 첫 화면에서 이 띠가 이유식이라는
+       표시가 사라진다.
+       --wn-bg 는 이유식 화면의 섬네일·배지가 쓰므로 건드리지 않는다. */
+    --wn-band-bg:#f9fcf4;
     /* 이유식 화면 전용 — 목업(spoon)의 값 그대로. 탭 밑줄 초록과
        식단 알약의 기본 바탕·글자색. */
     --wn-accent:#2ec45b; --wn-pill:#dceccd; --wn-pill-fg:#2f5a28;
@@ -2999,12 +3010,14 @@
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
       --c-wean:#a3d16a; --wn-bg:#26310f; --wn-fg:#bde08c; --wn-ink:#d8f0b8;
+      --wn-band-bg:#202a15;
       --wn-accent:#52d97a; --wn-pill:#2b3a18; --wn-pill-fg:#cfe9b6;
       --wn-bad:#44181c; --wn-bad-fg:#f0b0b6; --wn-fab:#3f5a2a;
     }
   }
   :root[data-theme="dark"]{
     --c-wean:#a3d16a; --wn-bg:#26310f; --wn-fg:#bde08c; --wn-ink:#d8f0b8;
+    --wn-band-bg:#202a15;
     --wn-accent:#52d97a; --wn-pill:#2b3a18; --wn-pill-fg:#cfe9b6;
     --wn-bad:#44181c; --wn-bad-fg:#f0b0b6; --wn-fab:#3f5a2a;
   }
@@ -7359,7 +7372,7 @@ function renderWeanBand(){
       items = items.slice(0, WEAN_BAND_SLOTS - 1);
     }
     return '<span class="wn-mrow">' +
-      (many ? '<span class="wn-meal">' + esc(m.name || '') + '</span>' : '') +
+      (many ? '<span class="wn-meal">' + esc(weanMealName(m.name)) + '</span>' : '') +
       '<span class="wn-icons">' + items.map(function(id){
         return '<span class="wn-it">' + weanIngIcon(id) +
           '<b>' + esc(weanIngName(id)) + '</b>' +
@@ -15740,7 +15753,7 @@ function weanDayPanelHtml(ds){
     html += '<div class="wd-row">' +
       '<button type="button" class="wd-card" data-wn-day="' + esc(ds) +
         '" data-wn-daymeal="' + esc(m.name || '') + '">' +
-        weanMealCardHtml(items, [m.name || '', g + 'g', t('wnCubeNTpl').replace('{n}', items.length)]
+        weanMealCardHtml(items, [weanMealName(m.name), g + 'g', t('wnCubeNTpl').replace('{n}', items.length)]
           .filter(Boolean).join(' \u00b7 '), key) +
       '</button>' +
       '<button type="button" class="wd-ate' + (rec ? ' on' : '') + '"' +
@@ -15791,7 +15804,7 @@ function openWeanAte(ds, mi, forceId){
     : (m ? weanEntriesForMeal(ds, m)[0] : weanEntriesOn(ds)[0]);
   state.weanAte = { ds: ds, mi: mi, id: rec ? rec.id : '' };
   document.getElementById('wn-ate-title').textContent =
-    (m && m.name ? m.name + ' \u00b7 ' : '') + weanShortDate(ds);
+    (m && m.name ? weanMealName(m.name) + ' \u00b7 ' : '') + weanShortDate(ds);
   var cur = rec ? (rec.ate || '') : '';
   document.getElementById('wn-ate-seg').innerHTML = WEAN_ATES.map(function(k){
     return '<button type="button" data-wn-atev="' + k + '" aria-pressed="' +
@@ -16190,6 +16203,19 @@ function weanFreeMealName(ds){
   return names.filter(function(n){ return used.indexOf(n) < 0; })[0] || names[0];
 }
 var WEAN_MEAL_NAMES = ['wnMealMorning', 'wnMealLunch', 'wnMealDinner', 'wnMealSnack'];
+/* 끼니 이름은 식단표에 **쓴 사람의 말로** 저장된다(엄마가 만들면 '아침',
+   내니가 만들면 'Sáng'). 읽는 쪽에서는 읽는 사람 말로 보여야 한다 —
+   베트남어로 바꿔도 '아침'이 그대로 나왔다(2026-10-21).
+   저장값은 그대로 둔다: 색 키(weanMenuKey)와 기록의 사본이 그걸 쓴다. */
+function weanMealName(name){
+  var n = String(name || '').trim();
+  if (!n) return '';
+  for (var i = 0; i < WEAN_MEAL_NAMES.length; i++){
+    var k = WEAN_MEAL_NAMES[i];
+    if (n === I18N.ko[k] || n === I18N.vi[k]) return t(k);
+  }
+  return n;
+}
 
 function renderWeanDayPage(){
   var sp = state.weanSpan;
@@ -16235,7 +16261,7 @@ function renderWeanDayPage(){
     '<div class="chip-row" style="padding:0" id="wn-meal-name">' +
     WEAN_MEAL_NAMES.map(function(k){
       return '<button type="button" class="chip" data-wn-mname="' + esc(t(k)) + '" aria-pressed="' +
-        ((m.name || '') === t(k)) + '">' + esc(t(k)) + '</button>';
+        (weanMealName(m.name) === t(k)) + '">' + esc(t(k)) + '</button>';
     }).join('') + '</div>';
 
   html += '<div class="wd-head" style="margin-top:16px"><h3>' + esc(t('wnBase')) + '</h3></div>' +

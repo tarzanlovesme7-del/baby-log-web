@@ -816,6 +816,21 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
     (s.entries.filter(e=>e.type==='wean')[0]||{}).menu, '쌀오트밀죽 40g · 소고기');
 
   await clearWean();
+  /* 끼니 이름은 **읽는 사람 말로** — 식단표에는 쓴 사람 말로 저장된다.
+     베트남어로 바꾸면 배너와 하루 카드에 '아침'이 그대로 나왔다(2026-10-21). */
+  await mut('setWeanDay', { date: TODAY, actor:'엄마', meals: [
+    { name:'아침', base:[{ing:'pgyo',g:40}], tops:[{ing:'beef',g:10}] },
+    { name:'점심', base:[{ing:'pgyo',g:40}], tops:[{ing:'carrot',g:10}] } ] });
+  const mealLabels = pg => pg.evaluate(() =>
+    [...document.querySelectorAll('#wn-meals .wn-meal')].map(x => x.textContent.trim()));
+  const pvi = await open('내니', 'vi');
+  check('베트남어에서는 끼니 이름도 베트남어다', await mealLabels(pvi), ['Sáng', 'Trưa']);
+  await pvi.close();
+  const pko = await open('엄마', 'ko');
+  check('...한국어에서는 아침·점심', await mealLabels(pko), ['아침', '점심']);
+  await pko.close();
+  await clearWean();
+
   check('콘솔 에러 없음', errs, []);
   await b.close();
   const n = R.filter(x => !x.ok).length;
