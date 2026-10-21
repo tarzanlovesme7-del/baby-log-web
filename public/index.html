@@ -1651,8 +1651,11 @@
      ruler, star, page — big enough to read without squinting. The cells are
      tall (the calendar IS this screen now; the day itself opens on tap), so
      the icons get a real row of their own and wrap to a second one. */
-  .gcal-day{ padding:8px 0 7px; min-height:66px; display:flex;
-    flex-direction:column; align-items:center; gap:5px; }
+  /* 칸 안의 일정 알약이 달력 아래 줄로 내려가면서(2026-10-20) 칸이 그만큼
+     낮아져도 된다 — 66px은 알약 세 줄을 받치던 높이였다. 숫자 크기는 그대로
+     둔다: 작게 만든 적이 있는데 "노안와서 읽기 너무 힘들단다" 소리를 들었다. */
+  .gcal-day{ padding:7px 0 6px; min-height:44px; display:flex;
+    flex-direction:column; align-items:center; gap:4px; }
   /* AT TEN PIXELS A DRAWING IS A SMUDGE. On the month grid the four marks
      are dots in the same four colours the drawn glyphs wear everywhere
      else — the grid already speaks in dots for schedules, and the legend
@@ -1672,38 +1675,9 @@
   .gcal-day.today{ box-shadow:inset 0 0 0 1.5px var(--primary); }
   .gcal-day.selected{ background:color-mix(in srgb, var(--primary) 10%, var(--surface)); }
   .gcal-day:empty{ visibility:hidden; }
-  /* a schedule shows its WORDS right on the month grid — a pastel pill with
-     the title, no tapping required. A multi-day schedule runs as one bar
-     across its days (the cells touch, so joined pills read as one); the bar
-     loses its rounding on the side it continues past. Three lanes fit; the
-     rest become "+n". */
-  .gcal-evt{
-    display:block; width:100%; box-sizing:border-box; padding:1px 3px;
-    border-radius:5px; font-size:11px; line-height:1.45; height:17px;
-    font-weight:var(--fw-body);
-    background:var(--ev-sky-bg); color:var(--ev-sky-fg);
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-align:center;
-  }
-  .gcal-evt.cont-l{ border-top-left-radius:0; border-bottom-left-radius:0; }
-  .gcal-evt.cont-r{ border-top-right-radius:0; border-bottom-right-radius:0; }
-  /* a bar's title belongs to the WHOLE bar, not to the one cell it starts
-     in: the label is allowed to run across the cells the bar covers in this
-     week row (--span of them), lifted above the later cells so their
-     backgrounds do not paint over it. Clipping still happens — at the end
-     of the bar, not at the end of the first day. */
-  .gcal-evt.has-span{ overflow:visible; position:relative; z-index:1; }
-  .gcal-evt .ge-t{
-    display:block; width:calc(var(--span, 1) * 100%);
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-  }
-  .gcal-evt.ghost{ visibility:hidden; }
-  /* "+1" IS A LANE LIKE ANY OTHER. Letting it size itself made it a pixel
-     shorter than the pills above it, which lifted that one cell's whole
-     stack — and a bar crossing into it stopped lining up with itself. */
-  .gcal-evt.more{ background:transparent; color:var(--muted-2); }
-  /* the pills sit in aligned lanes at the bottom of every cell, so a bar
-     stays level as it crosses days whose numbers carry different marks */
-  .gcal-lanes{ margin-top:auto; width:100%; min-width:0; display:flex; flex-direction:column; gap:3px; }
+  /* 일정은 칸 안이 아니라 달력 아래 한 줄로 내려갔다(개편안 H) — 칸이 좁아
+     '내니 …', '소아과…'처럼 말줄임표만 남았다. 몇 개 없는 것이라 줄로 세우면
+     글자가 끝까지 보인다. 색 이름(.evc-*)은 그 줄이 그대로 쓴다. */
   .evc-sky{ background:var(--ev-sky-bg); color:var(--ev-sky-fg); }
   .evc-mint{ background:var(--ev-mint-bg); color:var(--ev-mint-fg); }
   .evc-peach{ background:var(--ev-peach-bg); color:var(--ev-peach-fg); }
@@ -1829,11 +1803,6 @@
     vertical-align:middle; margin:0 4px 1px 0; }
   /* 출근 여부만 담는 칸이라 성장 캘린더의 66px 높이가 필요 없다 */
   #pay-cal-card{ padding-top:10px; padding-bottom:8px; }
-  /* 캘린더 머리: 제목 왼쪽, 월 이동 오른쪽, 그 아래 이번 달 요약 한 줄.
-     점 세 개짜리 범례(출근/승인 대기/오버타임)를 눈으로 세는 대신 세어서 적는다 —
-     승인 대기는 대개 0이라 자리만 차지하고 있었다. */
-  .pay-cal-head{ display:flex; align-items:center; gap:8px; }
-  .pay-cal-head .log-arrow{ flex:0 0 auto; }
   #pay-title{ flex:1; min-width:0; text-align:left; }
   #pay-month-sum{ padding-bottom:6px; }
   /* 성장 캘린더는 건드리지 않는다 — 급여 캘린더만 토큰에 맞춘다 */
@@ -1856,14 +1825,6 @@
   .pay-today > .pay-chip{ display:inline-block; margin-bottom:9px; }
   .pay-row{ display:flex; align-items:center; gap:10px; }
   .pay-row .grow, .pay-line .grow{ flex:1; min-width:0; }
-  /* 정산 화면으로 넘어가는 한 줄. 카드 안의 다른 줄과 같은 글자 규칙을 쓴다 */
-  .pay-glance-btn{ display:flex; align-items:center; gap:10px; width:100%;
-    border:0; background:transparent; padding:2px 0; text-align:left; }
-  .pay-glance-btn .grow{ flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; align-items:flex-start; }
-  .pay-glance-btn .num{ margin-left:0; }
-  /* 이 셰브론이 13.3px였다 — 부모에서 em으로 상속받아 나온, 아무도 안 정한 값.
-     소스 어디에도 안 적혀 있어서 코드를 읽어서는 못 찾는다. */
-  .pay-glance-btn .r-chev{ font-size:var(--fs-label); font-weight:var(--fw-body); color:var(--muted-2); }
   /* ============================================================
      급여 탭 역할 토큰 — 크기·굵기·색을 따로 고를 수 없게 한 덩어리로 묶는다.
 
@@ -1901,8 +1862,6 @@
     background:var(--primary); color:var(--primary-fg, #fff);
     font-size:var(--fs-title); font-weight:var(--fw-strong); }
   .pay-stamp-btn[disabled]{ opacity:.5; }
-  .pay-ico svg{ width:21px; height:21px; display:block; fill:none; stroke:var(--ok-fg, #2f9d68);
-    stroke-width:1.9; stroke-linecap:round; stroke-linejoin:round; }
   /* 부수적인 동작은 테두리 있는 칸으로 나눈다. 파란 글자만 나란히 놓았더니
      "지우기 근무 시간 넣기 + 오버타임"이 한 문장처럼 읽혀서, 어디부터 어디까지가
      버튼인지 알 수 없었다. 칸을 나누되 색은 그대로 — 주인공은 여전히 금액이다. */
@@ -1991,16 +1950,19 @@
   .pay-approval:first-of-type{ border-top:0; }
   .pay-actions{ display:flex; gap:8px; margin-top:11px; }
   .pay-actions .btn{ flex:1; }
-  .gcal-day .pay-dot{ width:7px; height:7px; border-radius:50%; background:var(--fg); display:block;
-    margin:2px auto 0; }
-  .gcal-day .pay-dot.pending{ background:transparent; border:1.5px solid var(--muted-2); }
+  /* 목업(개편안 C)의 점: 출근은 회색, 연차는 이유식 초록, 오버타임은 파랑.
+     한 칸에 점이 둘까지 나란히 선다 — 예전에는 오버타임만 칸 오른쪽 위의
+     '+' 글자여서 점과 다른 물건으로 읽혔다. */
+  .gcal-day .pay-marks{ display:flex; gap:2px; justify-content:center; height:5px; margin-top:3px; }
+  .gcal-day .pay-dot{ width:5px; height:5px; border-radius:50%; background:var(--muted-2);
+    display:block; }
+  .gcal-day .pay-dot.ot{ background:var(--primary); }
+  .gcal-day .pay-dot.pending{ background:transparent; box-shadow:inset 0 0 0 1.5px var(--muted-2); }
   /* 연차는 초록. 브랜드 색을 하나 더 만드는 게 아니라 의미색(--ok-fg)을
      쓰는 것이다 — "쉬는 날/출근"이 색 하나로 갈린다. 승인 대기는 출근과 같은
      규칙으로 속을 비운다(채워지면 확정). */
-  .gcal-day .pay-dot.leave{ background:var(--ok-fg); }
-  .gcal-day .pay-dot.leave.pending{ background:transparent; border:1.5px solid var(--ok-fg); }
-  .gcal-day .pay-ot{ position:absolute; top:2px; right:4px; font-size:var(--fs-micro); line-height:1;
-    color:var(--primary-weak-fg, var(--primary)); font-weight:var(--fw-body); }
+  .gcal-day .pay-dot.leave{ background:var(--c-wean); }
+  .gcal-day .pay-dot.leave.pending{ background:transparent; box-shadow:inset 0 0 0 1.5px var(--c-wean); }
   .ot-sum{ margin-top:6px; padding:12px; border-radius:12px; background:var(--surface-2);
     display:flex; align-items:baseline; gap:10px; font-size:var(--fs-label); }
   .ot-sum b{ margin-left:auto; font-size:var(--fs-title); font-variant-numeric:tabular-nums; }
@@ -2008,14 +1970,16 @@
   /* ---------- 모아보기: 하루가 제목, 그 날의 것들이 그 아래 ----------
      날짜 줄은 누르면 그날 페이지로 간다 — 모아보기에서 무언가를 고치려면
      결국 그 하루로 가야 하기 때문에. */
-  .galb-group{ border-top:1px solid var(--border); padding-bottom:8px; }
-  .galb-group:first-child{ border-top:0; }
+  /* 줄마다 선을 그으면 여덟 줄이 줄무늬가 된다 — 날짜 묶음에만, 그것도
+     제목 옆으로 흐르는 가는 선 하나로(개편안 J). */
+  .galb-group{ padding-bottom:8px; }
   .galb-date{ display:flex; align-items:baseline; gap:8px; width:100%;
     padding:11px 2px 4px; border:0; background:transparent; text-align:left; color:var(--fg); }
   .galb-date b{ font-size:var(--fs-label); font-weight:var(--fw-display);
     font-variant-numeric:tabular-nums; }
   .galb-date span{ font-size:var(--fs-caption); color:var(--muted-2); }
-  .galb-date .dd{ margin-left:auto; font-variant-numeric:tabular-nums; }
+  .galb-date .dd{ font-variant-numeric:tabular-nums; }
+  .galb-date i{ flex:1; height:1px; background:var(--border); display:block; }
   .galb-item{ display:flex; gap:9px; align-items:flex-start; padding:5px 2px; }
   .galb-item .g-ico{ padding-top:2px; }
   .galb-body{ flex:1; min-width:0; }
@@ -2202,6 +2166,176 @@
   .text-btn{ background:transparent; border:0; color:var(--link); font-size:var(--fs-body); font-weight:var(--fw-strong); padding:6px; }
   .danger-btn{ color:color-mix(in srgb, var(--danger) 62%, var(--muted)); font-weight:var(--fw-body); }
 
+  /* ============================================================
+     정산 · 출근 도장 — 흰 종이 한 장
+     목업: scratchpad/paylog/mock.html (아티팩트 '정산 · 새싹 탭 개편안').
+     카드 사이 회색 띠가 층을 만들고 있었다. 흰 종이에 회색 작은 제목만
+     놓고, 테두리는 **값을 담는 덩어리**에만 둔다 — 계산 블록, 연차 블록,
+     오늘 줄. 나머지는 여백이 가른다.
+     ============================================================ */
+  #tab-pay{ background:var(--surface); gap:0; padding:0 16px 10px; }
+  #tab-pay .card{ background:transparent; margin:0; padding:0; }
+  /* 목업 h4 */
+  .sec-h{ font-size:var(--fs-caption); font-weight:var(--fw-strong); color:var(--muted);
+    margin:20px 0 9px; letter-spacing:-.01em; }
+  .sec-h:first-child{ margin-top:16px; }
+  .sec-h .r{ float:right; font-weight:var(--fw-medium); color:var(--muted-2);
+    font-size:var(--fs-micro); }
+  /* 돈 — 화면에서 가장 큰 글자 하나 */
+  .pay-money{ padding:16px 0 4px; }
+  .pay-money .n{ font-size:38px; font-weight:var(--fw-display); letter-spacing:-.045em;
+    font-variant-numeric:tabular-nums; line-height:1.05; }
+  .pay-money .n i{ font-style:normal; font-size:20px; font-weight:var(--fw-strong);
+    color:var(--muted); margin-left:5px; letter-spacing:0; }
+  .pay-money .when{ display:flex; align-items:center; gap:7px; margin-top:9px; flex-wrap:wrap; }
+  .pay-money .when b{ font-size:var(--fs-caption); font-weight:var(--fw-strong); }
+  .pay-money .when span{ font-size:var(--fs-micro); font-weight:var(--fw-strong);
+    color:var(--muted); background:var(--surface-2); border-radius:var(--radius-pill); padding:3px 9px; }
+  /* 기간이 얼마나 찼는지 — "기간 끝나면 14일"이던 회색 한 줄을 막대로 */
+  .pay-prog{ margin-top:14px; }
+  .pay-prog .bar{ height:6px; border-radius:4px; background:var(--surface-2); overflow:hidden; }
+  .pay-prog .bar i{ display:block; height:100%; background:var(--primary); border-radius:4px; }
+  .pay-prog .lab{ display:flex; justify-content:space-between; gap:10px;
+    font-size:var(--fs-micro); color:var(--muted-2); margin-top:6px; }
+  /* 금액을 이루는 것 — 테두리 한 겹 안에, 화면을 가로지르는 선 없이.
+     빈 항목도 '아직 없어요'로 남긴다: 없는 줄을 지우면 "오버타임이 안
+     들어간 건가"를 매번 다시 확인하게 된다. */
+  .calc{ border:1px solid var(--border); border-radius:var(--radius-sm); padding:4px 14px; }
+  .calc .r{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; padding:10px 0; }
+  .calc .r + .r{ border-top:1px solid var(--border); }
+  .calc .k{ font-size:var(--fs-caption); font-weight:var(--fw-medium); }
+  .calc .k em{ display:block; font-style:normal; font-size:var(--fs-micro);
+    color:var(--muted-2); margin-top:2px; font-variant-numeric:tabular-nums; }
+  .calc .v{ font-size:var(--fs-label); font-weight:var(--fw-strong);
+    font-variant-numeric:tabular-nums; white-space:nowrap; }
+  .calc .v.zero{ color:var(--muted-2); font-weight:var(--fw-medium); }
+  .calc .tot{ display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+    padding:12px 0; border-top:2px solid var(--fg); }
+  .calc .tot .k{ font-size:var(--fs-caption); font-weight:var(--fw-strong); }
+  .calc .tot .v{ font-size:var(--fs-title); font-weight:var(--fw-display);
+    font-variant-numeric:tabular-nums; }
+  /* 줄 하나 = 기간 한 건 */
+  .prow{ display:flex; align-items:center; gap:11px; padding:12px 0; width:100%;
+    border:0; background:transparent; text-align:left; font:inherit; color:var(--fg); }
+  .prow + .prow{ border-top:1px solid var(--border); }
+  .prow .t{ flex:1; min-width:0; }
+  .prow .t b{ display:block; font-size:var(--fs-caption); font-weight:var(--fw-strong); }
+  .prow .t span{ display:block; font-size:var(--fs-micro); color:var(--muted); margin-top:2px; }
+  /* 이름 충돌 주의: .amt 는 기록 상세의 '숫자 고르개'가 이미 쓰고 있다
+     (테두리 + overflow:hidden). 그걸 그대로 받아 금액이 잘렸다 — 2026-10-20. */
+  .prow .p-amt{ text-align:right; flex:0 0 auto; width:max-content; white-space:nowrap; }
+  .prow .p-amt b{ display:block; font-size:var(--fs-label); font-weight:var(--fw-strong);
+    font-variant-numeric:tabular-nums; }
+  .prow .chev{ color:var(--muted-2); flex:0 0 auto; font-size:17px; }
+  /* 상태 알약 한 가지로 — 같은 '지급일 지남'이 회색 상자와 주황 테두리
+     두 가지로 그려지고 있었다. 지난 정도는 숫자로 적는다('5일 지남'). */
+  .pay-pill{ display:inline-block; font-size:11px; font-weight:var(--fw-strong);
+    border-radius:var(--radius-pill); padding:3px 8px; margin-top:4px;
+    border:1px solid transparent; }
+  .pay-pill.late{ color:var(--danger-text); border-color:var(--danger-text); }
+  .pay-pill.paid{ color:var(--muted-2); background:var(--surface-2); }
+  .pay-pill.soon{ color:var(--muted); background:var(--surface-2); }
+  /* 안 드린 게 있다는 사실은 섹션 제목이 아니라 띠로 — 제목에 작게 붙으면
+     눈에 안 걸린다 */
+  .pay-warn{ background:var(--warn-bg); border-radius:12px; padding:11px 12px; margin-top:14px; }
+  .pay-warn b{ display:block; font-size:var(--fs-micro); font-weight:var(--fw-strong);
+    color:var(--warn-fg); }
+  .pay-warn span{ display:block; font-size:var(--fs-micro); color:var(--warn-fg);
+    opacity:.85; margin-top:3px; line-height:1.5; }
+  /* 연차 — 큰 초록 숫자를 칩으로 내리고, 쓴 날은 점으로 */
+  .leave-box{ display:flex; align-items:center; gap:12px; border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:12px 14px; }
+  .leave-box .t{ flex:1; min-width:0; }
+  .leave-box .t b{ display:block; font-size:var(--fs-caption); font-weight:var(--fw-strong); }
+  .leave-box .t span{ display:block; font-size:var(--fs-micro); color:var(--muted); margin-top:3px; }
+  .leave-box .n{ flex:0 0 auto; text-align:center; }
+  .leave-box .n b{ display:block; font-size:21px; font-weight:var(--fw-display);
+    font-variant-numeric:tabular-nums; }
+  .leave-box .n span{ display:block; font-size:11px; color:var(--muted-2); margin-top:1px; }
+  .leave-dots{ display:flex; gap:3px; margin-top:8px; flex-wrap:wrap; }
+  .leave-dots i{ width:9px; height:9px; border-radius:50%; background:var(--surface-2); display:block; }
+  .leave-dots i.used{ background:var(--c-wean); }
+  /* 오늘 줄 */
+  .pay-todayrow{ display:flex; align-items:center; gap:11px; border:1px solid var(--border);
+    border-radius:var(--radius-sm); padding:12px 14px; }
+  .pay-todayrow .ok{ width:22px; height:22px; border-radius:50%; background:var(--ok-fg);
+    color:#fff; display:grid; place-items:center; font-size:12px; font-weight:var(--fw-strong);
+    flex:0 0 auto; }
+  .pay-todayrow .t{ flex:1; min-width:0; }
+  .pay-todayrow .t b{ display:block; font-size:var(--fs-caption); font-weight:var(--fw-strong); }
+  .pay-todayrow .t span{ display:block; font-size:var(--fs-micro); color:var(--muted);
+    margin-top:2px; }
+  .pay-todayrow .v{ flex:0 0 auto; font-size:var(--fs-label); font-weight:var(--fw-strong);
+    font-variant-numeric:tabular-nums; }
+  /* 칩 줄 — 기록 상세와 같은 모양(흰 바탕 · 테두리 · 네모 10px) */
+  .pay-chips{ display:flex; flex-wrap:wrap; gap:7px; margin-top:10px; }
+  .pay-chips button{ border:1px solid var(--border); background:var(--surface);
+    border-radius:10px; padding:7px 13px; font-size:var(--fs-micro);
+    font-weight:var(--fw-medium); color:var(--muted); font-family:inherit; }
+  .pay-chips button.go{ border-color:var(--primary); color:var(--primary-weak-fg);
+    font-weight:var(--fw-strong); }
+  .pay-proj{ font-size:var(--fs-micro); color:var(--muted-2); margin-top:9px; line-height:1.6; }
+  /* 한 기간에 한 번 누르는 버튼이 화면 가운데에서 제일 큰 상자였다 — 바닥으로 */
+  .pay-foot{ margin:22px -16px 0; padding:12px 16px 4px; border-top:1px solid var(--border); }
+  .pay-foot .btn{ width:100%; font-size:var(--fs-label); font-weight:var(--fw-strong);
+    border-radius:14px; padding:14px 10px; }
+  /* 달력 — 카드를 걷어내고 흰 종이에 바로 */
+  .pay-cal{ margin-top:4px; }
+  .pay-calhead{ display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .pay-calhead b{ font-size:var(--fs-title); font-weight:var(--fw-display); letter-spacing:-.02em; }
+  .pay-calhead .sum{ margin-left:auto; font-size:var(--fs-micro); font-weight:var(--fw-strong);
+    color:var(--muted); background:var(--surface-2); border-radius:var(--radius-pill); padding:3px 9px; }
+  .pay-legend{ display:flex; gap:11px; flex-wrap:wrap; font-size:11px; color:var(--muted-2);
+    margin-top:10px; }
+  .pay-legend span{ display:inline-flex; align-items:center; gap:4px; }
+  .pay-legend i{ width:5px; height:5px; border-radius:50%; display:block; }
+
+  /* ============================================================
+     새싹 탭 — 흰 종이 한 장 (목업 scratchpad/paylog/mock.html H·J·K)
+     달력이 끝나고 900px이 회색으로 비어 있었다. 날짜를 누르면 **그 자리
+     바로 아래**에 그날이 펴진다 — 식단표에서 쓰는 방식 그대로.
+     ============================================================ */
+  #tab-growth{ background:var(--surface); gap:0; padding:0 16px 10px; }
+  /* 떠 있는 +(.memo-fab-wrap)는 바닥에서 78px에 고정이다 — 그만큼 비워두지
+     않으면 마지막 줄이 그 밑에 깔린다(이유식 탭과 같은 이유). */
+  #tab-growth{ padding-bottom:64px; }
+  #tab-growth .card{ background:transparent; margin:0; padding:0; }
+  #tab-growth .gcal-card{ padding:0; }
+  /* 일정 줄 — 날짜 + 글자. 색은 달력이 쓰던 것과 같은 이름(.evc-*) */
+  .gc-sched{ display:flex; flex-direction:column; gap:5px; margin-top:11px; }
+  .gc-sched .e{ display:flex; align-items:center; gap:8px; border-radius:9px;
+    padding:6px 10px; font-size:var(--fs-micro); font-weight:var(--fw-medium);
+    border:0; width:100%; text-align:left; font-family:inherit; }
+  .gc-sched .e b{ font-variant-numeric:tabular-nums; font-weight:var(--fw-strong); flex:0 0 auto; }
+  .gc-sched .e span{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  /* 그날 — 달력 바로 아래에 펴진다 */
+  .gday-panel{ border-top:1px solid var(--border); margin-top:14px; padding-top:4px; }
+  .gday-panel .hd{ display:flex; align-items:baseline; gap:10px; padding:10px 0 2px; }
+  .gday-panel .hd b{ font-size:var(--fs-label); font-weight:var(--fw-strong); }
+  .gday-panel .hd em{ font-style:normal; font-size:var(--fs-micro); color:var(--muted-2);
+    font-variant-numeric:tabular-nums; }
+  .gday-panel .hd button{ margin-left:auto; border:0; background:transparent; padding:2px 0;
+    font:inherit; font-size:var(--fs-micro); font-weight:var(--fw-strong);
+    color:var(--primary-weak-fg); flex:0 0 auto; }
+  .gline{ display:flex; gap:10px; padding:9px 0; align-items:flex-start; }
+  .gline .ic{ flex:0 0 20px; height:20px; display:grid; place-items:center; margin-top:1px; }
+  .gline .bd{ flex:1; min-width:0; }
+  .gline .bd b{ font-size:var(--fs-caption); font-weight:var(--fw-strong); }
+  .gline .bd .who{ float:right; font-size:11px; color:var(--muted-2); font-weight:var(--fw-body); }
+  .gline .bd p{ margin:4px 0 0; font-size:var(--fs-micro); color:var(--muted); line-height:1.6;
+    white-space:pre-line; }
+  .gline .bd .pics{ display:flex; gap:5px; margin-top:7px; }
+  .gline .bd .pics img{ width:52px; height:52px; border-radius:10px; object-fit:cover;
+    display:block; background:var(--surface-2); }
+  .gempty{ text-align:center; padding:22px 10px; font-size:var(--fs-micro);
+    color:var(--muted-2); line-height:1.7; }
+  /* 그래프 — 값을 담는 부품(곡선)에만 테두리. 측정 입력칸은 + 버튼 뒤로 */
+  #tab-growth #weight-chart-wrap, #tab-growth #height-chart-wrap{
+    border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:10px 12px 6px; margin-top:9px; }
+  .gmore{ border:0; background:transparent; padding:8px 0 0; font:inherit;
+    font-size:var(--fs-micro); color:var(--muted-2); }
+
   /* tab bar — solid --surface, not a translucent blur: a short/empty panel
      doesn't reach the bottom of the screen, and a translucent bar over the
      gray page canvas behind it was reading as a gray bar instead of white */
@@ -2318,10 +2452,22 @@
      of the scroll with no way to reach it */
   .fp-body{
     --pad:16px;
-    flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    /* -webkit-overflow-scrolling:touch 를 뺐다. iOS 13부터는 관성 스크롤이
+       기본이라 하는 일이 없는데, **transform 이 걸린 fixed 조상**(.fullpage 는
+       translateX 로 밀고 들어온다) 안에서 이 속성이 붙은 스크롤 상자가 손가락에
+       반응하지 않는 오래된 버그가 있다. 막대는 뜨는데 내용이 안 움직였다
+       (2026-10-20 이유식 식단표). */
+    flex:1 1 auto; min-height:0; overflow-y:auto; touch-action:pan-y;
     padding:20px 16px 24px; display:flex; flex-direction:column; gap:20px;
     scrollbar-width:none;
   }
+  /* 세로 flex의 자식은 기본이 flex-shrink:1 이다 — 내용이 화면보다 길면
+     브라우저가 **먼저 자식들을 눌러서** 맞춘다. 눌린 만큼 스크롤할 것이
+     없어지므로, 화면은 꽉 찼는데 아래로 안 내려가고 마지막 카드만 잘린
+     상태가 된다(2026-10-20 이유식 식단표). 기록 상세(#fp-entry-body)에는
+     같은 이유로 이미 걸려 있던 규칙을 전체화면 전체로 올린다. */
+  .fp-body > *{ flex:0 0 auto; }
+  #wn-body > *{ flex:0 0 auto; }
   /* 앱 안의 다른 스크롤 자리(.qa-grid · .scrub-strip · .wn-tabs)는 전부 막대를
      감춘다. 전체화면과 시트만 빠져 있었다. */
   .fp-body::-webkit-scrollbar{ display:none; }
@@ -3449,9 +3595,14 @@
         <div class="gcal-grid" id="gcal-grid"></div>
         <div id="gweek-list" hidden></div>
       </div>
+      <!-- 일정은 칸 안이 아니라 여기 — 글자가 끝까지 보인다 -->
+      <div class="gc-sched" id="gcal-sched"></div>
       <!-- built in renderGrowthCalendar: a dot and its word, so the grid's
            marks can actually be read -->
       <div class="hint-line gcal-legend" id="gcal-legend"></div>
+      <!-- 날짜를 누르면 그날이 여기 펴진다(개편안 H). 전체화면으로 나가는 건
+           고칠 때만 — 읽는 일이 훨씬 잦다. -->
+      <div class="gday-panel" id="gcal-day" hidden></div>
       <div class="memo-fab-wrap">
         <button type="button" class="fab" id="gcal-fab" aria-label="growth add">+</button>
       </div>
@@ -3483,7 +3634,9 @@
       </div>
       <div class="stat-lede" id="weight-lede"></div>
       <div id="weight-chart-wrap"></div>
-      <div class="weight-form">
+      <!-- 그래프를 보러 들어온 화면 한복판에 입력 폼이 있을 이유가 없다 —
+           오른쪽 아래 + 를 누를 때만 펴진다(개편안 K). -->
+      <div class="weight-form" id="weight-form" hidden>
         <input type="date" id="weight-date" />
         <input type="number" id="weight-kg" inputmode="decimal" step="0.01" min="0.3" max="30" placeholder="7.6" />
         <span class="w-unit">kg</span>
@@ -3499,12 +3652,8 @@
         <div class="stat-lede" id="height-lede"></div>
         <div id="height-chart-wrap"></div>
       </div>
-      <div class="card stat-card" id="milestone-card">
-        <div class="stat-head">
-          <div class="stat-h" data-i18n="milestoneTitle">발달 기록</div>
-          <span class="stat-badge" id="milestone-badge"></span>
-        </div>
-        <div id="milestone-list"></div>
+      <div class="memo-fab-wrap">
+        <button type="button" class="fab" id="gw-fab" aria-label="measure add">+</button>
       </div>
     </div>
   </section>
@@ -3666,18 +3815,18 @@
       <!-- 내니 폰에만: 내가 보낸 것이 어떻게 됐는지. 연차는 미리 신청하는
            것이라, 승인됐는지 모르면 그날 출근해야 할지를 알 수 없다. -->
       <div id="pay-mine"></div>
-      <div class="card gcal-card" id="pay-cal-card">
-        <div class="pay-cal-head">
-          <div class="t-card" id="pay-title"></div>
+      <!-- 달력에서 카드를 걷어냈다(개편안 C). 흰 종이 위에 머리줄 · 칸 ·
+           범례만 남는다 — 요약은 머리줄 오른쪽 알약으로. -->
+      <div class="pay-cal" id="pay-cal-card">
+        <div class="pay-calhead">
+          <b id="pay-title"></b>
+          <span class="sum" id="pay-month-sum"></span>
           <button type="button" class="log-arrow" id="pay-prev">‹</button>
           <button type="button" class="log-arrow" id="pay-next">›</button>
         </div>
-        <div class="t-caption" id="pay-month-sum"></div>
         <div class="gcal-dow" id="pay-dow"></div>
         <div class="gcal-grid" id="pay-grid"></div>
-        <!-- 범례 + "날짜를 눌러 그 날 시간 고치기"가 한 줄. 따로 떠 있던
-             안내 줄은 없앴다 — 카드 밖 회색 한 줄이 층을 하나 더 만들었다. -->
-        <div class="t-caption" id="pay-legend"></div>
+        <div class="pay-legend" id="pay-legend"></div>
       </div>
       <!-- 고른 날 하나. 날짜를 누르기 전에는 열리지 않는다 — 기본값이 '오늘'이라
            위의 오늘 카드와 똑같은 내용이 두 번 쌓여 있었다. -->
@@ -3688,13 +3837,14 @@
     </div>
 
     <div class="ins-panel" data-pv-panel="settle" hidden>
-      <!-- 얼마인지가 먼저. 내니는 이걸 보러 들어오고, 엄마는 이걸 보고 보낸다 -->
-      <div class="card" id="pay-period"></div>
-      <!-- 올해 연차: 몇 일 중 몇 일 썼는지. 내니가 물어보면 이 화면을 보여준다 -->
-      <div class="section-title t-label" data-i18n="leaveYearTitle" style="margin-bottom:0">올해 연차</div>
-      <div class="card" id="pay-leave-year"></div>
-      <div class="section-title t-label" data-i18n="payPast" style="margin-bottom:0">지난 급여</div>
-      <div class="card" id="pay-history"></div>
+      <!-- 얼마인지가 먼저. 내니는 이걸 보러 들어오고, 엄마는 이걸 보고 보낸다.
+           제목·연차·지난 급여는 전부 이 안에서 그려진다 — 카드와 회색 띠로
+           나누던 것을 흰 종이 한 장에 올렸다(개편안). -->
+      <div id="pay-period"></div>
+      <div id="pay-leave-year"></div>
+      <div id="pay-history"></div>
+      <!-- 한 기간에 한 번 누르는 버튼 — 바닥으로 -->
+      <div id="pay-settle-foot"></div>
     </div>
   </section>
 
@@ -4578,16 +4728,23 @@ ko: {
   leaveDaysTpl:"연차 {n}일", leaveLeftTpl:"남은 연차 {n}일",
   leaveLeftOfTpl:"남은 연차 {left}일 중 {n}일",
   leaveOverWarn:"남은 연차가 없어요 — 초과분이에요",
-  leaveYearTitle:"올해 연차", leaveUsedTpl:"{y}년 · {total}일 중 {n}일 씀",
+  leaveYearTitle:"올해 연차",
   leaveWaitingTpl:"승인 기다리는 것 {n}일",
   leaveResetHint:"12월 31일에 다시 채워져요 (이월 없음)",
   leaveDaysLabel:"연차 일수", leavePayLabel:"연차 하루 금액", dayUnitShort:"일",
   mineWaitingTpl:"엄마 승인 기다리는 중 · {n}",
   payPendingCountTpl:"승인 대기 {n}",
-  payDueTitleTpl:"{d}에 드릴 금액",
+  /* 개편안(정산 탭) — 금액이 먼저, 근거는 테두리 한 겹 안에 */
+  payGiveOnTpl:"{d}에 드려요", payCalcTitle:"무엇으로 이 금액이 되나요",
+  payThisPeriod:"이번 기간", payNotStampedYet:"아직 도장 안 찍었어요",
+  payStampShortTpl:"도장 {t}",
+  payCalcWork:"근무", payCalcWorkTpl:"{n}일 × {w}", payNoneYet:"아직 없어요",
+  payNoneThisPeriod:"이 기간엔 없어요", paySoFar:"지금까지", payProgTpl:"{a} / {b}일",
+  leaveUsedShortTpl:"{total}일 중 {n}일 썼어요", leaveLeftWord:"남음",
+  payUnpaidBandTpl:"아직 안 드린 게 {n}건 있어요",
+  payUnpaidBandSubTpl:"합쳐서 {sum} · 가장 오래된 건이 {n}일 지났어요",
+  payPaidShortTpl:"{d} 드림",
   payDueToday:"오늘", payInDaysTpl:"{n}일 뒤", payInWeeksTpl:"{n}주 뒤", payOverdueTpl:"{n}일 지남",
-  payUnpaidCountTpl:"지난 급여 · 안 드린 게 {n}건 있어요",
-  payUnpaidSoft:"아직 안 드림", payOverdueChip:"지급일 지남",
   payOtLabel:"오버타임",
   payByDay:"날짜별로 보기", payDayOff:"쉬는 날",
   payNotYetDays:"아직 오지 않은 날", payTotalLabel:"합계",
@@ -4608,6 +4765,7 @@ ko: {
   albumEmpty:"발달 기록과 육아일기가 여기 모여요",
   heightTitle:"키", milestoneTitle:"발달 기록", milestonePh:"뒤집기, 첫 웃음…",
   feedSubTerm:"수유텀", feedSubStats:"수유량", pvSleepTerm:"잠텀", sleepSubStats:"수면 통계", gMeasures:"측정", gDiaryTitle:"육아일기",
+  gDayEmpty:"이 날은 아직 아무것도 없어요", weightAllTpl:"{n}회 전부 보기",
   gEdit:"수정", gDone:"완료", gNoMeasure:"기록 없음", memoEditTitle:"메모 수정",
   diaryPh:"오늘의 육아일기…", diarySave:"일기 저장", diaryEmpty:"이 날의 일기가 아직 없어요",
   gViewMonth:"월간", gViewWeek:"주간",
@@ -4617,7 +4775,7 @@ ko: {
   weightLedeTpl:"지금 <b>{kg}kg</b> · 태어나서 +{gain}kg",
   weightPrevTpl:"지난 측정({d})보다 +{diff}kg", weightPrevDownTpl:"지난 측정({d})보다 {diff}kg",
   weightEmpty:"몸무게를 기록해 보세요", heightEmpty:"키를 기록해 보세요",
-  heightLedeTpl:"지금 <b>{cm}cm</b> · 태어나서 +{gain}cm", milestoneEmpty:"첫 뒤집기, 첫 웃음 — 처음들을 남겨 보세요",
+  heightLedeTpl:"지금 <b>{cm}cm</b> · 태어나서 +{gain}cm",
   termAvgNap:"평균 낮잠", termAvgNight:"평균 밤잠",
   termFeedTitle:"수유텀", termFeedCaption:"칩은 이전 수유부터 걸린 시간",
   termSleepTitle:"잠텀 · 깨시", termSleepCaption:"칩은 깨어 있던 시간",
@@ -4879,16 +5037,22 @@ vi: {
   leaveDaysTpl:"{n} ngày phép", leaveLeftTpl:"Còn {n} ngày phép",
   leaveLeftOfTpl:"{n} ngày trong {left} ngày còn lại",
   leaveOverWarn:"Đã hết ngày phép — vượt quá",
-  leaveYearTitle:"Ngày phép năm nay", leaveUsedTpl:"Năm {y} · đã dùng {n}/{total} ngày",
+  leaveYearTitle:"Ngày phép năm nay",
   leaveWaitingTpl:"Đang chờ duyệt {n} ngày",
   leaveResetHint:"Làm mới ngày 31/12 (không cộng dồn)",
   leaveDaysLabel:"Số ngày phép", leavePayLabel:"Tiền một ngày phép", dayUnitShort:"ngày",
   mineWaitingTpl:"Đang chờ mẹ duyệt · {n}",
   payPendingCountTpl:"Chờ duyệt {n}",
-  payDueTitleTpl:"Sẽ trả ngày {d}",
+  payGiveOnTpl:"Sẽ trả ngày {d}", payCalcTitle:"Số tiền này gồm những gì",
+  payThisPeriod:"Kỳ này", payNotStampedYet:"Chưa điểm danh",
+  payStampShortTpl:"Bấm {t}",
+  payCalcWork:"Ngày công", payCalcWorkTpl:"{n} ngày × {w}", payNoneYet:"Chưa có",
+  payNoneThisPeriod:"Kỳ này không có", paySoFar:"Tính đến nay", payProgTpl:"{a} / {b} ngày",
+  leaveUsedShortTpl:"Đã dùng {n}/{total} ngày", leaveLeftWord:"Còn lại",
+  payUnpaidBandTpl:"Còn {n} kỳ chưa trả",
+  payUnpaidBandSubTpl:"Tổng {sum} · kỳ cũ nhất trễ {n} ngày",
+  payPaidShortTpl:"Đã trả {d}",
   payDueToday:"Hôm nay", payInDaysTpl:"{n} ngày nữa", payInWeeksTpl:"{n} tuần nữa", payOverdueTpl:"Trễ {n} ngày",
-  payUnpaidCountTpl:"Lương kỳ trước · còn {n} kỳ chưa trả",
-  payUnpaidSoft:"Chưa trả", payOverdueChip:"Quá hạn",
   payOtLabel:"Tăng ca",
   payByDay:"Xem theo ngày", payDayOff:"Ngày nghỉ",
   payNotYetDays:"Những ngày chưa tới", payTotalLabel:"Tổng cộng",
@@ -4909,6 +5073,7 @@ vi: {
   albumEmpty:"Cột mốc và nhật ký của bé sẽ hiện ở đây",
   heightTitle:"Chiều cao", milestoneTitle:"Cột mốc phát triển", milestonePh:"Lật người, nụ cười đầu…",
   feedSubTerm:"Cữ bú", feedSubStats:"Lượng sữa", pvSleepTerm:"Bé thức", sleepSubStats:"Thống kê ngủ", gMeasures:"Đo lường", gDiaryTitle:"Nhật ký bé",
+  gDayEmpty:"Ngày này chưa có gì", weightAllTpl:"Xem tất cả {n} lần",
   gEdit:"Sửa", gDone:"Xong", gNoMeasure:"Chưa có ghi chép", memoEditTitle:"Sửa ghi chú",
   diaryPh:"Nhật ký hôm nay…", diarySave:"Lưu nhật ký", diaryEmpty:"Chưa có nhật ký cho ngày này",
   gViewMonth:"Tháng", gViewWeek:"Tuần",
@@ -4918,7 +5083,7 @@ vi: {
   weightLedeTpl:"Hiện tại <b>{kg}kg</b> · tăng {gain}kg từ khi sinh",
   weightPrevTpl:"Tăng {diff}kg so với lần trước ({d})", weightPrevDownTpl:"{diff}kg so với lần trước ({d})",
   weightEmpty:"Hãy ghi lại cân nặng của bé", heightEmpty:"Hãy ghi lại chiều cao của bé",
-  heightLedeTpl:"Hiện tại <b>{cm}cm</b> · tăng {gain}cm từ khi sinh", milestoneEmpty:"Lần lật đầu tiên, nụ cười đầu tiên — hãy ghi lại",
+  heightLedeTpl:"Hiện tại <b>{cm}cm</b> · tăng {gain}cm từ khi sinh",
   termAvgNap:"Ngủ ngày TB", termAvgNight:"Ngủ đêm TB",
   termFeedTitle:"Khoảng cách cữ bú", termFeedCaption:"Nhãn là thời gian từ cữ bú trước",
   termSleepTitle:"Thời gian bé thức", termSleepCaption:"Nhãn là thời gian bé thức giữa hai giấc",
@@ -9358,7 +9523,10 @@ function renderWeightCard(){
 
   wrap.innerHTML = growthCurveSvg(ws.map(function(w){ return { date: w.date, v: w.kg }; }), 'kg', 0.5);
 
-  var recent = ws.slice(-5).reverse();
+  /* 다섯 줄이 ⋮ 를 달고 쌓이면 설정 화면처럼 보인다 — 최근 셋만, 나머지는
+     '전부 보기'로(개편안 K). */
+  var full = !!state.gWeightAll;
+  var recent = (full ? ws.slice() : ws.slice(-3)).reverse();
   listBox.innerHTML = recent.map(function(w){
     var idx = ws.indexOf(w);
     var prev2 = idx > 0 ? ws[idx - 1] : null;
@@ -9369,6 +9537,12 @@ function renderWeightCard(){
       kebabBtnHtml('data-kb-weight="' + esc(w.id) + '" style="margin-left:auto;"') +
     '</div>';
   }).join('');
+  if (!full && ws.length > 3){
+    listBox.innerHTML += '<button type="button" class="gmore" id="gw-all">' +
+      esc(t('weightAllTpl').replace('{n}', ws.length)) + ' \u203a</button>';
+    var allBtn = document.getElementById('gw-all');
+    if (allBtn) allBtn.addEventListener('click', function(){ state.gWeightAll = true; renderWeightCard(); });
+  }
   $$('[data-kb-weight]', listBox).forEach(function(btn){
     btn.addEventListener('click', function(ev){
       ev.stopPropagation();
@@ -9457,38 +9631,6 @@ function renderHeightCard(){
     .replace('{gain}', Math.round((last.cm - first.cm) * 10) / 10);
   wrap.innerHTML = growthCurveSvg(hs.map(function(h){ return { date: h.date, v: h.cm }; }), 'cm', 2);
 }
-function renderMilestoneCard(){
-  var listBox = document.getElementById('milestone-list');
-  var badge = document.getElementById('milestone-badge');
-  if (!listBox) return;
-  var ms = readMilestones().slice().reverse();
-  if (badge) badge.textContent = ms.length ? t('weightCountTpl').replace('{n}', ms.length) : '';
-  listBox.innerHTML = ms.length ? ms.map(function(m){
-    return '<div class="gday-row"><b>' + esc(gMmdd(m.date)) + '</b><span>' + esc(m.text) + '</span>' +
-      kebabBtnHtml('data-kb-gmile="' + esc(m.id) + '" style="margin-left:auto;"') +
-    '</div>';
-  }).join('') : '<div class="empty-note" style="padding:14px 0">' + esc(t('milestoneEmpty')) + '</div>';
-  $$('[data-kb-gmile]', listBox).forEach(function(btn){
-    btn.addEventListener('click', function(ev){
-      ev.stopPropagation();
-      var m2 = ms.filter(function(x){ return x.id === btn.dataset.kbGmile; })[0];
-      if (!m2) return;
-      var items = [{ label: t('gEdit'), icon: 'pencil', fn: function(){
-        /* jump to that day's page, already open for editing — the milestone
-           sits there as its own editable row */
-        state.gDate = m2.date;
-        openGrowthDay('edit');
-      } }];
-      if (canTouch(m2.author)) items.push({ label: t('delete'), icon: 'trash', danger: true, fn: function(){
-        apiMutate('deleteMilestone', { id: m2.id }).then(function(){
-          renderGrowth(); toast(t('deletedToast'));
-        }).catch(function(err){ toast(err.message); });
-      } });
-      openKebabMenu(btn, items);
-    });
-  });
-}
-
 /* ---- the calendar ------------------------------------------------------ */
 function gShiftMonth(delta){
   /* the arrows serve whichever view is up: months in the grid, weeks in
@@ -9562,61 +9704,6 @@ function renderGrowthCalendar(){
   var todayStr = toDateValue();
   var sel = gSelectedDate();
 
-  /* ---- schedule lanes. A multi-day schedule is one bar running across its
-     days; within each week row every schedule takes the lowest lane that is
-     free for its whole stretch, so bars never collide and a bar stays level
-     from cell to cell. Three lanes show; anything below them becomes "+n". */
-  var LANE_CAP = 3;
-  var monthStart = mk + '-01';
-  var monthEnd = mk + '-' + String(daysInMonth).padStart(2, '0');
-  var dayOf = function(row, col){ return row * 7 + col - firstDow + 1; };
-  var dsOf = function(dayNum){ return mk + '-' + String(dayNum).padStart(2, '0'); };
-  var monthEvs = readSchedules().filter(function(s){ return s.date <= monthEnd && s.endDate >= monthStart; });
-  monthEvs.sort(function(a, b){
-    var la = schedNights(a), lb = schedNights(b);
-    if (la !== lb) return lb - la;                       /* long bars claim lanes first */
-    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
-    return (a.time || '99:99') < (b.time || '99:99') ? -1 : 1;
-  });
-  var laneBusy = {};       /* row -> lane -> [[c1,c2], ...] */
-  var dayLanes = {};       /* ds  -> lane -> {ev, contL, contR, text} */
-  var dayExtra = {};       /* ds  -> how many fell below the cap */
-  monthEvs.forEach(function(ev){
-    var startNum = Math.max(1, ev.date > monthStart ? Number(ev.date.slice(8, 10)) : 1);
-    var endNum = Math.min(daysInMonth, ev.endDate < monthEnd ? Number(ev.endDate.slice(8, 10)) : daysInMonth);
-    var rowFirst = Math.floor((firstDow + startNum - 1) / 7);
-    var rowLast = Math.floor((firstDow + endNum - 1) / 7);
-    for (var row = rowFirst; row <= rowLast; row++){
-      var c1 = Math.max(0, (firstDow + startNum - 1) - row * 7);
-      var c2 = Math.min(6, (firstDow + endNum - 1) - row * 7);
-      var lanes = laneBusy[row] = laneBusy[row] || [];
-      var lane = 0;
-      while ((lanes[lane] || []).some(function(iv){ return !(c2 < iv[0] || c1 > iv[1]); })) lane++;
-      (lanes[lane] = lanes[lane] || []).push([c1, c2]);
-      for (var c = c1; c <= c2; c++){
-        var dn = dayOf(row, c);
-        if (dn < 1 || dn > daysInMonth) continue;
-        var ds2 = dsOf(dn);
-        if (lane >= LANE_CAP){ dayExtra[ds2] = (dayExtra[ds2] || 0) + 1; continue; }
-        (dayLanes[ds2] = dayLanes[ds2] || {})[lane] = {
-          ev: ev,
-          contL: ds2 !== ev.date,
-          contR: ds2 !== ev.endDate,
-          text: c === c1,              /* titled once per week row, at its left end */
-          span: c2 - c1 + 1,           /* ...and the title may run this many cells */
-        };
-      }
-    }
-  });
-  /* IF ANY DAY IN A WEEK ROW OVERFLOWS, EVERY CELL IN THAT ROW RESERVES THE
-     "+N" LINE. The lane stack is bottom-aligned, so one cell being a line
-     taller than its neighbours lifts that cell's whole stack — and a bar
-     crossing into it stopped meeting itself. A ghost costs a blank line;
-     a bar that does not line up costs the reader the bar. */
-  var rowExtra = {};
-  Object.keys(dayExtra).forEach(function(ds2){
-    rowExtra[Math.floor((firstDow + Number(ds2.slice(8)) - 1) / 7)] = true;
-  });
   var cells = [];
   for (var b2 = 0; b2 < firstDow; b2++) cells.push('<span class="gcal-day"></span>');
   for (var d = 1; d <= daysInMonth; d++){
@@ -9628,41 +9715,102 @@ function renderGrowthCalendar(){
       ['w','h','m','d'].filter(function(k){ return flags[k]; })
         .map(function(k){ return '<i class="gm" style="background:' + GROWTH_ICONS[k].color +
           '" title="' + esc(t(GROWTH_ICONS[k].label)) + '"></i>'; }).join('') + '</span>' : '';
-    /* the schedule's own words, right on the grid — lanes of pastel pills,
-       a multi-day bar continuing seamlessly into the next cell. Every cell
-       in a week row reserves the row's full lane count (ghosts fill the
-       gaps), so a bar sits at the same height in every cell it crosses. */
-    var row3 = Math.floor((firstDow + d - 1) / 7);
-    var rowMax = -1;
-    (laneBusy[row3] || []).forEach(function(iv, li){ if (iv && iv.length && li < LANE_CAP) rowMax = Math.max(rowMax, li); });
-    var lanesHere = dayLanes[ds];
-    var pills = '';
-    if ((lanesHere || dayExtra[ds]) && rowMax >= 0){
-      var lane_html = [];
-      for (var ln = 0; ln <= rowMax; ln++){
-        var seg = lanesHere && lanesHere[ln];
-        if (!seg){ lane_html.push('<span class="gcal-evt ghost"> </span>'); continue; }
-        var wide = seg.text && seg.span > 1;
-        lane_html.push('<span class="gcal-evt evc-' + seg.ev.color +
-          (seg.contL ? ' cont-l' : '') + (seg.contR ? ' cont-r' : '') + (wide ? ' has-span' : '') + '"' +
-          (wide ? ' style="--span:' + seg.span + '"' : '') + '>' +
-          (seg.text ? '<span class="ge-t">' + esc(schedShownText(seg.ev)) + '</span>' : ' ') +
-        '</span>');
-      }
-      if (rowExtra[row3]) lane_html.push(dayExtra[ds]
-        ? '<span class="gcal-evt more">+' + dayExtra[ds] + '</span>'
-        : '<span class="gcal-evt ghost"> </span>');
-      pills = '<span class="gcal-lanes">' + lane_html.join('') + '</span>';
-    }
-    cells.push('<button type="button" class="' + cls + '" data-gday="' + ds + '">' + d + marks + pills + '</button>');
+    cells.push('<button type="button" class="' + cls + '" data-gday="' + ds + '">' + d + marks + '</button>');
   }
   grid.innerHTML = cells.join('');
+  /* 누르면 그날이 **아래에** 펴진다. 같은 날을 다시 누르면 접힌다 —
+     식단표 달력과 같은 규칙. 전체화면으로 나가는 건 고칠 때뿐이다. */
   $$('[data-gday]', grid).forEach(function(btn){
     btn.addEventListener('click', function(){
-      state.gDate = btn.dataset.gday;
-      openGrowthDay();
+      var ds2 = btn.dataset.gday;
+      state.gDate = (state.gDate === ds2) ? null : ds2;
+      renderGrowthCalendar();
+      if (state.gDate){
+        var panel = document.getElementById('gcal-day');
+        if (panel) requestAnimationFrame(function(){
+          panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        });
+      }
     });
   });
+  renderGrowthMonthScheds(mk, daysInMonth);
+  renderGrowthDayPanel();
+}
+/* 그 달의 일정을 달력 **아래** 줄로. 칸 안에 넣으면 '내니 …'처럼 말줄임표만
+   남는다 — 몇 개 없는 것이라 줄로 세우는 편이 읽힌다(개편안 H). */
+function renderGrowthMonthScheds(mk, daysInMonth){
+  var box = document.getElementById('gcal-sched');
+  if (!box) return;
+  var from = mk + '-01', to = mk + '-' + String(daysInMonth).padStart(2, '0');
+  var evs = readSchedules().filter(function(x){ return x.date <= to && x.endDate >= from; });
+  evs.sort(function(a, b){
+    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+    return (a.time || '99:99') < (b.time || '99:99') ? -1 : 1;
+  });
+  box.innerHTML = evs.map(function(ev){
+    var d1 = ev.date.slice(5).replace('-', '/');
+    var d2 = (ev.endDate && ev.endDate !== ev.date) ? '\u2013' + ev.endDate.slice(5).replace('-', '/') : '';
+    return '<button type="button" class="e evc-' + esc(ev.color) + '" data-gsched="' + esc(ev.date) + '">' +
+      '<b>' + esc(d1 + d2) + '</b><span>' + esc(schedShownText(ev)) +
+      (ev.time ? ' \u00b7 ' + esc(ev.time) : '') + '</span></button>';
+  }).join('');
+  $$('[data-gsched]', box).forEach(function(b){
+    b.addEventListener('click', function(){
+      state.gDate = b.dataset.gsched;
+      renderGrowthCalendar();
+    });
+  });
+}
+/* 고른 날 하나 — 일기·발달·측정·일정을 읽는 줄로. 달력이 끝나고 900px이
+   회색으로 비어 있던 자리다(개편안 H). */
+function renderGrowthDayPanel(){
+  var box = document.getElementById('gcal-day');
+  if (!box) return;
+  if (!state.gDate){ box.hidden = true; box.innerHTML = ''; return; }
+  var ds = state.gDate;
+  box.hidden = false;
+  var rows = [];
+  readDiaries().filter(function(x){ return x.date === ds; }).forEach(function(x){
+    rows.push(gLineHtml('d', t('gDiaryTitle'), x.author, x.ts,
+      (x.lang === state.lang || !x.translated) ? (x.text || '') : x.translated, x.photos));
+  });
+  readMilestones().filter(function(x){ return x.date === ds; }).forEach(function(x){
+    rows.push(gLineHtml('m', x.text, x.author, null, '', null));
+  });
+  readWeights().filter(function(x){ return x.date === ds; }).forEach(function(x){
+    rows.push(gLineHtml('w', t('weightTitle') + ' ' + x.kg + 'kg', x.author, null, '', null));
+  });
+  readHeights().filter(function(x){ return x.date === ds; }).forEach(function(x){
+    rows.push(gLineHtml('h', t('heightTitle') + ' ' + x.cm + 'cm', x.author, null, '', null));
+  });
+  schedulesOnDay(ds).forEach(function(x){
+    rows.push(gLineHtml(null, schedShownText(x), x.author, null, '', null, x.color, x.time));
+  });
+  box.innerHTML = '<div class="hd"><b>' +
+      esc(dayHeading(new Date(ds + 'T00:00:00').toISOString())) + '</b>' +
+      '<em>' + esc(albumDDay(ds)) + '</em>' +
+      '<button type="button" id="gcal-day-open">' + esc(t('gEdit')) + ' \u203a</button></div>' +
+    (rows.length ? rows.join('') : '<div class="gempty">' + esc(t('gDayEmpty')) + '</div>');
+  var open = document.getElementById('gcal-day-open');
+  if (open) open.addEventListener('click', function(){ openGrowthDay('edit'); });
+}
+/* 한 줄 = 그림 하나 + 제목 + 누가 + 본문 + 사진 */
+function gLineHtml(kind, title, author, at, body, photos, color, time){
+  var ic = kind ? growthIconHtml(kind, 'ic')
+    : '<span class="ic"><i style="display:block;width:9px;height:9px;border-radius:50%;' +
+      'background:var(--ev-' + esc(color || 'sky') + '-bg)"></i></span>';
+  var who = [author ? localizeAuthorName(author) : '', at ? fmtTime(at) : (time || '')]
+    .filter(Boolean).join(' \u00b7 ');
+  return '<div class="gline">' + ic + '<span class="bd">' +
+    (who ? '<span class="who">' + esc(who) + '</span>' : '') +
+    '<b>' + esc(title) + '</b>' +
+    (body ? '<p>' + esc(body) + '</p>' : '') +
+    (photos && photos.length
+      ? '<span class="pics">' + photos.slice(0, 3).map(function(ph){
+          return '<img src="' + esc(displayPhotoUrl(ph.id, true)) + '" alt="" loading="lazy" />';
+        }).join('') + '</span>'
+      : '') +
+  '</span></div>';
 }
 /* seven days as readable lines: the schedule text in full with its hour,
    the day's firsts, and a quiet line of what was measured — nothing needs
@@ -9819,7 +9967,7 @@ function renderGrowthAlbum(){
       html += '<div class="galb-group">' +
         '<button type="button" class="galb-date" data-gday="' + esc(it.date) + '">' +
           '<b>' + esc(albumDayTitle(it.date)) + '</b><span>' + esc(dow) + '</span>' +
-          (dd ? '<span class="dd">' + esc(dd) + '</span>' : '') +
+          (dd ? '<span class="dd">' + esc(dd) + '</span>' : '') + '<i></i>' +
         '</button><div class="galb-items">';
     }
     html += it.kind === 'm' ? albumMileHtml(it.rec) : albumDiaryHtml(it.rec);
@@ -10664,10 +10812,13 @@ function fmtWorkDur(min){
   return t('hourMinTpl').replace('{h}', h).replace('{m}', m);
 }
 /* 베트남은 천 단위를 점으로 끊는다 — 읽는 사람 방식대로 */
-function fmtVnd(n){
+function fmtVnd(n){ return fmtVndNum(n) + ' ₫'; }
+/* ₫ 없이 숫자만. 개편안의 큰 금액은 숫자와 ₫의 크기가 달라서(38px / 20px)
+   한 덩어리 문자열로는 그릴 수 없다. */
+function fmtVndNum(n){
   var v = Math.round(Number(n) || 0);
   var sep = state.lang === 'vi' ? '.' : ',';
-  return String(v).replace(/\B(?=(\d{3})+(?!\d))/g, sep) + ' ₫';
+  return String(v).replace(/\B(?=(\d{3})+(?!\d))/g, sep);
 }
 function lastDayOf(y, m){ return new Date(y, m, 0).getDate(); }
 /* 어떤 날짜가 속한 정산 기간 */
@@ -10843,22 +10994,30 @@ function renderPayGlance(){
   if (pr.to < start) pr = periodOf(start);
   var tot = periodTotals(pr.from, pr.to);
   var paid = paidPeriod(pr.from, pr.to);
-  var range = payDateLabel(pr.from).replace(/\s*\(.*\)$/, '') + ' – ' + payDateLabel(pr.to).replace(/\s*\(.*\)$/, '');
-  box.innerHTML =
-    '<button type="button" class="pay-glance-btn" id="pay-glance-go">' +
-      '<div class="grow"><span class="t-caption">' + esc(range) + '</span>' +
-        '<span class="t-value">' +
-          esc(t('payDaysTpl').replace('{n}', paid ? paid.days : tot.days)) +
-          ((paid ? (paid.leaveDays||0) : tot.leaveDays) ? ' · ' + esc(t('leaveDaysTpl').replace('{n}', paid ? paid.leaveDays : tot.leaveDays)) : '') +
-          ((paid ? paid.otMin : tot.otMin) ? ' · ' + esc(t('payOtTpl').replace('{t}', fmtWorkDur(paid ? paid.otMin : tot.otMin))) : '') +
-        '</span></div>' +
-      '<div class="pay-val"><span class="t-money">' +
-        esc(fmtVnd(paid ? paid.amount : tot.amount)) + '</span>' +
-        '<span class="t-caption">' + esc(t('leaveLeftTpl').replace('{n}', leaveStat(toDateValue()).left)) + '</span></div>' +
-      '<span class="r-chev">›</span>' +
-    '</button>';
+  var shortDay = function(ds){ return payDateLabel(ds).replace(/\s*\(.*\)$/, ''); };
+  var dleft = Math.round((new Date(pr.payday + 'T00:00:00') - new Date(toDateValue() + 'T00:00:00')) / 86400000);
+  var days = paid ? paid.days : tot.days;
+  var lv = paid ? (paid.leaveDays || 0) : tot.leaveDays;
+  var otMin = paid ? paid.otMin : tot.otMin;
+  /* 이번 기간 한 줄 — 지난 급여 줄과 같은 부품(개편안 .prow) */
+  box.innerHTML = '<div class="sec-h">' + esc(t('payThisPeriod')) + '</div>' +
+    '<button type="button" class="prow" id="pay-glance-go" style="padding-top:0">' +
+      '<span class="t"><b>' + esc(shortDay(pr.from)) + ' – ' + esc(shortDay(pr.to)) + '</b>' +
+        '<span>' + esc(t('payDaysTpl').replace('{n}', days)) +
+          ' · ' + esc(t('leaveLeftTpl').replace('{n}', leaveStat(toDateValue()).left)) +
+          (otMin ? ' · ' + esc(t('payOtTpl').replace('{t}', fmtWorkDur(otMin))) : '') +
+          (lv ? ' · ' + esc(t('leaveDaysTpl').replace('{n}', lv)) : '') + '</span></span>' +
+      '<span class="p-amt"><b>' + esc(fmtVndNum(paid ? paid.amount : tot.amount)) + '</b>' +
+        '<span class="pay-pill ' + (paid ? 'paid' : (dleft < 0 ? 'late' : 'soon')) + '">' +
+          esc(paid ? t('payPaidShortTpl').replace('{d}', shortDay(paid.paidAt.slice(0,10)))
+                   : payDueLabel(dleft)) + '</span></span>' +
+      '<span class="chev">\u203a</span></button>';
   var go = document.getElementById('pay-glance-go');
-  if (go) go.addEventListener('click', function(){ state.paySub = 'settle'; renderPay(); window.scrollTo(0, 0); });
+  if (go) go.addEventListener('click', function(){
+    state.paySub = 'settle'; renderPay();
+    var p2 = document.querySelector('[data-pv-panel="settle"]');
+    if (p2) p2.scrollIntoView({ block: 'start' });
+  });
 }
 /* 탭 버튼 위 뱃지. n이 숫자면 개수, true면 점 하나, 0/false면 없음.
    급여 뱃지는 has-badge 클래스만 토글하고 있었는데 그 클래스에 CSS가 아예
@@ -10903,87 +11062,67 @@ function renderPayToday(){
   if (!box) return;
   var today = toDateValue();
   var sh = shiftOn(today);
-  var mine = !isMasterUser();       /* 내니·아빠 폰: 도장 버튼 */
-  /* "오늘 근무 / 9월 16일 (수) / 오늘 출근함" — 세 줄이 같은 말을 하고 있었다.
-     날짜와 제목을 한 줄로 합치고, 찍혔다는 사실은 그 앞의 도장 하나가 말한다.
-     아래 날짜 카드와 같은 머리 모양(제목 + 오른쪽 칩)으로 맞춘다. */
-  /* "오늘 근무 / 9월 16일 (수) / 오늘 출근함" — 세 줄이 같은 말을 하고 있었다.
-     날짜와 제목을 한 줄로 합치고, 찍혔다는 사실은 그 앞의 도장 하나가 말한다.
-     그 자리 오른쪽에 이 날 일당을 올린다 — 카드를 한 눈에 읽게 하는 값이
-     그거고, 취소는 버튼 줄로 내려간다(제목 옆 칩은 실수로 누르기 좋다). */
-  /* 오른쪽 위 금액은 "오늘 받을 돈"이다. 일당만 더하고 오버타임을 빼먹으면
-     승인해놓고도 카드가 안 바뀐다 — 2026-09-24에 실제로 그랬다. 같은 계산이
-     캘린더 아래 날짜 카드에도 있는데, 두 벌이 각자 자라다 갈라졌다. */
+  /* 오늘은 한 줄이다(개편안 C). 도장·날짜·근무 시간·일당이 테두리 한 겹 안
+     한 줄에 서고, 할 수 있는 일은 그 아래 칩 줄로 내려간다 — 예전에는
+     카드 안에 제목 줄·근무 줄·버튼 줄이 층층이 쌓여 있었다.
+     오른쪽 금액은 '오늘 받을 돈'이라 오버타임까지 더한 값이다. */
   var todayOts = otOn(today);
   var todayOtMin = todayOts.reduce(function(n, o){ return o.status === 'ok' ? n + otMins(o) : n; }, 0);
   var todayOtMoney = Math.round(todayOtMin * otPerMinute());
   var todayWage = sh ? shiftWage(sh) + (sh.status === 'ok' ? todayOtMoney : 0) : 0;
-  var html = '<div class="pay-row">' + (sh ? payStampIcon() : '') +
-    '<b class="t-card">' + esc(payDateLabel(today)) + ' · ' + esc(t('payToday')) + '</b>' +
-    (sh ? '<span class="t-money" style="margin-left:auto">' + esc(fmtVnd(todayWage)) + '</span>' : '') +
-    '</div>';
+  var lvT = leaveOn(today);
+  var sub = '', right = '', mark = '';
   if (!payStarted(today)){
-    /* .empty-note는 50px 패딩짜리 빈 화면용이라, 한 줄 알림에 쓰면 카드가
-       손바닥만 해진다 */
-    html += '<div class="pay-line"><span>' +
-      esc(t('payNotStartedTpl').replace('{d}', payDateLabel(payroll().startDate).replace(/\s*\(.*\)$/, ''))) + '</span></div>';
-  } else if (leaveOn(today)){
-    /* 오늘이 연차면 도장 버튼을 내밀지 않는다 — 눌러도 서버가 거절한다 */
-    var lvT = leaveOn(today);
-    html += '<div class="pay-line"><span>' + esc(t('leaveLabel')) +
-      (lvT.status !== 'ok' ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
-      '<span class="t-money">' + esc(fmtVnd(payroll().leavePay)) + '</span></div>';
-  } else if (!sh){
+    sub = t('payNotStartedTpl').replace('{d}', payDateLabel(payroll().startDate).replace(/\s*\(.*\)$/, ''));
+  } else if (lvT){
+    mark = '<span class="ok">\u2713</span>';
+    sub = t('leaveLabel') + (lvT.status !== 'ok' ? ' · ' + t('payRequested') : '');
+    right = fmtVnd(payroll().leavePay);
+  } else if (sh){
+    mark = '<span class="ok">\u2713</span>';
+    sub = shiftTimeLabel(sh) + ' · ' +
+      fmtWorkDur(shiftMins(sh) !== null ? shiftMins(sh) : stdWorkMin()) +
+      ((!sh.start && !sh.end && fmtTime(sh.at)) ? ' · ' + t('payStampShortTpl').replace('{t}', fmtTime(sh.at)) : '') +
+      (sh.status === 'pending' ? ' · ' + t('payPending') : '');
+    right = fmtVnd(todayWage);
+  } else {
+    sub = t('payNotStampedYet');
+  }
+  var html = '<div class="sec-h">' + esc(t('payToday')) + '</div>' +
+    '<div class="pay-todayrow pay-row">' + mark +
+      '<span class="t"><b>' + esc(payDateLabel(today)) +
+        (sh || lvT ? ' · ' + esc(lvT ? t('leaveLabel') : t('payWorkTime')) : '') + '</b>' +
+        '<span>' + esc(sub) + '</span></span>' +
+      (right ? '<span class="v t-money">' + esc(right) + '</span>' : '') +
+    '</div>';
+  /* 도장은 오늘 치지 않았을 때만. 큰 버튼 하나 — 내니가 아침에 누르는 그것이다. */
+  if (payStarted(today) && !sh && !lvT){
     html += '<button type="button" class="pay-stamp-btn" id="pay-stamp">' + esc(t('payStamp')) + '</button>';
     if (state.lang !== 'vi') html += '<div class="pay-vi" style="text-align:center">Điểm danh hôm nay</div>';
-  } else {
-    if (sh.status === 'pending') html += '<div class="pay-chip soft">' + esc(t('payPending')) + '</div>';
-    /* 근무 시간은 도장 찍은 바로 그 자리에서 고친다. 캘린더 아래 날짜 카드에만
-       두었더니 도장은 맨 위에서 찍고 수정은 한참 스크롤해야 해서, 있는 줄도
-       모르고 지나쳤다. */
+  }
+  /* 오버타임은 제 줄로. 근무 시간 범위에 합치면 쭉 이어 일한 것처럼 읽히는데,
+     오버타임은 출근 전에도 붙고 여러 토막일 수도 있다. */
+  todayOts.forEach(function(o){
+    var oPend = o.status === 'pending';
+    html += '<div class="pay-line"><span>' + esc(t('otTitle')) +
+      (oPend ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') +
+      (otCarriesOut(o.date) ? ' <span class="pay-chip quiet">' + esc(t('payOtNext')) + '</span>' : '') + '</span>' +
+      '<div class="pay-val"><span class="t-value' + (oPend ? ' is-quiet' : '') + '">' +
+        esc(fmtVnd(otMins(o) * otPerMinute())) + '</span>' +
+      '<span class="t-caption">' + esc(otWhen(o)) + '</span>' +
+      '<span class="t-caption">' + esc(otCalc(o)) + '</span></div></div>';
+  });
+  /* 할 수 있는 일은 칩 줄로 */
+  if (sh){
     var todayLocked = !!paidPeriod(periodOf(today).from, periodOf(today).to);
-    var tEdited = !!(sh.start || sh.end), tPend = tEdited && sh.timeStatus !== 'ok';
-    /* 도장 누른 시각은 급여와 무관한데 카드의 첫 줄이었다 — 근무 줄의
-       캡션으로 내린다. 줄 하나가 통째로 사라지고, 카드가 세 줄에서 한 줄이 된다. */
-    /* 큰 글씨 자리는 언제나 금액이다. 근무 줄만 시간이 크고 오버타임 줄은
-       금액이 커서, 같은 카드 안에서 눈이 두 가지 단위를 오갔다 — 시간은
-       캡션으로 내린다. */
-    var tQuiet = tPend || sh.status !== 'ok';
-    html += '<div class="pay-line"' + (todayOts.length ? '' : ' style="padding-bottom:0"') + '><span>' + esc(t('payWorkTime')) +
-      (tPend ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
-      '<div class="pay-val"><span class="t-value' + (tQuiet ? ' is-quiet' : '') + '">' +
-        esc(fmtVnd(sh.status === 'ok' ? shiftWage(sh) : payroll().daily)) + '</span>' +
-      /* 근무 시간과 도장 누른 시각은 서로 다른 것이다 — 한 줄에 점으로
-         이어붙이면 어디까지가 근무인지 눈이 한 번 더 짚어야 한다. 줄을 나눈다. */
-      '<span class="t-caption">' + esc(shiftTimeLabel(sh)) + ' · ' +
-        esc(fmtWorkDur(shiftMins(sh) !== null ? shiftMins(sh) : stdWorkMin())) + '</span>' +
-      (fmtTime(sh.at) ? '<span class="t-caption">' + esc(t('payStampAt')) + ' ' +
-        esc(fmtTime(sh.at)) + '</span>' : '') + '</div></div>';
-    /* 오버타임은 근무 아래 제 줄로 선다. 근무 시간 범위에 합쳐 07:00→20:00으로
-       적으면 쭉 이어서 일한 것처럼 읽히는데, 오버타임은 출근 전에도 붙을 수
-       있고 여러 토막일 수도 있다. 합쳐지는 것은 금액 — 오른쪽 위 한 곳이다. */
-    todayOts.forEach(function(o){
-      var oPend = o.status === 'pending';
-      html += '<div class="pay-line"' + (o === todayOts[todayOts.length-1] ? ' style="padding-bottom:0"' : '') +
-        '><span>' + esc(t('otTitle')) +
-        (oPend ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') +
-        (otCarriesOut(o.date) ? ' <span class="pay-chip quiet">' + esc(t('payOtNext')) + '</span>' : '') + '</span>' +
-        '<div class="pay-val"><span class="t-value' + (oPend ? ' is-quiet' : '') + '">' +
-          esc(fmtVnd(otMins(o) * otPerMinute())) + '</span>' +
-        '<span class="t-caption">' + esc(otWhen(o)) + '</span>' +
-        '<span class="t-caption">' + esc(otCalc(o)) + '</span></div></div>';
-    });
-    /* 한 줄에 파란 글씨는 하나. 주 동작(근무 시간)만 파랑, 나머지는 중립. */
-    html += '<div class="pay-actions">';
+    html += '<div class="pay-chips">';
     if (!todayLocked){
-      html += '<button type="button" class="pay-textbtn" id="pay-time-today">' +
+      html += '<button type="button" id="pay-time-today">' +
         esc(sh.start || sh.end ? t('payEditTimes') : t('paySetEnd')) + '</button>';
     }
-    html += '<button type="button" class="pay-textbtn quiet" id="pay-ot-today">' +
-      esc(t('payAddOt')) + '</button>';
+    html += '<button type="button" id="pay-ot-today">' + esc(t('payAddOt')) + '</button>';
     if (canTouch(sh.by) || sh.status === 'pending'){
-      html += '<button type="button" class="pay-textbtn quiet" id="pay-unstamp">' +
-        esc(t('payStampCancel')) + '</button>';
+      html += '<button type="button" id="pay-unstamp">' + esc(t('payStampCancel')) + '</button>';
     }
     html += '</div>';
   }
@@ -11025,12 +11164,6 @@ function payShiftMonth(delta){
   var d = new Date(Number(mk.slice(0,4)), Number(mk.slice(5,7)) - 1 + delta, 1);
   state.payMonth = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
   renderPayCalendar();
-}
-/* 출근 표시에 발달 기록의 별을 빌려 쓰면 "오늘의 첫 뒤집기"처럼 읽힌다.
-   찍힌 도장 하나면 된다. */
-function payStampIcon(){
-  return '<span class="pay-ico" aria-hidden="true"><svg viewBox="0 0 24 24">' +
-    '<circle cx="12" cy="12" r="8.6"/><path d="M8.3 12.3l2.6 2.6 4.8-5.2"/></svg></span>';
 }
 function payDateLabel(ds){
   var d = new Date(ds + 'T00:00:00');
@@ -11103,14 +11236,17 @@ function renderPayLeaveYear(){
   var box = document.getElementById('pay-leave-year');
   if (!box) return;
   var st = leaveStat(toDateValue());
-  box.innerHTML = '<div class="pay-line"><div class="grow">' +
-    '<div class="t-value">' + esc(t('leaveUsedTpl').replace('{y}', st.year)
-      .replace('{total}', st.total).replace('{n}', st.used)) + '</div>' +
-    '<div class="pay-sub">' + esc(st.waiting
-        ? t('leaveWaitingTpl').replace('{n}', st.waiting)
-        : t('leaveResetHint')) + '</div></div>' +
-    '<span class="t-money" style="color:var(--ok-fg)">' +
-      esc(t('leaveLeftTpl').replace('{n}', st.left)) + '</span></div>';
+  /* 남은 연차가 초록 큰 글씨로 금액보다 세게 나와 있었다. 숫자 블록으로
+     내리고, 쓴 날은 점으로 — 몇 개 남았는지가 세어보지 않아도 보이게. */
+  var dots = '';
+  for (var i = 0; i < st.total; i++) dots += '<i' + (i < st.used ? ' class="used"' : '') + '></i>';
+  box.innerHTML = '<div class="sec-h">' + esc(t('leaveYearTitle')) +
+      '<span class="r">' + esc(st.waiting
+        ? t('leaveWaitingTpl').replace('{n}', st.waiting) : t('leaveResetHint')) + '</span></div>' +
+    '<div class="leave-box"><div class="t">' +
+      '<b>' + esc(t('leaveUsedShortTpl').replace('{total}', st.total).replace('{n}', st.used)) + '</b>' +
+      '<div class="leave-dots">' + dots + '</div></div>' +
+    '<div class="n"><b>' + st.left + '</b><span>' + esc(t('leaveLeftWord')) + '</span></div></div>';
 }
 /* 내니 폰의 "엄마 승인 기다리는 중". 엄마 폰에는 승인할 것 카드가 이미 있다. */
 function renderPayMine(){
@@ -11174,11 +11310,12 @@ function renderPayCalendar(){
   if (legEl){
     var hasWait = readShifts().some(function(x){ return x.date.slice(0,7) === mk && x.status !== 'ok'; }) ||
                   readLeaves().some(function(x){ return x.date.slice(0,7) === mk && x.status !== 'ok'; });
-    legEl.innerHTML = esc(t('payCalHint')) + ' · ' +
-      '<i style="background:var(--fg)"></i>' + esc(t('payLegendOn')) +
-      ' <i style="background:var(--ok-fg)"></i>' + esc(t('leaveLabel')) +
-      (hasWait ? ' <i style="background:transparent;border:1.5px solid var(--muted-2)"></i>' + esc(t('payLegendWait')) : '') +
-      ' <i style="background:var(--primary-weak-fg,var(--primary))"></i>' + esc(t('otTitle'));
+    legEl.innerHTML = '<span>' + esc(t('payCalHint')) + '</span>' +
+      '<span><i style="background:var(--muted-2)"></i>' + esc(t('payLegendOn')) + '</span>' +
+      '<span><i style="background:var(--c-wean)"></i>' + esc(t('leaveLabel')) + '</span>' +
+      (hasWait ? '<span><i style="background:transparent;box-shadow:inset 0 0 0 1.5px var(--muted-2)"></i>' +
+        esc(t('payLegendWait')) + '</span>' : '') +
+      '<span><i style="background:var(--primary)"></i>' + esc(t('otTitle')) + '</span>';
   }
   var firstDow = new Date(y, mo - 1, 1).getDay();
   var days = lastDayOf(y, mo);
@@ -11196,11 +11333,12 @@ function renderPayCalendar(){
        확정이라는 규칙 하나로 읽힌다. */
     var mark = lv ? '<i class="pay-dot leave' + (lv.status === 'pending' ? ' pending' : '') + '"></i>'
              : sh ? '<i class="pay-dot' + (sh.status === 'pending' ? ' pending' : '') + '"></i>' : '';
+    if (okOt || pendOt) mark += '<i class="pay-dot ot"' + (pendOt && !okOt ? ' style="opacity:.45"' : '') + '></i>';
     cells += '<button type="button" class="gcal-day' +
       (ds === todayStr ? ' is-today' : '') + (ds === sel ? ' is-sel' : '') +
       (payStarted(ds) ? '' : ' is-dim') + '" data-payday="' + ds + '">' +
-      '<span class="gcal-num">' + d + '</span>' + mark +
-      ((okOt || pendOt) ? '<span class="pay-ot"' + (pendOt && !okOt ? ' style="opacity:.45"' : '') + '>+</span>' : '') +
+      '<span class="gcal-num">' + d + '</span>' +
+      '<span class="pay-marks">' + mark + '</span>' +
     '</button>';
   }
   grid.innerHTML = cells;
@@ -11355,66 +11493,73 @@ function renderPayPeriodCard(){
   var today = toDateValue();
   var pr = periodOf(today);
   /* 아직 시작 전이면 오늘이 낀 기간은 존재한 적이 없는 기간이다. 0 ₫짜리
-     카드와 "입금 완료로 표시" 버튼을 띄우는 대신 첫 기간을 보여준다. */
+     화면과 "입금 완료로 표시" 버튼을 띄우는 대신 첫 기간을 보여준다. */
   var start = payroll().startDate;
   if (pr.to < start) pr = periodOf(start);
   var tot = periodTotals(pr.from, pr.to);
   var already = paidPeriod(pr.from, pr.to);
   var dleft = Math.round((new Date(pr.payday + 'T00:00:00') - new Date(today + 'T00:00:00')) / 86400000);
-  /* 금액이 먼저, 근거는 그 아래 같은 규칙의 줄로. 기간·근무일·오버타임을
-     한 줄에 점으로 이어붙이면 390px에서 두 줄로 접히고, 어느 숫자가 무엇인지
-     읽는 사람이 다시 짚어야 한다. */
   var oMin = already ? already.otMin : tot.otMin;
   var days = already ? already.days : tot.days;
   var amt = already ? already.amount : tot.amount;
-  /* 날짜가 세 가지 스타일로 적혀 있었다: 제목 옆 D-14(12/400/연회색),
-     그 아래 지급일(14/600/회색), 행의 기간(15/700/검정). 셋 다 "언제"인데.
-     이제 지급일은 제목이 말하고(t-card), 기간·근무일은 캡션 한 줄로 내려간다.
-     D-14는 내니가 읽는 화면에서 아무 뜻이 없어서 말로 적는다. */
   var oMoney = Math.round(oMin * otPerMinute());
   var lvDays = already ? (already.leaveDays || 0) : tot.leaveDays;
   var lvMoney = lvDays * payroll().leavePay;
-  var html = '<div class="pay-row"><b class="t-card">' +
-      esc(t('payDueTitleTpl').replace('{d}', payDateLabel(pr.payday).replace(/\s*\(.*\)$/, ''))) + '</b>' +
-    (already ? '<span class="pay-chip ok" style="margin-left:auto">' + esc(t('payPaidAt').replace('{d}', payDateLabel(already.paidAt.slice(0,10)))) + '</span>'
-      : '<span class="pay-chip' + (dleft < 0 ? ' warn' : '') + '" style="margin-left:auto">' +
-        esc(payDueLabel(dleft)) + '</span>') +
-    '</div>' +
-    '<div class="t-money big' + (amt ? '' : ' is-zero') + '" style="margin:8px 0 2px">' + esc(fmtVnd(amt)) + '</div>' +
-    /* 큰 금액은 지금까지 찍힌 것뿐이다 — 기간이 끝나면 얼마가 될지를
-       그 아래 작게 붙인다. 지나간 날은 기록대로, 남은 날만 정상 근무로. */
-    '<div class="t-caption" style="margin-bottom:10px">' +
-      esc(payDateLabel(pr.from).replace(/\s*\(.*\)$/, '')) + ' – ' +
-      esc(payDateLabel(pr.to).replace(/\s*\(.*\)$/, '')) +
-      (projectionLine(pr.from, pr.to, already)
-        ? '<br>' + projectionLine(pr.from, pr.to, already) : '') + '</div>' +
-    '<div class="pay-line"><span>' + esc(t('payDaysTpl').replace('{n}', days)) + '</span><span class="t-value">' +
-      esc(fmtVnd(Math.max(0, amt - oMoney - lvMoney))) + '</span></div>' +
-    (lvDays ? '<div class="pay-line"><span>' + esc(t('leaveDaysTpl').replace('{n}', lvDays)) + '</span>' +
-      '<span class="t-value">' + esc(fmtVnd(lvMoney)) + '</span></div>' : '') +
-    (oMin ? '<div class="pay-line"><span>' + esc(t('payOtLabel')) + ' ' + esc(fmtWorkDur(oMin)) + '</span>' +
-      '<span class="t-value">' + esc(fmtVnd(oMoney)) + '</span></div>'
-          : '<div class="pay-line"><span>' + esc(t('payOtLabel')) + '</span><span class="t-value is-quiet">—</span></div>');
+  var workMoney = Math.max(0, amt - oMoney - lvMoney);
+  var shortDay = function(ds){ return payDateLabel(ds).replace(/\s*\(.*\)$/, ''); };
+  /* 1. 금액 하나가 화면에서 가장 큰 글자. 그 아래 언제 드리는지 한 줄. */
+  var html = '<div class="pay-money">' +
+    '<div class="n">' + esc(fmtVndNum(amt)) + '<i>₫</i></div>' +
+    '<div class="when"><b>' + esc(already
+        ? t('payPaidShortTpl').replace('{d}', shortDay(already.paidAt.slice(0,10)))
+        : t('payGiveOnTpl').replace('{d}', shortDay(pr.payday))) + '</b>' +
+      (already ? '' : '<span>' + esc(payDueLabel(dleft)) + '</span>') + '</div></div>';
+  /* 2. 기간이 얼마나 찼는지 — 지나간 날 / 기간 전체 */
+  var dayN = periodDayCount(pr.from, pr.to);
+  var gone = Math.min(dayN, Math.max(0, Math.round(
+    (new Date((today < pr.to ? today : pr.to) + 'T00:00:00') - new Date(pr.from + 'T00:00:00')) / 86400000) + 1));
+  html += '<div class="pay-prog"><div class="bar"><i style="width:' +
+      (dayN ? Math.round(gone / dayN * 1000) / 10 : 0) + '%"></i></div>' +
+    '<div class="lab"><span>' + esc(shortDay(pr.from)) + ' – ' + esc(shortDay(pr.to)) + '</span>' +
+      '<span>' + esc(t('payProgTpl').replace('{a}', days).replace('{b}', dayN)) + '</span></div></div>';
+  /* 3. 금액을 이루는 것 — 테두리 한 겹 안에. 빈 항목도 남긴다. */
+  html += '<div class="sec-h">' + esc(t('payCalcTitle')) + '</div>' +
+    '<div class="calc">' +
+      '<div class="r"><span class="k">' + esc(t('payCalcWork')) +
+        '<em>' + esc(days ? t('payCalcWorkTpl').replace('{n}', days).replace('{w}', fmtVndNum(payroll().daily)) : t('payNoneYet')) + '</em></span>' +
+        '<span class="v' + (days ? '' : ' zero') + '">' + esc(days ? fmtVndNum(workMoney) : '—') + '</span></div>' +
+      '<div class="r"><span class="k">' + esc(t('payOtLabel')) +
+        '<em>' + esc(oMin ? fmtWorkDur(oMin) : t('payNoneYet')) + '</em></span>' +
+        '<span class="v' + (oMin ? '' : ' zero') + '">' + esc(oMin ? fmtVndNum(oMoney) : '—') + '</span></div>' +
+      '<div class="r"><span class="k">' + esc(t('leaveLabel')) +
+        '<em>' + esc(lvDays ? t('leaveDaysTpl').replace('{n}', lvDays) : t('payNoneThisPeriod')) + '</em></span>' +
+        '<span class="v' + (lvDays ? '' : ' zero') + '">' + esc(lvDays ? fmtVndNum(lvMoney) : '—') + '</span></div>' +
+      '<div class="tot"><span class="k">' + esc(already ? t('payTotalLabel') : t('paySoFar')) + '</span>' +
+        '<span class="v">' + esc(fmtVnd(amt)) + '</span></div>' +
+    '</div>';
+  /* 큰 금액은 지금까지 찍힌 것뿐이다 — 기간이 끝나면 얼마가 될지를 계산
+     블록 바로 밑에 한 줄로. 막대는 '며칠 찼나'만 말하고 '그래서 얼마'는
+     말하지 않는다. 지나간 날은 기록대로, 남은 날만 정상 근무로 센다. */
+  var proj = projectionLine(pr.from, pr.to, already);
+  if (proj) html += '<div class="pay-proj">' + proj + '</div>';
   /* 이 숫자들이 어느 날에서 나왔는지 — 엄마도 내니도 열 수 있다 */
-  html += '<button type="button" class="pp-open" id="pay-bydays">' +
-    esc(t('payByDay')) + '<span class="r-chev">›</span></button>';
-  /* 줄 것이 없으면 입금 버튼도 없다 — 0 ₫을 입금 완료로 표시하는 화면은
-     아무 뜻이 없고, 파란 버튼이 화면에서 제일 큰 것이 되어 버린다 */
-  if (isMasterUser() && (already || tot.days || tot.otMin)){
-    /* 지급일 전에는 조용한 버튼, 지급일이 오면 파란 버튼 — 화면에서 제일 큰
-       것이 언제나 "입금 완료"일 이유는 없다 */
-    /* 이 버튼 글자가 18/800이라 일당 금액과 같은 등급이었다. 회색 배경까지
-       더해져서 화면에서 제일 큰 덩어리가 '입금 완료로 표시'였다 — 돈 화면의
-       주인공은 금액이어야 한다. 지급일 전에는 테두리 칸, 지급일이 오면 파란 버튼. */
-    html += '<div class="pay-actions">' + (already
-      ? '<button type="button" class="pay-textbtn quiet" id="pay-unpaid">' + esc(t('payPaidUndo')) + '</button>'
-      : (dleft <= 0
-          ? '<button type="button" class="btn primary" id="pay-paid">' + esc(t('payMarkPaid')) + '</button>'
-          : '<button type="button" class="pay-textbtn" id="pay-paid">' + esc(t('payMarkPaid')) + '</button>')) + '</div>';
-  }
+  html += '<div class="pay-chips"><button type="button" class="go" id="pay-bydays">' +
+    esc(t('payByDay')) + ' ›</button></div>';
   box.innerHTML = html;
   var byd = document.getElementById('pay-bydays');
   if (byd) byd.addEventListener('click', function(){ openPayPeriodPage(pr.from, pr.to); });
+  renderPaySettleFoot(pr, already, tot);
+}
+/* 바닥 버튼. 한 기간에 한 번 누르는 일이라 화면 가운데가 아니라 바닥이다.
+   줄 것이 없으면 버튼도 없다 — 0 ₫을 입금 완료로 표시하는 화면은 뜻이 없다. */
+function renderPaySettleFoot(pr, already, tot){
+  var foot = document.getElementById('pay-settle-foot');
+  if (!foot) return;
+  if (!isMasterUser() || !(already || tot.days || tot.otMin)){ foot.innerHTML = ''; return; }
+  foot.className = 'pay-foot';
+  foot.innerHTML = already
+    ? '<button type="button" class="btn ghost" id="pay-unpaid">' + esc(t('payPaidUndo')) + '</button>'
+    : '<button type="button" class="btn primary" id="pay-paid">' + esc(t('payMarkPaid')) + '</button>';
   var b1 = document.getElementById('pay-paid');
   if (b1) b1.addEventListener('click', function(){
     apiMutate('markPaid', { from: pr.from, to: pr.to, payday: pr.payday })
@@ -11425,6 +11570,10 @@ function renderPayPeriodCard(){
   if (b2) b2.addEventListener('click', function(){
     apiMutate('unmarkPaid', { id: already.id }).then(renderPay).catch(function(e){ toast(e.message); });
   });
+}
+/* 기간이 며칠짜리인가 — 막대의 분모 */
+function periodDayCount(from, to){
+  return Math.round((new Date(to + 'T00:00:00') - new Date(from + 'T00:00:00')) / 86400000) + 1;
 }
 function renderPayHistory(){
   var box = document.getElementById('pay-history');
@@ -11440,58 +11589,50 @@ function renderPayHistory(){
     pr = prevPeriod(pr);
   }
   if (!rows.length){
-    var t0 = document.querySelector('#tab-pay [data-i18n="payPast"]');
-    if (t0) t0.textContent = t('payPast');
-    box.innerHTML = '<div class="empty-note" style="padding:18px 0">' +
+    box.innerHTML = '<div class="sec-h">' + esc(t('payPast')) + '</div>' +
+      '<div class="empty-note" style="padding:18px 0">' +
       esc(t('payNoPast').replace('{d}', payDateLabel(cur.payday))) + '</div>';
     return;
   }
-  /* 미입금 칩이 전부 주황이라 화면이 늘 경고처럼 읽혔다. 주황은 진짜 급한 것
-     — 지급일이 지난 것 — 에만. 나머지는 중립 칩으로 두고, 대신 섹션 제목이
-     "안 드린 게 N건 있어요"로 사실을 먼저 말한다. 색으로 소리치는 대신. */
-  var todayStr = toDateValue();
-  var unpaidN = rows.filter(function(r){ return !r.paid; }).length;
-  /* 주황은 한 화면에 하나. 밀린 기간이 셋이면 셋 다 주황이 되어 다시 경고
-     화면이 된다 — 제일 오래된 것 하나만 칠한다. 다음에 보낼 것이 그거고,
-     몇 건인지는 이미 제목이 말한다. */
-  var oldestUnpaid = null;
-  rows.forEach(function(r){ if (!r.paid && r.pr.payday < todayStr) oldestUnpaid = r.pr.from; });
-  var titleEl = document.querySelector('#tab-pay [data-i18n="payPast"]');
-  if (titleEl) titleEl.textContent = unpaidN
-    ? t('payUnpaidCountTpl').replace('{n}', unpaidN) : t('payPast');
-  box.innerHTML = rows.map(function(r){
-    var overdue = !r.paid && r.pr.payday < todayStr;
-    return '<div class="pay-line" data-pp-open="' + esc(r.pr.from) + '"><div class="grow">' +
-      '<div class="t-value">' + esc(payDateLabel(r.pr.from).replace(/\s*\(.*\)$/, '')) + ' – ' +
-        esc(payDateLabel(r.pr.to).replace(/\s*\(.*\)$/, '')) + '</div>' +
-      '<div class="t-caption">' + esc(t('payDaysTpl').replace('{n}', r.tot.days)) +
-        (r.tot.otMin ? ' · ' + esc(t('payOtTpl').replace('{t}', fmtWorkDur(r.tot.otMin))) : '') + '</div></div>' +
-      '<div class="pay-val"><span class="t-money">' + esc(fmtVnd(r.tot.amount)) + '</span>' +
-      (r.paid
-        ? '<span class="pay-chip ok">' + esc(t('payPaidAt').replace('{d}', payDateLabel(r.paid.paidAt.slice(0,10)).replace(/\s*\(.*\)$/, ''))) + '</span>'
-        : '<span class="pay-chip' + (r.pr.from === oldestUnpaid ? ' warn' : '') + '" data-pay-period="' + esc(r.pr.from) + '">' +
-          esc(overdue ? t('payOverdueChip') : t('payUnpaidSoft')) + '</span>') +
-      '</div><span class="r-chev">›</span></div>';
+  var shortDay = function(ds){ return payDateLabel(ds).replace(/\s*\(.*\)$/, ''); };
+  var daysLate = function(ds){
+    return Math.round((new Date(today + 'T00:00:00') - new Date(ds + 'T00:00:00')) / 86400000);
+  };
+  /* 안 드린 게 있으면 그 사실이 맨 위 띠로 올라온다 — 섹션 제목에 작게
+     붙어 있으면 눈에 안 걸린다. 색으로 소리치는 대신 합계와 가장 오래된
+     건이 며칠 지났는지를 적는다. */
+  var unpaid = rows.filter(function(r){ return !r.paid; });
+  var html = '';
+  if (unpaid.length){
+    var sum = unpaid.reduce(function(n, r){ return n + r.tot.amount; }, 0);
+    var oldest = unpaid[unpaid.length - 1];
+    html += '<div class="pay-warn"><b>' +
+      esc(t('payUnpaidBandTpl').replace('{n}', unpaid.length)) + '</b>' +
+      '<span>' + esc(t('payUnpaidBandSubTpl').replace('{sum}', fmtVnd(sum))
+        .replace('{n}', Math.max(0, daysLate(oldest.pr.payday)))) + '</span></div>';
+  }
+  html += '<div class="sec-h">' + esc(t('payPast')) + '</div>';
+  html += rows.map(function(r){
+    var late = !r.paid && r.pr.payday < today;
+    var pill = r.paid
+      ? '<span class="pay-pill paid">' + esc(t('payPaidShortTpl').replace('{d}', shortDay(r.paid.paidAt.slice(0,10)))) + '</span>'
+      : (late
+          ? '<span class="pay-pill late">' + esc(t('payOverdueTpl').replace('{n}', daysLate(r.pr.payday))) + '</span>'
+          : '<span class="pay-pill soon">' + esc(payDueLabel(-daysLate(r.pr.payday))) + '</span>');
+    return '<button type="button" class="prow" data-pp-open="' + esc(r.pr.from) + '">' +
+      '<span class="t"><b>' + esc(shortDay(r.pr.from)) + ' – ' + esc(shortDay(r.pr.to)) + '</b>' +
+        '<span>' + esc(t('payDaysTpl').replace('{n}', r.tot.days)) +
+          (r.tot.otMin ? ' · ' + esc(t('payOtTpl').replace('{t}', fmtWorkDur(r.tot.otMin))) : '') + '</span></span>' +
+      '<span class="p-amt"><b>' + esc(fmtVndNum(r.tot.amount)) + '</b>' + pill + '</span>' +
+      '<span class="chev">\u203a</span></button>';
   }).join('');
-  /* 지난 기간도 눌러서 날짜별로 본다. 입금 완료 칩은 제 일이 따로 있으니
-     그 위를 누른 것은 이동으로 치지 않는다. */
+  box.innerHTML = html;
   $$('[data-pp-open]', box).forEach(function(row){
-    row.addEventListener('click', function(e){
-      if (e.target.closest('[data-pay-period]')) return;
+    row.addEventListener('click', function(){
       var pr2 = periodOf(row.dataset.ppOpen);
       openPayPeriodPage(pr2.from, pr2.to);
     });
   });
-  if (isMasterUser()){
-    $$('[data-pay-period]', box).forEach(function(b){
-      b.addEventListener('click', function(){
-        var f = b.dataset.payPeriod, pr2 = periodOf(f);
-        apiMutate('markPaid', { from: pr2.from, to: pr2.to, payday: pr2.payday })
-          .then(function(){ renderPay(); toast(t('savedToast')); })
-          .catch(function(e){ toast(e.message); });
-      });
-    });
-  }
 }
 /* ---- 쓰기 ---- */
 /* ---- 출근 도장 — 화면 먼저, 서버 나중 ----
@@ -11739,7 +11880,6 @@ function renderGrowth(){
   } else {
     renderWeightCard();
     renderHeightCard();
-    renderMilestoneCard();
   }
   /* the day page is its own depth; keep it fresh while it is open — but
      NEVER re-render mid-edit: the draft (and half-typed rows) live in the
@@ -13262,11 +13402,26 @@ function detectLang(text){
    a new device does not greet whoever picked it up with three months of
    unread memos.
    ================================================================ */
+/* 안 읽음 표시는 **이 폰 + 이 사람**의 것이다.
+   예전에는 폰 하나에 물 자국 하나(bbl_memo_seen)였다. 엄마 폰에서 내니로
+   바꿔 보면 엄마가 이미 읽어 둔 자국을 그대로 물려받아 전부 읽은 것처럼
+   보였고(2026-10-20), 반대로 거기서 메모 탭을 떠나면 엄마 쪽 자국까지
+   같이 찍혔다. 이름마다 따로 둔다 — 내니 폰은 내니 자국 하나뿐이라
+   지금까지 제대로 보였던 것뿐이다.
+   이 폰에서 처음 보는 이름은 **하루 전**부터 센다. 지금 시각으로 찍으면
+   방금 전에 온 메모까지 읽은 것이 되고(그녀가 본 것이 그거다), 0으로 두면
+   몇 달 치가 한꺼번에 '새 메모'로 쏟아진다. 하루면 오늘 온 것만 뜬다. */
+var MEMO_SEEN_GRACE_MS = 24 * 60 * 60 * 1000;
+function memoSeenKey(){
+  var who = canonAuthorName(state.author) || '';
+  return who ? (LS_MEMO_SEEN + ':' + who) : LS_MEMO_SEEN;
+}
 function memoSeenAt(){
-  var v = localStorage.getItem(LS_MEMO_SEEN);
+  var k = memoSeenKey();
+  var v = localStorage.getItem(k);
   if (!v){
-    v = new Date().toISOString();
-    try { localStorage.setItem(LS_MEMO_SEEN, v); } catch(e){}
+    v = new Date(Date.now() - MEMO_SEEN_GRACE_MS).toISOString();
+    try { localStorage.setItem(k, v); } catch(e){}
   }
   return v;
 }
@@ -13314,9 +13469,10 @@ function markMemosRead(){
   memoUnreadShown = {};
   if (memoVisitSeenAt){
     try {
-      var cur = localStorage.getItem(LS_MEMO_SEEN);
+      var k2 = memoSeenKey();
+      var cur = localStorage.getItem(k2);
       /* ISO strings order lexically; the watermark never walks backwards */
-      if (!cur || cur < memoVisitSeenAt) localStorage.setItem(LS_MEMO_SEEN, memoVisitSeenAt);
+      if (!cur || cur < memoVisitSeenAt) localStorage.setItem(k2, memoVisitSeenAt);
     } catch(e){}
   }
   memoVisitSeenAt = null;
@@ -16965,10 +17121,22 @@ function wireEvents(){
     resetSchedForm();
     renderGrowthDay();
   });
-  /* the + on the calendar: today's page, pen already in hand */
+  /* the + on the calendar: today's page, pen already in hand.
+     고른 날이 있으면 그 날이다 — 아래에 펴 놓고 + 를 누르는 길이 자연스럽다. */
   document.getElementById('gcal-fab').addEventListener('click', function(){
-    state.gDate = toDateValue();
+    state.gDate = state.gDate || toDateValue();
     openGrowthDay('edit');
+  });
+  /* 그래프의 + : 측정 입력칸을 편다(카드 한가운데에 늘 펴져 있던 것) */
+  document.getElementById('gw-fab').addEventListener('click', function(){
+    var form = document.getElementById('weight-form');
+    if (!form) return;
+    form.hidden = !form.hidden;
+    if (!form.hidden){
+      form.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      var kg = document.getElementById('weight-kg');
+      if (kg) kg.focus();
+    }
   });
 
   // growth tab: calendar/graph switch, month nav, day inputs

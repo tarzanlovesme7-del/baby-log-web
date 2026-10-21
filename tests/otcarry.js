@@ -66,7 +66,7 @@ const PREV_END = (() => { const d = new Date(Y, M-1, PR.from); d.setDate(d.getDa
   let p = await open();
   const card = await p.evaluate(()=>document.getElementById('pay-period').textContent);
   /* 정산 카드의 오버타임 줄은 이 기간 몫만 — 넘어온 2시간뿐이다 */
-  check('이 기간 오버타임은 앞 기간에서 넘어온 것만', /오버타임 2시간/.test(card), true);
+  check('이 기간 오버타임은 앞 기간에서 넘어온 것만', /오버타임\s*2시간/.test(card), true);
   check('...지급일 오버타임 3시간은 안 들어간다', /오버타임 5시간|오버타임 3시간/.test(card), false);
 
   await p.click('#pay-bydays'); await p.waitForTimeout(900);

@@ -64,7 +64,7 @@ const money = s => { const m = String(s).replace(/[^\d]/g,''); return m ? Number
 
   // ═══ 엄마 ═══
   let p = await open('엄마');
-  const cardAmount = money(await p.evaluate(()=>document.querySelector('#pay-period .t-money.big').textContent));
+  const cardAmount = money(await p.evaluate(()=>document.querySelector('#pay-period .pay-money .n').textContent));
   check('정산 카드에 "날짜별로 보기"가 있다',
     await p.evaluate(()=>!!document.getElementById('pay-bydays')), true);
   await p.click('#pay-bydays'); await p.waitForTimeout(800);

@@ -63,15 +63,22 @@ const money = s => { const m = String(s).replace(/[^\d]/g,''); return m ? Number
 
   /* 카드 안에서 큰 글씨 자리의 단위가 줄마다 달라지면 안 된다 — 근무 줄은
      시간이, 오버타임 줄은 금액이 커서 눈이 두 단위를 오갔다(2026-09-24). */
+  /* 개편(2026-10-20) 뒤 근무는 '오늘 줄' 상자 안으로 올라갔다 — 그 줄의 큰
+     글씨는 오늘 받을 돈(일당 + 오버타임)이고, 오버타임은 그 아래 제 줄로 남는다.
+     규칙은 그대로다: 큰 글씨 자리의 단위가 줄마다 달라지면 안 된다. */
   const bigOnEachLine = await p.evaluate(()=>
     [...document.querySelectorAll('#pay-today .pay-line')].map(l=>{
       const v = l.querySelector('.pay-val .t-value');
       return v ? v.textContent.trim() : null;
     }).filter(Boolean));
   check('줄마다 큰 글씨는 전부 금액이다',
-    bigOnEachLine.length >= 2 && bigOnEachLine.every(x=>/₫|đ/.test(x)), true);
-  check('...근무 줄의 큰 글씨가 일당이다', money(bigOnEachLine[0]), 800000);
-  check('...오버타임 줄의 큰 글씨가 오버타임 금액이다', money(bigOnEachLine[1]), 315000);
+    bigOnEachLine.length >= 1 && bigOnEachLine.every(x=>/₫|đ/.test(x)), true);
+  check('...오늘 줄의 큰 글씨가 일당+오버타임이다', money(await topMoney(p)), 1115000);
+  check('...오버타임 줄의 큰 글씨가 오버타임 금액이다', money(bigOnEachLine[0]), 315000);
+  /* 근무 시간은 오늘 줄의 캡션에 남아 있다 */
+  check('...오늘 줄에 근무 시간이 적혀 있다',
+    await p.evaluate(()=>/\d{1,2}:\d\d/.test(
+      document.querySelector('#pay-today .pay-todayrow .t span').textContent)), true);
 
   check('오버타임 캡션에 산식이 적혀 있다',
     await p.evaluate(()=>{ const x=document.getElementById('pay-today').textContent;
