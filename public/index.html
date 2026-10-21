@@ -2401,8 +2401,15 @@
      scrolled instead of staying docked: it was never fixed to the screen at
      all. Making the footer a plain flex row at the end of a column removes
      the problem rather than working around it. */
+  /* ── 스크롤은 **패널 자신**이 한다 ──────────────────────────────
+     안쪽 .fp-body 가 스크롤하는 구조였는데, iOS 에서 그 상자가 손가락에
+     반응하지 않았다(막대는 뜨고 내용은 그대로. 2026-10-20~21, 네 번 고쳐도
+     그대로). 같은 앱 안에서 **시트(.sheet)는 멀쩡히 스크롤된다** — 시트는
+     제가 직접 스크롤하는 fixed 상자다. 구조를 거기에 맞춘다:
+     패널이 스크롤하고, 머리줄과 바닥 버튼은 sticky 로 붙여 둔다. */
   .fullpage{
-    position:fixed; inset:0; z-index:45; background:var(--bg); overflow:hidden;
+    position:fixed; inset:0; z-index:45; background:var(--bg);
+    overflow-y:auto; overflow-x:hidden; scrollbar-width:none;
     display:flex; flex-direction:column;
     transform:translateX(100%); transition:transform .28s cubic-bezier(.32,.72,0,1);
     /* 넓은 화면에서 본문만 끝없이 늘어나던 자리. #app은 560에서 멈추는데
@@ -2424,6 +2431,7 @@
      고르면 아래로 안 내려가던 것이 그 증상이었다(2026-10-20~21).
      none 과 translateX(100%) 사이도 똑같이 애니메이션되므로 들어오는
      움직임은 그대로다. */
+  .fullpage::-webkit-scrollbar{ display:none; }
   .fullpage.show{ transform:none; visibility:visible;
     transition:transform .28s cubic-bezier(.32,.72,0,1), visibility 0s; }
   /* while it slides away it is still a full-screen layer sitting over the list,
@@ -2434,7 +2442,7 @@
      and without a positioned ancestor here it centres itself against the whole
      panel and lands in the middle of the form */
   .fp-head{
-    position:relative; flex:0 0 auto; z-index:1; display:flex; align-items:center; gap:10px;
+    position:sticky; top:0; flex:0 0 auto; z-index:2; display:flex; align-items:center; gap:10px;
     padding:calc(12px + env(safe-area-inset-top)) 10px 14px 6px; background:var(--surface);
   }
   /* plain arrow, no circle chip behind it */
@@ -2461,9 +2469,8 @@
        translateX 로 밀고 들어온다) 안에서 이 속성이 붙은 스크롤 상자가 손가락에
        반응하지 않는 오래된 버그가 있다. 막대는 뜨는데 내용이 안 움직였다
        (2026-10-20 이유식 식단표). */
-    flex:1 1 auto; min-height:0; overflow-y:auto; touch-action:pan-y;
+    flex:1 1 auto; min-height:0; overflow:visible;
     padding:20px 16px 24px; display:flex; flex-direction:column; gap:20px;
-    scrollbar-width:none;
   }
   /* 세로 flex의 자식은 기본이 flex-shrink:1 이다 — 내용이 화면보다 길면
      브라우저가 **먼저 자식들을 눌러서** 맞춘다. 눌린 만큼 스크롤할 것이
@@ -2479,7 +2486,7 @@
      button sat on top of whatever field happened to be underneath, which read
      as a rendering bug rather than a deliberate control. */
   .fp-foot{
-    flex:0 0 auto;
+    position:sticky; bottom:0; flex:0 0 auto; z-index:2;
     padding:12px 16px calc(12px + env(safe-area-inset-bottom));
     background:var(--surface); border-top:1px solid var(--border);
   }
@@ -3260,7 +3267,7 @@
      대비가 1.5:1 밖에 안 나와 밝은 데서 버튼이 안 보인다 — 그건 목업을
      그릴 때 내가 놓친 것이지 고른 값이 아니다. */
   .wn-fab{
-    position:absolute; z-index:4;
+    position:fixed; z-index:46;
     right:16px; bottom:calc(18px + env(safe-area-inset-bottom));
     width:54px; height:54px; border-radius:50%; border:0; padding:0;
     background:var(--wn-fab); color:var(--wn-pill-fg);
@@ -15262,6 +15269,19 @@ function weanWeek7Html(ds){
    같은 것을 먹이고 새 재료가 들어가는 날이 알레르기를 보는 날이라,
    달력에서 알약이 끊기는 자리가 곧 봐야 할 날이다.
    같은 메뉴가 이어지면 알약 하나로 며칠을 가로지른다. */
+/* 고른 날 패널을 화면 안으로. 렌더 직후에는 아직 자리가 안 잡혀 있어서
+   다음 프레임에 잰다. 패널이 화면보다 길면 패널 머리를 위에 붙인다. */
+function scrollWeanDayIntoView(){
+  requestAnimationFrame(function(){
+    var panel = document.querySelector('#wn-body .wd-panel');
+    var sc = document.getElementById('fp-wean');
+    if (!panel || !sc) return;
+    var top = panel.getBoundingClientRect().top - sc.getBoundingClientRect().top;
+    var want = sc.scrollTop + top - 8;          /* 8px 만 남기고 위로 */
+    var max = sc.scrollHeight - sc.clientHeight;
+    sc.scrollTo({ top: Math.max(0, Math.min(want, max)), behavior: 'smooth' });
+  });
+}
 function weanMonthOf(ds){ return (ds || toDateValue()).slice(0, 7); }
 function weanMonthAdd(ym, n){
   var y = Number(ym.slice(0, 4)), m = Number(ym.slice(5, 7)) - 1 + n;
@@ -16738,7 +16758,13 @@ function wireWean(){
       state.weanPick = el.dataset.wnPick;
       state.weanMonth = weanMonthOf(state.weanPick);
       state.weanCalOpen = false;
-      renderWean(); return;
+      renderWean();
+      /* 고른 날의 식단이 화면 밖에 있으면 직접 데려다 준다 — 날짜를 누른
+         이유가 그 아래를 보려는 것이다(2026-10-21 "스크롤을 아래로
+         보내줄까?"). 달력은 그대로 한 주로 접는다: 펼친 채로 두면 한 달이
+         위에 깔려서 손으로 되돌아오기가 더 멀다. */
+      scrollWeanDayIntoView();
+      return;
     }
     if ((el = ev.target.closest('[data-wn-pickadd]'))){
       state.weanPick = weanDateAdd(state.weanPick || toDateValue(), Number(el.dataset.wnPickadd));
