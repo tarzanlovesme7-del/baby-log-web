@@ -226,6 +226,34 @@ const MEALS = [{ name:'아침',
   } else console.log('SKIP  이번 기간엔 정산 날짜별 화면이 없다');
   await p2p.close();
 
+  /* 탭 줄이 머리말 위로 올라타지 않는가.
+
+     맨 위의 탭 줄(.htabs:first-child)은 패널의 위 패딩만큼 자기를
+     끌어올려(margin-top:-16px) 머리말에 딱 붙는다. 정산·새싹 탭을 흰
+     종이로 바꾸면서 그 패널의 위 패딩을 0으로 깎았더니, 탭 줄이 16px
+     더 올라가 머리말 글자 위에 겹쳤다 — "출근도장, 정산탭이 헤더랑
+     겹침"(2026-10-23). 눈으로는 색이 같아서 잘 안 보인다. 그래서 잰다:
+     탭 줄의 윗변 == 머리말의 아랫변. */
+  const ph = await b.newPage({ viewport:{ width:390, height:900 } });
+  ph.on('pageerror', e => errs.push(String(e)));
+  await ph.addInitScript(()=>{ localStorage.setItem('bbl_author','엄마'); localStorage.setItem('bbl_lang','ko'); });
+  await ph.goto(BASE + '/'); await ph.waitForTimeout(2000);
+  const tabGap = async (tab) => {
+    await ph.evaluate(t => { const b = document.querySelector('.tab-btn[data-tab="' + t + '"]'); if (b) b.click(); }, tab);
+    await ph.waitForTimeout(600);
+    return ph.evaluate(t => {
+      const panel = document.getElementById('tab-' + t);
+      const tabs = panel && panel.firstElementChild;
+      if (!tabs || tabs.className.indexOf('htabs') < 0) return 'no-htabs';
+      return Math.round(tabs.getBoundingClientRect().top -
+        document.querySelector('header.top').getBoundingClientRect().bottom);
+    }, tab);
+  };
+  check('정산 탭 줄이 머리말에 겹치지 않는다', await tabGap('pay'), 0);
+  check('새싹 탭 줄이 머리말에 겹치지 않는다', await tabGap('growth'), 0);
+  check('통계 탭 줄도 같은 자리다', await tabGap('stats'), 0);
+  await ph.close();
+
   for (const k of Object.keys((await st()).weanPlan || {})) await mut('deleteWeanDay', { date:k, actor:'엄마' });
   for (const e of ((await st()).entries || []).filter(e => e.type === 'wean'))
     await mut('deleteEntry', { id:e.id, actor:'엄마' });

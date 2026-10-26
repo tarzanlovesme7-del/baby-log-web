@@ -2171,7 +2171,11 @@
      놓고, 테두리는 **값을 담는 덩어리**에만 둔다 — 계산 블록, 연차 블록,
      오늘 줄. 나머지는 여백이 가른다.
      ============================================================ */
-  #tab-pay{ background:var(--surface); gap:0; padding:0 16px 10px; }
+  /* 위 패딩은 **16을 그대로 둔다**. 맨 위의 탭 줄(.htabs:first-child)이
+     `margin-top:calc(var(--pad) * -1)`로 그 패딩만큼 스스로를 끌어올려
+     머리말에 붙는 구조다. 여기서 0으로 깎았더니 탭 줄이 16px 더 올라가
+     머리말 위로 올라탔다 — '출근도장, 정산탭이 헤더랑 겹침'(2026-10-23). */
+  #tab-pay{ background:var(--surface); gap:0; padding:var(--pad, 16px) 16px 10px; }
   #tab-pay .card{ background:transparent; margin:0; padding:0; }
   /* 목업 h4 */
   .sec-h{ font-size:var(--fs-caption); font-weight:var(--fw-strong); color:var(--muted);
@@ -2293,7 +2297,8 @@
      달력이 끝나고 900px이 회색으로 비어 있었다. 날짜를 누르면 **그 자리
      바로 아래**에 그날이 펴진다 — 식단표에서 쓰는 방식 그대로.
      ============================================================ */
-  #tab-growth{ background:var(--surface); gap:0; padding:0 16px 10px; }
+  /* 위 패딩 16은 그대로 — 탭 줄이 그만큼 스스로를 끌어올린다(#tab-pay 참고) */
+  #tab-growth{ background:var(--surface); gap:0; padding:var(--pad, 16px) 16px 10px; }
   /* 떠 있는 +(.memo-fab-wrap)는 바닥에서 78px에 고정이다 — 그만큼 비워두지
      않으면 마지막 줄이 그 밑에 깔린다(이유식 탭과 같은 이유). */
   #tab-growth{ padding-bottom:64px; }
@@ -2438,6 +2443,32 @@
      so for a third of a second after closing a record every touch underneath
      was landing on nothing. The closed panel takes no input at all. */
   .fullpage:not(.show){ pointer-events:none; }
+
+  /* ===== 전체 화면은 상자가 아니라 **문서**를 굴린다 =====
+     고정(position:fixed)된 상자 안에 스크롤을 두면 iOS 사파리에서 막대는
+     뜨는데 손가락이 안 먹는 일이 있다. 이유식 식단표에서 날짜를 고르면
+     아래로 안 내려가던 것이 그 증상이었고, 안쪽 상자를 굴려 보고(.fp-body)
+     바깥 상자를 굴려 보고(.fullpage) transform 을 없애 보고 -webkit-
+     overflow-scrolling 을 떼 봐도 여섯 번 다 그대로였다(2026-10-20~21).
+     그래서 상자를 굴리는 일을 아예 그만둔다: 전체 화면이 열려 있는 동안
+     그 화면이 문서의 전부가 되고(아래 목록은 접어 둔다), 굴러가는 것은
+     문서 자신이다. 페이지 스크롤은 iOS에서 고장 난 적이 없다.
+     닫을 때 목록이 보고 있던 자리로 되돌리는 일은 openFullpage 짝이 한다. */
+  body.fp-open{ height:auto; min-height:100%; }
+  body.fp-open #app{ padding-bottom:0; min-height:0; }
+  /* 시트와 그 뒤 막은 전체 화면 **위에** 뜨는 물건이라 그대로 둔다 */
+  body.fp-open #app > :not(.fullpage):not(.sheet):not(.scrim):not(.ptr){ display:none; }
+  .fullpage.show{
+    position:absolute; top:0; left:0; right:0; bottom:auto;
+    min-height:100vh; min-height:100dvh; overflow:visible;
+  }
+  /* 사진은 다르다 — 사진 무대가 inset 으로 서기 때문에 화면 높이가
+     그대로(auto 가 아니라) 필요하다. 어차피 넘칠 것이 없는 화면이다. */
+  .fullpage.photo-page.show{ height:100vh; height:100dvh; min-height:0; overflow:hidden; }
+  /* 전체 화면 위에 전체 화면이 또 열리면(식단표 → 하루 고치기) 아래 것은
+     접어 둔다. 둘 다 문서 안에 서면 긴 쪽이 짧은 쪽 밑으로 삐져나온다. */
+  .fullpage.fp-under{ display:none; }
+
   /* position:relative is load-bearing — the h1 inside is absolutely centred,
      and without a positioned ancestor here it centres itself against the whole
      panel and lands in the middle of the form */
@@ -2616,6 +2647,14 @@
   #f-date-box{ display:flex; flex-direction:column; gap:20px; }
   #f-date-box > *{ flex:0 0 auto; }
   #f-date-box > .ent-h:first-child{ margin-top:0; }
+  /* 제목의 아래 -11px 은 **.fp-body 의 gap:20 이 있다는 전제**다(20 − 11 = 9).
+     '똥 상태'는 응가가 있었을 때만 묻느라 감싸개(#f-poop-wrap) 안에 들어
+     있는데, 감싸개 안에는 그 gap 이 없어서 상쇄될 것이 없었다 — 칩 줄이
+     제목 위로 11px 올라타 '똥 상태' 글자를 덮었다(2026-10-25).
+     조건부로 숨기는 칸을 또 만들면 같은 일이 난다. 감싸개는 바깥과 같은
+     리듬을 그대로 가져간다. */
+  #f-poop-wrap{ display:flex; flex-direction:column; gap:20px; }
+  #f-poop-wrap > *{ flex:0 0 auto; }
   /* ± 는 목업에서 36px 동그라미 — 테두리만 있고 속은 비었다. 회색으로 채운
      알약은 시각 고르개의 '−10분/+10분' 쪽 부품이다(시각 목업 .tedit .chip). */
   .amt .scrub-top .scrub-chip{
@@ -12138,6 +12177,10 @@ function setPageSummary(key){
   if (key === 'screen') return t('theme') + ' · ' + t(state.theme === 'light' ? 'themeLight' : state.theme === 'dark' ? 'themeDark' : 'themeAuto');
   return '';
 }
+/* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
+   엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
+   올릴 때마다 이 줄 하나만 고치면 된다. */
+var BUILD = '20261025a';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -12157,7 +12200,8 @@ function renderSetIndex(){
     '<button type="button" class="row-item set-row" id="set-wean">' +
     '<div class="grow"><div class="r-label">' + esc(t('wnOpenTitle')) + '</div>' +
     '<div class="r-sub">' + esc(weanSetSummary()) + '</div></div>' +
-    '<span class="r-chev">\u203a</span></button></div>';
+    '<span class="r-chev">\u203a</span></button></div>' +
+  '<div style="text-align:center;padding:20px 0 4px;font-size:var(--fs-micro);color:var(--muted-2)">build ' + BUILD + '</div>';
   $$('[data-set-go]', box).forEach(function(b){
     b.addEventListener('click', function(){ openSetPage(b.dataset.setGo); });
   });
@@ -13373,8 +13417,43 @@ function deleteEntryDetail(){
 /* ================================================================
    FULL PAGE: ANNOUNCEMENT
    ================================================================ */
-function openFullpage(id){ document.getElementById(id).classList.add('show'); document.body.style.overflow='hidden'; }
-function closeFullpage(id){ document.getElementById(id).classList.remove('show'); document.body.style.overflow=''; }
+/* 열려 있는 전체 화면들 — 바닥이 맨 처음 연 것. 겹쳐 열릴 수 있다
+   (식단표 → 하루 고치기, 기록 상세 → 사진). */
+var fpStack = [];
+/* 전체 화면을 열기 전에 뒤 목록이 보고 있던 자리. 문서를 굴려서 전체
+   화면을 보여 주므로, 닫을 때 이 자리로 되돌려 놓지 않으면 목록이 맨
+   위로 튀어 오른다. */
+var fpSavedY = 0;
+function openFullpage(id){
+  var el = document.getElementById(id);
+  if (!el || fpStack.indexOf(id) >= 0) return;
+  if (!fpStack.length){
+    fpSavedY = window.scrollY || document.documentElement.scrollTop || 0;
+    document.body.classList.add('fp-open');
+  } else {
+    document.getElementById(fpStack[fpStack.length - 1]).classList.add('fp-under');
+  }
+  fpStack.push(id);
+  el.classList.add('show');
+  window.scrollTo(0, 0);
+}
+function closeFullpage(id){
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('show');
+  var i = fpStack.indexOf(id);
+  if (i >= 0) fpStack.splice(i, 1);
+  if (fpStack.length){
+    document.getElementById(fpStack[fpStack.length - 1]).classList.remove('fp-under');
+    window.scrollTo(0, 0);
+  } else {
+    document.body.classList.remove('fp-open');
+    /* 목록을 다시 세우기 전에는 문서 높이가 아직 0에 가깝다 — 그대로
+       scrollTo 하면 0으로 깎여서 목록이 맨 위로 튄다. 한 번 재 보고 간다. */
+    void document.body.offsetHeight;
+    window.scrollTo(0, fpSavedY);
+  }
+}
 
 /* ================================================================
    MEMO — a shared list. Language detection is a plain Unicode-range check
@@ -15274,12 +15353,14 @@ function weanWeek7Html(ds){
 function scrollWeanDayIntoView(){
   requestAnimationFrame(function(){
     var panel = document.querySelector('#wn-body .wd-panel');
-    var sc = document.getElementById('fp-wean');
-    if (!panel || !sc) return;
-    var top = panel.getBoundingClientRect().top - sc.getBoundingClientRect().top;
-    var want = sc.scrollTop + top - 8;          /* 8px 만 남기고 위로 */
-    var max = sc.scrollHeight - sc.clientHeight;
-    sc.scrollTo({ top: Math.max(0, Math.min(want, max)), behavior: 'smooth' });
+    if (!panel) return;
+    /* 굴러가는 것은 전체 화면 상자가 아니라 문서다(.fullpage.show 참고).
+       머리말이 위에 붙어 있으므로 그 높이만큼은 비워 두고 세운다. */
+    var head = document.querySelector('#fp-wean .fp-head');
+    var pad = (head ? head.getBoundingClientRect().height : 0) + 8;
+    var want = (window.scrollY || 0) + panel.getBoundingClientRect().top - pad;
+    var max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    window.scrollTo({ top: Math.max(0, Math.min(want, max)), behavior: 'smooth' });
   });
 }
 function weanMonthOf(ds){ return (ds || toDateValue()).slice(0, 7); }

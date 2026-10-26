@@ -144,6 +144,23 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
     await p.evaluate(()=>document.getElementById('f-poop-wrap').hidden), false);
   check('...똥 상태가 다섯 개다',
     await p.evaluate(()=>document.querySelectorAll('#f-poop .chip').length), 5);
+  /* 제목이 제 부품에 덮이지 않는가.
+
+     제목(.ent-h)의 아래 여백은 -11px 이다 — .fp-body 의 gap:20 과 더해서
+     9px 이 되라는 뜻이다. '똥 상태'는 응가일 때만 묻느라 감싸개 안에
+     들어 있었고, 감싸개 안에는 그 gap 이 없어서 칩 줄이 제목 위로 11px
+     올라타 글자를 덮었다(2026-10-25). 색이 같아 눈으로는 잘 안 보인다.
+     그래서 **모든** 제목에 대해 바로 아래 부품과의 간격을 잰다. */
+  check('제목이 아래 부품에 덮이지 않는다', await p.evaluate(()=>{
+    const bad = [];
+    document.querySelectorAll('#fp-entry-body .ent-h').forEach(h => {
+      const n = h.nextElementSibling;
+      if (!n || n.hidden || !n.getClientRects().length) return;
+      const gap = Math.round(n.getBoundingClientRect().top - h.getBoundingClientRect().bottom);
+      if (gap < 4) bad.push([h.textContent.trim(), gap]);
+    });
+    return bad;
+  }), []);
   await p.evaluate(()=>document.querySelector('#f-poop [data-val="mucus"]').click());
   await p.click('#fp-entry-save'); await p.waitForTimeout(1400);
   s = await st();
