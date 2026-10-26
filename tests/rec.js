@@ -291,6 +291,21 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
      누르면 그 기록이 아니라 **사진이 전체 화면으로** 열린다. 줄 전체가
      버튼이라 섬네일은 span 이고, 줄은 click 이 아니라 pointerup 으로
      움직인다 — 그래서 '어디를 눌렀나'를 손가락 댄 자리로 본다. */
+  /* 반응은 메모에만 달려 있었다 — 사진만 올린 기록에는 남길 길이 없었다
+     (2026-10-26). 분유 기록에는 메모가 없고 사진만 있다. */
+  check('사진만 있는 줄에도 반응 줄이 있다', await p.evaluate(()=>{
+    const row = [...document.querySelectorAll('.entry-row')].find(r=>r.querySelector('.e-pics'));
+    return !!row && !!row.querySelector('.rx-row') && !row.querySelector('.e-note');
+  }), true);
+  check('...메모도 사진도 없는 줄에는 안 붙는다', await p.evaluate(()=>
+    [...document.querySelectorAll('.entry-row')]
+      .filter(r=>!r.querySelector('.e-pics') && !r.querySelector('.e-note'))
+      .every(r=>!r.querySelector('.rx-row'))), true);
+  check('...반응 줄은 사진 아래다', await p.evaluate(()=>{
+    const row = [...document.querySelectorAll('.entry-row')].find(r=>r.querySelector('.e-pics'));
+    return row.querySelector('.rx-row').getBoundingClientRect().top >=
+      row.querySelector('.e-pics').getBoundingClientRect().bottom - 0.5;
+  }), true);
   check('목록 줄의 섬네일이 커졌다', await p.evaluate(()=>{
     const e = document.querySelector('.e-pic[data-epic]');
     return e ? Math.round(e.getBoundingClientRect().width) >= 64 : 0;

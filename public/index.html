@@ -1055,8 +1055,10 @@
     background:var(--primary-weak-bg); border-color:transparent; color:var(--primary-weak-fg);
   }
   .rx-add{ padding:3px 7px; color:var(--muted-2); }
-  /* tight under the last line of the record, not floated away from it */
-  .entry-row .rx-row{ margin-top:3px; }
+  /* 줄의 맨 아래 — 메모든 사진이든 그 줄에 있는 것 전부에 대한 반응이다.
+     메모 바로 밑에 붙어 있을 때는 3px이었는데, 이제 사진 아래로 내려오므로
+     한 칸 띄운다. */
+  .entry-row .rx-row{ margin-top:7px; }
   /* the one place emoji are the right answer — see REACTION_EMOJI. Sized in
      px rather than em so a chip is the same height whatever the row's type
      size, and given an explicit emoji stack so a phone that has a colour
@@ -1241,19 +1243,40 @@
   .fullpage.photo-page .photo-head{ background:transparent; box-shadow:none; color:#fff; }
   .fullpage.photo-page .photo-head h1{ color:#fff; font-variant-numeric:tabular-nums; }
   .fullpage.photo-page .fp-back{ color:#fff; }
-  .fullpage.photo-page .photo-stage{
-    position:absolute; inset:var(--header-h, 64px) 0 0 0;
-    display:flex; align-items:center; justify-content:center; overflow:hidden;
+  /* 사진 화면에서는 **아무것도 안 굴러간다**. 다른 전체 화면은 문서째
+     굴러가지만(.fullpage.show 참고) 여기는 사진 한 장이 전부라 굴릴 것이
+     없다. 그런데도 위아래로 쭉 늘어났다 돌아오는 탄성(바운스)이 생겼다 —
+     iOS가 '더 굴릴 데 없음'을 그렇게 표현하기 때문이다. 화면을 못 박고
+     (fixed) 탄성을 끄고, 손가락 제스처는 우리가 가져간다(touch-action:none).
+     그래야 좌우로 쓸어 넘기는 것만 남는다(2026-10-26). */
+  .fullpage.photo-page.show{
+    position:fixed; inset:0; height:auto; min-height:0;
+    overflow:hidden; overscroll-behavior:none; touch-action:none;
   }
+  .fullpage.photo-page .photo-stage{
+    position:absolute; inset:var(--header-h, 64px) 0 var(--photo-foot, 0px) 0;
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+    touch-action:none;
+  }
+  /* 넘기는 동안은 사진이 손가락을 따라가고, 손을 떼면 미끄러져 들어온다 */
   .photo-stage img{ max-width:100%; max-height:100%; object-fit:contain; display:block; }
+  .photo-stage img.sliding{ transition:transform .18s ease-out, opacity .18s ease-out; }
+  /* 사진이 한 장뿐이면 화살표 줄이 없고, 그만큼 사진이 더 크게 선다 */
+  .fullpage.photo-page{ --photo-foot:0px; }
+  .fullpage.photo-page.has-nav{ --photo-foot:calc(62px + env(safe-area-inset-bottom)); }
+  /* 화살표 줄 — 사진 아래 */
+  .photo-foot{
+    position:absolute; left:0; right:0; bottom:0; z-index:2;
+    display:flex; align-items:center; justify-content:center; gap:34px;
+    height:62px; padding-bottom:env(safe-area-inset-bottom);
+  }
+  .photo-foot[hidden]{ display:none; }
   .photo-nav{
-    position:absolute; top:50%; transform:translateY(-50%);
-    width:44px; height:44px; border-radius:50%; border:0;
+    width:44px; height:44px; border-radius:50%; border:0; flex:0 0 auto;
     background:rgba(255,255,255,.16); color:#fff; font-size:26px; line-height:1;
     display:flex; align-items:center; justify-content:center; padding:0 0 3px;
   }
-  .photo-nav.prev{ left:10px; }
-  .photo-nav.next{ right:10px; }
+  .photo-nav:active{ background:rgba(255,255,255,.3); }
   .memo-row .m-orig{ font-size:var(--fs-body); font-weight:var(--fw-body); line-height:1.5; color:var(--fg); white-space:pre-wrap; word-break:break-word; }
   .memo-row .m-trans{ font-size:var(--fs-body); font-weight:var(--fw-body); line-height:1.5; color:var(--primary); white-space:pre-wrap; word-break:break-word; }
   .memo-row .m-meta{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
@@ -2497,6 +2520,10 @@
      문서 자신이다. 페이지 스크롤은 iOS에서 고장 난 적이 없다.
      닫을 때 목록이 보고 있던 자리로 되돌리는 일은 openFullpage 짝이 한다. */
   body.fp-open{ height:auto; min-height:100%; }
+  /* 사진 화면이 맨 위에 있는 동안은 문서도 못 움직이게 한다. 굴릴 것이
+     없는데도 위아래로 늘어났다 돌아오는 탄성이 남아 있었다 — 그건 문서의
+     탄성이지 사진 화면의 것이 아니다(2026-10-26 "위 아래 탄성스크롤"). */
+  body.fp-nobounce{ overflow:hidden; overscroll-behavior-y:none; }
   body.fp-open #app{ padding-bottom:0; min-height:0; }
   /* 시트와 그 뒤 막은 전체 화면 **위에** 뜨는 물건이라 그대로 둔다 */
   body.fp-open #app > :not(.fullpage):not(.sheet):not(.scrim):not(.ptr){ display:none; }
@@ -4172,10 +4199,14 @@
       <h1 id="fp-photo-count"></h1>
       <span style="width:30px"></span>
     </div>
-    <div class="photo-stage">
-      <button type="button" class="photo-nav prev" id="fp-photo-prev" aria-label="prev" hidden>‹</button>
+    <div class="photo-stage" id="fp-photo-stage">
       <img id="fp-photo-img" alt="" />
-      <button type="button" class="photo-nav next" id="fp-photo-next" aria-label="next" hidden>›</button>
+    </div>
+    <!-- 화살표는 사진 위가 아니라 아래에. 사진 한가운데를 가리고 있었고,
+         거기가 하필 손가락이 쓸고 지나가는 자리다 -->
+    <div class="photo-foot" id="fp-photo-foot" hidden>
+      <button type="button" class="photo-nav" id="fp-photo-prev" aria-label="prev">‹</button>
+      <button type="button" class="photo-nav" id="fp-photo-next" aria-label="next">›</button>
     </div>
   </div>
 
@@ -8489,9 +8520,7 @@ function entryRowHtml(e, isCont){
   if (e.note){
     noteHtml = '<div class="e-note">'+esc(e.note)+'</div>' +
       (e.noteTranslated ? '<div class="e-note-trans" style="color:'+typeInkColor(meta.color)+'">' +
-        esc(e.noteTranslated)+'</div>' : '') +
-      /* under the words it is answering, tight against them */
-      reactionRowHtml('entry', e.id, e.reactions);
+        esc(e.noteTranslated)+'</div>' : '');
   }
   /* 밤에 몇 번 깼는지는 줄을 열어보지 않아도 보여야 한다 — 아침에 훑는
      사람에게는 그게 그 밤에 대한 요약이다 */
@@ -8516,6 +8545,12 @@ function entryRowHtml(e, isCont){
         : '') +
       '</div>'
     : '';
+  /* 반응은 메모에만 달려 있었다 — 사진만 올린 기록에는 남길 길이 없었다
+     ("메모 없이 사진만 있어도 반응 남길 수 있게 해", 2026-10-26). 남길 것이
+     있는 줄이면(메모든 사진이든) 맨 아래에 반응 줄을 둔다. 아무것도 없는
+     줄까지 + 를 달면 목록이 + 투성이가 된다. */
+  var rxHtml = (e.note || pics.length)
+    ? reactionRowHtml('entry', e.id, e.reactions) : '';
   var locked = !canTouch(e.author);
   return '<div class="entry-swipe'+(locked?' is-locked':'')+'" data-id="'+esc(e.id)+'"'+(locked?' data-locked="1"':'')+'>' +
     (locked ? '' : '<div class="entry-delete-bg" data-swipe-del="'+esc(e.id)+'"><span>'+esc(t('deleteSwipeLabel'))+'</span></div>') +
@@ -8531,7 +8566,7 @@ function entryRowHtml(e, isCont){
       typeIconHtml(meta, 'e-icon', 'color:'+meta.color) +
       '<div class="e-main"><div class="e-title-line"><span class="e-title"'+colorAttr(meta.color)+'>'+esc(title)+'</span>' +
       (subParts.length ? '<span class="e-sub">'+esc(subParts.join(' · '))+'</span>' : '') + '</div>' +
-      wakeChip + noteHtml + picHtml + '</div>' +
+      wakeChip + noteHtml + picHtml + rxHtml + '</div>' +
     '</button>' +
   '</div>';
 }
@@ -12296,7 +12331,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261026b';
+var BUILD = '20261026c';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -13540,6 +13575,13 @@ var fpStack = [];
    화면을 보여 주므로, 닫을 때 이 자리로 되돌려 놓지 않으면 목록이 맨
    위로 튀어 오른다. */
 var fpSavedY = 0;
+/* 맨 위에 있는 것이 사진 화면이면 문서까지 못 움직이게 잠근다 — 거기만
+   굴릴 것이 없는 화면이라, 남아 있는 건 탄성뿐이다. */
+function fpSyncLock(){
+  var top = fpStack.length ? document.getElementById(fpStack[fpStack.length - 1]) : null;
+  document.body.classList.toggle('fp-nobounce',
+    !!(top && top.classList.contains('photo-page')));
+}
 function openFullpage(id){
   var el = document.getElementById(id);
   if (!el || fpStack.indexOf(id) >= 0) return;
@@ -13551,6 +13593,7 @@ function openFullpage(id){
   }
   fpStack.push(id);
   el.classList.add('show');
+  fpSyncLock();
   window.scrollTo(0, 0);
 }
 function closeFullpage(id){
@@ -13559,6 +13602,7 @@ function closeFullpage(id){
   el.classList.remove('show');
   var i = fpStack.indexOf(id);
   if (i >= 0) fpStack.splice(i, 1);
+  fpSyncLock();
   if (fpStack.length){
     document.getElementById(fpStack[fpStack.length - 1]).classList.remove('fp-under');
     window.scrollTo(0, 0);
@@ -14580,15 +14624,72 @@ function renderPhotoViewer(){
   }
   var back = document.getElementById('fp-photo-back');
   if (back) back.setAttribute('aria-label', t('photoClose'));
-  var prev = document.getElementById('fp-photo-prev');
-  var next = document.getElementById('fp-photo-next');
-  if (prev) prev.hidden = viewerPhotos.length < 2;
-  if (next) next.hidden = viewerPhotos.length < 2;
+  /* 화살표는 사진 **아래** 줄에 있다. 한 장뿐이면 줄째로 없애고, 그만큼
+     사진이 더 크게 선다(--photo-foot). */
+  var many = viewerPhotos.length > 1;
+  var foot = document.getElementById('fp-photo-foot');
+  if (foot) foot.hidden = !many;
+  var page = document.getElementById('fp-photo');
+  if (page) page.classList.toggle('has-nav', many);
+  img.classList.remove('sliding');
+  img.style.transform = '';
+  img.style.opacity = '';
 }
 function stepPhotoViewer(d){
   if (viewerPhotos.length < 2) return;
   viewerIndex = (viewerIndex + d + viewerPhotos.length) % viewerPhotos.length;
   renderPhotoViewer();
+}
+/* 좌우로 쓸어 넘기기. 사진이 손가락을 따라가다가, 충분히 끌었으면 그쪽으로
+   미끄러져 나가고 다음 장이 들어온다. 덜 끌었으면 제자리로 돌아온다.
+   위아래는 아무 일도 하지 않는다 — 굴릴 것이 없는 화면이다(CSS 참고). */
+function wirePhotoSwipe(){
+  var stage = document.getElementById('fp-photo-stage');
+  var img = document.getElementById('fp-photo-img');
+  if (!stage || !img) return;
+  var SWIPE = 56;                 /* 이만큼 끌면 '넘긴다' */
+  var down = false, x0 = 0, y0 = 0, dx = 0, axis = null;
+  stage.addEventListener('pointerdown', function(ev){
+    if (viewerPhotos.length < 2) return;
+    if (ev.pointerType === 'mouse' && ev.button !== 0) return;
+    down = true; axis = null; dx = 0; x0 = ev.clientX; y0 = ev.clientY;
+    img.classList.remove('sliding');
+  });
+  stage.addEventListener('pointermove', function(ev){
+    if (!down) return;
+    var mx = ev.clientX - x0, my = ev.clientY - y0;
+    if (axis === null){
+      if (Math.abs(mx) < 6 && Math.abs(my) < 6) return;
+      axis = Math.abs(mx) > Math.abs(my) ? 'x' : 'y';
+      if (axis === 'x' && stage.setPointerCapture){
+        try { stage.setPointerCapture(ev.pointerId); } catch(e){}
+      }
+    }
+    if (axis !== 'x') return;
+    dx = mx;
+    img.style.transform = 'translateX(' + dx + 'px)';
+    /* 끌수록 흐려진다 — 넘어가는 중이라는 것이 손에 읽힌다 */
+    img.style.opacity = String(Math.max(0.35, 1 - Math.abs(dx) / 320));
+  });
+  function release(){
+    if (!down) return;
+    down = false;
+    if (axis !== 'x'){ axis = null; return; }
+    var go = Math.abs(dx) >= SWIPE ? (dx < 0 ? 1 : -1) : 0;
+    axis = null;
+    if (!go){
+      img.classList.add('sliding');
+      img.style.transform = ''; img.style.opacity = '';
+      return;
+    }
+    /* 끌던 쪽으로 마저 밀어낸 다음 다음 장을 그 자리에 세운다 */
+    img.classList.add('sliding');
+    img.style.transform = 'translateX(' + (go > 0 ? -120 : 120) + 'px)';
+    img.style.opacity = '0';
+    setTimeout(function(){ stepPhotoViewer(go); }, 150);
+  }
+  stage.addEventListener('pointerup', release);
+  stage.addEventListener('pointercancel', release);
 }
 
 /* a memo being edited via its ⋯: the compose sheet reopens with the words,
@@ -17558,6 +17659,7 @@ function wireEvents(){
   document.getElementById('fp-photo-back').addEventListener('click', function(){ closeFullpage('fp-photo'); });
   document.getElementById('fp-photo-prev').addEventListener('click', function(){ stepPhotoViewer(-1); });
   document.getElementById('fp-photo-next').addEventListener('click', function(){ stepPhotoViewer(1); });
+  wirePhotoSwipe();
 
   document.getElementById('memo-compose-sheet-close').addEventListener('click', function(){ closeSheet('memo-compose-sheet'); });
   document.getElementById('scrim4').addEventListener('click', function(){ closeSheet('memo-compose-sheet'); });
