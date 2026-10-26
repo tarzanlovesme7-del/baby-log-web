@@ -47,6 +47,8 @@ const LONG = '내니 쉬는 날 — 오전에 소아과 다녀오기';
   }
   await mut('addHeight', { date: D(0), cm: 71.5, author: '엄마' });
   await mut('addSchedule', { date: D(1), endDate: D(1), time: '10:30', text: LONG, color: 'rose', author: '엄마', lang: 'ko' });
+  /* 사흘짜리 — 띠가 기간만큼 가로지르는지 보려면 하루짜리로는 모자란다 */
+  await mut('addSchedule', { date: D(2), endDate: D(4), text: '한국', color: 'sky', author: '엄마', lang: 'ko' });
 
   const p = await b.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2 });
   p.on('pageerror', e => errs.push(String(e)));
@@ -58,21 +60,31 @@ const LONG = '내니 쉬는 날 — 오전에 소아과 다녀오기';
   await p.click('.tab-btn[data-tab="growth"]'); await p.waitForTimeout(900);
 
   /* ── 달력 ────────────────────────────────────────────────── */
-  check('달력 칸에는 점만 — 일정 알약이 칸 안에 없다',
-    await p.evaluate(() => document.querySelectorAll('#gcal-grid .gcal-evt').length), 0);
   check('오늘 칸에 기록 점이 섰다',
     await p.evaluate(d => {
       const c = document.querySelector('[data-gday="' + d + '"]');
       return c ? c.querySelectorAll('.gcal-marks .gm').length : 0;
     }, D(0)) >= 3, true);
-  /* 칸 안에서 '내니 …'로 잘리던 것 — 아래 줄에서는 끝까지 보인다 */
-  check('일정은 달력 아래 줄로, 글자가 안 잘린다',
+  /* 일정은 날짜 **바로 밑에** 띠로 — 식단표와 같은 방식(2026-10-26).
+     달력 아래 줄로 내려가 있던 자리다. */
+  check('일정은 달력 아래가 아니라 칸 밑에 선다',
+    await p.evaluate(() => [!document.getElementById('gcal-sched'),
+      document.querySelectorAll('#gcal-grid .gcal-ev').length > 0]), [true, true]);
+  /* 여러 날짜리는 기간만큼 가로지른다. 시작 칸은 오늘이 무슨 요일이냐에
+     따라 달라지므로 폭만 센다 — 주를 넘으면 조각이 둘로 갈리니 합이 3. */
+  check('여러 날 일정은 기간만큼 가로지른다',
+    await p.evaluate(() => [...document.querySelectorAll('#gcal-grid .gcal-ev')]
+      .filter(x => x.textContent.trim() === '한국')
+      .reduce((n, x) => n + Number(/span (\d+)/.exec(x.style.gridColumn)[1]), 0)), 3);
+  /* 하루짜리는 칠하지 않는다 — 한 칸에 칠하면 '내니 …'가 되고, 옆칸까지
+     칠하면 사흘짜리로 읽힌다. 점으로 날을 짚고 글자는 옆으로 흘린다. */
+  check('하루짜리는 점 + 글자 + 시각이고, 글자가 안 잘린다',
     await p.evaluate(t => {
-      const e = document.querySelector('#gcal-sched .e');
-      return !!e && e.textContent.indexOf(t) >= 0;
-    }, LONG), true);
-  check('...시각도 같이 적힌다',
-    await p.evaluate(() => /10:30/.test(document.getElementById('gcal-sched').textContent)), true);
+      const e = document.querySelector('#gcal-grid .gcal-ev.one');
+      if (!e) return 'none';
+      return [!!e.querySelector('i.evd'), /10:30/.test(e.textContent),
+        e.textContent.indexOf(t) >= 0, getComputedStyle(e).backgroundColor];
+    }, LONG), [true, true, true, 'rgba(0, 0, 0, 0)']);
 
   /* ── 그날이 아래에 펴진다 ─────────────────────────────────── */
   check('누르기 전에는 그날 칸이 닫혀 있다',

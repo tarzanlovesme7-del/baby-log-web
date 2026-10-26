@@ -46,8 +46,10 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
   await p.goto(BASE + '/');
   await p.waitForTimeout(1900);
 
+  /* 줄의 한가운데가 아니라 **시각 칸**을 누른다. 사진이 붙은 줄은 한가운데가
+     섬네일이고, 섬네일을 누르면 기록이 아니라 사진이 열린다(2026-10-26). */
   const openRow = async (ko) => {
-    await p.click(`.entry-row:has-text("${ko}")`);
+    await p.click(`.entry-row:has-text("${ko}") .e-time`);
     await p.waitForTimeout(800);
   };
   const back = async () => { await p.click('#fp-entry-back'); await p.waitForTimeout(500); };
@@ -284,6 +286,30 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
   check('...기록에 사진 참조가 붙는다', (feed.photos || []).length, 1);
   check('...서버에 바이트도 있다',
     (await fetch(BASE + '/api/photo/' + feed.photos[0].id)).status, 200);
+
+  /* 목록 줄의 섬네일 — 44px이던 것을 키웠고(2026-10-26 "크기 키워주고"),
+     누르면 그 기록이 아니라 **사진이 전체 화면으로** 열린다. 줄 전체가
+     버튼이라 섬네일은 span 이고, 줄은 click 이 아니라 pointerup 으로
+     움직인다 — 그래서 '어디를 눌렀나'를 손가락 댄 자리로 본다. */
+  check('목록 줄의 섬네일이 커졌다', await p.evaluate(()=>{
+    const e = document.querySelector('.e-pic[data-epic]');
+    return e ? Math.round(e.getBoundingClientRect().width) >= 64 : 0;
+  }), true);
+  check('...줄 밖으로 삐져나가지 않는다', await p.evaluate(()=>{
+    const pics = document.querySelector('.e-pics');
+    const main = pics.closest('.e-main');
+    return [...pics.children].every(c =>
+      c.getBoundingClientRect().right <= main.getBoundingClientRect().right + 0.5);
+  }), true);
+  await p.click('.e-pic[data-epic="0"]'); await p.waitForTimeout(900);
+  check('...누르면 기록이 아니라 사진이 열린다', await p.evaluate(()=>[
+    document.getElementById('fp-photo').classList.contains('show'),
+    document.getElementById('fp-entry').classList.contains('show')]), [true, false]);
+  await p.click('#fp-photo-back'); await p.waitForTimeout(700);
+  check('...닫으면 목록으로 돌아온다', await p.evaluate(()=>[
+    document.getElementById('fp-photo').classList.contains('show'),
+    document.body.classList.contains('fp-open')]), [false, false]);
+
   await openRow('분유');
   check('다시 열면 사진이 그대로 있다',
     await p.evaluate(()=>document.querySelectorAll('#f-pics .ep').length), 1);

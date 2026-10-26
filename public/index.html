@@ -781,13 +781,24 @@
     color:var(--primary-weak-fg); font-family:inherit;
     font-size:var(--fs-caption); font-weight:var(--fw-strong); text-align:center;
   }
-  /* 타임라인 줄에 붙는 사진 섬네일 — 메모 줄의 사진과 같은 크기 체계 */
-  .e-pics{ display:flex; gap:5px; margin-top:7px; }
-  .e-pic{ width:44px; height:44px; border-radius:8px; overflow:hidden; flex:0 0 auto;
-    background:var(--surface-2); display:block; }
+  /* 타임라인 줄에 붙는 사진 섬네일.
+     44px이었다 — 사진이 있다는 '표시'로는 되지만 얼굴이 누구 얼굴인지는
+     안 보였다. 72px이면 줄에서도 사진으로 읽힌다(셋 + 여백이 e-main 폭에
+     그대로 들어간다). 눌러서 전체 화면으로 여는 길도 여기서 난다. */
+  /* 칸은 셋까지. 넷째부터는 '+N' 칩이 셋째 자리를 가져간다 — 72px 고정으로
+     넷을 세웠더니 줄 폭(224px)을 넘어 마지막 칸이 화면 밖으로 잘렸다.
+     폭은 줄에 맞춰 나눠 갖되 84px을 넘지 않는다(한 장만 있는 줄에서 사진이
+     혼자 커지지 않게). */
+  .e-pics{ display:flex; gap:6px; margin-top:8px; }
+  .e-pic{ flex:1 1 0; min-width:0; max-width:84px; aspect-ratio:1 / 1;
+    border-radius:10px; overflow:hidden; background:var(--surface-2); display:block; }
   .e-pic img{ width:100%; height:100%; object-fit:cover; display:block; }
-  .e-pic.more{ display:grid; place-items:center; font-size:var(--fs-micro);
+  .e-pic.more{ display:grid; place-items:center; font-size:var(--fs-caption);
     font-weight:var(--fw-strong); color:var(--muted); }
+  /* 줄 전체가 버튼이라 섬네일은 버튼이 아니다(버튼 안의 버튼은 안 된다).
+     눌린 느낌만 손으로 준다 — 누르면 기록이 아니라 사진이 열린다. */
+  .e-pic[data-epic]{ cursor:zoom-in; }
+  .e-pic[data-epic]:active{ opacity:.72; }
   /* 타임라인 줄에 붙는 "밤에 3번 깸" */
   .e-wake-chip{
     display:inline-block; margin-top:4px;
@@ -1673,9 +1684,43 @@
   .gcal-day.today{ box-shadow:inset 0 0 0 1.5px var(--primary); }
   .gcal-day.selected{ background:color-mix(in srgb, var(--primary) 10%, var(--surface)); }
   .gcal-day:empty{ visibility:hidden; }
-  /* 일정은 칸 안이 아니라 달력 아래 한 줄로 내려갔다(개편안 H) — 칸이 좁아
-     '내니 …', '소아과…'처럼 말줄임표만 남았다. 몇 개 없는 것이라 줄로 세우면
-     글자가 끝까지 보인다. 색 이름(.evc-*)은 그 줄이 그대로 쓴다. */
+
+  /* ── 일정은 날짜 바로 밑에, 기간을 가로지르는 띠로 ──────────────
+     2026-10-20에 칸 안의 알약을 달력 아래 줄로 내렸다. 칸이 좁아 '내니 …'
+     처럼 말줄임표만 남았기 때문이다. 그런데 그러면 "그 일정이 **며칠부터
+     며칠까지**인가"를 날짜로 읽어야 한다 — 달력을 보는 이유가 그건데.
+     그래서 식단표가 쓰는 방식으로 바꾼다(2026-10-26 "이유식처럼 날짜 바로
+     밑에"): 한 칸짜리 알약이 아니라 **기간만큼 가로지르는 띠**다. 열흘짜리
+     일정은 한 주를 통째로 쓰므로 글자가 잘릴 일이 없고, 어디서 시작해
+     어디서 끝나는지가 그림으로 읽힌다.
+     주는 '숫자 줄 + 띠 줄'로 나뉜다. 띠 줄은 날짜 칸과 같은 7열 격자라
+     grid-column 으로 '몇 번째 칸에서 몇 칸짜리'를 그대로 적을 수 있다. */
+  .gcal-grid.gcal-weeks{ display:flex; flex-direction:column; gap:6px; }
+  .gcal-nums{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); }
+  .gcal-slots{ display:flex; flex-direction:column; gap:2px; padding-top:2px; }
+  /* 일정이 없는 주도 같은 높이를 쓴다 — 안 그러면 달을 넘길 때 달력이 출렁인다 */
+  .gcal-bars{ display:grid; grid-template-columns:repeat(7,minmax(0,1fr));
+    column-gap:2px; min-height:18px; }
+  .gcal-ev{
+    display:block; width:100%; min-width:0; border:0; font-family:inherit; text-align:left;
+    border-radius:6px; padding:1px 5px; font-size:11px; font-weight:var(--fw-medium);
+    line-height:1.45; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  /* 지난 주에서 이어져 왔으면 왼쪽 모서리를, 다음 주로 이어지면 오른쪽
+     모서리를 깎는다 — 띠가 잘린 자리인지 끝난 자리인지 보인다 */
+  .gcal-ev.cont{ border-top-left-radius:2px; border-bottom-left-radius:2px; }
+  .gcal-ev.goes{ border-top-right-radius:2px; border-bottom-right-radius:2px; }
+  /* 하루짜리는 띠로 칠하지 않는다. 한 칸은 50px 남짓이라 '소아…'가 되고,
+     그렇다고 옆칸까지 칠하면 사흘짜리 일정으로 읽힌다. 그래서 점 하나로
+     날을 짚고 글자는 **비어 있는 옆칸 위로 흘려보낸다** — 칠한 데가 없으니
+     없는 날까지 걸쳐 있다고 읽힐 일이 없다. */
+  .gcal-ev.one{ background:transparent; color:var(--fg); padding-left:0;
+    display:flex; align-items:center; gap:4px; overflow:visible; }
+  .gcal-ev.one em{ font-style:normal; color:var(--muted-2); font-variant-numeric:tabular-nums;
+    flex:0 0 auto; }
+  .gcal-ev.one span{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+  /* 색 이름(.evc-*)은 주간 보기·그날 줄과 같은 것을 쓴다 */
   .evc-sky{ background:var(--ev-sky-bg); color:var(--ev-sky-fg); }
   .evc-mint{ background:var(--ev-mint-bg); color:var(--ev-mint-fg); }
   .evc-peach{ background:var(--ev-peach-bg); color:var(--ev-peach-fg); }
@@ -2299,18 +2344,15 @@
      ============================================================ */
   /* 위 패딩 16은 그대로 — 탭 줄이 그만큼 스스로를 끌어올린다(#tab-pay 참고) */
   #tab-growth{ background:var(--surface); gap:0; padding:var(--pad, 16px) 16px 10px; }
+  /* 탭 줄 바로 밑에 '월간/주간' 알약이 턱 붙어 있었다 — 이 패널은 gap:0 이라
+     탭 줄과 내용 사이에 아무것도 없었다(2026-10-26). 통계 탭이 쓰는 18을
+     그대로 쓴다. 세 가지 보기(캘린더·모아보기·그래프)가 다 같은 자리에서 시작한다. */
+  #tab-growth > .ins-panel{ margin-top:18px; }
   /* 떠 있는 +(.memo-fab-wrap)는 바닥에서 78px에 고정이다 — 그만큼 비워두지
      않으면 마지막 줄이 그 밑에 깔린다(이유식 탭과 같은 이유). */
   #tab-growth{ padding-bottom:64px; }
   #tab-growth .card{ background:transparent; margin:0; padding:0; }
   #tab-growth .gcal-card{ padding:0; }
-  /* 일정 줄 — 날짜 + 글자. 색은 달력이 쓰던 것과 같은 이름(.evc-*) */
-  .gc-sched{ display:flex; flex-direction:column; gap:5px; margin-top:11px; }
-  .gc-sched .e{ display:flex; align-items:center; gap:8px; border-radius:9px;
-    padding:6px 10px; font-size:var(--fs-micro); font-weight:var(--fw-medium);
-    border:0; width:100%; text-align:left; font-family:inherit; }
-  .gc-sched .e b{ font-variant-numeric:tabular-nums; font-weight:var(--fw-strong); flex:0 0 auto; }
-  .gc-sched .e span{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   /* 그날 — 달력 바로 아래에 펴진다 */
   .gday-panel{ border-top:1px solid var(--border); margin-top:14px; padding-top:4px; }
   .gday-panel .hd{ display:flex; align-items:baseline; gap:10px; padding:10px 0 2px; }
@@ -3651,11 +3693,9 @@
           <button type="button" class="log-arrow" id="gcal-next">›</button>
         </div>
         <div class="gcal-dow" id="gcal-dow"></div>
-        <div class="gcal-grid" id="gcal-grid"></div>
+        <div class="gcal-grid gcal-weeks" id="gcal-grid"></div>
         <div id="gweek-list" hidden></div>
       </div>
-      <!-- 일정은 칸 안이 아니라 여기 — 글자가 끝까지 보인다 -->
-      <div class="gc-sched" id="gcal-sched"></div>
       <!-- built in renderGrowthCalendar: a dot and its word, so the grid's
            marks can actually be read -->
       <div class="hint-line gcal-legend" id="gcal-legend"></div>
@@ -8459,15 +8499,21 @@ function entryRowHtml(e, isCont){
     ? '<div class="e-wake-chip">' + esc(t('wakeCountTpl').replace('{n}', String(wakesOf(e).length))) + '</div>'
     : '';
   /* 사진이 붙은 기록은 줄에서도 사진이 보여야 한다 — 안 그러면 사진을
-     남겼는지 알 방법이 들어가 보는 것뿐이다. 줄 전체가 버튼이라 섬네일은
-     버튼이 아니라 그림만: 누르면 그냥 그 기록이 열린다. */
+     남겼는지 알 방법이 들어가 보는 것뿐이다. 줄 전체가 <button>이라
+     섬네일은 버튼이 아니라 span 이고(버튼 안의 버튼은 안 된다), 어느
+     장을 눌렀는지는 data-epic 이 들고 있다. 누르면 그 장부터 전체 화면.
+     칸은 셋까지다 — 넷 이상이면 둘만 보이고 셋째 자리는 '+N' 칩이 쓴다.
+     그 칩은 '셋째 장부터 보라'는 뜻이니 index 2. */
   var pics = (e.photos || []).filter(function(p){ return p && p.id; });
+  var shown = pics.length > 3 ? 2 : 3;
   var picHtml = pics.length
-    ? '<div class="e-pics">' + pics.slice(0, 3).map(function(p){
-        return '<span class="e-pic"><img src="' + esc(displayPhotoUrl(p.id, true)) +
-          '" alt="" loading="lazy" /></span>';
+    ? '<div class="e-pics">' + pics.slice(0, shown).map(function(p, i){
+        return '<span class="e-pic" data-epic="' + i + '"><img src="' +
+          esc(displayPhotoUrl(p.id, true)) + '" alt="" loading="lazy" /></span>';
       }).join('') +
-      (pics.length > 3 ? '<span class="e-pic more">+' + (pics.length - 3) + '</span>' : '') +
+      (pics.length > shown
+        ? '<span class="e-pic more" data-epic="' + shown + '">+' + (pics.length - shown) + '</span>'
+        : '') +
       '</div>'
     : '';
   var locked = !canTouch(e.author);
@@ -8492,6 +8538,18 @@ function entryRowHtml(e, isCont){
 
 /* ---- swipe-to-delete: pointer-based drag on .entry-row, revealing the
    .entry-delete-bg layer behind it. No external gesture library (CSP). ---- */
+/* 줄에서 섬네일을 누른 것인가. 눌렀으면 그 장부터 전체 화면으로 열고
+   true 를 돌려준다 — 줄이 제 할 일(기록 열기)을 하지 않도록. */
+function openRowPhoto(target, entryId){
+  var pic = target && target.closest ? target.closest('[data-epic]') : null;
+  if (!pic) return false;
+  var raw = (appState.entries || []).filter(function(x){ return x.id === entryId; })[0];
+  var ids = raw ? (raw.photos || []).filter(function(p){ return p && p.id; })
+    .map(function(p){ return p.id; }) : [];
+  if (!ids.length) return false;
+  openPhotoViewer(ids, Number(pic.dataset.epic) || 0);
+  return true;
+}
 function wireEntrySwipe(wrap){
   var row = $('.entry-row', wrap);
   if (!row) return;
@@ -8499,17 +8557,25 @@ function wireEntrySwipe(wrap){
      behind it to reveal. It still OPENS, because being able to read what the
      nanny wrote is half the point of a shared log. */
   if (wrap.dataset.locked === '1'){
-    row.addEventListener('click', function(){ openEntryDetail(row.dataset.id); });
+    row.addEventListener('click', function(ev){
+      if (openRowPhoto(ev.target, row.dataset.id)) return;
+      openEntryDetail(row.dataset.id);
+    });
     return;
   }
   var THRESH = 56;      /* px dragged left before the delete bg is considered "open" */
   var FULL   = 150;     /* px dragged left that means "just delete it" */
   var TAPMAX = 6;       /* px of movement still counted as a tap */
   var dragging = false, startX = 0, startY = 0, dx = 0, axis = null, opened = false;
+  /* 줄은 click 이 아니라 pointerup 으로 움직인다(아래 주석 참고). 그래서
+     '섬네일을 눌렀나'도 손가락을 **댄 자리**로 판단해야 한다 — 뗀 자리로
+     보면 살짝 미끄러진 손가락이 엉뚱한 걸 연다. */
+  var downPic = null;
 
   row.addEventListener('pointerdown', function(ev){
     if (ev.pointerType === 'mouse' && ev.button !== 0) return;
     dragging = true; axis = null; dx = 0;
+    downPic = (ev.target && ev.target.closest) ? ev.target.closest('[data-epic]') : null;
     startX = ev.clientX; startY = ev.clientY;
     row.style.transition = 'none';
   });
@@ -8552,9 +8618,9 @@ function wireEntrySwipe(wrap){
     } else if (axis === null){
       /* a genuine tap: no meaningful movement on either axis */
       if (opened){ row.style.transform = ''; opened = false; wrap.classList.remove('revealed'); }
-      else { openEntryDetail(row.dataset.id); }
+      else if (!openRowPhoto(downPic, row.dataset.id)) openEntryDetail(row.dataset.id);
     }
-    axis = null;
+    axis = null; downPic = null;
   }
   row.addEventListener('pointerup', finish);
   row.addEventListener('pointercancel', finish);
@@ -9776,7 +9842,83 @@ function renderGrowthCalendar(){
           '" title="' + esc(t(GROWTH_ICONS[k].label)) + '"></i>'; }).join('') + '</span>' : '';
     cells.push('<button type="button" class="' + cls + '" data-gday="' + ds + '">' + d + marks + '</button>');
   }
-  grid.innerHTML = cells.join('');
+  while (cells.length % 7) cells.push('<span class="gcal-day"></span>');
+
+  /* 일정 띠 — 날짜 바로 밑에, 기간만큼 가로질러서.
+     줄(lane)은 **달 전체에서 한 번만** 정한다. 주마다 다시 정하면 열흘짜리
+     띠가 주를 넘을 때마다 위아래로 튄다. 겹치지 않는 둘은 같은 줄을 쓴다. */
+  var mFrom = mk + '-01', mTo = mk + '-' + String(daysInMonth).padStart(2, '0');
+  var evs = readSchedules().filter(function(x){ return x.date <= mTo && x.endDate >= mFrom; })
+    .sort(function(a, b){
+      if (a.date !== b.date) return a.date < b.date ? -1 : 1;
+      /* 같은 날 시작이면 긴 것이 위 — 짧은 것이 긴 것 위에 얹히면 읽기 어렵다 */
+      return a.endDate > b.endDate ? -1 : a.endDate < b.endDate ? 1 : 0;
+    });
+  var laneEnd = [];                     /* laneEnd[i] = 그 줄이 찬 마지막 날 */
+  var segs = [];                        /* 주별로 자른 띠 조각들 */
+  evs.forEach(function(ev){
+    var li = 0;
+    while (laneEnd[li] && laneEnd[li] >= ev.date) li++;
+    laneEnd[li] = ev.endDate;
+    /* 달을 넘나드는 일정은 이 달 안으로 잘라서 그린다 */
+    var s = ev.date < mFrom ? 1 : Number(ev.date.slice(8, 10));
+    var e = ev.endDate > mTo ? daysInMonth : Number(ev.endDate.slice(8, 10));
+    var day = s;
+    while (day <= e){
+      var k = day + firstDow - 1;
+      var col = k % 7;
+      var last = Math.min(e, day + (6 - col));   /* 이 주에서 끝나는 날 */
+      segs.push({ w: Math.floor(k / 7), col: col, len: last - day + 1, ev: ev, lane: li,
+        from: mk + '-' + String(day).padStart(2, '0'),
+        cont: day > s || ev.date < mFrom, goes: last < e || ev.endDate > mTo });
+      day = last + 1;
+    }
+  });
+  var laneCount = laneEnd.length;
+
+  var weeks = [];
+  for (var w = 0; w * 7 < cells.length; w++){
+    var nums = cells.slice(w * 7, w * 7 + 7).join('');
+    /* 그 주가 실제로 쓰는 줄까지만 그린다 — 일정이 하나도 없는 주에
+       빈 줄 둘을 세워 두면 달력 아래쪽이 괜히 성글어진다. 중간에 빈
+       줄은 남긴다(띠가 제 줄을 지켜야 주를 넘어도 안 튄다). */
+    var rowSegs = segs.filter(function(sg){ return sg.w === w; });
+    var used = rowSegs.reduce(function(m, sg){ return Math.max(m, sg.lane + 1); }, 0);
+    var slots = '';
+    for (var L = 0; L < used; L++){
+      var mine = rowSegs.filter(function(sg){ return sg.lane === L; })
+        .sort(function(a, b){ return a.col - b.col; });
+      /* 이 줄에서 이미 찬 칸 — 하루짜리 글자를 어디까지 흘려도 되는지 */
+      var occ = {};
+      mine.forEach(function(sg){ for (var i = 0; i < sg.len; i++) occ[sg.col + i] = 1; });
+      slots += '<div class="gcal-bars">' + mine.map(function(sg){
+        var one = sg.len === 1 && !sg.cont && !sg.goes;
+        var span = sg.len;
+        if (one){ var c = sg.col + 1; while (c < 7 && !occ[c]){ span++; c++; } }
+        var body = one
+          ? '<i class="evd evd-' + esc(sg.ev.color) + '"></i>' +
+            (sg.ev.time ? '<em>' + esc(sg.ev.time) + '</em>' : '') +
+            '<span>' + esc(schedShownText(sg.ev)) + '</span>'
+          : esc(schedShownText(sg.ev));
+        return '<button type="button" class="gcal-ev evc-' + esc(sg.ev.color) +
+          (one ? ' one' : '') + (sg.cont ? ' cont' : '') + (sg.goes ? ' goes' : '') + '"' +
+          ' style="grid-column:' + (sg.col + 1) + ' / span ' + span + '"' +
+          ' data-gsched="' + esc(sg.from) + '">' + body + '</button>';
+      }).join('') + '</div>';
+    }
+    weeks.push('<div class="gcal-wk"><div class="gcal-nums">' + nums + '</div>' +
+      (used ? '<div class="gcal-slots">' + slots + '</div>' : '') + '</div>');
+  }
+  grid.innerHTML = weeks.join('');
+  /* 띠를 누르면 **그 주가 시작하는 날**이 아래에 펴진다 — 열흘짜리 띠의
+     세 번째 주를 눌렀는데 첫날로 뛰면 엉뚱하다 */
+  $$('[data-gsched]', grid).forEach(function(btn){
+    btn.addEventListener('click', function(ev2){
+      ev2.stopPropagation();
+      state.gDate = btn.dataset.gsched;
+      renderGrowthCalendar();
+    });
+  });
   /* 누르면 그날이 **아래에** 펴진다. 같은 날을 다시 누르면 접힌다 —
      식단표 달력과 같은 규칙. 전체화면으로 나가는 건 고칠 때뿐이다. */
   $$('[data-gday]', grid).forEach(function(btn){
@@ -9792,33 +9934,7 @@ function renderGrowthCalendar(){
       }
     });
   });
-  renderGrowthMonthScheds(mk, daysInMonth);
   renderGrowthDayPanel();
-}
-/* 그 달의 일정을 달력 **아래** 줄로. 칸 안에 넣으면 '내니 …'처럼 말줄임표만
-   남는다 — 몇 개 없는 것이라 줄로 세우는 편이 읽힌다(개편안 H). */
-function renderGrowthMonthScheds(mk, daysInMonth){
-  var box = document.getElementById('gcal-sched');
-  if (!box) return;
-  var from = mk + '-01', to = mk + '-' + String(daysInMonth).padStart(2, '0');
-  var evs = readSchedules().filter(function(x){ return x.date <= to && x.endDate >= from; });
-  evs.sort(function(a, b){
-    if (a.date !== b.date) return a.date < b.date ? -1 : 1;
-    return (a.time || '99:99') < (b.time || '99:99') ? -1 : 1;
-  });
-  box.innerHTML = evs.map(function(ev){
-    var d1 = ev.date.slice(5).replace('-', '/');
-    var d2 = (ev.endDate && ev.endDate !== ev.date) ? '\u2013' + ev.endDate.slice(5).replace('-', '/') : '';
-    return '<button type="button" class="e evc-' + esc(ev.color) + '" data-gsched="' + esc(ev.date) + '">' +
-      '<b>' + esc(d1 + d2) + '</b><span>' + esc(schedShownText(ev)) +
-      (ev.time ? ' \u00b7 ' + esc(ev.time) : '') + '</span></button>';
-  }).join('');
-  $$('[data-gsched]', box).forEach(function(b){
-    b.addEventListener('click', function(){
-      state.gDate = b.dataset.gsched;
-      renderGrowthCalendar();
-    });
-  });
 }
 /* 고른 날 하나 — 일기·발달·측정·일정을 읽는 줄로. 달력이 끝나고 900px이
    회색으로 비어 있던 자리다(개편안 H). */
@@ -12180,7 +12296,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261025a';
+var BUILD = '20261026b';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
