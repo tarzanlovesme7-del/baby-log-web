@@ -65,17 +65,30 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
   }), 0);
 
   /* ── 좌우 스와이프 ──────────────────────────────────────── */
-  const swipe = async (from, to) => {
-    await p.mouse.move(from, 420); await p.mouse.down();
-    for (let i = 1; i <= 8; i++) await p.mouse.move(from + (to - from) * i / 8, 420);
-    await p.mouse.up(); await p.waitForTimeout(520);
+  const swipe = async (fx, tx, fy, ty) => {
+    fy = fy || 420; ty = ty || fy;
+    await p.mouse.move(fx, fy); await p.mouse.down();
+    for (let i = 1; i <= 8; i++) {
+      await p.mouse.move(fx + (tx - fx) * i / 8, fy + (ty - fy) * i / 8);
+    }
+    await p.mouse.up(); await p.waitForTimeout(560);
   };
+  /* 사진들은 **옆으로 나란히** 서 있다. 한 자리에서 src 만 갈아 끼우면
+     다음 장이 받아지는 동안 한 프레임이 비어서 껌뻑인다(2026-10-26). */
+  check('사진은 한 장씩 갈아 끼우지 않고 나란히 서 있다', await p.evaluate(() => [
+    document.querySelectorAll('#fp-photo-track .photo-slide').length,
+    !document.getElementById('fp-photo-img')]), [3, true]);
   await swipe(300, 90);
   check('왼쪽으로 쓸면 다음 장', await count(), '2/3');
+  check('...띠가 그만큼 옆으로 갔다', await p.evaluate(() =>
+    /calc\(-100%/.test(document.getElementById('fp-photo-track').style.transform)), true);
   await swipe(90, 300);
   check('오른쪽으로 쓸면 앞 장', await count(), '1/3');
   await swipe(200, 180);
   check('살짝 끈 것으로는 안 넘어간다', await count(), '1/3');
+  /* 첫 장에서 더 오른쪽으로 쓸어도 마지막 장으로 되감지 않는다 */
+  await swipe(90, 330);
+  check('첫 장에서 더 쓸어도 제자리다', await count(), '1/3');
   await p.click('#fp-photo-next'); await p.waitForTimeout(400);
   check('화살표도 그대로 쓴다', await count(), '2/3');
 
@@ -86,6 +99,20 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
     getComputedStyle(document.getElementById('fp-photo')).position]),
     [true, true, 'fixed']);
 
+  /* ── 아래로 끌어 내리면 닫힌다 ─────────────────────────── */
+  await swipe(200, 200, 300, 330);
+  check('조금 내린 것으로는 안 닫힌다', await p.evaluate(() =>
+    document.getElementById('fp-photo').classList.contains('show')), true);
+  check('...사진도 제자리로 돌아온다', await p.evaluate(() =>
+    document.getElementById('fp-photo-stage').style.transform), '');
+  await swipe(200, 200, 300, 520);
+  check('아래로 쭉 내리면 닫힌다', await p.evaluate(() => [
+    document.getElementById('fp-photo').classList.contains('show'),
+    document.getElementById('fp-photo-stage').style.transform,
+    document.getElementById('fp-photo').style.opacity]), [false, '', '']);
+
+  /* 다시 열어서 닫기 단추도 확인 */
+  await p.click('.e-pic[data-epic="0"]'); await p.waitForTimeout(900);
   await p.click('#fp-photo-back'); await p.waitForTimeout(800);
   check('닫으면 잠금이 풀린다', await p.evaluate(() => [
     document.body.classList.contains('fp-nobounce'),

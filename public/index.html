@@ -1255,12 +1255,27 @@
   }
   .fullpage.photo-page .photo-stage{
     position:absolute; inset:var(--header-h, 64px) 0 var(--photo-foot, 0px) 0;
-    display:flex; align-items:center; justify-content:center; overflow:hidden;
-    touch-action:none;
+    overflow:hidden; touch-action:none;
+    -webkit-user-select:none; user-select:none;
   }
-  /* 넘기는 동안은 사진이 손가락을 따라가고, 손을 떼면 미끄러져 들어온다 */
-  .photo-stage img{ max-width:100%; max-height:100%; object-fit:contain; display:block; }
-  .photo-stage img.sliding{ transition:transform .18s ease-out, opacity .18s ease-out; }
+  /* 넘기는 길 — 사진들이 **옆으로 나란히 서 있고 띠가 통째로 움직인다**.
+     처음에는 한 자리에 두고 src 만 바꿨는데, 다음 장이 받아지는 동안
+     한 프레임이 비어서 껌뻑거렸다("껌뻑거리는거 거슬리는데", 2026-10-26).
+     나란히 세워 두면 바꿀 것이 없으니 깜빡일 것도 없다. */
+  /* touch-action 은 **상속되지 않는다**. 무대에만 none 을 걸어 두었더니
+     손가락이 실제로 닿는 것은 그 안의 사진이라, 아래로 끄는 순간 브라우저가
+     "페이지를 굴리려나 보다" 하고 제스처를 가져가 버렸다(pointercancel).
+     그래서 아래로 끌어 닫기가 한 번도 먹지 않았다 — 띠와 사진에도 건다. */
+  .photo-track, .photo-slide, .photo-slide img{ touch-action:none; }
+  .photo-track{ display:flex; width:100%; height:100%; will-change:transform; }
+  .photo-track.sliding{ transition:transform .26s cubic-bezier(.32,.72,0,1); }
+  .photo-slide{ flex:0 0 100%; width:100%; height:100%;
+    display:flex; align-items:center; justify-content:center; }
+  .photo-slide img{ max-width:100%; max-height:100%; object-fit:contain; display:block;
+    -webkit-user-select:none; user-select:none; -webkit-user-drag:none; }
+  /* 아래로 끌어 내려 닫기 — 사진이 손가락을 따라 내려가고 화면이 옅어진다 */
+  .photo-stage.sliding{ transition:transform .2s ease-out; }
+  .fullpage.photo-page.fading{ transition:opacity .2s ease-out; }
   /* 사진이 한 장뿐이면 화살표 줄이 없고, 그만큼 사진이 더 크게 선다 */
   .fullpage.photo-page{ --photo-foot:0px; }
   .fullpage.photo-page.has-nav{ --photo-foot:calc(62px + env(safe-area-inset-bottom)); }
@@ -4200,7 +4215,7 @@
       <span style="width:30px"></span>
     </div>
     <div class="photo-stage" id="fp-photo-stage">
-      <img id="fp-photo-img" alt="" />
+      <div class="photo-track" id="fp-photo-track"></div>
     </div>
     <!-- 화살표는 사진 위가 아니라 아래에. 사진 한가운데를 가리고 있었고,
          거기가 하필 손가락이 쓸고 지나가는 자리다 -->
@@ -12331,7 +12346,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261026c';
+var BUILD = '20261026d';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -14604,20 +14619,56 @@ function clearComposePhotos(){
   renderComposePhotos();
 }
 
-/* ---- the viewer ---- */
+/* ---- the viewer ----
+   사진들은 옆으로 나란히 서 있고(.photo-track), 넘기는 것은 띠를 옮기는
+   일이다. 한 자리에서 src 만 갈아 끼우면 다음 장이 받아지는 동안 한
+   프레임이 비어서 껌뻑거린다 — 2026-10-26에 그 지적을 받았다. */
 var viewerPhotos = [], viewerIndex = 0;
 function openPhotoViewer(ids, start){
   viewerPhotos = ids.slice();
   viewerIndex = Math.max(0, Math.min(start || 0, viewerPhotos.length - 1));
-  renderPhotoViewer();
+  var track = document.getElementById('fp-photo-track');
+  if (track){
+    track.innerHTML = viewerPhotos.map(function(){
+      /* draggable=false 가 없으면 아래로 끌 때 브라우저가 '사진을 끌어
+         옮기려나 보다' 하고 네이티브 드래그를 시작해 버린다 — 그 순간
+         pointercancel 이 날아오고 우리 손가락 처리는 거기서 끝난다.
+         아래로 끌어 닫기가 한 번도 안 먹던 이유가 이것이었다. */
+      return '<div class="photo-slide"><img alt="" draggable="false" /></div>';
+    }).join('');
+  }
+  resetPhotoDrag();
+  renderPhotoViewer(false);
   openFullpage('fp-photo');
 }
-function renderPhotoViewer(){
-  var img = document.getElementById('fp-photo-img');
+/* 아래로 끌다 만 자국을 지운다 — 다음에 열 때 비뚤게 서 있으면 안 된다 */
+function resetPhotoDrag(){
+  var stage = document.getElementById('fp-photo-stage');
+  var page = document.getElementById('fp-photo');
+  if (stage){ stage.classList.remove('sliding'); stage.style.transform = ''; }
+  if (page){ page.classList.remove('fading'); page.style.opacity = ''; }
+}
+/* 앞뒤 한 장씩만 미리 받는다 — 열 장짜리 기록에서 열 장을 한꺼번에 받을
+   이유가 없다. 넘길 때마다 이 창이 따라 움직인다. */
+function fillPhotoTrack(){
+  var imgs = document.querySelectorAll('#fp-photo-track img');
+  for (var i = 0; i < imgs.length; i++){
+    if (Math.abs(i - viewerIndex) <= 1 && !imgs[i].getAttribute('src')){
+      imgs[i].src = displayPhotoUrl(viewerPhotos[i], false);
+    }
+  }
+}
+function setPhotoTrack(dx, animate){
+  var track = document.getElementById('fp-photo-track');
+  if (!track) return;
+  track.classList.toggle('sliding', !!animate);
+  track.style.transform = 'translateX(calc(' + (-viewerIndex * 100) + '% + ' + dx + 'px))';
+}
+function renderPhotoViewer(animate){
   var count = document.getElementById('fp-photo-count');
-  if (!img) return;
-  var id = viewerPhotos[viewerIndex];
-  img.src = displayPhotoUrl(id, false);
+  if (!document.getElementById('fp-photo-track')) return;
+  fillPhotoTrack();
+  setPhotoTrack(0, !!animate);
   if (count){
     count.textContent = viewerPhotos.length > 1
       ? t('photoOf').replace('{i}', viewerIndex + 1).replace('{n}', viewerPhotos.length) : '';
@@ -14631,29 +14682,31 @@ function renderPhotoViewer(){
   if (foot) foot.hidden = !many;
   var page = document.getElementById('fp-photo');
   if (page) page.classList.toggle('has-nav', many);
-  img.classList.remove('sliding');
-  img.style.transform = '';
-  img.style.opacity = '';
 }
 function stepPhotoViewer(d){
   if (viewerPhotos.length < 2) return;
+  var was = viewerIndex;
   viewerIndex = (viewerIndex + d + viewerPhotos.length) % viewerPhotos.length;
-  renderPhotoViewer();
+  /* 한 칸 옆이면 미끄러뜨리고, 끝에서 처음으로 되감는 것(화살표)은 그냥
+     갈아 끼운다 — 열 장을 거꾸로 훑고 지나가는 꼴이 되면 안 된다. */
+  renderPhotoViewer(Math.abs(viewerIndex - was) === 1);
 }
-/* 좌우로 쓸어 넘기기. 사진이 손가락을 따라가다가, 충분히 끌었으면 그쪽으로
-   미끄러져 나가고 다음 장이 들어온다. 덜 끌었으면 제자리로 돌아온다.
-   위아래는 아무 일도 하지 않는다 — 굴릴 것이 없는 화면이다(CSS 참고). */
+/* 손가락: 좌우로 쓸면 넘기고, 아래로 끌어 내리면 닫는다.
+   위로 끄는 것은 아무 일도 아니다. */
 function wirePhotoSwipe(){
   var stage = document.getElementById('fp-photo-stage');
-  var img = document.getElementById('fp-photo-img');
-  if (!stage || !img) return;
-  var SWIPE = 56;                 /* 이만큼 끌면 '넘긴다' */
-  var down = false, x0 = 0, y0 = 0, dx = 0, axis = null;
+  var page = document.getElementById('fp-photo');
+  if (!stage || !page) return;
+  var SWIPE = 56;                 /* 옆으로 이만큼 끌면 '넘긴다' */
+  var DISMISS = 110;              /* 아래로 이만큼 끌면 '닫는다' */
+  var down = false, x0 = 0, y0 = 0, dx = 0, dy = 0, axis = null;
   stage.addEventListener('pointerdown', function(ev){
-    if (viewerPhotos.length < 2) return;
     if (ev.pointerType === 'mouse' && ev.button !== 0) return;
-    down = true; axis = null; dx = 0; x0 = ev.clientX; y0 = ev.clientY;
-    img.classList.remove('sliding');
+    down = true; axis = null; dx = 0; dy = 0; x0 = ev.clientX; y0 = ev.clientY;
+    var track = document.getElementById('fp-photo-track');
+    if (track) track.classList.remove('sliding');
+    stage.classList.remove('sliding');
+    page.classList.remove('fading');
   });
   stage.addEventListener('pointermove', function(ev){
     if (!down) return;
@@ -14661,35 +14714,44 @@ function wirePhotoSwipe(){
     if (axis === null){
       if (Math.abs(mx) < 6 && Math.abs(my) < 6) return;
       axis = Math.abs(mx) > Math.abs(my) ? 'x' : 'y';
-      if (axis === 'x' && stage.setPointerCapture){
-        try { stage.setPointerCapture(ev.pointerId); } catch(e){}
-      }
+      if (axis === 'x' && viewerPhotos.length < 2){ axis = 'none'; return; }
+      if (stage.setPointerCapture){ try { stage.setPointerCapture(ev.pointerId); } catch(e){} }
     }
-    if (axis !== 'x') return;
-    dx = mx;
-    img.style.transform = 'translateX(' + dx + 'px)';
-    /* 끌수록 흐려진다 — 넘어가는 중이라는 것이 손에 읽힌다 */
-    img.style.opacity = String(Math.max(0.35, 1 - Math.abs(dx) / 320));
+    if (axis === 'x'){
+      dx = mx;
+      /* 양 끝에서는 손가락을 덜 따라간다 — 더 갈 데가 없다는 것이 손에 읽힌다 */
+      var atEnd = (viewerIndex === 0 && dx > 0) ||
+                  (viewerIndex === viewerPhotos.length - 1 && dx < 0);
+      setPhotoTrack(atEnd ? dx * 0.3 : dx, false);
+    } else if (axis === 'y'){
+      dy = Math.max(0, my);
+      stage.style.transform = 'translateY(' + dy + 'px)';
+      page.style.opacity = String(Math.max(0.25, 1 - dy / 420));
+    }
   });
   function release(){
     if (!down) return;
     down = false;
-    if (axis !== 'x'){ axis = null; return; }
-    var go = Math.abs(dx) >= SWIPE ? (dx < 0 ? 1 : -1) : 0;
-    axis = null;
-    if (!go){
-      img.classList.add('sliding');
-      img.style.transform = ''; img.style.opacity = '';
+    var a = axis; axis = null;
+    if (a === 'y'){
+      if (dy >= DISMISS){ closeFullpage('fp-photo'); resetPhotoDrag(); return; }
+      stage.classList.add('sliding'); page.classList.add('fading');
+      stage.style.transform = ''; page.style.opacity = '';
       return;
     }
-    /* 끌던 쪽으로 마저 밀어낸 다음 다음 장을 그 자리에 세운다 */
-    img.classList.add('sliding');
-    img.style.transform = 'translateX(' + (go > 0 ? -120 : 120) + 'px)';
-    img.style.opacity = '0';
-    setTimeout(function(){ stepPhotoViewer(go); }, 150);
+    if (a !== 'x') return;
+    var go = 0;
+    if (dx <= -SWIPE && viewerIndex < viewerPhotos.length - 1) go = 1;
+    else if (dx >= SWIPE && viewerIndex > 0) go = -1;
+    /* 끝에서 더 쓸면 제자리로 — 되감지 않는다. 그건 화살표가 할 일이다. */
+    if (!go){ setPhotoTrack(0, true); return; }
+    viewerIndex += go;
+    renderPhotoViewer(true);
   }
   stage.addEventListener('pointerup', release);
   stage.addEventListener('pointercancel', release);
+  /* 혹시라도 드래그가 시작되려 하면 막는다 — 위 draggable=false 와 한 쌍 */
+  stage.addEventListener('dragstart', function(ev){ ev.preventDefault(); });
 }
 
 /* a memo being edited via its ⋯: the compose sheet reopens with the words,
