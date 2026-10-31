@@ -62,7 +62,10 @@ const D=d=>{const x=new Date();x.setDate(x.getDate()+d);
   await nanny.click('#pay-stamp'); await nanny.waitForTimeout(1800);
   const sh = (await st()).shifts.filter(s=>s.date===D(0));
   check('출근 도장이 저장된다', sh.length, 1);
-  check('...이름이 붙는다', sh[0] && sh[0].by, '내니');
+  /* '내니'로 켜 두어도 저장은 갈라진 새 이름으로 간다 — 2026-10-27부터
+     내니가 둘이라 '내니'는 더 이상 저장되는 이름이 아니다(옛 기록을 읽을
+     때만 쓰이는 옛 이름이다). */
+  check('...이름이 붙는다', sh[0] && sh[0].by, '내니 Vi');
   await nanny.close();
 
   // ═══ 엄마 화면: 설정 목차 · 정산 · 연차 ═══

@@ -101,6 +101,12 @@ const money = s => { const m = String(s).replace(/[^\d]/g,''); return m ? Number
 
   // ═══ 내니도 본다 ═══
   p = await open('내니');
+  /* 11/1~12/1 동안은 내니 폰에 정산 화면이 없다(2026-10-27) — 그때는
+     여기서 볼 것이 없다. 가리는 동작 자체는 nanny2 스위트가 본다. */
+  const nannyBlind = await p.evaluate(() =>
+    document.querySelector('#pay-tabs [data-pv="settle"]').hidden);
+  if (nannyBlind){ console.log('SKIP  내니 정산 — 이 기간엔 엄마 폰에만 있다'); }
+  else {
   check('내니 폰에도 "날짜별로 보기"가 있다',
     await p.evaluate(()=>!!document.getElementById('pay-bydays')), true);
   await p.click('#pay-bydays'); await p.waitForTimeout(800);
@@ -110,6 +116,7 @@ const money = s => { const m = String(s).replace(/[^\d]/g,''); return m ? Number
   await p.evaluate(()=>document.getElementById('fp-pp-back').click());
   await p.waitForTimeout(500);
   check('뒤로 가기로 닫힌다', await shown(p), false);
+  }
   await p.close();
 
   for (const x of (await st()).ot) await mut('deleteOt', { id:x.id, actor:'엄마' });

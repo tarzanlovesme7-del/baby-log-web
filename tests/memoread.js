@@ -66,7 +66,10 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
   check('새 메모는 둘 다에게 다시 뜬다', await bannerUp(p), true);
   check('...자국은 이름마다 따로 적힌다', await p.evaluate(() =>
     Object.keys(localStorage).filter(k => k.indexOf('bbl_memo_seen:') === 0).sort()),
-    ['bbl_memo_seen:내니', 'bbl_memo_seen:엄마']);
+    /* 2026-10-27부터 내니가 둘이라 저장되는 이름이 '내니 Vi'다 — 자국도
+       그 이름으로 찍힌다. 그 폰에 있던 옛 자국('…:내니')은 버려지고,
+       그날 하루치만 다시 안 읽음으로 뜬다(MEMO_SEEN_GRACE_MS). */
+    ['bbl_memo_seen:내니 Vi', 'bbl_memo_seen:엄마']);
   /* 자기가 쓴 글은 자기에게 안 읽음이 아니다 */
   await mut('addMemo', { text: '엄마가 쓴 메모', author: '엄마', lang: 'ko' });
   await p.click('.tab-btn[data-tab="memo"]'); await p.waitForTimeout(1200);

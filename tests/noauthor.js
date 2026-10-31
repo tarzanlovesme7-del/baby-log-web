@@ -38,7 +38,10 @@ const D=d=>{const x=new Date();x.setDate(x.getDate()+d);
   check('이름이 없으면 첫 실행 시트가 뜬다', await sheetUp(), true);
 
   // ═══ 그 아침의 동작: 바깥을 눌러 닫는다 ═══
-  await p.click('#scrim3', { force:true }); await p.waitForTimeout(600);
+  /* 막의 **드러난 부분**을 누른다. 가운데는 시트가 거기까지 올라와 있어서
+     시트를 누른 것이 된다 — 내니 칩이 넷이 되며 시트가 3px 높아진 날 이
+     시험이 깨졌다(2026-10-27). 위쪽은 늘 막이다. */
+  await p.mouse.click(195, 30); await p.waitForTimeout(600);
   check('바깥을 눌러도 닫히지 않는다', await sheetUp(), true);
   check('...왜 안 닫히는지 말해준다',
     await p.evaluate(()=>{const t=document.getElementById('toast');
@@ -78,7 +81,7 @@ const D=d=>{const x=new Date();x.setDate(x.getDate()+d);
   await p.evaluate(()=>{ document.getElementById('btn-profile').click(); });
   await p.waitForTimeout(600);
   /* 칩의 data-name은 화면 언어와 무관하게 저장되는 원본 이름이다 */
-  await p.click('#profile-chip-row .chip[data-name="내니"]'); await p.waitForTimeout(300);
+  await p.click('#profile-chip-row .chip[data-name="내니 Vi"]'); await p.waitForTimeout(300);
   await p.click('#profile-save-btn'); await p.waitForTimeout(1600);
   check('이름을 고르면 시트가 닫힌다', await sheetUp(), false);
   check('...헤더 표시도 사라진다',
@@ -89,12 +92,16 @@ const D=d=>{const x=new Date();x.setDate(x.getDate()+d);
   await p.click('#pay-stamp'); await p.waitForTimeout(2000);
   const sh = (await st()).shifts.filter(s=>s.date===D(0));
   check('이름을 고른 뒤에는 도장이 찍힌다', sh.length, 1);
-  check('...내니 이름이 붙는다', sh[0] && sh[0].by, '내니');
+  /* 2026-10-27부터 내니가 둘이라 저장되는 이름은 '내니 Vi'다 */
+  check('...내니 이름이 붙는다', sh[0] && sh[0].by, '내니 Vi');
 
   /* 이름이 생긴 뒤에는 시트가 평소처럼 닫힌다 */
   await p.evaluate(()=>{ document.getElementById('btn-profile').click(); });
   await p.waitForTimeout(600);
-  await p.click('#scrim3', { force:true }); await p.waitForTimeout(600);
+  /* 막의 **드러난 부분**을 누른다. 가운데는 시트가 거기까지 올라와 있어서
+     시트를 누른 것이 된다 — 내니 칩이 넷이 되며 시트가 3px 높아진 날 이
+     시험이 깨졌다(2026-10-27). 위쪽은 늘 막이다. */
+  await p.mouse.click(195, 30); await p.waitForTimeout(600);
   check('이름이 있으면 바깥을 눌러 닫을 수 있다', await sheetUp(), false);
 
   check('콘솔 에러 없음', errs, []);

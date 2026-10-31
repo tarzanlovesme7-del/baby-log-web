@@ -64,6 +64,12 @@ const measure = p => p.evaluate(()=>{
 
     for (const view of ['stamp', 'settle']){
       if (view === 'settle'){
+        /* 11/1~12/1 동안 정산은 엄마 폰에만 있다(2026-10-27, 내니가 둘이 된 뒤).
+           그 기간에는 내니 쪽 정산 화면이 아예 없으므로 잴 것도 없다 —
+           가린다는 사실 자체는 nanny2 스위트가 시계를 11월로 옮겨 놓고 본다. */
+        const hidden = await p.evaluate(() =>
+          document.querySelector('#pay-tabs [data-pv="settle"]').hidden);
+        if (hidden){ console.log('SKIP  ' + who + ' · 정산 — 이 기간엔 엄마 폰에만 있다'); continue; }
         await p.click('#pay-tabs button[data-pv="settle"]'); await p.waitForTimeout(1000);
       }
       const m = await measure(p);

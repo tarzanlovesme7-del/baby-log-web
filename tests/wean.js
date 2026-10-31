@@ -26,7 +26,27 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
 
 const p2 = n => String(n).padStart(2, '0');
 const ds = d => d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate());
-const TODAY = ds(new Date());
+/* 시계를 **그 달 10일 아침**에 고정한다.
+
+   이 스위트는 오늘을 기준으로 식단을 깔고(오늘·내일·모레 …) 달력 한 달을
+   들여다본다. 그래서 진짜 오늘이 말일이면 '내일'이 다음 달로 넘어가 알약이
+   이어질 자리가 없고, 월초면 '어제'가 지난 달이다 — 2026-10-31에 이 스위트가
+   그렇게 깨졌다(코드가 아니라 날짜 때문에).
+   달의 한가운데로 옮겨 두면 앞뒤로 아흐레씩 여유가 생겨 어느 달에 돌려도
+   같은 답이 나온다. 요일은 달마다 달라지므로 주 단위 계산도 계속 덮인다.
+   setFixedTime 은 타이머는 건드리지 않고 날짜만 멈춘다 — 앱의 4초 폴링은
+   그대로 돌아야 한다. */
+const PIN = (() => {
+  /* 달 한가운데이면서 **일~수요일**인 날을 고른다. 달력 한 줄은 일요일에
+     시작하므로, 토요일에 서면 '내일'이 다음 줄로 넘어가 알약이 이어지지
+     않는다(사흘짜리 검사까지 생각하면 목요일부터도 아슬아슬하다).
+     8일에서 출발해 조건에 맞을 때까지 하루씩 민다 — 8~11일 사이에서 끝난다. */
+  const n = new Date();
+  const d = new Date(n.getFullYear(), n.getMonth(), 8, 9, 0, 0);
+  while (d.getDay() > 3) d.setDate(d.getDate() + 1);
+  return d;
+})();
+const TODAY = ds(PIN);
 const dAdd = (s, n) => { const d = new Date(s + 'T00:00:00'); d.setDate(d.getDate() + n); return ds(d); };
 /* 월요일 기준 주 — 장보기가 그렇게 센다 */
 const weekOf = (s) => { const d = new Date(s + 'T00:00:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return ds(d); };
@@ -39,6 +59,7 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   const errs = [];
   const open = async (who, lang) => {
     const p = await b.newPage({ viewport:{ width:390, height:900 } });
+    await p.clock.setFixedTime(PIN);
     p.on('pageerror', e => errs.push(who + ': ' + String(e)));
     p.on('console', m => { if (m.type()==='error' && !/ERR_|favicon/.test(m.text())) errs.push(who+': '+m.text()); });
     await p.addInitScript(([w, l]) => {
@@ -665,6 +686,78 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   await p.click('#wn-tabs button[data-wn="cubes"]'); await p.waitForTimeout(800);
   check('재고에 재료별 칸 수가 나온다',
     await p.evaluate(()=>document.querySelectorAll('.wn-cube').length) >= 4, true);
+
+  /* ── 주 단위 재고(2026-10-31) ──
+     묻는 것이 셋이라 화면도 셋이다 — 있는 것 / 만들 것 / 쓸 것.
+     세로로 다 뿌렸더니 정신없다고 해서 알약으로 갈랐다.
+     한 칸 g은 재료마다 다르다(쌀오트밀죽 40g, 소고기 10g). 하루에 쓰는 g을
+     한 칸 g으로 나눠 올림해야 하고, 하루 두 끼면 죽만 두 칸이다 —
+     '하루에 한 재료 = 한 칸'으로 세던 때는 이게 틀렸다. */
+  const pill = async (v) => {
+    await p.click('[data-wn-cv="' + v + '"]'); await p.waitForTimeout(600);
+  };
+  const heroN = () => p.evaluate(()=>{
+    const e = document.querySelector('#wn-body .wn-hero .t-money');
+    return e ? Number((e.textContent.match(/\d+/)||[0])[0]) : null;
+  });
+  check('재고 화면이 알약 셋으로 갈린다', await p.evaluate(()=>
+    [...document.querySelectorAll('#wn-body [data-wn-cv]')].map(e=>e.dataset.wnCv)),
+    ['have', 'make', 'use']);
+  check('...처음엔 있는 것이 열린다', await p.evaluate(()=>
+    document.querySelector('#wn-body [data-wn-cv="have"]').getAttribute('aria-pressed')), 'true');
+  check('...있는 것에는 주 네비가 없다', await p.evaluate(()=>
+    !document.querySelector('#wn-body .wn-weeknav')), true);
+  check('...총 칸수와 덩어리 목록이 한 화면에 있다', await p.evaluate(()=>
+    !!document.querySelector('#wn-body .wn-hero .t-money') &&
+    document.querySelectorAll('#wn-body .wn-cube').length > 0), true);
+
+  await pill('use');
+  check('쓸 것에는 주 네비가 선다', await p.evaluate(()=>
+    !!document.querySelector('#wn-body .wn-weeknav [data-wn-week]')), true);
+  check('...합계는 아래 줄들의 합과 같다', await p.evaluate(()=>{
+    const body = document.getElementById('wn-body');
+    const hero = Number((body.querySelector('.wn-hero .t-money').textContent.match(/\d+/)||[0])[0]);
+    const sum = [...body.querySelectorAll('.wn-line .t-value')]
+      .reduce((n,e)=>n+Number((e.textContent.match(/\d+/)||[0])[0]), 0);
+    return hero === sum;
+  }), true);
+
+  /* 빈 주로 옮겨 **정확한 숫자**를 센다 — 이 스위트가 앞에서 여기저기
+     식단을 깔아 둬서, 이번 주로는 '몇 칸이어야 한다'를 못 박기 어렵다.
+     넉 주 뒤로 가서 깔기 전후의 차이를 본다. */
+  for (let i = 0; i < 4; i++){
+    await p.click('#wn-body .wn-weeknav [data-wn-week="1"]'); await p.waitForTimeout(450);
+  }
+  const FARWK = await p.evaluate(()=>null) || dAdd(weekOf(TODAY), 28);
+  const beforeUse = await heroN();
+  /* 하루 두 끼. 한 칸 g은 쌀오트밀죽 40 · 소고기 10 · 애호박 10.
+     하루에 죽 80g(=2칸) · 소고기 20g(=2칸) · 애호박 10g(=1칸) = 5칸,
+     이틀이면 10칸. '하루에 한 재료 = 한 칸'으로 세면 6칸이 나온다. */
+  const TWO = [{ name:'아침', base:[{ing:'pgyo',g:40}], tops:[{ing:'beef',g:10},{ing:'zucchini',g:10}] },
+               { name:'점심', base:[{ing:'pgyo',g:40}], tops:[{ing:'beef',g:10}] }];
+  await mut('setWeanDay', { date: FARWK, meals: TWO, actor: '엄마' });
+  await mut('setWeanDay', { date: dAdd(FARWK, 1), meals: TWO, actor: '엄마' });
+  await p.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await p.waitForTimeout(1600);
+  check('...한 칸 g으로 나눠 올림한다 (두 끼 × 이틀 = 10칸 늘어난다)',
+    (await heroN()) - beforeUse, 10);
+
+  await pill('make');
+  check('만들 것은 "필요 − 지금 있는 것"이다', await p.evaluate(()=>{
+    const rows = [...document.querySelectorAll('#wn-body .wn-line[data-wn-make]')];
+    if (!rows.length) return 'no-rows';
+    return rows.every(e => {
+      const m = e.querySelector('.t-caption').textContent.match(/(\d+)칸 · 필요 (\d+)칸/);
+      const n = Number((e.querySelector('.t-value').textContent.match(/\d+/) || [0])[0]);
+      return !!m && n === Number(m[2]) - Number(m[1]);
+    });
+  }), true);
+
+  await mut('deleteWeanDay', { date: FARWK, actor: '엄마' });
+  await mut('deleteWeanDay', { date: dAdd(FARWK, 1), actor: '엄마' });
+  await pill('have');
+  await p.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await p.waitForTimeout(1500);
   await p.click('.wn-cube:has-text("소고기") [data-d="1"]');
   await p.waitForTimeout(1200);
   s = await st();

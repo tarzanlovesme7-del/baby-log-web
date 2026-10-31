@@ -4818,8 +4818,11 @@ ko: {
   wnEditMenu:"눌러서 먹은 양 적기",
   wnCubeOldTpl:"{d}일 지남",
  
-  wnToMake:"다음 주까지 만들 것", wnToMakeNone:"안 만들어도 돼요",
-  wnToMakeNoneSub:"다음 주까지 쓸 큐브가 다 있어요.", wnUntilTpl:"{d}까지",
+  wnStockNow:"현재 재고", wnStockOldTpl:"오래된 것 {n}칸", wnStockKindsTpl:"재료 {n}가지",
+  wnPillHave:"있는 것", wnPillMake:"만들 것", wnPillUse:"쓸 것",
+  wnWeekMake:"이번 주 만들 큐브", wnWeekMakeNone:"안 만들어도 돼요",
+  wnWeekMakeSub:"지금 재고 {n}칸을 빼고 센 거예요.", wnWeekUse:"이번 주 쓸 큐브",
+  wnWeekUseNone:"이 주에는 식단이 없어요.", wnWeekDaysTpl:"{a}일차 ~ {b}일차",
   wnHaveNeedTpl:"지금 {have}칸 · 필요 {need}칸", wnCubeHave:"지금 있는 것",
   wnAddExtra:"직접 추가", wnExtraName:"살 것", wnExtraNamePh:"예: 이유식 큐브 트레이",
   wnKind:"종류", wnKindBase:"베이스죽", wnKindTop:"토핑",
@@ -4988,7 +4991,7 @@ ko: {
   noCustomTypes:"아직 커스텀 항목이 없어요",
   quickWordsTitle:"메모 퀵버튼 관리", qwAddPh:"자주 쓰는 문구 입력", noQuickWords:"등록된 문구가 없어요",
   weekday_short:["일","월","화","수","목","금","토"],
-  authorPresets:["엄마","아빠","내니"], authorCustomPh:"예: 지오할머니",
+  authorPresets:["엄마","아빠","내니 Vi","내니 Linh"], authorNannyOne:"내니", authorCustomPh:"예: 지오할머니",
   deleteSwipeLabel:"삭제",
   statsFeedTitle:"수유", statsSleepTitle:"수면", poopTitle:"배변", last7days:"최근 7일",
   avgOverDaysTpl:"어제까지 {n}일 평균 · 오늘은 진행 중이라 뺐어요",
@@ -5122,8 +5125,11 @@ vi: {
   wnEditMenu:"Bấm để ghi lượng ăn",
   wnCubeOldTpl:"{d} ngày",
  
-  wnToMake:"Cần làm thêm đến tuần sau", wnToMakeNone:"Không cần làm thêm",
-  wnToMakeNoneSub:"Đã đủ viên dùng đến tuần sau.", wnUntilTpl:"đến {d}",
+  wnStockNow:"Tồn kho hiện tại", wnStockOldTpl:"Để lâu {n} viên", wnStockKindsTpl:"{n} loại",
+  wnPillHave:"Đang có", wnPillMake:"Cần làm", wnPillUse:"Sẽ dùng",
+  wnWeekMake:"Viên cần làm tuần này", wnWeekMakeNone:"Không cần làm thêm",
+  wnWeekMakeSub:"Đã trừ {n} viên đang có.", wnWeekUse:"Viên dùng tuần này",
+  wnWeekUseNone:"Tuần này chưa có thực đơn.", wnWeekDaysTpl:"ngày {a} ~ ngày {b}",
   wnHaveNeedTpl:"đang có {have} · cần {need}", wnCubeHave:"Đang có",
   wnAddExtra:"Tự thêm", wnExtraName:"Thứ cần mua", wnExtraNamePh:"VD: khay trữ đông",
   wnKind:"Loại", wnKindBase:"Cháo nền", wnKindTop:"Topping",
@@ -5296,7 +5302,7 @@ vi: {
   noCustomTypes:"Chưa có mục tùy chỉnh nào",
   quickWordsTitle:"Quản lý nút nhanh ghi chú", qwAddPh:"Nhập cụm từ hay dùng", noQuickWords:"Chưa có cụm từ nào",
   weekday_short:["CN","T2","T3","T4","T5","T6","T7"],
-  authorPresets:["Mẹ","Bố","Bảo mẫu"], authorCustomPh:"VD: Bà nội Zio",
+  authorPresets:["Mẹ","Bố","Bảo mẫu Vi","Bảo mẫu Linh"], authorNannyOne:"Bảo mẫu", authorCustomPh:"VD: Bà nội Zio",
   deleteSwipeLabel:"Xóa",
   statsFeedTitle:"Bú", statsSleepTitle:"Giấc ngủ", poopTitle:"Đi phân", last7days:"7 ngày qua",
   avgOverDaysTpl:"TB {n} ngày đến hết hôm qua · chưa tính hôm nay",
@@ -5668,9 +5674,9 @@ function locale(){ return state.lang === 'vi' ? 'vi-VN' : 'ko-KR'; }
    through unchanged. */
 function localizeAuthorName(name){
   if (!name) return name;
-  var idx = I18N.ko.authorPresets.indexOf(name);
-  if (idx === -1) idx = I18N.vi.authorPresets.indexOf(name);
-  if (idx !== -1) return t('authorPresets')[idx];
+  /* 옛 '내니'도 여기서 index 2로 풀려 '내니 Vi'로 보인다 — authorIndex 참고 */
+  var idx = authorIndex(name);
+  if (idx !== -1) return authorLabel(idx);
   /* A name the family added themselves — '하영이 이모', '지오 할아버지'. The
      nanny cannot read those, so each one carries a Vietnamese form too,
      translated once when the name is first used and editable in settings. */
@@ -5685,7 +5691,7 @@ function localizeAuthorName(name){
 }
 function isPresetAuthorName(name){
   if (!name) return false;
-  return I18N.ko.authorPresets.indexOf(name) !== -1 || I18N.vi.authorPresets.indexOf(name) !== -1;
+  return authorIndex(name) !== -1;
 }
 
 /* ================================================================
@@ -5699,11 +5705,41 @@ function isPresetAuthorName(name){
    Vietnamese one.
    ================================================================ */
 var MASTER_INDEX = 0;   /* 엄마 / Mẹ */
+/* 2026-10-27 전에 적힌 것은 전부 그냥 '내니'다 — 그때는 내니가 한 사람뿐이었다.
+   11월 한 달 다른 분이 오게 되면서 이름이 '내니 Vi'로 갈라졌는데, 지난 두 달치
+   기록을 전부 고쳐 쓰는 건 위험하고(기록·메모·도장·정산·일기 … 이름이 적힌
+   자리가 열 군데가 넘는다) 그럴 이유도 없다. 옛 이름을 같은 사람으로 읽어
+   주기만 하면 된다. 화면에 보이는 이름은 preset 을 따라가므로, 9월에 적은
+   기록도 오늘부터는 '내니 Vi'로 보인다. */
+var AUTHOR_ALIASES = { '내니': 2, 'Bảo mẫu': 2 };
+/* 이름이 갈라지는 날. 그 전까지는 화면에 '내니' 하나로 보이고 Linh 칩도
+   없다 — 새 분이 오기 전에 앱에 이름이 먼저 떠 있으면 설명할 일이 생긴다.
+   저장되는 값은 오늘부터도 '내니 Vi'다(보이는 것과 적히는 것은 다른 일이고,
+   적히는 쪽을 미루면 11월 1일에 경계가 생긴다). */
+var NANNY_SPLIT_FROM = '2026-11-01';
+function nannySplitOn(){ return toDateValue() >= NANNY_SPLIT_FROM; }
+/* Linh 칩은 근무하는 동안만 고를 수 있다 — 11/1부터 12/1까지(마지막 날이
+   12월 1일이다). 그 뒤로는 **칩만** 사라지고 이름은 그대로 살아 있다:
+   Linh가 적은 기록은 12월에도, 내년에도 '내니 Linh'로 읽혀야 한다.
+   또 오시게 되면 이 날짜 한 줄만 고치면 된다.
+   정산을 가리는 기간(SETTLE_HIDE_TO)과 끝나는 날이 같다 — 같은 사실의
+   두 얼굴이라 그래야 맞다. */
+var NANNY_LINH_TO = '2026-12-01';
+function nannyLinhPickable(){
+  var d = toDateValue();
+  return d >= NANNY_SPLIT_FROM && d <= NANNY_LINH_TO;
+}
+/* 화면에 보일 이름. 갈라지기 전에는 2번이 그냥 '내니'이고 3번은 없다. */
+function authorLabel(i){
+  if (i === 2 && !nannySplitOn()) return t('authorNannyOne');
+  return t('authorPresets')[i];
+}
 function authorIndex(name){
   if (!name) return -1;
   var n = String(name).trim();
   var i = I18N.ko.authorPresets.indexOf(n);
   if (i === -1) i = I18N.vi.authorPresets.indexOf(n);
+  if (i === -1 && AUTHOR_ALIASES[n] !== undefined) i = AUTHOR_ALIASES[n];
   return i;
 }
 function sameAuthor(a, b){
@@ -5712,9 +5748,11 @@ function sameAuthor(a, b){
   return !!String(a || '').trim() && String(a || '').trim() === String(b || '').trim();
 }
 function isMasterUser(){ return authorIndex(state.author) === MASTER_INDEX; }
-/* 출근 도장을 찍는 사람은 한 사람이다 — 아침 도장 띠는 이 폰에서만 뜬다 */
-var NANNY_INDEX = 2;    /* 내니 / Bảo mẫu */
-function isNannyUser(){ return authorIndex(state.author) === NANNY_INDEX; }
+/* 도장을 찍는 사람 — 이제 둘이다(내니 Vi · 내니 Linh). 아침 도장 띠는
+   둘 중 누구로 보고 있든 뜬다. */
+var NANNY_INDEX = 2;    /* 내니 Vi */
+var NANNY_INDEXES = [2, 3];
+function isNannyUser(){ return NANNY_INDEXES.indexOf(authorIndex(state.author)) !== -1; }
 /* WHO MAY DELETE. Mine, or everything if I am 엄마. Editing is free for
    everyone — the family hands care over mid-record all day (mom puts him
    down, dad enters the wake-up), so only deletion, the one destructive
@@ -6448,7 +6486,10 @@ function allAuthorChoices(){
      CURRENT language's word, which is how one nanny became '내니' on some
      records and 'Bảo mẫu' on others. */
   var presets = I18N.ko.authorPresets.map(function(n, i){
-    return { value: n, label: t('authorPresets')[i] };
+    return { value: n, label: authorLabel(i), idx: i };
+  }).filter(function(x){
+    /* Linh 칩은 11월에만 — 오시기 전에도, 가신 뒤에도 고를 일이 없다 */
+    return x.idx !== 3 || nannyLinhPickable();
   });
   return presets.concat(readCustomAuthors().map(function(c){
     return { value: c.name, label: localizeAuthorName(c.name) };
@@ -11185,13 +11226,31 @@ function maybePostPaydayMemo(){
     .catch(function(){ paydayMemoTried[key] = false; });
 }
 
+/* 11월 한 달은 업체를 통해 오신 다른 분이 출근한다. 그동안 **돈이 적힌
+   화면은 엄마 폰에서만** 연다 — 두 사람의 조건이 서로 보이면 곤란하다.
+   가리는 것은 '정산'뿐이고 '출근 도장'은 그대로 둔다. 도장까지 닫으면
+   본인이 출근을 찍을 길이 없어진다.
+   한 가지는 분명히 해 둔다: 이건 **화면에서 가리는 것**이지 데이터를
+   감추는 게 아니다. 서버는 여전히 모든 폰에 같은 문서를 내려준다. */
+var SETTLE_HIDE_FROM = '2026-11-01', SETTLE_HIDE_TO = '2026-12-01';
+function canSeeSettle(){
+  var d = toDateValue();
+  if (d < SETTLE_HIDE_FROM || d > SETTLE_HIDE_TO) return true;
+  return isMasterUser();
+}
+
 /* ---- 렌더 ---- */
 function renderPay(){
   maybePostPaydayMemo();
-  var pv = state.paySub === 'settle' ? 'settle' : 'stamp';   /* 'cal'이 남아 있어도 도장 화면 */
+  var maySettle = canSeeSettle();
+  var pv = (state.paySub === 'settle' && maySettle) ? 'settle' : 'stamp';
   $$('#pay-tabs button').forEach(function(b){
+    b.hidden = (b.dataset.pv === 'settle') && !maySettle;
     b.setAttribute('aria-pressed', String(b.dataset.pv === pv));
   });
+  var tabs = document.getElementById('pay-tabs');
+  /* 고를 것이 하나뿐이면 탭 줄은 아무 말도 하지 않는다 — 치운다 */
+  if (tabs) tabs.hidden = !maySettle;
   $$('[data-pv-panel]').forEach(function(pnl){ pnl.hidden = pnl.dataset.pvPanel !== pv; });
   /* 셋 다 그린다 — 어느 화면이든 폴링 한 번에 같이 최신이 되어야 하고,
      이 탭의 렌더는 캘린더 한 달치가 전부라 값이 싸다 */
@@ -12346,7 +12405,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261026d';
+var BUILD = '20261031b';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -15483,30 +15542,40 @@ function weanDaysSince(ds){
   if (!ds) return 0;
   return Math.round((new Date(toDateValue() + 'T00:00:00') - new Date(ds + 'T00:00:00')) / 86400000);
 }
-/* 다음 주까지 몇 칸을 더 만들어야 하나.
+/* 한 주에 큐브가 몇 칸 드나.
 
-   '큐브 53칸'도 '이 속도면 12일치'도 '먼저 떨어지는 것'도 읽고 나서 머리로
-   한 번 더 계산해야 하는 숫자였다. 실제로 하는 일은 하나다 — 주말에 앉아
-   큐브를 만든다. 그러니 화면이 답할 것도 하나다: 무엇을 몇 칸.
+   '큐브 53칸'도 '이 속도면 12일치'도 읽고 나서 머리로 한 번 더 계산해야
+   하는 숫자였다. 실제로 하는 일은 하나다 — 주말에 앉아 한 주치를 만든다.
+   그래서 장보기와 **같은 주 단위**로 센다(2026-10-31 "장보기처럼 주별로").
 
-   기간은 오늘부터 다음 주 일요일까지. 장보기가 월~일 주 단위이고 그 주기에
-   맞춰 만들 테니, 다음번 만들 때까지 버텨야 하는 구간이 그만큼이다. */
-function weanMakeUntil(){
-  return weanDateAdd(weanWeekOf(toDateValue()), 13);
-}
-function weanToMake(){
-  var until = weanMakeUntil(), need = {};
-  var d = toDateValue();
-  while (d <= until){
-    weanDayIngs(weanDay(d)).forEach(function(x){ need[x.ing] = (need[x.ing] || 0) + 1; });
-    d = weanDateAdd(d, 1);
-  }
-  var out = [];
-  Object.keys(need).forEach(function(ing){
-    var short = need[ing] - weanCubeN(ing);
-    if (short > 0) out.push({ ing: ing, n: short, need: need[ing], have: weanCubeN(ing) });
+   한 칸이 몇 g인지는 재료마다 다르고(쌀죽 40·60·90g, 토핑 10·15·20g),
+   그 g은 단계가 올라가면 같이 커진다. 그러니 "하루에 한 재료 = 한 칸"으로
+   세면 안 된다 — 중기부터는 하루 두 끼라 쌀죽만 120g, 두 칸이다.
+   그날 쓰는 g을 한 칸 g으로 나눠 **올림**한다. */
+function weanWeekCubes(week){
+  var days = weanWeekDays(week), use = {};
+  days.forEach(function(ds){
+    weanDayIngs(weanDay(ds)).forEach(function(x){
+      /* 한 칸 g은 재료 사전에서 읽는다. 사전에 없으면 씨앗 목록에서라도
+         찾는다 — 쌀죽 한 칸은 60g인데 10g으로 세면 여섯 배가 나온다. */
+      var gg = weanIng(x.ing) || WEAN_SEED_INGS.filter(function(z){ return z.id === x.ing; })[0];
+      var per = (gg && Number(gg.cubeG)) || 10;
+      var n = Math.max(1, Math.ceil((Number(x.g) || 0) / per));
+      use[x.ing] = (use[x.ing] || 0) + n;
+    });
   });
-  return out.sort(function(a, b){ return b.n - a.n; });
+  var rows = Object.keys(use).map(function(ing){
+    var have = weanCubeN(ing);
+    return { ing: ing, use: use[ing], have: have, make: Math.max(0, use[ing] - have) };
+  }).sort(function(a, b){
+    if (b.make !== a.make) return b.make - a.make;
+    return b.use - a.use;
+  });
+  return {
+    rows: rows,
+    use: rows.reduce(function(n, r){ return n + r.use; }, 0),
+    make: rows.reduce(function(n, r){ return n + r.make; }, 0),
+  };
 }
 
 /* 기록 상세의 '먹인 것' 칸 속. 이 기록이 들고 있는 사본이 먼저고, 없으면
@@ -16330,30 +16399,100 @@ function weanShopHtml(){
 
 /* ---- 냉동 큐브 ---- */
 function weanCubesHtml(){
-  var make = weanToMake();
-  var until = weanMakeUntil();
-  var html = '<div class="card">' +
-    '<div class="wn-hero"><div>' +
-      '<div class="t-label">' + esc(t('wnToMake')) + '</div>' +
-      '<div class="t-money big">' + esc(make.length
-        ? t('wnCubeNTpl').replace('{n}', make.reduce(function(n, m){ return n + m.n; }, 0))
-        : t('wnToMakeNone')) + '</div></div>' +
-      '<span class="pay-chip quiet">' + esc(t('wnUntilTpl').replace('{d}', weanShortDate(until))) + '</span>' +
-    '</div>';
-  /* 재료 한 줄이 곧 할 일 한 가지다 — 누르면 그 재료·그 칸 수로 만들기가 열린다 */
-  make.forEach(function(m){
-    html += '<button type="button" class="wn-line" data-wn-make="' + esc(m.ing) + '" data-n="' + m.n + '">' +
-      '<span class="t-label">' + esc(weanIngName(m.ing)) + '</span>' +
-      '<div class="wn-val"><span class="t-value">' + esc(t('wnCubeNTpl').replace('{n}', m.n)) + '</span>' +
-      '<span class="t-caption">' + esc(t('wnHaveNeedTpl')
-        .replace('{have}', m.have).replace('{need}', m.need)) + '</span></div>' +
-      '<span class="r-chev">›</span></button>';
+  /* 세 가지를 한 화면에 세로로 다 뿌렸더니 정신이 없었다("아래로 다 뿌리니까
+     정신 없네", 2026-10-31). 물어보는 것이 셋이니 화면도 셋으로 나눈다 —
+     지금 있는 것 / 이번 주 만들 것 / 이번 주 쓸 것. 새싹 달력이 쓰는 것과
+     같은 알약 줄이다.
+     '현재 재고'와 '지금 있는 것'을 따로 두던 것도 합쳤다. 총 칸수와 덩어리
+     목록은 같은 것의 두 얼굴이지, 두 가지가 아니다. */
+  var cv = state.weanCubeView;
+  if (cv !== 'make' && cv !== 'use') cv = 'have';
+  var html = '<div class="chips-nav">' +
+    [['have', 'wnPillHave'], ['make', 'wnPillMake'], ['use', 'wnPillUse']].map(function(x){
+      return '<button type="button" data-wn-cv="' + x[0] + '" aria-pressed="' +
+        (cv === x[0]) + '">' + esc(t(x[1])) + '</button>';
+    }).join('') + '</div>';
+
+  /* ── 이번 주 만들 것 / 쓸 것 ── */
+  if (cv !== 'have'){
+    var week = state.weanWeek, days = weanWeekDays(week);
+    var wk = weanWeekCubes(week);
+    var total0 = weanCubeIngs().reduce(function(n, ing){ return n + weanCubeN(ing); }, 0);
+    var d1 = weanDayNo(days[0]), d2 = weanDayNo(days[6]);
+    html += '<div class="wn-weeknav">' +
+      '<button type="button" class="log-arrow" data-wn-week="-1">\u2039</button><div>' +
+      '<div class="t-card">' + esc(payDateLabel(week).replace(/\s*\(.*\)$/, '') + ' \u2013 ' +
+        payDateLabel(days[6]).replace(/\s*\(.*\)$/, '')) + '</div>' +
+      (d1 > 0 ? '<div class="t-caption">' +
+        esc(t('wnWeekDaysTpl').replace('{a}', d1).replace('{b}', d2)) + '</div>' : '') +
+      '</div><button type="button" class="log-arrow" data-wn-week="1">\u203a</button></div>';
+
+    var rows = cv === 'make' ? wk.rows.filter(function(r){ return r.make > 0; }) : wk.rows;
+    html += '<div class="card">';
+    if (!rows.length){
+      html += '<div class="t-caption" style="padding:6px 0">' +
+        esc(t(cv === 'make' ? 'wnWeekMakeNone' : 'wnWeekUseNone')) + '</div></div>';
+      return html;
+    }
+    html += '<div class="wn-hero"><div>' +
+        '<div class="t-label">' + esc(t(cv === 'make' ? 'wnWeekMake' : 'wnWeekUse')) + '</div>' +
+        '<div class="t-money big">' + esc(t('wnCubeNTpl')
+          .replace('{n}', cv === 'make' ? wk.make : wk.use)) + '</div></div>' +
+      (cv === 'make'
+        ? '<span class="pay-chip quiet">' + esc(t('wnWeekMakeSub').replace('{n}', total0)) + '</span>'
+        : '<span class="pay-chip quiet">' +
+            esc(t('wnStockKindsTpl').replace('{n}', rows.length)) + '</span>') +
+      '</div>';
+    rows.forEach(function(r){
+      /* 만들 것은 한 줄이 곧 할 일 하나다 — 누르면 그 재료·그 칸 수로 열린다.
+         쓸 것은 읽기만 하는 숫자라 누를 데가 없다. */
+      if (cv === 'make'){
+        html += '<button type="button" class="wn-line" data-wn-make="' + esc(r.ing) +
+          '" data-n="' + r.make + '">' +
+          '<span class="t-label">' + weanIngIcon(r.ing, 'wi-sm wi-lead') + esc(weanIngName(r.ing)) + '</span>' +
+          '<div class="wn-val"><span class="t-value">' + esc(t('wnCubeNTpl').replace('{n}', r.make)) + '</span>' +
+          '<span class="t-caption">' + esc(t('wnHaveNeedTpl')
+            .replace('{have}', r.have).replace('{need}', r.use)) + '</span></div>' +
+          '<span class="r-chev">\u203a</span></button>';
+      } else {
+        html += '<div class="wn-line" style="cursor:default">' +
+          '<span class="t-label">' + weanIngIcon(r.ing, 'wi-sm wi-lead') + esc(weanIngName(r.ing)) + '</span>' +
+          '<div class="wn-val"><span class="t-value">' +
+            esc(t('wnCubeNTpl').replace('{n}', r.use)) + '</span>' +
+          '<span class="t-caption">' + esc(t('wnHaveNeedTpl')
+            .replace('{have}', r.have).replace('{need}', r.use)) + '</span></div></div>';
+      }
+    });
+    html += '</div>';
+    return html;
+  }
+
+  /* ── 지금 있는 것 ── */
+  var total = weanCubeIngs().reduce(function(n, ing){ return n + weanCubeN(ing); }, 0);
+  /* 오래 둔 칸은 수를 세는 것만으로는 안 보인다 — 숫자 옆에 같이 띄운다 */
+  var oldN = 0;
+  weanCubeIngs().forEach(function(ing){
+    weanCubesOf(ing).forEach(function(c){
+      if (c.madeOn && weanDaysSince(c.madeOn) > WEAN_CUBE_DAYS) oldN += Number(c.n) || 0;
+    });
   });
-  if (!make.length){
-    html += '<div class="t-caption" style="padding:4px 0 2px">' + esc(t('wnToMakeNoneSub')) + '</div>';
+  /* 오른쪽은 늘 한 마디가 선다 — 오래 둔 칸이 있으면 그걸 먼저, 없으면
+     몇 가지인지. 한쪽이 비면 카드가 짝짝이로 읽힌다. */
+  html += '<div class="card">';
+  if (!total){
+    html += '<div class="t-caption" style="padding:6px 0">' + esc(t('wnCubeEmpty')) + '</div>';
+  } else {
+    html += '<div class="wn-hero"><div>' +
+        '<div class="t-label">' + esc(t('wnStockNow')) + '</div>' +
+        '<div class="t-money big">' + esc(t('wnCubeNTpl').replace('{n}', total)) + '</div></div>' +
+        (oldN
+          ? '<span class="pay-chip warn">' + esc(t('wnStockOldTpl').replace('{n}', oldN)) + '</span>'
+          : '<span class="pay-chip quiet">' +
+              esc(t('wnStockKindsTpl').replace('{n}', weanCubeIngs().length)) + '</span>') +
+      '</div>';
   }
   html += '</div>';
-  html += '<div class="section-title t-label">' + esc(t('wnCubeHave')) + '</div>';
+
 
   /* 냉동실에 있는 것은 '소고기 12칸'이 아니라 '9/14에 만든 4칸'과 '9/28에
      만든 8칸'이다 — 꺼내 쓰는 것도 버리는 것도 덩어리 단위라, 한 줄에 합쳐
@@ -17099,6 +17238,10 @@ function wireWean(){
   var body = document.getElementById('wn-body');
   if (body) body.addEventListener('click', function(ev){
     var el;
+    if ((el = ev.target.closest('[data-wn-cv]'))){
+      state.weanCubeView = el.dataset.wnCv;
+      renderWean(); return;
+    }
     if ((el = ev.target.closest('[data-wn-week]'))){
       state.weanWeek = weanDateAdd(state.weanWeek, Number(el.dataset.wnWeek) * 7);
       renderWean(); return;
@@ -17575,7 +17718,10 @@ function wireEvents(){
   var setBack = document.getElementById('set-back');
   if (setBack) setBack.addEventListener('click', function(){ openSetPage(null); });
   $$('#pay-tabs button').forEach(function(b){
-    b.addEventListener('click', function(){ state.paySub = b.dataset.pv; renderPay(); window.scrollTo(0, 0); });
+    b.addEventListener('click', function(){
+      if (b.dataset.pv === 'settle' && !canSeeSettle()) return;
+      state.paySub = b.dataset.pv; renderPay(); window.scrollTo(0, 0);
+    });
   });
   document.getElementById('pay-prev').addEventListener('click', function(){ payShiftMonth(-1); });
   document.getElementById('pay-next').addEventListener('click', function(){ payShiftMonth(1); });
