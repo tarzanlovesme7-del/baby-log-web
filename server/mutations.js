@@ -373,6 +373,47 @@ function weekKey(ds) {
   return d.toISOString().slice(0, 10);
 }
 
+/* ── 몸무게를 적는 커스텀 항목 ────────────────────────────────────
+   기록 첫화면의 커스텀 항목 '몸무게'는 단위가 kg 이다. 거기 적은 숫자가
+   곧 그날 몸무게이고, 새싹 탭 곡선은 state.weights 를 읽는다. 적는 자리는
+   기록 한 곳으로 두고 weights 가 따라오게 한다 — 같은 숫자를 두 군데 적게
+   만들면 반드시 갈린다.
+
+   날짜는 폰이 보내 준다(payload.day). 기록 시각은 UTC 로 적히는데 이곳은
+   UTC+7 이라, 아침 일찍 잰 몸무게를 서버가 그냥 슬라이스하면 전날로 간다. */
+function isKgType(state, type) {
+  if (!type || String(type).indexOf('custom:') !== 0) return false;
+  const id = String(type).slice(7);
+  const ct = (state.customTypes || []).find((c) => c.id === id);
+  return !!ct && String(ct.unit || '').trim().toLowerCase() === 'kg';
+}
+function dropEntryWeight(state, entryId) {
+  state.weights = (state.weights || []).filter((w) => w.entryId !== entryId);
+}
+function syncEntryWeight(state, entry, payload) {
+  if (!isKgType(state, entry.type)) return;
+  const kg = Math.round(Number(entry.amount) * 100) / 100;
+  /* 아직 안 적은 기록(0)과 오타(76 for 7.6)는 곡선에 올리지 않는다 */
+  if (!(kg >= 0.3 && kg <= 30)) { dropEntryWeight(state, entry.id); return; }
+  const day = String((payload && payload.day) || '');
+  const date = DATE_RE.test(day) ? day : String(entry.start || '').slice(0, 10);
+  if (!DATE_RE.test(date)) return;
+  state.weights = state.weights || [];
+  dropEntryWeight(state, entry.id);
+  /* 하루 한 숫자 — 그날 적힌 것이 있으면 그 자리를 이 기록이 가져간다 */
+  const ex = state.weights.find((w) => w.date === date);
+  if (ex) {
+    ex.kg = kg;
+    ex.author = entry.author || ex.author || '';
+    ex.src = 'entry';
+    ex.entryId = entry.id;
+  } else {
+    state.weights.push({ id: uid('w_'), date, kg,
+      author: entry.author || '', src: 'entry', entryId: entry.id });
+  }
+  state.weights.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}
+
 function applyMutation(prevState, type, payload) {
   const state = clone(prevState);
   payload = payload || {};
@@ -399,6 +440,7 @@ function applyMutation(prevState, type, payload) {
       }
       state.entries.unshift(entry);
       bumpCubesForEntry(state, entry, -1);
+      syncEntryWeight(state, entry, payload);
       return { state, result: { entry } };
     }
 
@@ -420,6 +462,7 @@ function applyMutation(prevState, type, payload) {
         if (entry.menu !== undefined) entry.menu = String(entry.menu || '').slice(0, 200);
         if (entry.ings !== undefined) entry.ings = cleanIngList(entry.ings);
       }
+      syncEntryWeight(state, entry, payload);
       return { state, result: { entry } };
     }
 
@@ -475,6 +518,7 @@ function applyMutation(prevState, type, payload) {
       if (!entry) return { state, result: { alreadyGone: true } };
       assertMayTouch(payload.actor, entry.author, 'entry');
       state.entries = state.entries.filter((e) => e.id !== payload.id);
+      dropEntryWeight(state, entry.id);      /* 몸무게 기록이면 곡선에서도 내려간다 */
       bumpCubesForEntry(state, entry, +1);   /* 먹이지 않은 것이 되었으니 큐브도 돌아온다 */
       state.trash = state.trash || [];
       state.trash.unshift(Object.assign({}, entry, {
@@ -495,6 +539,7 @@ function applyMutation(prevState, type, payload) {
       state.trash = state.trash.filter((x) => x.id !== payload.id);
       state.entries.unshift(entry);
       bumpCubesForEntry(state, entry, -1);
+      syncEntryWeight(state, entry, payload);
       return { state, result: { entry } };
     }
 
@@ -1272,6 +1317,9 @@ function applyMutation(prevState, type, payload) {
         name: payload.name || '',
         color: payload.color || 'var(--c-custom)',
         emoji: payload.emoji || '🏷️',
+        /* 단위를 적어 두면 그 항목은 숫자도 받는다(투약의 ml 칸과 같은 칸).
+           'kg' 이면 그 숫자가 새싹 탭 몸무게로 간다 — syncEntryWeight 참고 */
+        unit: String(payload.unit || '').trim().slice(0, 4),
       };
       state.customTypes.push(ct);
       return { state, result: { customType: ct } };
@@ -1281,6 +1329,7 @@ function applyMutation(prevState, type, payload) {
       const ct = state.customTypes.find((c) => c.id === payload.id);
       if (!ct) throw httpError(404, 'custom type not found');
       ['name', 'color', 'emoji'].forEach((f) => { if (payload[f] !== undefined) ct[f] = payload[f]; });
+      if (payload.unit !== undefined) ct.unit = String(payload.unit || '').trim().slice(0, 4);
       return { state, result: { customType: ct } };
     }
 

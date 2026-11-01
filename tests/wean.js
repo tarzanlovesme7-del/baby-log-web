@@ -37,13 +37,18 @@ const ds = d => d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDat
    setFixedTime 은 타이머는 건드리지 않고 날짜만 멈춘다 — 앱의 4초 폴링은
    그대로 돌아야 한다. */
 const PIN = (() => {
-  /* 달 한가운데이면서 **일~수요일**인 날을 고른다. 달력 한 줄은 일요일에
-     시작하므로, 토요일에 서면 '내일'이 다음 줄로 넘어가 알약이 이어지지
-     않는다(사흘짜리 검사까지 생각하면 목요일부터도 아슬아슬하다).
-     8일에서 출발해 조건에 맞을 때까지 하루씩 민다 — 8~11일 사이에서 끝난다. */
+  /* 달 한가운데이면서 **월~수요일**인 날을 고른다.
+
+     이 앱에는 주가 **두 가지** 있다. 달력 한 줄은 일요일에 시작하고(알약이
+     이어지려면 오늘·내일·모레가 한 줄 안에 있어야 한다), 장보기와 재고는
+     월요일에 시작한다(그 셋이 한 주 안에 있어야 수량이 맞는다).
+     일요일에 서면 달력 줄은 괜찮지만 월요일 주의 **마지막 날**이라
+     장보기가 다음 주로 갈라진다 — 2026-11-08(일)에 그렇게 깨졌다.
+     두 조건을 다 만족하는 요일은 월·화·수뿐이다.
+     8일에서 출발해 하루씩 민다 — 8~11일 사이에서 끝난다. */
   const n = new Date();
   const d = new Date(n.getFullYear(), n.getMonth(), 8, 9, 0, 0);
-  while (d.getDay() > 3) d.setDate(d.getDate() + 1);
+  while (d.getDay() < 1 || d.getDay() > 3) d.setDate(d.getDate() + 1);
   return d;
 })();
 const TODAY = ds(PIN);
@@ -144,6 +149,20 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
       on.getBoundingClientRect().bottom <= tabs.getBoundingClientRect().bottom + 0.5;
   }), true);
   await p.close();
+
+  /* 여기서부터는 **이 스위트가 깐 식단만** 있어야 한다.
+     위에서 확인한 씨앗 식단표(2026-11-06~2027-02-03)가 남아 있으면,
+     고정 시계(그 달 8~11일)가 그 구간 안에 들어오는 달부터 오늘·내일·
+     모레가 책 식단과 겹쳐 장보기 수량도 큐브 수도 두 배로 나온다 —
+     2026-11월에 실제로 그렇게 깨졌다. 씨앗은 확인했으니 비우고 간다. */
+  /* 통째로 비우지는 않는다 — 아래에 '달 목록이 뜬다'처럼 식단이 여러 달에
+     걸쳐 있어야 하는 검사가 있다. 오늘 주변만 비운다(재고 검사가 넉 주 뒤를
+     쓰므로 +45일까지). 남는 12월 말~2월이 달 목록을 채워 준다. */
+  for (const k of Object.keys((await st()).weanPlan || {})) {
+    if (k >= dAdd(TODAY, -10) && k <= dAdd(TODAY, 45)) {
+      await mut('deleteWeanDay', { date: k, actor: '엄마' });
+    }
+  }
 
   // ═══ 오늘 식단을 넣으면 첫 화면 이유식 칸에 그림이 선다 ═══
   /* 2026-10-19 전까지는 여기에 '오늘 이유식' 띠가 떴다. 띠는 하루 종일
@@ -742,16 +761,23 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   check('...한 칸 g으로 나눠 올림한다 (두 끼 × 이틀 = 10칸 늘어난다)',
     (await heroN()) - beforeUse, 10);
 
+  /* '쓸 것'은 재고와 무관한 소비량이고 '만들 것'은 거기서 재고를 뺀 것이다.
+     두 화면의 숫자가 그 관계를 지키는지 본다 — 재고가 넉넉해서 만들 것이
+     하나도 없는 주도 올바른 답이므로, 줄 개수가 아니라 **관계**를 묻는다. */
+  const needHave = await p.evaluate(()=>
+    [...document.querySelectorAll('#wn-body .wn-line')].map(e => {
+      const m = e.querySelector('.t-caption').textContent.match(/(\d+)칸 · 필요 (\d+)칸/);
+      return m ? { have: Number(m[1]), use: Number(m[2]) } : null;
+    }).filter(Boolean));
+  const wantMake = needHave.reduce((n, r) => n + Math.max(0, r.use - r.have), 0);
   await pill('make');
-  check('만들 것은 "필요 − 지금 있는 것"이다', await p.evaluate(()=>{
-    const rows = [...document.querySelectorAll('#wn-body .wn-line[data-wn-make]')];
-    if (!rows.length) return 'no-rows';
-    return rows.every(e => {
+  check('만들 것 합계 = Σ(필요 − 지금 있는 것)', (await heroN()) || 0, wantMake);
+  check('...줄마다도 그 관계를 지킨다', await p.evaluate(()=>
+    [...document.querySelectorAll('#wn-body .wn-line[data-wn-make]')].every(e => {
       const m = e.querySelector('.t-caption').textContent.match(/(\d+)칸 · 필요 (\d+)칸/);
       const n = Number((e.querySelector('.t-value').textContent.match(/\d+/) || [0])[0]);
       return !!m && n === Number(m[2]) - Number(m[1]);
-    });
-  }), true);
+    })), true);
 
   await mut('deleteWeanDay', { date: FARWK, actor: '엄마' });
   await mut('deleteWeanDay', { date: dAdd(FARWK, 1), actor: '엄마' });

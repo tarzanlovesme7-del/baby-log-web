@@ -1406,16 +1406,37 @@
   .wc-lbl.val{ font-size:11px; fill:var(--muted); font-weight:600; }
   .wc-grid{ stroke:var(--border); stroke-width:1; }
   .weight-form{ display:flex; align-items:center; gap:8px; padding:14px 0 4px; }
+  /* 투약 금액 칸(.ent-row2)과 같은 모양으로 맞췄다. 15px이던 글씨 때문에
+     iOS가 탭할 때마다 화면을 확대했고(16px 미만이면 그렇게 된다 — 분유
+     먹은양에서 이미 겪었다), 84px 칸에 숫자가 끼어 있어 누르기도 좁았다.
+     단위는 글자가 아니라 **옆 상자**로 — 그래야 숫자 칸의 끝이 분명하다.
+     2026-11-01 "몸무게 항목도 투약처럼 숫자만 입력할 수 있게". */
   .weight-form input{
     border:1px solid var(--border); background:var(--surface); color:var(--fg);
-    border-radius:11px; padding:9px 10px; font-size:var(--fs-label);
+    border-radius:12px; padding:12px 13px; font-size:16px;
+    -webkit-appearance:none; appearance:none; font-family:inherit;
   }
-  .weight-form input[type="date"]{ flex:1; min-width:0; }
-  #weight-kg{ width:84px; text-align:right; font-variant-numeric:tabular-nums; }
-  .weight-form .w-unit{ color:var(--muted); font-size:var(--fs-caption); }
+  /* 숫자 칸의 위아래 화살표는 손가락으로 쓸 물건이 아니다 — 자리만 먹는다 */
+  .weight-form input[type="number"]::-webkit-inner-spin-button,
+  .weight-form input[type="number"]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+  .weight-form input[type="number"]{ -moz-appearance:textfield; }
+  /* iOS·사파리는 date 칸을 제 컨트롤로 그린다. 그 컨트롤에는 내용에 맞는
+     고유 폭이 있어서 flex:1 로도 줄지 않고 글자가 잘린다 — 기록 상세의
+     날짜 칸에 이미 같은 이유로 걸어 둔 규칙이다. */
+  .weight-form input[type="date"]{
+    flex:1 1 0; min-width:0; -webkit-appearance:none; appearance:none;
+    padding-left:11px; padding-right:11px;
+  }
+  #weight-kg{ width:92px; text-align:right; font-variant-numeric:tabular-nums; flex:0 0 auto; }
+  .weight-form .w-unit{
+    border:1px solid var(--border); border-radius:12px; padding:12px 12px;
+    font-size:var(--fs-caption); font-weight:var(--fw-medium); color:var(--fg);
+    flex:0 0 auto; line-height:1.2;
+  }
   .weight-form button{
-    border:0; border-radius:11px; padding:9px 16px; background:var(--primary);
+    border:0; border-radius:12px; padding:12px 16px; background:var(--primary);
     color:var(--primary-fg, #fff); font-size:var(--fs-label); font-weight:var(--fw-strong);
+    flex:0 0 auto;
   }
   .weight-row{
     display:flex; align-items:center; gap:10px; padding:8px 2px;
@@ -4571,6 +4592,11 @@
         <input type="text" id="new-type-name" maxlength="12" />
       </div>
       <div class="field">
+        <label data-i18n="typeUnit">단위 (숫자 입력)</label>
+        <input type="text" id="new-type-unit" maxlength="4" placeholder="kg" />
+        <div class="field-hint" data-i18n="typeUnitHint">비워 두면 숫자 칸이 없어요. kg을 적으면 새싹 탭 몸무게에 연동됩니다.</div>
+      </div>
+      <div class="field">
         <label data-i18n="typeEmoji">아이콘</label>
         <div class="emoji-pick" id="new-type-emojis"></div>
       </div>
@@ -4719,6 +4745,9 @@ ko: {
   tabRecord:"기록", tabStats:"통계", tabSettings:"설정",
   save:"저장", cancel:"취소", delete:"삭제", add:"추가", start:"시작하기",
   newTypeTitle:"새 항목 추가", typeName:"항목 이름", typeColor:"색상", typeEmoji:"아이콘",
+  typeUnit:"단위 (숫자 입력)", typeUnitPh:"단위 없음",
+  typeUnitHint:"비워 두면 숫자 칸이 없어요. kg을 적으면 새싹 탭 몸무게에 연동됩니다.",
+  entNumTpl:"{name}", entKgSync:"새싹 탭 몸무게에 같이 올라갑니다",
   whoAmITitle:"누구신가요?", whoAmIDesc:"기록에 표시할 이름을 골라주세요. 나중에 설정에서 바꿀 수 있어요.", orTypeName:"직접 입력",
   babyDefaultName:"아기", dDay:"D+",
   t_feed:"분유", t_diaper:"기저귀", t_bath:"목욕", t_sleep:"수면", t_med:"투약", t_probiotic:"유산균", t_play:"놀이",
@@ -5028,6 +5057,9 @@ vi: {
   tabRecord:"Nhật ký", tabStats:"Thống kê", tabSettings:"Cài đặt",
   save:"Lưu", cancel:"Hủy", delete:"Xóa", add:"Thêm", start:"Bắt đầu",
   newTypeTitle:"Thêm mục mới", typeName:"Tên mục", typeColor:"Màu sắc", typeEmoji:"Biểu tượng",
+  typeUnit:"Đơn vị (nhập số)", typeUnitPh:"Không có",
+  typeUnitHint:"Để trống thì không có ô số. Ghi kg thì số đó lên mục cân nặng ở tab Mầm.",
+  entNumTpl:"{name}", entKgSync:"Số này cũng lên cân nặng ở tab Mầm",
   whoAmITitle:"Bạn là ai?", whoAmIDesc:"Chọn tên hiển thị trên nhật ký. Bạn có thể đổi sau trong Cài đặt.", orTypeName:"Nhập tên khác",
   babyDefaultName:"Em bé", dDay:"D+",
   t_feed:"Bú sữa", t_diaper:"Tã", t_bath:"Tắm", t_sleep:"Ngủ", t_med:"Uống thuốc", t_probiotic:"Men vi sinh", t_play:"Chơi",
@@ -6462,7 +6494,10 @@ function readEntries(){
 }
 function readCustomTypes(){
   return (appState.customTypes || []).map(function(c){
-    return { id: c.id, name: c.name || '', color: c.color || 'var(--c-custom)', emoji: c.emoji || '🏷️' };
+    /* unit 이 여기 빠지면 없는 것이 된다 — 아래 readCustomAuthors 윗주석의
+       그 함정이다(서버에는 kg 이 있는데 화면에 숫자 칸이 안 서던 이유). */
+    return { id: c.id, name: c.name || '', color: c.color || 'var(--c-custom)',
+             emoji: c.emoji || '🏷️', unit: String(c.unit || '').trim() };
   });
 }
 /* custom author names — the three presets are built into the UI; these are the
@@ -6687,12 +6722,18 @@ function typeIconHtml(meta, cls, styleAttr){
   if (!g) return '<span'+box+sty+'><span class="ico-emoji">'+(meta ? meta.emoji : '')+'</span></span>';
   return '<span'+box+sty+'><svg class="ty-ico" viewBox="0 0 24 24" aria-hidden="true">'+g+'</svg></span>';
 }
+/* 단위를 정해 둔 커스텀 항목은 숫자도 받는다. 단위가 kg 이면 그 숫자가
+   새싹 탭 몸무게가 된다 — 적는 자리는 기록 한 곳이고, 곡선이 따라온다
+   (서버 mutations.js 의 syncEntryWeight 가 state.weights 를 맞춘다). */
+function metaUnit(meta){ return (meta && typeof meta.unit === 'string') ? meta.unit.trim() : ''; }
+function metaIsKg(meta){ return metaUnit(meta).toLowerCase() === 'kg'; }
 function typeMeta(typeStr){
   if (!typeStr) return null;
   if (typeStr.indexOf('custom:') === 0){
     var cid = typeStr.slice(7);
     var found = readCustomTypes().filter(function(c){ return c.id===cid; })[0];
-    if (found) return {id:typeStr, emoji: found.emoji, color: found.color, label: found.name, isCustom:true};
+    if (found) return {id:typeStr, emoji: found.emoji, color: found.color, label: found.name,
+      isCustom:true, unit: String(found.unit || '').trim()};
     return {id:typeStr, emoji:'🏷️', color:'var(--c-custom)', label: t('t_custom'), isCustom:true};
   }
   var b = BUILT_IN.filter(function(x){ return x.id===typeStr; })[0];
@@ -8556,6 +8597,10 @@ function entryRowHtml(e, isCont){
     if (e.ate) subParts.push(weanAteLabel(e.ate));
     if (e.amount) subParts.push(e.amount+'g');
     if (e.react && e.react !== 'none') subParts.push(t('wnReact_'+e.react));
+  } else if (metaUnit(meta)){
+    /* 몸무게 8.9kg — 줄을 열지 않고도 숫자가 보여야 한다. 이 줄을 제일
+       많이 보는 사람에게는 그 숫자가 기록 전부다. */
+    if (Number(e.amount) > 0) subParts.push(e.amount + metaUnit(meta));
   }
   /* every type shows how long it ran the moment the end time moves past the start */
   if (e.end && e.end !== e.start) subParts.push(fmtDur(entryDurationMs(e)));
@@ -12405,7 +12450,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261031b';
+var BUILD = '20261101b';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -12455,12 +12500,23 @@ function renderSettings(){
     customBox.innerHTML = '<div class="row-item"><span class="r-sub" style="color:var(--muted)">'+esc(t('noCustomTypes'))+'</span></div>';
   } else {
     customBox.innerHTML = types.map(function(c){
-      return '<div class="row-item"><div style="display:flex;align-items:center;gap:10px;">' +
+      /* 단위는 나중에도 고칠 수 있어야 한다 — 이미 세워 둔 '몸무게' 항목에
+         kg 을 달아 주는 자리가 여기다(내니 이름의 베트남어 칸과 같은 짜임). */
+      return '<div class="row-item"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">' +
         typeIconHtml(c, 'ty-chip', 'background:color-mix(in srgb, '+esc(c.color)+' 16%, var(--surface-2));color:'+esc(c.color)) +
-        '<span class="r-label">'+esc(c.name)+'</span></div>' +
+        '<div style="flex:1;min-width:0"><div class="r-label">'+esc(c.name)+'</div>' +
+        '<input type="text" class="author-vi" data-unit-type="'+esc(c.id)+'" maxlength="4" value="'+
+          esc(String(c.unit || ''))+'" placeholder="'+esc(t('typeUnitPh'))+'" /></div></div>' +
         '<button type="button" class="text-btn danger-btn" data-del-type="'+esc(c.id)+'">'+esc(t('delete'))+'</button>' +
       '</div>';
     }).join('');
+    $$('[data-unit-type]', customBox).forEach(function(input){
+      input.addEventListener('change', function(){
+        apiMutate('updateCustomType', { id: input.dataset.unitType, unit: input.value.trim() })
+          .then(function(){ renderAll(); toast(t('savedToast')); })
+          .catch(function(err){ toast(err.message); });
+      });
+    });
     $$('[data-del-type]', customBox).forEach(function(btn){
       btn.addEventListener('click', function(){
         apiMutate('deleteCustomType', { id: btn.dataset.delType }).then(function(){
@@ -13282,6 +13338,21 @@ function buildEntryFields(meta, e){
       return { v: k, label: t('wnReact_' + k) }; }), e.react || 'none');
   }
 
+  /* ── 커스텀 항목의 숫자 ──────────────────────────────────────
+     단위를 정해 둔 항목은 투약의 양 칸과 같은 부품을 쓴다. 눈금자가 아니라
+     숫자 칸인 이유는 몸무게가 8.9 처럼 **적는** 숫자이기 때문이다 — 0에서
+     8.9까지 긋게 만들면 매번 같은 실랑이를 한다. */
+  if (metaUnit(meta)){
+    var cu = metaUnit(meta);
+    html += entH(t('entNumTpl').replace('{name}', meta.label));
+    html += '<div class="ent-row2">' +
+      '<input type="number" id="f-amount" value="' +
+        esc((e.amount === '' || e.amount === null || e.amount === undefined) ? '' : e.amount) +
+        '" min="0" max="999" step="0.1" inputmode="decimal" />' +
+      '<div class="ent-unit">' + esc(cu) + '</div></div>';
+    if (metaIsKg(meta)) html += '<div class="field-hint">' + esc(t('entKgSync')) + '</div>';
+  }
+
   /* ── 사진 — 메모·일기가 쓰는 저장소 그대로(압축·오프라인 큐 동일) ── */
   html += entH(t('entPics'));
   html += '<div class="ent-pics" id="f-pics"></div>';
@@ -13524,7 +13595,10 @@ function saveEntryDetail(){
   state.crossMidEndDate = null;   // one save only
   var newEnd = combineDateAndTime(endDateVal, endTimeVal || startTimeVal);
 
-  var payload = { id: state.entryId, start: newStart, end: newEnd };
+  /* 날짜를 같이 보낸다 — 기록 시각은 UTC 로 적히고 여기는 UTC+7 이라,
+     아침 일찍 잰 몸무게를 서버가 슬라이스하면 전날 몸무게가 된다.
+     저장되는 칸은 아니고, kg 항목을 새싹 탭에 올릴 때만 쓰인다. */
+  var payload = { id: state.entryId, start: newStart, end: newEnd, day: dateVal };
   var amountEl = document.getElementById('f-amount');
   if (amountEl) payload.amount = Number(amountEl.value);
   var diaperSeg = document.getElementById('f-diaper');
@@ -15008,6 +15082,7 @@ function askConfirm(opts){
 var pickedSwatch = SWATCHES[0], pickedEmoji = ICON_CHOICES[0];
 function openTypeSheet(){
   document.getElementById('new-type-name').value = '';
+  document.getElementById('new-type-unit').value = '';
   pickedSwatch = SWATCHES[Math.floor(Math.random()*SWATCHES.length)];
   pickedEmoji = ICON_CHOICES[Math.floor(Math.random()*ICON_CHOICES.length)];
   var swBox = document.getElementById('new-type-swatches');
@@ -15046,7 +15121,8 @@ function openTypeSheet(){
 function saveTypeSheet(){
   var name = document.getElementById('new-type-name').value.trim();
   if (!name){ toast(state.lang==='vi'?'Vui lòng nhập tên':'이름을 입력해 주세요'); return; }
-  apiMutate('addCustomType', { name: name, color: pickedSwatch, emoji: pickedEmoji }).then(function(){
+  var unit = document.getElementById('new-type-unit').value.trim();
+  apiMutate('addCustomType', { name: name, color: pickedSwatch, emoji: pickedEmoji, unit: unit }).then(function(){
     closeSheet('type-sheet');
     renderQuickActions();
     renderSettings();
@@ -15306,7 +15382,7 @@ function weanCubes(){ return (appState && appState.weanCubes) || []; }
 var WEAN_ICON_FILE = {
   'apple':'apple', 'banana':'banana', 'beef':'beef', 'beet':'beet',
   'bokchoy':'bok-choy', 'broccoli':'broccoli', 'button':'button-mushroom', 'cabbage':'cabbage',
-  'carrot':'carrot', 'chicken':'chicken', 'egg':'egg', 'fish':'cod',
+  'carrot':'carrot', 'chicken':'chicken', 'cucumber':'cucumber', 'egg':'egg', 'fish':'cod',
   'kingoyst':'king-oyster-mushroom', 'lotus':'lotus-root', 'mallow':'mallow', 'napa':'napa-cabbage',
   'onion':'onion', 'pea':'peas', 'peanut':'peanut', 'pgb':'barley',
   'pgd':'black-rice', 'pgl':'brown-rice', 'pglo':'brown-rice', 'pgq':'quinoa',
