@@ -4879,7 +4879,7 @@ ko: {
   feedTargetCalcTpl:"{n}{u} × {c}회",
   feedPlanMasterOnly:"엄마만 바꿀 수 있어요",
   feedPlanHintFixed:"배고파하면 시각 전에 줘도 돼요. 앞뒤 2시간 안의 수유는 그 차례로 칩니다. 최소량을 넘는 몫은 보충 수유로 점선 표시돼요.",
-  feedPlanHintInterval:"그날 첫 수유 시각부터 간격을 세요. 아직 안 먹였으면 기준 시각부터.",
+  feedPlanHintInterval:"마지막 수유 시각부터 간격을 세요. 먹인 양은 보지 않아요 — 이유식을 먹기 시작했으면 이 방식이 맞아요. 아직 안 먹였으면 기준 시각부터.",
   timesUnit:"회",
   patternTitle:"시간대 패턴", patternCaption:"세로축은 하루 24시간 · 항목을 눌러 켜고 끄세요", patternEmpty:"이 기간엔 기록이 없어요",
   /* ---- 내니 근무와 급여 ---- */
@@ -5194,7 +5194,7 @@ vi: {
   feedTargetCalcTpl:"{n}{u} × {c} cữ",
   feedPlanMasterOnly:"Chỉ mẹ mới đổi được",
   feedPlanHintFixed:"Bé đói thì cho bú sớm hơn cũng được. Cữ bú trong vòng 2 tiếng trước/sau được tính cho giờ đó. Phần vượt mức tối thiểu hiện là cữ bú bù (nét đứt).",
-  feedPlanHintInterval:"Tính cách quãng từ cữ bú đầu tiên trong ngày. Chưa bú thì tính từ giờ cữ đầu.",
+  feedPlanHintInterval:"Tính cách quãng từ cữ bú gần nhất, không tính lượng bú. Chưa bú thì tính từ giờ cữ đầu.",
   timesUnit:" cữ",
   patternTitle:"Mẫu hình theo giờ", patternCaption:"Trục dọc là 24 giờ · chạm để bật/tắt từng mục", patternEmpty:"Chưa có nhật ký trong khoảng này",
   /* ---- Chấm công và lương ---- */
@@ -7750,10 +7750,19 @@ function feedNightPush(plan, min){
 /* 오늘의 차례들과, 각 차례를 어떤 수유가 먹었는지 */
 function feedSlots(plan, feeds, dayStartMs){
   var mins = [];
-  if (plan.mode === 'amount'){
+  if (plan.mode === 'amount' || plan.mode === 'interval'){
     /* 차례가 먼저 있고 수유가 그걸 채우는 게 아니라, 먹인 것이 곧 지나간
-       차례다. 마지막으로 먹인 양이 다음 한 번을 정한다 — 200 ml에 4시간이면
-       150 ml는 3시간 뒤. 그래서 앞을 내다보는 차례는 언제나 딱 하나다. */
+       차례다. 그래서 앞을 내다보는 차례는 언제나 딱 하나다.
+       두 방식의 차이는 그 하나를 **얼마 뒤로** 잡느냐 하나뿐이다:
+         용량 — 마지막으로 먹인 양이 정한다(200 ml에 4시간이면 150 ml는 3시간 뒤)
+         간격 — 정해 둔 간격 그대로. 먹인 양은 보지 않는다.
+       간격은 예전에 '그날 첫 수유에 4시간 격자를 깔는' 방식이었다. 격자는
+       한 번 어긋나면(배고파서 두 시간 만에 먹인 날) 남은 하루 내내 실제
+       수유와 어긋난 시각을 가리키고, 그 숫자는 마지막 수유와 아무 관계가
+       없어 보인다 — 이유식을 먹기 시작해 분유 양으로 다음 때를 잴 수 없게
+       되면서 이 방식을 쓰기로 한 것이니(2026-11-01), 셈도 마지막 수유에서
+       센다. */
+    var byAmount = plan.mode === 'amount';
     var out = feeds.map(function(f){
       var ms = new Date(f.start).getTime();
       return { min: Math.round((ms - dayStartMs) / 60000), ms: ms, fed: f };
@@ -7761,35 +7770,35 @@ function feedSlots(plan, feeds, dayStartMs){
     var nextMin;
     if (feeds.length){
       var last = feeds[feeds.length - 1];
-      var ml = Number(last.amount);
-      /* 양을 안 적은 수유는 기준 한 번만큼 먹은 것으로 친다 — 0으로 치면
-         방금 먹였는데 바로 다음 차례가 된다 */
-      var span = (isFinite(ml) && ml > 0)
-        ? Math.round(ml * plan.rateMin / plan.rateMl)
-        : plan.rateMin;
-      span = Math.min(span, plan.maxGapMin);   /* 최대 간격이 천장 */
+      var span;
+      if (byAmount){
+        var ml = Number(last.amount);
+        /* 양을 안 적은 수유는 기준 한 번만큼 먹은 것으로 친다 — 0으로 치면
+           방금 먹였는데 바로 다음 차례가 된다 */
+        span = (isFinite(ml) && ml > 0)
+          ? Math.round(ml * plan.rateMin / plan.rateMl)
+          : plan.rateMin;
+        span = Math.min(span, plan.maxGapMin);   /* 최대 간격이 천장 */
+      } else {
+        /* 정한 간격이 '최대 간격'보다 길어도 그대로 둔다 — 간격은 직접
+           정한 값이고, 천장이 그걸 조용히 깎으면 설정이 거짓말이 된다.
+           너무 벌어진 것은 overGap 이 따로 말해 준다. */
+        span = plan.intervalMin;
+      }
       nextMin = Math.round((new Date(last.start).getTime() - dayStartMs) / 60000) + span;
     } else {
       nextMin = hmToMin(plan.startTime);
     }
     var rawMin = nextMin;
-    nextMin = feedNightPush(plan, nextMin);
+    /* '안 먹이는 시간'은 용량 방식에서만 입력받는 칸이다 — 간격 방식에서
+       보이지도 않는 값으로 시각을 밀면 설명할 수 없는 숫자가 된다.
+       간격 방식의 밤은 '밤에 숨기기'(quietFrom)가 맡는다. */
+    if (byAmount) nextMin = feedNightPush(plan, nextMin);
     out.push({ min: nextMin, ms: dayMsAt(dayStartMs, nextMin), fed: null,
                pushed: nextMin !== rawMin });
     return out;
   }
-  if (plan.mode === 'interval'){
-    var anchor = feeds.length
-      ? Math.round((new Date(feeds[0].start).getTime() - dayStartMs) / 60000)
-      : hmToMin(plan.startTime);
-    for (var i = 0; i < plan.count; i++){
-      var m = anchor + i * plan.intervalMin;
-      if (m >= 1440) break;      /* 자정을 넘는 차례는 오늘 것이 아니다 */
-      mins.push(m);
-    }
-  } else {
-    mins = plan.times.map(hmToMin);
-  }
+  mins = plan.times.map(hmToMin);
   var slots = mins.map(function(m){ return { min:m, ms:dayMsAt(dayStartMs, m), fed:null }; });
   /* 수유 하나가 차례 하나를 먹는다. 가까운 짝부터 맺어야 07:50 한 번이
      07:00과 11:00을 동시에 지우거나 엉뚱한 쪽에 붙는 일이 없다. */
@@ -12450,7 +12459,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261101b';
+var BUILD = '20261101c';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
