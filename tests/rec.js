@@ -128,7 +128,7 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
   // ═══ 분유 — 같은 숫자 부품 + 오늘 먹은 양 ═══
   check('분유는 ml 눈금 고르개다', await p.evaluate(()=>{
     const box=document.querySelector('.amt [data-scrub="ruler"]');
-    return box && box.dataset.for==='f-amount' && box.dataset.step==='5';
+    return box && box.dataset.for==='f-amount' && box.dataset.step==='1';
   }), true);
   check('...눈금 끝이 1회 기준을 말한다', /1회 기준/.test(await txt('.amt-ends')), true);
   check('...오늘 먹은 양과 목표가 있다', await p.evaluate(()=>{
@@ -252,9 +252,15 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
      !document.getElementById('f-tedit-end').hidden]), [true, true]);
   /* 고치면 길이가 바로 따라온다 */
   await p.evaluate(()=>{ const i=document.getElementById('f-end');
-    i.value='13:00'; i.dispatchEvent(new Event('change',{bubbles:true})); });
+    i.value='13:00'; i.dispatchEvent(new Event('change',{bubbles:true})); i.blur(); });
   await p.waitForTimeout(400);
   check('...고치면 길이가 바로 따라온다', await txt('#f-dur'), '2시간 30분');
+  /* 적고 나면 그 입력칸은 닫힌다 — 같은 시각이 큰 글씨와 입력칸 두 군데에
+     떠 있으면 "시간이 또 생긴" 것으로 읽힌다 (2026-11-02) */
+  check('...직접 적은 뒤 입력칸이 닫힌다', await p.evaluate(()=>
+    document.querySelector('#f-tedit-end .scrub-exact').hidden), true);
+  check('...큰 글씨가 그 시각을 말한다', await p.evaluate(()=>
+    document.querySelector('#f-tedit-end .scrub-val b').textContent), '오후 01:00');
   await p.click('#fp-entry-save'); await p.waitForTimeout(1500);
   s = await st();
   check('...고친 끝 시각이 저장된다',
@@ -271,6 +277,29 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
       await p.evaluate(()=>!!document.getElementById('f-pics') && !!document.getElementById('f-pic-add')), true);
     await back();
   }
+  /* 눈금 한 칸 = 1 — 저울로 잰 값을 그대로 적을 수 있어야 한다
+     (2026-11-02 "분유랑 이유식 다 5단위로만 입력되더라? 나 저울써서
+     1g단위로 해도 되는데"). −/+ 는 5씩 민다. */
+  await openRow('분유');
+  check('분유 눈금은 1 ml 단위다', await p.evaluate(()=>
+    document.querySelector('.amt [data-scrub="ruler"]').dataset.step), '1');
+  check('...−/+ 는 5씩 민다', await p.evaluate(()=>
+    [...document.querySelectorAll('.amt [data-scrub-nudge]')]
+      .map(b=>b.dataset.scrubNudge)), ['-5','5']);
+  check('...173 을 적으면 173 으로 남는다 (175 로 반올림하지 않는다)', await p.evaluate(async ()=>{
+    const box = document.querySelector('.amt [data-scrub="ruler"]');
+    box.querySelector('[data-scrub-exact]').click();
+    const i = document.getElementById('f-amount');
+    i.value = '173'; i.dispatchEvent(new Event('change', { bubbles:true }));
+    i.blur();                      /* 손을 뗀다 — 그때 칸이 닫힌다 */
+    await new Promise(r=>setTimeout(r,400));
+    return [i.value, box.querySelector('.scrub-val b').textContent,
+            box.querySelector('.scrub-exact').hidden];
+  }), ['173','173',true]);   /* 적고 나면 입력칸은 닫힌다 — 큰 숫자가 그 값이다 */
+  await p.click('#fp-entry-save'); await p.waitForTimeout(1500);
+  check('...1 ml 단위가 저장된다',
+    (await st()).entries.filter(e=>e.type==='feed')[0].amount, 173);
+
   await openRow('분유');
   await p.setInputFiles('#f-photo-input', {
     name: 'z.png', mimeType: 'image/png',

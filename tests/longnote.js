@@ -91,21 +91,29 @@ const LONG = '이유식 먹다가 빨리 분유 내놓으라고 오열… 너무
     return !!n && getComputedStyle(n).whiteSpace === 'pre-wrap'; }), true);
   /* 시각·아이콘·제목이 **윗줄에서 시작한다**: 메모가 길어 줄이 높아져도
      세 가지의 윗변이 서로 가깝고, 줄 한가운데로 내려가지 않는다. */
+  /* 짜임은 그녀가 말한 그대로다: 아이콘·항목명·부제가 한 덩어리로 묶여
+     **자기들끼리 가운데**에서 만나고, 그 덩어리와 왼쪽 시각이 **위에서**
+     만난다 (2026-11-02). */
   const geom = await p.evaluate(()=>{
     const row = document.querySelector('.entry-row');
     const r = row.getBoundingClientRect();
-    const g = (q) => { const e = row.querySelector(q); const b = e.getBoundingClientRect();
-      return { top: Math.round(b.top - r.top), h: Math.round(b.height) }; };
-    return { rowH: Math.round(r.height), time: g('.e-time'), icon: g('.e-icon'), title: g('.e-title') };
+    const g = (q) => { const e = row.querySelector(q); if (!e) return null;
+      const b = e.getBoundingClientRect();
+      return { top: +(b.top - r.top).toFixed(1), h: +b.height.toFixed(1),
+               left: +(b.left - r.left).toFixed(1), cy: +(b.top + b.height/2 - r.top).toFixed(1) }; };
+    return { rowH: Math.round(r.height), time: g('.e-time'), head: g('.e-head'),
+             icon: g('.e-icon'), title: g('.e-title'), note: g('.e-note') };
   });
   check('줄이 메모만큼 높아졌다 (검사가 의미 있는 상황이다)', geom.rowH > 110, true);
-  check('시각이 줄 위쪽에 있다', geom.time.top <= 20, true);
-  check('아이콘이 줄 위쪽에 있다', geom.icon.top <= 20, true);
-  check('시각·아이콘·제목의 윗변이 6px 안에 모여 있다',
-    Math.max(geom.time.top, geom.icon.top, geom.title.top) -
-    Math.min(geom.time.top, geom.icon.top, geom.title.top) <= 6, true);
+  check('아이콘·항목명이 한 덩어리로 묶여 있다', !!geom.head, true);
+  check('...그 안에서는 세로 가운데에서 만난다',
+    Math.abs(geom.icon.cy - geom.title.cy) <= 2, true);
+  check('시각과 그 덩어리가 위에서 만난다',
+    Math.abs(geom.time.top - geom.head.top) <= 3, true);
   check('아이콘이 줄 한가운데로 내려가 있지 않다',
     geom.icon.top < geom.rowH / 2 - 20, true);
+  check('메모는 항목명 왼쪽 끝에 선다 (아이콘 밑으로 안 들어간다)',
+    Math.abs(geom.note.left - geom.title.left) <= 1, true);
 
   check('페이지 오류 없음', errs, []);
   await b.close();

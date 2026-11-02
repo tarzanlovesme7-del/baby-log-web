@@ -1019,7 +1019,7 @@
      set a step larger than the rest of the app rather than at the shared
      caption/body sizes. The time column widens to match — at 13px the longest
      string ("오후 08:37") no longer fits 66px and would wrap mid-time. */
-  .e-time{ flex:0 0 84px; width:84px; display:flex; flex-direction:column; font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; padding-top:3px; }
+  .e-time{ flex:0 0 84px; width:84px; display:flex; flex-direction:column; font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; padding-top:2px; }
   .e-time-main, .e-time-end{ white-space:nowrap; }
   /* "다음날 오전 06:00" is wider than the time column; it wraps onto its own
      second line rather than widening every row in the list */
@@ -1030,10 +1030,12 @@
   .entry-row.is-cont .e-icon{ opacity:.72; }
   .e-author{ display:block; font-size:var(--fs-micro); color:var(--muted-2); margin-top:2px; }
   /* plain icon glyph, no color-chip background — "아이콘 + 텍스트만" */
-  /* 22px 글리프를 18px 제목 옆에 그대로 올리면 윗변이 제목보다 3px 높다 —
-     눈으로 맞춘 값이다(시각 칸도 같은 이유로 2px 내린다). */
-  .e-icon{ flex:0 0 auto; width:22px; height:22px; display:block; align-self:flex-start; margin-top:2px; }
+  .e-icon{ flex:0 0 auto; width:22px; height:22px; display:block; }
   .e-main{ flex:1; min-width:0; }
+  /* 아이콘과 항목명은 서로 가운데에서 만난다 */
+  .e-head{ display:flex; align-items:center; gap:10px; min-width:0; }
+  /* 그 아래 줄들은 항목명 왼쪽 끝에 선다 — 아이콘(22) + 사이(10) */
+  .e-under{ padding-left:32px; }
   .e-title-line{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:6px; row-gap:0; }
   /* the name of the thing is what the eye lands on first, so it is the
      largest text in the row — there was room going spare next to a
@@ -8603,9 +8605,11 @@ function entryRowHtml(e, isCont){
       '<button type="button" class="entry-row is-cont" data-id="'+esc(e.id)+'" data-cont="1">' +
         '<div class="e-time"><span class="e-time-main">~'+esc(fmtTime(e.end))+'</span>' +
         (e.author?('<span class="e-author">'+esc(localizeAuthorName(e.author))+'</span>'):'') + '</div>' +
-        typeIconHtml(meta, 'e-icon', 'color:'+meta.color) +
-        '<div class="e-main"><div class="e-title-line"><span class="e-title">'+esc(t(classifySleep(e)==='night'?'night':'nap'))+'</span>' +
-        '<span class="e-sub">'+esc(contSub.join(' · '))+'</span></div></div>' +
+        '<div class="e-main"><div class="e-head">' +
+          typeIconHtml(meta, 'e-icon', 'color:'+meta.color) +
+          '<div class="e-title-line"><span class="e-title">'+esc(t(classifySleep(e)==='night'?'night':'nap'))+'</span>' +
+          '<span class="e-sub">'+esc(contSub.join(' · '))+'</span></div>' +
+        '</div></div>' +
       '</button>' +
     '</div>';
   }
@@ -8696,10 +8700,18 @@ function entryRowHtml(e, isCont){
       '<div class="e-time"><span class="e-time-main">'+esc(timeMain)+'</span>' +
       (timeEnd ? '<span class="e-time-end'+(endNextDay?' wrap':'')+'">~'+esc(timeEnd)+'</span>' : '') +
       (e.author?('<span class="e-author">'+esc(localizeAuthorName(e.author))+'</span>'):'') + '</div>' +
-      typeIconHtml(meta, 'e-icon', 'color:'+meta.color) +
-      '<div class="e-main"><div class="e-title-line"><span class="e-title"'+colorAttr(meta.color)+'>'+esc(title)+'</span>' +
-      (subParts.length ? '<span class="e-sub">'+esc(subParts.join(' · '))+'</span>' : '') + '</div>' +
-      wakeChip + noteHtml + picHtml + rxHtml + '</div>' +
+      /* 아이콘·항목명·부제는 한 덩어리로 묶여 **자기들끼리 가운데** 맞고,
+         그 덩어리와 왼쪽 시각이 위에서 만난다 (2026-11-02 그녀의 설명
+         그대로). 메모·사진·반응은 그 아래로 흐르되 항목명 왼쪽 끝에
+         맞춘다 — 아이콘 밑으로 들어가면 글이 한 칸 왼쪽으로 튀어나온다. */
+      '<div class="e-main"><div class="e-head">' +
+        typeIconHtml(meta, 'e-icon', 'color:'+meta.color) +
+        '<div class="e-title-line"><span class="e-title"'+colorAttr(meta.color)+'>'+esc(title)+'</span>' +
+        (subParts.length ? '<span class="e-sub">'+esc(subParts.join(' · '))+'</span>' : '') + '</div>' +
+      '</div>' +
+      ((wakeChip || noteHtml || picHtml || rxHtml)
+        ? '<div class="e-under">' + wakeChip + noteHtml + picHtml + rxHtml + '</div>' : '') +
+      '</div>' +
     '</button>' +
   '</div>';
 }
@@ -12482,7 +12494,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261102c';
+var BUILD = '20261102e';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -12931,12 +12943,16 @@ function scrubRound(v, dec){ return Number(Number(v).toFixed(dec)); }
 /* 눈금 한 칸의 폭. 숫자를 한 칸마다 적던 때는 44px이 맞았지만, 목업처럼
    눈금(틱)을 세우고 숫자는 다섯 칸마다 적으면 그 절반이 자다. */
 var SCRUB_RULER_CELL_PX = 26;
-function rulerScrubHtml(id, value, min, max, step, unit, hint){
+function rulerScrubHtml(id, value, min, max, step, unit, hint, nudge){
   /* 목업의 눈금자: 회색 틱이 줄줄이 서고 다섯 칸마다 긴 틱 + 숫자,
      가운데에 색 바늘이 꽂혀 있다. 숫자를 한 칸마다 적으면 눈금이 아니라
      숫자 띠가 되어 어디가 지금 값인지 바늘보다 글자가 먼저 읽힌다. */
   var cells = '';
   var dec = scrubDec(step);
+  /* −/+ 는 눈금 한 칸과 따로 논다. 분유·이유식 눈금이 1 단위가 되면서
+     (2026-11-02 "나 저울써서 1g단위로 해도 되는데") 한 칸씩 미는 버튼은
+     쓸모가 없어졌다 — 끌어서 1 단위를 맞추고, 버튼은 5씩 민다. */
+  var nd = Number(nudge) || step * 2;
   var n = Math.round((max - min) / step);
   for (var i = 0; i <= n; i++){
     var v = scrubRound(min + i * step, dec);
@@ -12946,9 +12962,9 @@ function rulerScrubHtml(id, value, min, max, step, unit, hint){
   }
   return '<div class="scrub is-ruler" data-scrub="ruler" data-for="'+id+'" data-min="'+min+'" data-max="'+max+'" data-step="'+step+'">' +
     '<div class="scrub-top">' +
-      '<button type="button" class="scrub-chip" data-scrub-nudge="'+(-step*2)+'">−</button>' +
+      '<button type="button" class="scrub-chip" data-scrub-nudge="'+(-nd)+'">−</button>' +
       '<button type="button" class="scrub-val" data-scrub-exact><b></b><small>'+esc(unit)+'</small></button>' +
-      '<button type="button" class="scrub-chip" data-scrub-nudge="'+(step*2)+'">+</button>' +
+      '<button type="button" class="scrub-chip" data-scrub-nudge="'+(nd)+'">+</button>' +
     '</div>' +
     '<div class="scrub-exact" hidden>' +
       '<input type="number" id="'+id+'" value="'+esc(value)+'" min="'+min+'" max="'+max+'" step="'+step+'" inputmode="numeric" />' +
@@ -13055,6 +13071,12 @@ function wireTimeScrub(box){
     paint(0, true);
     scrollToOffset(0);
   });
+  /* 다 적고 손을 뗐을 때 그 칸을 닫는다. 열어 둔 채로 두면 같은 시각이 큰
+     글씨와 입력칸 두 군데에 떠서 "시간이 또 생긴" 것처럼 보인다
+     (2026-11-02 "그냥 굵은 글씨 시간이 바뀌면 되는거 아냐?").
+     change 가 아니라 blur 인 이유: iOS 의 시각 선택기는 휠이 멈출 때마다
+     change 를 쏜다. 거기서 칸을 닫으면 고르는 도중에 선택기가 사라진다. */
+  input.addEventListener('blur', function(){ if (exact) exact.hidden = true; });
   paintScale();
   paint(0, false);
 
@@ -13128,6 +13150,8 @@ function wireRulerScrub(box){
     var v = clampNum(scrubRound(Math.round((Number(input.value)||0)/step)*step, dec), min, max);
     paintValue(v); scrollToValue(v);
   });
+  /* 시각 눈금과 같다 — 다 적고 손을 떼면 닫는다. 큰 숫자가 이미 그 값이다. */
+  input.addEventListener('blur', function(){ if (exact) exact.hidden = true; });
 
   var start = clampNum(Number(input.value) || 0, min, max);
   paintValue(start);
@@ -13204,9 +13228,9 @@ function noteAutoGrow(el){
   el.style.height = Math.max(92, el.scrollHeight) + 'px';
 }
 /* 숫자 고르개 — 눈금자 위에 테두리와 끝말만 얹는다 */
-function entAmtHtml(id, value, min, max, step, unit, endLeft, endRight){
+function entAmtHtml(id, value, min, max, step, unit, endLeft, endRight, nudge){
   return '<div class="amt">' +
-    rulerScrubHtml(id, value, min, max, step, unit, t('entAmtHint')) +
+    rulerScrubHtml(id, value, min, max, step, unit, t('entAmtHint'), nudge) +
     '<div class="amt-ends"><span>' + esc(endLeft) + '</span><span>' + esc(endRight) + '</span></div>' +
   '</div>';
 }
@@ -13279,8 +13303,10 @@ function buildEntryFields(meta, e){
       ? FEED_DEFAULT_ML : Number(e.amount);
     var fd = entFeedDay(e.start);
     html += entH(t('entHowMuch'));
-    html += entAmtHtml('f-amount', amt, 0, 500, 5, t('ml'),
-      t('entNotRec'), t('entPerFeedTpl').replace('{n}', String(fd.perFeed)));
+    /* 눈금은 1 ml 단위다 — 5 단위였을 때는 저울·젖병 눈금으로 읽은 173 을
+       175 로 반올림해 적어야 했다. 숫자는 눌러서 직접 적을 수도 있다. */
+    html += entAmtHtml('f-amount', amt, 0, 500, 1, t('ml'),
+      t('entNotRec'), t('entPerFeedTpl').replace('{n}', String(fd.perFeed)), 5);
     /* 오늘 먹은 양 / 목표 — 첫 화면 수유 배너를 없애면서 갈 곳이 없어졌다 */
     html += entH(t('entTodayAmt'));
     var pct = fd.goal > 0 ? Math.min(100, Math.round(fd.total / fd.goal * 100)) : 0;
@@ -13357,8 +13383,8 @@ function buildEntryFields(meta, e){
     var wTotal = weanEntryTotalG(e);
     html += entAmtHtml('f-amount',
       (e.amount === null || e.amount === undefined || e.amount === '') ? 0 : Number(e.amount),
-      0, 200, 5, 'g', t('entNotRec'),
-      wTotal > 0 ? t('entAteAllTpl').replace('{n}', String(wTotal)) : t('wnAte_full'));
+      0, 200, 1, 'g', t('entNotRec'),
+      wTotal > 0 ? t('entAteAllTpl').replace('{n}', String(wTotal)) : t('wnAte_full'), 5);
     /* 옛 기록은 g 없이 '반'만 적혀 있다. 버리지 않고 그대로 보여주고,
        g을 적는 순간 g이 이긴다(화면도 그 순서로 읽는다). */
     if (e.ate && !(Number(e.amount) > 0)){
