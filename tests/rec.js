@@ -213,9 +213,11 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
   check('약 이름이 칩으로 나온다',
     await p.evaluate(()=>[...document.querySelectorAll('#f-med .chip')].map(x=>x.textContent)),
     ['Hemangiol', '+ 직접 적기']);
+  /* type=number 가 아니라 text+decimal 이다 — 폰 국가가 베트남이면 iOS 가
+     number 칸에서 쉼표 소수점을 통째로 버린다(2026-11-02) */
   check('...양은 숫자 칸이다', await p.evaluate(()=>{
     const i=document.getElementById('f-amount');
-    return i && i.type==='number' && i.step==='0.1';
+    return i && i.type==='text' && i.getAttribute('inputmode')==='decimal';
   }), true);
   check('...단위가 ml로 적혀 있다', await txt('.ent-unit'), 'ml');
   await p.evaluate(()=>document.querySelector('#f-med [data-val="Hemangiol"]').click());

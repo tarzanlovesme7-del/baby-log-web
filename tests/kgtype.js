@@ -66,7 +66,7 @@ const wOn = async (ds) => ((await st()).weights.filter(w => w.date === ds)[0] ||
   await openRow('몸무게');
   check('몸무게 기록에 숫자 칸이 있다', await p.evaluate(()=>{
     const i = document.getElementById('f-amount');
-    return !!i && i.type === 'number' && i.getAttribute('inputmode') === 'decimal';
+    return !!i && i.type === 'text' && i.getAttribute('inputmode') === 'decimal';
   }), true);
   check('...눈금자가 아니라 투약과 같은 상자다', await p.evaluate(()=>{
     const i = document.getElementById('f-amount');

@@ -1425,9 +1425,10 @@
     -webkit-appearance:none; appearance:none; font-family:inherit;
   }
   /* 숫자 칸의 위아래 화살표는 손가락으로 쓸 물건이 아니다 — 자리만 먹는다 */
-  .weight-form input[type="number"]::-webkit-inner-spin-button,
-  .weight-form input[type="number"]::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
-  .weight-form input[type="number"]{ -moz-appearance:textfield; }
+  .weight-form input::-webkit-inner-spin-button,
+  .weight-form input::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
+  /* 소수를 받는 칸은 type=text 다(쉼표 소수점 때문에) — 생김새는 그대로 */
+  .weight-form input[inputmode="decimal"]{ -moz-appearance:textfield; }
   /* iOS·사파리는 date 칸을 제 컨트롤로 그린다. 그 컨트롤에는 내용에 맞는
      고유 폭이 있어서 flex:1 로도 줄지 않고 글자가 잘린다 — 기록 상세의
      날짜 칸에 이미 같은 이유로 걸어 둔 규칙이다. */
@@ -2104,7 +2105,7 @@
     color:var(--muted); font-size:var(--fs-caption); }
   /* two number boxes, two unit labels and a button on one 320px row: the
      boxes give, everything else keeps its size */
-  #fp-gday .weight-form input[type="number"]{ flex:1; min-width:0; width:auto; }
+  #fp-gday .weight-form input[inputmode="decimal"]{ flex:1; min-width:0; width:auto; }
   .gday-row{ display:flex; align-items:center; gap:10px; padding:8px 2px;
     border-top:1px solid var(--border); font-size:var(--fs-caption); }
   .gday-row b{ font-variant-numeric:tabular-nums; }
@@ -3825,7 +3826,7 @@
            오른쪽 아래 + 를 누를 때만 펴진다(개편안 K). -->
       <div class="weight-form" id="weight-form" hidden>
         <input type="date" id="weight-date" />
-        <input type="number" id="weight-kg" inputmode="decimal" step="0.01" min="0.3" max="30" placeholder="7.6" />
+        <input type="text" id="weight-kg" inputmode="decimal" autocomplete="off" placeholder="7.6" />
         <span class="w-unit">kg</span>
         <button type="button" id="weight-save" data-i18n="save">저장</button>
       </div>
@@ -4195,9 +4196,9 @@
         <div id="gday-measure-view"></div>
         <!-- no 저장 of its own: the ✓ in the corner saves the whole page -->
         <div class="weight-form" id="gday-measure-form">
-          <input type="number" id="gday-kg" inputmode="decimal" step="0.01" min="0.3" max="30" placeholder="7.6" />
+          <input type="text" id="gday-kg" inputmode="decimal" autocomplete="off" placeholder="7.6" />
           <span class="w-unit">kg</span>
-          <input type="number" id="gday-cm" inputmode="decimal" step="0.1" min="20" max="130" placeholder="66.5" />
+          <input type="text" id="gday-cm" inputmode="decimal" autocomplete="off" placeholder="66.5" />
           <span class="w-unit">cm</span>
         </div>
       </div>
@@ -7739,6 +7740,32 @@ function readFeedPlan(){
   out.goal = Math.max(out.minTarget, num(p.goal, 0, 5000, d.goal));
   return out;
 }
+/* 쉼표로 소수를 적는 나라가 있다. 폰 국가를 베트남으로 바꾸면 iOS 는
+   type=number 칸에 '3,4'를 적을 수 없고 값이 통째로 빈 문자열로 돌아온다
+   (2026-11-02 "아이폰 국가설정을 베트남으로 바꿨는데 3.4 입력이 안되네").
+   그래서 소수를 받는 칸은 type=text + inputmode=decimal 로 두고 — 베트남
+   자판에는 쉼표가 뜬다 — 읽을 때 여기서 한 번에 센다. 점이든 쉼표든 받는다
+   ("온점, 소숫점 다 입력 가능하게 해"). 빈 칸은 NaN 이다(0 과 '안 적음'은
+   다른 값이라 부르는 쪽에서 가린다). */
+function numVal(v){
+  var raw = (v && typeof v === 'object' && 'value' in v) ? v.value : v;
+  var t = String(raw === null || raw === undefined ? '' : raw).trim().replace(/\s/g, '');
+  if (!t) return NaN;
+  /* 쉼표가 소수점인 자판에서는 점이 천 단위로 들어오기도 한다 — 둘이 같이
+     오면 점을 떼고 쉼표를 소수점으로 본다. */
+  t = (t.indexOf(',') >= 0) ? t.replace(/\./g, '').replace(',', '.') : t.replace(',', '.');
+  var n = Number(t);
+  return isFinite(n) ? n : NaN;
+}
+/* 반대쪽 — 화면에 적을 때. 소수점은 **앱 위쪽 언어 설정**을 따른다(폰 국가가
+   아니라). 베트남어로 보고 있으면 3,4 / 한국어면 3.4 (2026-11-02). */
+function fmtDec(n, dec){
+  if (n === null || n === undefined || n === '') return '';
+  var num = Number(n);
+  if (!isFinite(num)) return String(n);
+  var s = (dec === undefined || dec === null) ? String(num) : num.toFixed(dec);
+  return state.lang === 'vi' ? s.replace('.', ',') : s;
+}
 function hmToMin(hm){ return Number(hm.slice(0,2)) * 60 + Number(hm.slice(3)); }
 function minToHm(m){
   m = ((Math.round(m) % 1440) + 1440) % 1440;
@@ -8621,12 +8648,12 @@ function entryRowHtml(e, isCont){
   } else if (e.type==='sleep'){
     subParts.push(t(classifySleep(e)==='night'?'night':'nap'));
   } else if (e.type==='temp'){
-    if (e.temp!=null) subParts.push(e.temp+t('celsius'));
+    if (e.temp!=null) subParts.push(fmtDec(e.temp, 1)+t('celsius'));
   } else if (e.type==='med'){
     /* 약 이름과 양은 줄을 열지 않고도 보여야 한다 — 투약은 '무엇을 얼마나'가
        전부이고, 그걸 보려고 매번 들어가게 하면 기록을 안 보게 된다 */
     if (e.med) subParts.push(e.med);
-    if (e.amount) subParts.push(e.amount + (e.medUnit || 'ml'));
+    if (e.amount) subParts.push(fmtDec(e.amount) + (e.medUnit || 'ml'));
   } else if (e.type==='wean'){
     /* 안 적었으면 그 말을 굳이 적지 않는다 — 분유가 양을 안 적으면 그냥
        '분유'인 것과 같다. '안 적음'은 고르는 자리(기록 상세)에서만 쓴다. */
@@ -8636,7 +8663,7 @@ function entryRowHtml(e, isCont){
   } else if (metaUnit(meta)){
     /* 몸무게 8.9kg — 줄을 열지 않고도 숫자가 보여야 한다. 이 줄을 제일
        많이 보는 사람에게는 그 숫자가 기록 전부다. */
-    if (Number(e.amount) > 0) subParts.push(e.amount + metaUnit(meta));
+    if (Number(e.amount) > 0) subParts.push(fmtDec(e.amount) + metaUnit(meta));
   }
   /* every type shows how long it ran the moment the end time moves past the start */
   if (e.end && e.end !== e.start) subParts.push(fmtDur(entryDurationMs(e)));
@@ -9756,7 +9783,7 @@ function readWeights(){
 }
 function fmtKgDiff(d){
   var r = Math.round(d * 100) / 100;
-  return (r > 0 ? '+' : '') + r;
+  return (r > 0 ? '+' : '') + fmtDec(r);
 }
 /* one curve for both growth numbers — weight in kg, height in cm. The x
    axis is TIME, not equal slots: a three-week gap looks like a three-week
@@ -9780,7 +9807,7 @@ function growthCurveSvg(list, unit, gridStep){
   for (var g = Math.ceil(vMin / gridStep) * gridStep; g <= vMax; g += gridStep){
     var gy = Y(g);
     svg += '<line class="wc-grid" x1="' + padL + '" y1="' + gy.toFixed(1) + '" x2="' + (W - padR) + '" y2="' + gy.toFixed(1) + '"/>' +
-           '<text class="wc-lbl" x="' + (padL - 5) + '" y="' + (gy + 3.5).toFixed(1) + '" text-anchor="end">' + (Math.round(g * 10) / 10) + '</text>';
+           '<text class="wc-lbl" x="' + (padL - 5) + '" y="' + (gy + 3.5).toFixed(1) + '" text-anchor="end">' + esc(fmtDec(Math.round(g * 10) / 10)) + '</text>';
   }
   svg += '<path class="wc-area" d="' + area + '"/><path class="wc-line" d="' + line + '"/>';
   pts.forEach(function(p, i){
@@ -9816,8 +9843,8 @@ function renderWeightCard(){
 
   var last = ws[ws.length - 1], first = ws[0];
   var html = t('weightLedeTpl')
-    .replace('{kg}', last.kg)
-    .replace('{gain}', Math.round((last.kg - first.kg) * 100) / 100);
+    .replace('{kg}', fmtDec(last.kg))
+    .replace('{gain}', fmtDec(Math.round((last.kg - first.kg) * 100) / 100));
   if (ws.length > 1){
     var prev = ws[ws.length - 2];
     var diff = Math.round((last.kg - prev.kg) * 100) / 100;
@@ -9837,7 +9864,7 @@ function renderWeightCard(){
     var prev2 = idx > 0 ? ws[idx - 1] : null;
     return '<div class="weight-row">' +
       '<span class="wr-date">' + esc(gMmdd(w.date)) + '</span>' +
-      '<span class="wr-kg">' + w.kg + 'kg</span>' +
+      '<span class="wr-kg">' + esc(fmtDec(w.kg)) + 'kg</span>' +
       (prev2 ? '<span class="wr-diff">' + esc(fmtKgDiff(w.kg - prev2.kg)) + '</span>' : '') +
       kebabBtnHtml('data-kb-weight="' + esc(w.id) + '" style="margin-left:auto;"') +
     '</div>';
@@ -9932,8 +9959,8 @@ function renderHeightCard(){
   }
   var last = hs[hs.length - 1], first = hs[0];
   lede.innerHTML = t('heightLedeTpl')
-    .replace('{cm}', last.cm)
-    .replace('{gain}', Math.round((last.cm - first.cm) * 10) / 10);
+    .replace('{cm}', fmtDec(last.cm))
+    .replace('{gain}', fmtDec(Math.round((last.cm - first.cm) * 10) / 10));
   wrap.innerHTML = growthCurveSvg(hs.map(function(h){ return { date: h.date, v: h.cm }; }), 'cm', 2);
 }
 /* ---- the calendar ------------------------------------------------------ */
@@ -10133,10 +10160,10 @@ function renderGrowthDayPanel(){
     rows.push(gLineHtml('m', x.text, x.author, null, '', null));
   });
   readWeights().filter(function(x){ return x.date === ds; }).forEach(function(x){
-    rows.push(gLineHtml('w', t('weightTitle') + ' ' + x.kg + 'kg', x.author, null, '', null));
+    rows.push(gLineHtml('w', t('weightTitle') + ' ' + fmtDec(x.kg) + 'kg', x.author, null, '', null));
   });
   readHeights().filter(function(x){ return x.date === ds; }).forEach(function(x){
-    rows.push(gLineHtml('h', t('heightTitle') + ' ' + x.cm + 'cm', x.author, null, '', null));
+    rows.push(gLineHtml('h', t('heightTitle') + ' ' + fmtDec(x.cm) + 'cm', x.author, null, '', null));
   });
   schedulesOnDay(ds).forEach(function(x){
     rows.push(gLineHtml(null, schedShownText(x), x.author, null, '', null, x.color, x.time));
@@ -10208,8 +10235,8 @@ function renderGrowthWeek(){
     var subs = [];
     var w = weights.filter(function(x){ return x.date === ds; })[0];
     var h = heights.filter(function(x){ return x.date === ds; })[0];
-    if (w) subs.push(growthIconHtml('w') + w.kg + 'kg');
-    if (h) subs.push(growthIconHtml('h') + h.cm + 'cm');
+    if (w) subs.push(growthIconHtml('w') + esc(fmtDec(w.kg)) + 'kg');
+    if (h) subs.push(growthIconHtml('h') + esc(fmtDec(h.cm)) + 'cm');
     if (diaries.some(function(x){ return x.date === ds; })) subs.push(growthIconHtml('d'));
     if (subs.length) lines.push('<span class="gweek-sub">' + subs.join('<span aria-hidden="true">·</span>') + '</span>');
     if (lines.length) anything = true;
@@ -10373,7 +10400,7 @@ function buildGrowthDraft(){
   var h = readHeights().filter(function(x){ return x.date === ds; })[0];
   gDraft = {
     w: w || null, h: h || null,
-    kg: w ? String(w.kg) : '', cm: h ? String(h.cm) : '',
+    kg: w ? fmtDec(w.kg) : '', cm: h ? fmtDec(h.cm) : '',
     miles: readMilestones().filter(function(m){ return m.date === ds; }).map(function(m){
       return { id: m.id, text: m.text, orig: m.text, author: m.author, removed: false };
     }),
@@ -10419,8 +10446,8 @@ function renderGrowthDay(){
   mv.hidden = editing;
   if (!editing){
     var mrows = [];
-    if (w) mrows.push('<div class="gday-row">' + growthIconHtml('w') + '<span>' + esc(t('weightTitle')) + '</span><b>' + w.kg + 'kg</b></div>');
-    if (h) mrows.push('<div class="gday-row">' + growthIconHtml('h') + '<span>' + esc(t('heightTitle')) + '</span><b>' + h.cm + 'cm</b></div>');
+    if (w) mrows.push('<div class="gday-row">' + growthIconHtml('w') + '<span>' + esc(t('weightTitle')) + '</span><b>' + esc(fmtDec(w.kg)) + 'kg</b></div>');
+    if (h) mrows.push('<div class="gday-row">' + growthIconHtml('h') + '<span>' + esc(t('heightTitle')) + '</span><b>' + esc(fmtDec(h.cm)) + 'cm</b></div>');
     mv.innerHTML = mrows.join('');
   }
 
@@ -10646,13 +10673,13 @@ function commitGrowthDay(){
 
   /* measures: a changed number writes, an emptied box deletes (when allowed) */
   var kgRaw = document.getElementById('gday-kg').value.trim();
-  var kg = parseFloat(kgRaw);
+  var kg = numVal(kgRaw);
   if (kgRaw && isFinite(kg) && kg >= 0.3 && kg <= 30 && (!d.w || Math.round(kg * 100) / 100 !== d.w.kg))
     q(function(){ return apiMutate('addWeight', { date: ds, kg: Math.round(kg * 100) / 100, author: state.author }); });
   else if (!kgRaw && d.w && canTouch(d.w.author))
     q(function(){ return apiMutate('deleteWeight', { id: d.w.id }); });
   var cmRaw = document.getElementById('gday-cm').value.trim();
-  var cm = parseFloat(cmRaw);
+  var cm = numVal(cmRaw);
   if (cmRaw && isFinite(cm) && cm >= 20 && cm <= 130 && (!d.h || Math.round(cm * 10) / 10 !== d.h.cm))
     q(function(){ return apiMutate('addHeight', { date: ds, cm: Math.round(cm * 10) / 10, author: state.author }); });
   else if (!cmRaw && d.h && canTouch(d.h.author))
@@ -12390,7 +12417,7 @@ function renderFeedSettings(){
   }
   $$('[data-feed-hours]', box).forEach(function(inp){
     inp.addEventListener('change', function(){
-      var h = Number(inp.value);
+      var h = numVal(inp);
       if (!isFinite(h) || h <= 0){ renderFeedSettings(); return; }
       var payload = {};
       payload[inp.dataset.feedHours] = Math.round(h * 60);
@@ -12403,7 +12430,7 @@ function renderFeedSettings(){
   $$('[data-feed-set]', box).forEach(function(inp){
     inp.addEventListener('change', function(){
       var k = inp.dataset.feedSet, payload = {};
-      payload[k] = /^(startTime|quietFrom|nightFrom|nightTo)$/.test(k) ? inp.value : Number(inp.value);
+      payload[k] = /^(startTime|quietFrom|nightFrom|nightTo)$/.test(k) ? inp.value : numVal(inp);
       push(payload);
     });
   });
@@ -12494,7 +12521,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261102g';
+var BUILD = '20261102h';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -12958,7 +12985,7 @@ function rulerScrubHtml(id, value, min, max, step, unit, hint, nudge){
     var v = scrubRound(min + i * step, dec);
     var maj = (i % 5 === 0);
     cells += '<span class="sv' + (maj ? ' maj' : '') + '" data-v="' + v + '"><i></i>' +
-      (maj ? '<b>' + v.toFixed(dec) + '</b>' : '') + '</span>';
+      (maj ? '<b>' + esc(fmtDec(v, dec)) + '</b>' : '') + '</span>';
   }
   return '<div class="scrub is-ruler" data-scrub="ruler" data-for="'+id+'" data-min="'+min+'" data-max="'+max+'" data-step="'+step+'">' +
     '<div class="scrub-top">' +
@@ -12967,7 +12994,8 @@ function rulerScrubHtml(id, value, min, max, step, unit, hint, nudge){
       '<button type="button" class="scrub-chip" data-scrub-nudge="'+(nd)+'">+</button>' +
     '</div>' +
     '<div class="scrub-exact" hidden>' +
-      '<input type="number" id="'+id+'" value="'+esc(value)+'" min="'+min+'" max="'+max+'" step="'+step+'" inputmode="numeric" />' +
+      '<input type="text" id="'+id+'" value="'+esc(fmtDec(value, dec || null))+
+        '" inputmode="decimal" autocomplete="off" />' +
     '</div>' +
     /* 쓰는 법은 큰 숫자 바로 밑 — 목업은 '숫자 → 한 줄 설명 → 눈금자' 차례다.
        눈금자 뒤로 내려가면 눈금을 다 읽고 나서야 "아 눌러도 되는구나" 한다. */
@@ -13113,8 +13141,9 @@ function wireRulerScrub(box){
 
   function paintValue(v){
     v = scrubRound(v, dec);
-    valEl.textContent = dec ? v.toFixed(dec) : String(v);
-    input.value = v;
+    valEl.textContent = fmtDec(v, dec || null);
+    /* 칸에도 읽는 사람의 소수점으로 — 다시 읽을 때는 numVal 이 둘 다 받는다 */
+    input.value = fmtDec(v, dec || null);
     cells.forEach(function(c){ c.classList.toggle('on', Number(c.dataset.v) === v); });
   }
   function scrollToValue(v){
@@ -13133,7 +13162,8 @@ function wireRulerScrub(box){
   });
   box.querySelectorAll('[data-scrub-nudge]').forEach(function(b){
     b.addEventListener('click', function(){
-      var v = clampNum((Number(input.value) || 0) + Number(b.dataset.scrubNudge), min, max);
+      var cur = numVal(input);
+      var v = clampNum((isFinite(cur) ? cur : 0) + Number(b.dataset.scrubNudge), min, max);
       paintValue(v); scrollToValue(v);
     });
   });
@@ -13147,13 +13177,14 @@ function wireRulerScrub(box){
     if (!exact.hidden){ input.focus(); input.select && input.select(); }
   });
   input.addEventListener('change', function(){
-    var v = clampNum(scrubRound(Math.round((Number(input.value)||0)/step)*step, dec), min, max);
+    var typed = numVal(input);
+    var v = clampNum(scrubRound(Math.round((isFinite(typed) ? typed : 0)/step)*step, dec), min, max);
     paintValue(v); scrollToValue(v);
   });
   /* 시각 눈금과 같다 — 다 적고 손을 떼면 닫는다. 큰 숫자가 이미 그 값이다. */
   input.addEventListener('blur', function(){ if (exact) exact.hidden = true; });
 
-  var start = clampNum(Number(input.value) || 0, min, max);
+  var start = clampNum(isFinite(numVal(input)) ? numVal(input) : 0, min, max);
   paintValue(start);
   /* same as the time ruler: this can be wired inside a container that has no
      width yet, and a ruler laid out at zero width sits at its far-left end
@@ -13163,7 +13194,7 @@ function wireRulerScrub(box){
     if (!strip.clientWidth) return;
     var pad = Math.max(0, (strip.clientWidth - CELL) / 2);
     $$('.sv.pad', strip).forEach(function(p){ p.style.width = pad + 'px'; });
-    scrollToValue(clampNum(Number(input.value) || 0, min, max));
+    scrollToValue(clampNum(isFinite(numVal(input)) ? numVal(input) : 0, min, max));
     laidOut = true;
   }
   requestAnimationFrame(layout);
@@ -13366,8 +13397,8 @@ function buildEntryFields(meta, e){
       (!!cur && meds.indexOf(cur) < 0 ? '' : ' hidden') + ' style="margin-top:8px" />';
     html += entH(t('entMedAmtQ'));
     html += '<div class="ent-row2">' +
-      '<input type="number" id="f-amount" value="' + esc(e.amount === '' ? '' : e.amount) +
-        '" min="0" max="999" step="0.1" inputmode="decimal" />' +
+      '<input type="text" id="f-amount" value="' + esc(fmtDec(e.amount === '' ? '' : e.amount)) +
+        '" inputmode="decimal" autocomplete="off" />' +
       '<div class="ent-unit">' + esc(e.medUnit || 'ml') + '</div></div>';
   }
 
@@ -13411,9 +13442,9 @@ function buildEntryFields(meta, e){
     var cu = metaUnit(meta);
     html += entH(t('entNumTpl').replace('{name}', meta.label));
     html += '<div class="ent-row2">' +
-      '<input type="number" id="f-amount" value="' +
-        esc((e.amount === '' || e.amount === null || e.amount === undefined) ? '' : e.amount) +
-        '" min="0" max="999" step="0.1" inputmode="decimal" />' +
+      '<input type="text" id="f-amount" value="' +
+        esc(fmtDec((e.amount === '' || e.amount === null || e.amount === undefined) ? '' : e.amount)) +
+        '" inputmode="decimal" autocomplete="off" />' +
       '<div class="ent-unit">' + esc(cu) + '</div></div>';
     if (metaIsKg(meta)) html += '<div class="field-hint">' + esc(t('entKgSync')) + '</div>';
   }
@@ -13676,13 +13707,17 @@ function saveEntryDetail(){
      저장되는 칸은 아니고, kg 항목을 새싹 탭에 올릴 때만 쓰인다. */
   var payload = { id: state.entryId, start: newStart, end: newEnd, day: dateVal };
   var amountEl = document.getElementById('f-amount');
-  if (amountEl) payload.amount = Number(amountEl.value);
+  if (amountEl){
+    var amtNum = numVal(amountEl);
+    /* 빈 칸은 0 — '안 적음'으로 저장된다(몸무게 항목이면 곡선에서 내려간다) */
+    payload.amount = isFinite(amtNum) ? amtNum : 0;
+  }
   var diaperSeg = document.getElementById('f-diaper');
   if (diaperSeg){ var dp = diaperSeg.querySelector('[aria-pressed="true"]'); payload.diaper = dp?dp.dataset.val:'wet'; }
   var sleepSeg = document.getElementById('f-sleep');
   if (sleepSeg){ var sp = sleepSeg.querySelector('[aria-pressed="true"]'); var sk=(sp?sp.dataset.val:'auto'); payload.sleepKind = (sk==='auto')?'':sk; }
   var tempEl = document.getElementById('f-temp');
-  if (tempEl) payload.temp = Number(tempEl.value);
+  if (tempEl){ var tNum = numVal(tempEl); payload.temp = isFinite(tNum) ? tNum : 0; }
   var ateSeg = document.getElementById('f-ate');
   if (ateSeg){ var ap = ateSeg.querySelector('[aria-pressed="true"]'); payload.ate = ap?ap.dataset.val:''; }
   var reactSeg = document.getElementById('f-react');
@@ -17979,7 +18014,7 @@ function wireEvents(){
   document.getElementById('weight-save').addEventListener('click', function(){
     var kgEl = document.getElementById('weight-kg');
     var dateEl = document.getElementById('weight-date');
-    var kg = parseFloat(kgEl.value);
+    var kg = numVal(kgEl);
     var date = dateEl.value || toDateValue();
     if (!isFinite(kg) || kg < 0.3 || kg > 30){ kgEl.focus(); return; }
     kg = Math.round(kg * 100) / 100;
