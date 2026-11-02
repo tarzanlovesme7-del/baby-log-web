@@ -12494,7 +12494,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261102e';
+var BUILD = '20261102g';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -15471,9 +15471,51 @@ var WEAN_ICON_FILE = {
   'r_quinoa':'quinoa', 'r_black':'black-rice', 'r_sorghum':'sorghum', 'r_wheat':'wheat-flour'
 };
 
+/* 아직 식단에 안 나온 재료의 그림도 미리 들고 있는다(2026-11-02).
+   재료를 새로 만들면 id 는 i_xxxx 로 생기므로 **id 로는 미리 맞춰 둘 수가
+   없다** — 그래서 이름으로 한 번 더 찾는다. public/icons 에 그림을 넣고
+   여기에 한글 이름만 적어 두면, 같은 이름의 재료를 만드는 순간 붙는다.
+   이름은 괄호와 공백을 떼고 맞춘다('비타민 (다채)' → '비타민'). */
+var WEAN_ICON_BY_NAME = {
+  '가자미':'flounder', '가지':'eggplant', '간장':'soy-sauce', '감자':'potato', '강낭콩':'kidney-bean',
+  '게':'crab', '고구마':'sweet-potato', '곶감':'persimmon', '귤':'mandarin', '그린빈':'green-bean',
+  '기장':'millet', '김':'seaweed', '느타리버섯':'oyster-mushroom', '단호박':'pumpkin', '달걀':'egg',
+  '달걀노른자':'egg-yolk', '달걀흰자':'egg-white', '닭고기':'chicken', '당근':'carrot', '대구':'cod',
+  '대파':'green-onion', '돼지고기':'pork', '두부':'tofu', '딸기':'strawberry', '땅콩':'peanut',
+  '렌틸콩':'lentil', '망고':'mango', '매생이':'green-seaweed', '메밀':'buckwheat', '메추리알':'quail-egg',
+  '멸치':'anchovy', '무':'radish', '밀':'wheat-flour', '밀가루':'wheat-flour', '바나나':'banana',
+  '바지락':'clam', '밤':'chestnut', '배':'pear', '배추':'napa-cabbage', '병아리콩':'chickpea',
+  '보리':'barley', '복숭아':'peach', '부추':'chives', '브로콜리':'broccoli', '블루베리':'blueberry',
+  '비타민':'tatsoi', '비트':'beet', '사과':'apple', '새송이버섯':'king-oyster-mushroom', '새우':'shrimp',
+  '샐러리':'celery', '생선':'cod', '셀러리':'celery', '소고기':'beef', '소금':'salt', '수박':'watermelon',
+  '수수':'sorghum', '시금치':'spinach', '쌀':'rice', '쌀가루':'rice-flour', '아기치즈':'cheese',
+  '아보카도':'avocado', '아스파라거스':'asparagus', '아욱':'mallow', '애호박':'zucchini', '양배추':'cabbage',
+  '양상추':'lettuce', '양송이버섯':'button-mushroom', '양파':'onion', '연근':'lotus-root', '연어':'salmon',
+  '오이':'cucumber', '오트밀':'oatmeal', '옥수수':'corn', '완두콩':'peas', '요거트':'yogurt', '우엉':'burdock',
+  '우유':'milk', '자두':'plum', '적채':'red-cabbage', '조':'millet', '참깨':'sesame', '참외':'melon',
+  '청경채':'bok-choy', '치즈':'cheese', '케일':'kale', '콜리플라워':'cauliflower', '콩':'soybean',
+  '퀴노아':'quinoa', '키위':'kiwi', '토마토':'tomato', '파':'green-onion', '파인애플':'pineapple',
+  '파프리카':'bell-pepper', '팽이버섯':'enoki-mushroom', '포도':'grapes', '표고버섯':'shiitake',
+  '현미':'brown-rice', '호두':'walnut', '홍합':'mussel', '흑미':'black-rice', '흰살생선':'cod',
+  /* 후기·완료기 식단표에서 새로 나오는 것들(2026-11-02 그녀가 그려 보냄).
+     차조는 '조'(millet), 밤새우는 '새우' 그림을 같이 쓴다 — 같은 것의
+     굵기 차이라 따로 그릴 이유가 없다. */
+  '건포도':'raisin', '검은콩':'black-soybean', '경수채':'mizuna', '구기자':'goji-berry', '근대':'chard',
+  '들깨':'perilla-seed', '미역':'wakame', '숙주':'mung-bean-sprouts', '숙주나물':'mung-bean-sprouts',
+  '쑥갓':'crown-daisy', '오징어':'squid', '차조':'millet', '콜라비':'kohlrabi', '콩나물':'soybean-sprouts',
+  '황태':'dried-pollock', '밤새우':'shrimp'
+};
+function weanIconKey(s){
+  return String(s || '').replace(/\([^)]*\)/g, '').replace(/\s+/g, '').trim();
+}
+
 /* 재료 하나 = 스티커 한 장. cls로 크기만 바꾼다(.wi-sm). */
 function weanIngIcon(id, cls){
   var f = WEAN_ICON_FILE[id];
+  if (!f){
+    var g = weanRaw(id) || weanIng(id);
+    if (g) f = WEAN_ICON_BY_NAME[weanIconKey(g.ko)];
+  }
   if (!f) return '';
   /* loading="lazy"는 쓰지 않는다 — 대시보드 그림은 첫 화면에 바로 보이는
      것이라, 지연 로딩은 그 자리를 잠깐 빈칸으로 만든다. */

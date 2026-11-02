@@ -117,6 +117,44 @@ for (const f of ['zio.jpg', 'apple-touch-icon.png', 'icon-192.png', 'icon-512.pn
     fs.existsSync(path.join(__dirname, 'public', f)), true);
 }
 
+// ---- 문법 ------------------------------------------------------------------
+// 페이지 속 스크립트가 **파싱되는가**. 당연해 보이지만 2026-11-02 에 표 하나에
+// 쉼표가 빠져 앱 전체가 뜨지 않는 파일을 만들 뻔했다 — 브라우저를 띄우는
+// 스위트는 3초가 걸리고, 이 검사는 10ms다.
+{
+  const m = src.match(/<script>([\s\S]*?)<\/script>/);
+  let err = null;
+  try { new Function(m ? m[1] : ''); } catch (e) { err = e.message; }
+  check('페이지 스크립트가 문법에 맞는다', err, null);
+}
+
+// ---- 재료 그림 ------------------------------------------------------------
+// 두 표(WEAN_ICON_FILE: 재료 id → 파일, WEAN_ICON_BY_NAME: 한글 이름 → 파일)가
+// 가리키는 svg 가 실제로 있어야 한다. 그림은 쓰기 전에 미리 넣어 두는 것이라
+// (2026-11-02) 화면에서는 한참 뒤에야 빈칸으로 드러난다 — 여기서 먼저 잡는다.
+{
+  const pick = (name) => {
+    const m = src.match(new RegExp('var ' + name + ' = (\\{[\\s\\S]*?\\n\\});'));
+    return m ? eval('(' + m[1].replace(/\/\*[\s\S]*?\*\//g, '') + ')') : null;
+  };
+  const byId = pick('WEAN_ICON_FILE'), byName = pick('WEAN_ICON_BY_NAME');
+  check('재료 그림 표 둘 다 읽힌다', [!!byId, !!byName], [true, true]);
+  const missing = [];
+  for (const map of [byId, byName]) {
+    for (const k of Object.keys(map || {})) {
+      const f = path.join(__dirname, 'public', 'icons', map[k] + '.svg');
+      if (!fs.existsSync(f)) missing.push(k + ' → ' + map[k] + '.svg');
+    }
+  }
+  check('재료 그림 파일이 전부 있다', missing, []);
+  // 반대쪽: 넣어 두고 아무 데서도 안 가리키는 그림 — 미리 넣어 두는 것이 목적이라
+  // 오류는 아니지만, 이름을 적어 두지 않으면 영영 안 붙으므로 세어서 알려준다.
+  const used = new Set([...Object.values(byId || {}), ...Object.values(byName || {})]);
+  const orphan = fs.readdirSync(path.join(__dirname, 'public', 'icons'))
+    .filter((f) => f.endsWith('.svg') && !used.has(f.replace('.svg', '')));
+  if (orphan.length) console.log('NOTE  이름이 안 적힌 그림 ' + orphan.length + '장: ' + orphan.join(', '));
+}
+
 const bad = R.filter(x => !x.ok);
 console.log(bad.length ? '\n' + bad.length + ' FAILED' : '\nALL ' + R.length + ' PASSED');
 process.exit(bad.length ? 1 : 0);
