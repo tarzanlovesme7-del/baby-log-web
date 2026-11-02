@@ -614,7 +614,7 @@
   /* 처음 먹는 재료. 그림 위의 작은 점이 아니라 말로 적는다 — 이름을 적게
      되면서 자리가 생겼고, 점 하나보다 "새 재료" 네 글자가 분명하다. */
   .wn-new{ font-style:normal; font-size:var(--fs-micro); font-weight:var(--fw-strong);
-    color:#fff; background:var(--warn-dot, #e8832a); border-radius:var(--radius-pill);
+    color:#fff; background:var(--wn-newtag); border-radius:var(--radius-pill);
     padding:1px 7px; margin-left:1px; white-space:nowrap; }
   .wn-soon{ font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--wn-ink); }
   /* 시작 전의 D-18 은 '아직 아무 일도 없다'는 말이라 띠 안에서 제일 약해야
@@ -3146,13 +3146,21 @@
        이쪽은 노랑 쪽으로 밀어 둘이 한 덩어리로 붙지 않게 했다. */
     --c-wean:#5d8a2b;
     --wn-bg:#eaf2d6; --wn-fg:#456b1c; --wn-ink:#35520f;
-    /* 첫 화면 띠 전용 바탕. 흰 알약을 떼고 나니 연두가 띠에 남은 유일한
-       색이라 한 번 더 옅게 간다 — #eaf2d6 → #f5f9ec → #f9fcf4
-       (2026-10-21 "연두색 배경 좀 더 흰색에 가깝게"). 여기서 더 빼면 흰
-       종이와 구별이 안 되고, 그러면 첫 화면에서 이 띠가 이유식이라는
-       표시가 사라진다.
+    /* 첫 화면 띠 전용 바탕 = **빠른기록 이유식 타일과 같은 값**.
+       타일은 타입 색을 16%로 흰 바탕에 섞어 쓰는데(quickBtnHtml), 띠는
+       따로 고른 값(#f9fcf4)을 들고 있어서 같은 화면에 연두가 두 가지로
+       떴다 (2026-11-02 "이유식 배너 컬러 퀵버튼 아이콘 배경 컬러랑
+       맞춰줘"). 손으로 적은 색을 하나 더 두는 대신 **같은 식을 쓴다** —
+       --c-wean 을 바꾸면 띠와 타일이 같이 움직인다.
        --wn-bg 는 이유식 화면의 섬네일·배지가 쓰므로 건드리지 않는다. */
-    --wn-band-bg:#f9fcf4;
+    --wn-band-bg:color-mix(in srgb, var(--c-wean) 16%, var(--surface));
+    /* '새 재료' 알약. 주황(#e8832a)이던 자리다 — 시안 다섯을 실제 띠 위에
+       올려놓고 고른 토마토색(2026-11-02 "새 재료 라벨 색 좀 더 레드가
+       나을듯"). 알레르기를 지켜보라는 말이라 빨강 쪽이 맞고, --danger
+       (#d81f2f)까지 가면 '잘못됐다'로 읽힌다. 흰 글씨 대비도 주황보다
+       이쪽이 낫다. 라이트·다크 같은 값 — 연두 띠가 양쪽 다 중간 밝기라
+       한 색으로 선다. */
+    --wn-newtag:#e04b2d;
     /* 이유식 화면 전용 — 목업(spoon)의 값 그대로. 탭 밑줄 초록과
        식단 알약의 기본 바탕·글자색. */
     --wn-accent:#2ec45b; --wn-pill:#dceccd; --wn-pill-fg:#2f5a28;
@@ -3161,14 +3169,14 @@
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
       --c-wean:#a3d16a; --wn-bg:#26310f; --wn-fg:#bde08c; --wn-ink:#d8f0b8;
-      --wn-band-bg:#202a15;
+      --wn-band-bg:color-mix(in srgb, var(--c-wean) 16%, var(--surface));
       --wn-accent:#52d97a; --wn-pill:#2b3a18; --wn-pill-fg:#cfe9b6;
       --wn-bad:#44181c; --wn-bad-fg:#f0b0b6; --wn-fab:#3f5a2a;
     }
   }
   :root[data-theme="dark"]{
     --c-wean:#a3d16a; --wn-bg:#26310f; --wn-fg:#bde08c; --wn-ink:#d8f0b8;
-    --wn-band-bg:#202a15;
+    --wn-band-bg:color-mix(in srgb, var(--c-wean) 16%, var(--surface));
     --wn-accent:#52d97a; --wn-pill:#2b3a18; --wn-pill-fg:#cfe9b6;
     --wn-bad:#44181c; --wn-bad-fg:#f0b0b6; --wn-fab:#3f5a2a;
   }
@@ -12459,7 +12467,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261101c';
+var BUILD = '20261102b';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
