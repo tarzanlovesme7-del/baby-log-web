@@ -992,8 +992,12 @@
      a start and an end, so the time column runs to three lines while the name
      beside it is one — top-aligning left the name stranded at the top with a
      ragged gap under it, and the gap was a different size on every row. */
+  /* 세 칸은 **위에서부터** 선다. 가운데 정렬이던 때는 메모가 길거나 사진이
+     붙은 줄에서 시각과 아이콘이 글 한가운데로 내려가, 어느 기록에 달린
+     시각인지 한 번 더 생각해야 했다 (2026-11-02 "왼쪽 아이콘이 가운데
+     있으니까 뭔가 이상해 — 시간, 아이콘, 항목명 상단정렬"). */
   .entry-row{
-    position:relative; display:flex; align-items:center; gap:10px; padding:13px 20px; border:0;
+    position:relative; display:flex; align-items:flex-start; gap:10px; padding:13px 20px; border:0;
     background:var(--surface); width:100%; text-align:left; touch-action:pan-y;
   }
   .entry-row:active{ background:var(--surface-2); }
@@ -1015,7 +1019,7 @@
      set a step larger than the rest of the app rather than at the shared
      caption/body sizes. The time column widens to match — at 13px the longest
      string ("오후 08:37") no longer fits 66px and would wrap mid-time. */
-  .e-time{ flex:0 0 84px; width:84px; display:flex; flex-direction:column; font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; }
+  .e-time{ flex:0 0 84px; width:84px; display:flex; flex-direction:column; font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; padding-top:3px; }
   .e-time-main, .e-time-end{ white-space:nowrap; }
   /* "다음날 오전 06:00" is wider than the time column; it wraps onto its own
      second line rather than widening every row in the list */
@@ -1026,7 +1030,9 @@
   .entry-row.is-cont .e-icon{ opacity:.72; }
   .e-author{ display:block; font-size:var(--fs-micro); color:var(--muted-2); margin-top:2px; }
   /* plain icon glyph, no color-chip background — "아이콘 + 텍스트만" */
-  .e-icon{ flex:0 0 auto; width:22px; height:22px; display:block; align-self:center; }
+  /* 22px 글리프를 18px 제목 옆에 그대로 올리면 윗변이 제목보다 3px 높다 —
+     눈으로 맞춘 값이다(시각 칸도 같은 이유로 2px 내린다). */
+  .e-icon{ flex:0 0 auto; width:22px; height:22px; display:block; align-self:flex-start; margin-top:2px; }
   .e-main{ flex:1; min-width:0; }
   .e-title-line{ display:flex; align-items:baseline; flex-wrap:wrap; column-gap:6px; row-gap:0; }
   /* the name of the thing is what the eye lands on first, so it is the
@@ -2673,6 +2679,7 @@
   /* 개편 뒤 한 마디·약 이름·약 양·날짜는 .field 바깥에 바로 놓인다 — 흰 종이
      위에서는 테두리가 그 칸이 '적는 자리'라고 말하는 유일한 표시다. */
   #fp-entry-body > input[type="text"], #fp-entry-body > input[type="number"],
+  #fp-entry-body > textarea,
   #f-date-box > input[type="date"],
   #fp-entry-body .ent-row2 input{
     width:100%; padding:13px 14px; border-radius:12px; border:1px solid var(--border);
@@ -2721,8 +2728,16 @@
   #fp-entry .fp-foot .btn{ font-size:var(--fs-label); font-weight:var(--fw-strong);
     border-radius:14px; padding:14px 10px; }
   /* 한 마디 — 목업은 12/13. 글자 크기만 16px로 둔다: iOS 는 16px 미만인
-     입력칸을 누르면 화면을 확대한다. */
-  #fp-entry-body > input#f-note{ padding:12px 13px; }
+     입력칸을 누르면 화면을 확대한다.
+     한 줄짜리 input 이었다가 textarea 가 됐다 — "요즘 이렇게 메모를 길게
+     남길 일이 많은데 글자 수 제한이 없었으면 좋겠고 줄바꿈 가능하게"
+     (2026-11-02). 처음부터 세 줄 높이로 서 있고, 길어지면 적는 만큼
+     늘어난다(noteAutoGrow). 손잡이로 끄는 리사이즈는 끈다 — 늘어나는 걸
+     손으로 할 이유가 없고, iOS 에서는 손잡이가 그려지지도 않는다. */
+  #fp-entry-body > textarea#f-note{
+    padding:12px 13px; min-height:92px; line-height:1.55; resize:none;
+    overflow:hidden; font-family:inherit;
+  }
   #fp-entry-body{ padding-top:4px; }
   #fp-entry-body > *{ flex:0 0 auto; }
   /* 맨 위 한 줄: 언제 / 누가. 고치는 일은 드물고 읽을 일은 늘 있다. */
@@ -12467,7 +12482,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261102b';
+var BUILD = '20261102c';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -13181,6 +13196,13 @@ function entChipsHtml(id, items, cur, small){
     }).join('') + '</div>';
 }
 function entH(text){ return '<div class="ent-h">' + esc(text) + '</div>'; }
+/* 적는 만큼 늘어나는 칸. scrollHeight 를 재기 전에 height 를 비워야 한다 —
+   안 그러면 한 번 늘어난 높이가 바닥이 돼서 줄을 지워도 줄지 않는다. */
+function noteAutoGrow(el){
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = Math.max(92, el.scrollHeight) + 'px';
+}
 /* 숫자 고르개 — 눈금자 위에 테두리와 끝말만 얹는다 */
 function entAmtHtml(id, value, min, max, step, unit, endLeft, endRight){
   return '<div class="amt">' +
@@ -13378,7 +13400,10 @@ function buildEntryFields(meta, e){
   var noteLabel = meta.noteKey ? t(meta.noteKey) : t('note');
   var quickWords = (meta.isCustom || meta.hasMed) ? [] : readQuickWords(meta.id);
   html += entH(noteLabel);
-  html += '<input type="text" id="f-note" value="' + esc(e.note) + '" maxlength="80" />' +
+  /* maxlength 없음 — 길이 제한은 두지 않는다(2026-11-02). 줄바꿈은
+     textarea 가 그대로 담고, 목록·상세 둘 다 white-space:pre-wrap 이라
+     적은 모양대로 보인다. */
+  html += '<textarea id="f-note" rows="3">' + esc(e.note) + '</textarea>' +
     (quickWords.length ? '<div class="quick-word-row" id="f-note-quick">' +
       quickWords.map(function(w){ return '<button type="button" class="qw-chip" data-quick-word="' +
         esc(w.text) + '">' + esc(w.text) + '</button>'; }).join('') + '</div>' : '');
@@ -13529,6 +13554,13 @@ function wireEntryFields(meta){
   }
 
   renderWakeCard();
+  /* 들어 있던 메모가 세 줄을 넘으면 열자마자 그만큼 서 있어야 한다 —
+     스크롤 막대 안에 글이 숨어 있으면 고치러 들어온 사람이 못 찾는다 */
+  var noteBox = document.getElementById('f-note');
+  if (noteBox){
+    noteAutoGrow(noteBox);
+    noteBox.addEventListener('input', function(){ noteAutoGrow(noteBox); });
+  }
   var quickWordBox = document.getElementById('f-note-quick');
   if (quickWordBox){
     var noteEl = document.getElementById('f-note');
@@ -13538,6 +13570,7 @@ function wireEntryFields(meta){
            잇고, 거듭 눌러도 겹치지 않게 끝의 쉼표·공백을 먼저 떼어낸다 */
         var cur = noteEl.value.replace(/[\s,]+$/, '');
         noteEl.value = cur ? (cur + ', ' + chip.dataset.quickWord) : chip.dataset.quickWord;
+        noteAutoGrow(noteEl);
         noteEl.focus();
       });
     });
