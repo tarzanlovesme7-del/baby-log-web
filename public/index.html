@@ -557,8 +557,6 @@
   .gcell.bad{ background:var(--wn-bad); }
   .gcell.bad span{ color:var(--wn-bad-fg); font-weight:var(--fw-strong); }
   .gcell:active{ filter:brightness(.94); }
-  /* 냉동 큐브 줄 아래 '무엇으로 만드는지' — 쌀오트밀죽 = 쌀 + 오트밀 */
-  .wn-madeof{ display:block; font-size:var(--fs-micro); color:var(--muted-2); margin-top:2px; }
   .wn-buy.quiet .wn-name b{ color:var(--muted); }
   .wn-buy.quiet .wi{ opacity:.55; }
 
@@ -3183,6 +3181,8 @@
        식단 알약의 기본 바탕·글자색. */
     --wn-accent:#2ec45b; --wn-pill:#dceccd; --wn-pill-fg:#2f5a28;
     --wn-bad:#fbdcdc; --wn-bad-fg:#9c2b2b; --wn-fab:#c9e3c2;
+    /* 기한이 가까운 칸 — 지난 것(빨강)보다 한 단 약한 주황 */
+    --cb-soon-bg:#fdeedd; --cb-soon-fg:#9a5a00;
   }
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
@@ -3190,6 +3190,7 @@
       --wn-band-bg:color-mix(in srgb, var(--c-wean) 16%, var(--surface));
       --wn-accent:#52d97a; --wn-pill:#2b3a18; --wn-pill-fg:#cfe9b6;
       --wn-bad:#44181c; --wn-bad-fg:#f0b0b6; --wn-fab:#3f5a2a;
+      --cb-soon-bg:#45330f; --cb-soon-fg:#f3c478;
     }
   }
   :root[data-theme="dark"]{
@@ -3197,6 +3198,7 @@
     --wn-band-bg:color-mix(in srgb, var(--c-wean) 16%, var(--surface));
     --wn-accent:#52d97a; --wn-pill:#2b3a18; --wn-pill-fg:#cfe9b6;
     --wn-bad:#44181c; --wn-bad-fg:#f0b0b6; --wn-fab:#3f5a2a;
+    --cb-soon-bg:#45330f; --cb-soon-fg:#f3c478;
   }
 
   /* 오늘 이유식 띠 — 메모·도장·자는중·다음수유와 같은 납작한 밴드 언어 */
@@ -3391,11 +3393,38 @@
   #fp-wean .r-label, #fp-weanday .r-label, #fp-weaning .r-label{ font-weight:var(--fw-medium); }
   #fp-wean .r-sub, #fp-weanday .r-sub, #fp-weaning .r-sub{ font-weight:var(--fw-body); }
 
-  /* 냉동 큐브 한 줄 — 오른쪽은 − 숫자 + */
-  .wn-cube{ display:flex; align-items:center; gap:11px; padding-top:11px; padding-bottom:11px;
-    border-top:1px solid var(--border); }
-  .wn-cube:first-child{ border-top:0; }
-  .wn-cube.warn .wn-name b{ color:var(--warn-fg, #b7791f); }
+  /* ── 재고 한 줄(개편 2026-11-03) ─────────────────────────────
+     참고 화면에서 가져온 것은 넷이다: 남은 기한 칩, 칸 막대, 필터 알약,
+     급한 순 정렬. 왼쪽은 읽는 것(이름·만든 날·칸 막대), 오른쪽은 고치는
+     것(−/+). 칸 수는 두 번 적힌다 — 막대는 눈으로 세는 양이고 스테퍼의
+     숫자는 정확한 값이다. */
+  .cb-row{ display:flex; align-items:flex-start; gap:11px;
+    padding:12px 0; border-top:1px solid var(--border); }
+  .cb-row:first-child{ border-top:0; }
+  .cb-main{ flex:1; min-width:0; background:transparent; border:0; padding:0; text-align:left; }
+  .cb-head{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+  .cb-head b{ font-size:var(--fs-title); font-weight:var(--fw-strong); color:var(--fg); }
+  .cb-head .wi{ width:22px; height:22px; }
+  .cb-sub{ font-size:var(--fs-caption); color:var(--muted); margin-top:2px; }
+  /* 한 칸 = 대시 하나. 열 개까지 긋고 넘치면 +N — 열한 번째부터는 세는
+     눈이 아니라 '많다'는 느낌만 남는다. */
+  .cb-bar{ display:flex; align-items:center; gap:3px; margin-top:7px; }
+  .cb-bar i{ width:13px; height:4px; border-radius:2px; background:var(--c-wean); flex:0 0 auto; }
+  /* 쓴 칸도 같이 긋는다 — 만든 만큼 길이가 서고 그 중 회색이 쓴 것이다.
+     남은 칸만 그으면 열 칸 중 아홉을 쓴 줄과 한 칸만 만든 줄이 똑같이
+     보인다("몇개 만들었는데 몇개 썼고 몇개 남았는지가 보여야지").
+     같은 말을 '만든 13칸 · 쓴 4칸 · 남은 9칸'으로 한 번 더 적어 봤는데
+     줄이 복잡해졌다("이거 텍스트는 필요없어 복잡해보여", 2026-11-03) —
+     막대가 셋을 다 말하고 정확한 남은 칸은 오른쪽 숫자에 있다. */
+  .cb-bar i.gone{ background:var(--border); }
+  .cb-bar em{ font-style:normal; font-size:var(--fs-micro); color:var(--muted-2);
+    font-weight:var(--fw-strong); margin-left:3px; }
+  .cb-d{ flex:0 0 auto; font-size:var(--fs-micro); font-weight:var(--fw-strong);
+    border-radius:8px; padding:3px 7px; background:var(--surface-2); color:var(--muted);
+    font-variant-numeric:tabular-nums; }
+  .cb-d.soon{ background:var(--cb-soon-bg); color:var(--cb-soon-fg); }
+  .cb-d.over{ background:var(--wn-bad); color:var(--wn-bad-fg); }
+  .chips-nav .cnt{ font-variant-numeric:tabular-nums; opacity:.65; margin-left:4px; }
   .wn-step{ flex:0 0 auto; margin-left:auto; display:flex; align-items:center; gap:2px; }
   .wn-step button{ width:36px; height:36px; border-radius:50%; background:var(--surface-2);
     color:var(--fg); font-size:17px; font-weight:var(--fw-strong); line-height:1; }
@@ -4837,8 +4866,8 @@ ko: {
   wnAlwaysScopeHint:"다음 주 목록에도 이 값으로 나와요. 식단표가 바뀌어도 그대로예요.",
   wnSkipWeek:"이번 주 이 재료 건너뛰기", wnUnskipWeek:"이번 주에 다시 넣기",
   wnCubeMade:"큐브 만들었어요", wnIngredient:"재료", wnHowMany:"몇 칸", wnCubeUnit:"칸",
-  wnPerCube:"한 칸 용량", wnPerCubeTpl:"한 칸 {g}g", wnPerCubeHint:"재료에 저장된 기본값이에요. 여기서 바꾸면 재료에도 같이 저장돼요.",
-  wnMadeOn:"만든 날", wnMadeOnTpl:"{d} 만든 것",
+  wnPerCube:"한 칸 용량", wnPerCubeHint:"재료에 저장된 기본값이에요. 여기서 바꾸면 재료에도 같이 저장돼요.",
+  wnMadeOn:"만든 날",
   wnCubeNTpl:"큐브 {n}칸",
   wnCubeEmpty:"아직 만든 큐브가 없어요.",
   wnCubeFoot:"이유식을 기록하면 그날 메뉴의 재료가 한 칸씩 자동으로 빠져요. 안 맞으면 − + 로 고쳐요.",
@@ -4876,14 +4905,16 @@ ko: {
   wnOpenTitle:"식단표 · 장보기 · 재고", wnSetSummaryTpl:"{from}부터 {n}일치", wnSetEmpty:"아직 식단이 없어요",
   wnMoreTpl:"외 {n}", wnWatchMoreTpl:"그리고 {n}가지 더 지켜보는 중",
   wnEditMenu:"눌러서 먹은 양 적기",
-  wnCubeOldTpl:"{d}일 지남",
  
   wnStockNow:"현재 재고", wnStockOldTpl:"오래된 것 {n}칸", wnStockKindsTpl:"재료 {n}가지",
+  wnStockAll:"전체", wnStockSoon:"기한 임박", wnStockOver:"기한 지남",
+  wnStockSoonNone:"기한이 임박한 큐브가 없어요.", wnStockOverNone:"기한이 지난 큐브가 없어요.",
+  wnCubeDTpl:"D-{d}", wnCubeDOverTpl:"D+{d}",
   wnPillHave:"있는 것", wnPillMake:"만들 것", wnPillUse:"쓸 것",
   wnWeekMake:"이번 주 만들 큐브", wnWeekMakeNone:"안 만들어도 돼요",
   wnWeekMakeSub:"지금 재고 {n}칸을 빼고 센 거예요.", wnWeekUse:"이번 주 쓸 큐브",
   wnWeekUseNone:"이 주에는 식단이 없어요.", wnWeekDaysTpl:"{a}일차 ~ {b}일차",
-  wnHaveNeedTpl:"지금 {have}칸 · 필요 {need}칸", wnCubeHave:"지금 있는 것",
+  wnHaveNeedTpl:"지금 {have}칸 · 필요 {need}칸",
   wnAddExtra:"직접 추가", wnExtraName:"살 것", wnExtraNamePh:"예: 이유식 큐브 트레이",
   wnKind:"종류", wnKindBase:"베이스죽", wnKindTop:"토핑",
   wnKindHint:"베이스죽은 장보기 목록에 안 나와요 — 쌀가루·오트밀가루는 떨어질 때 직접 추가해서 사세요.",
@@ -5148,8 +5179,8 @@ vi: {
   wnAlwaysScopeHint:"Tuần sau cũng ra lượng này. Thực đơn đổi cũng không đổi theo.",
   wnSkipWeek:"Bỏ qua nguyên liệu này tuần này", wnUnskipWeek:"Cho lại vào tuần này",
   wnCubeMade:"Đã làm viên trữ đông", wnIngredient:"Nguyên liệu", wnHowMany:"Bao nhiêu viên", wnCubeUnit:"viên",
-  wnPerCube:"Mỗi viên", wnPerCubeTpl:"mỗi viên {g}g", wnPerCubeHint:"Đây là giá trị mặc định lưu ở nguyên liệu. Đổi ở đây thì nguyên liệu cũng đổi theo.",
-  wnMadeOn:"Ngày làm", wnMadeOnTpl:"làm {d}",
+  wnPerCube:"Mỗi viên", wnPerCubeHint:"Đây là giá trị mặc định lưu ở nguyên liệu. Đổi ở đây thì nguyên liệu cũng đổi theo.",
+  wnMadeOn:"Ngày làm",
   wnCubeNTpl:"{n} viên",
   wnCubeEmpty:"Chưa có viên trữ đông nào.",
   wnCubeFoot:"Ghi ăn dặm thì nguyên liệu của ngày đó tự trừ 1 viên. Không khớp thì sửa bằng − +.",
@@ -5186,14 +5217,16 @@ vi: {
   wnOpenTitle:"Thực đơn · đi chợ · kho đông", wnSetSummaryTpl:"{n} ngày từ {from}", wnSetEmpty:"Chưa có thực đơn",
   wnMoreTpl:"và {n} nữa", wnWatchMoreTpl:"Và {n} loại nữa đang theo dõi",
   wnEditMenu:"Bấm để ghi lượng ăn",
-  wnCubeOldTpl:"{d} ngày",
  
   wnStockNow:"Tồn kho hiện tại", wnStockOldTpl:"Để lâu {n} viên", wnStockKindsTpl:"{n} loại",
+  wnStockAll:"Tất cả", wnStockSoon:"Gần hết hạn", wnStockOver:"Quá hạn",
+  wnStockSoonNone:"Không có viên nào gần hết hạn.", wnStockOverNone:"Không có viên nào quá hạn.",
+  wnCubeDTpl:"D-{d}", wnCubeDOverTpl:"D+{d}",
   wnPillHave:"Đang có", wnPillMake:"Cần làm", wnPillUse:"Sẽ dùng",
   wnWeekMake:"Viên cần làm tuần này", wnWeekMakeNone:"Không cần làm thêm",
   wnWeekMakeSub:"Đã trừ {n} viên đang có.", wnWeekUse:"Viên dùng tuần này",
   wnWeekUseNone:"Tuần này chưa có thực đơn.", wnWeekDaysTpl:"ngày {a} ~ ngày {b}",
-  wnHaveNeedTpl:"đang có {have} · cần {need}", wnCubeHave:"Đang có",
+  wnHaveNeedTpl:"đang có {have} · cần {need}",
   wnAddExtra:"Tự thêm", wnExtraName:"Thứ cần mua", wnExtraNamePh:"VD: khay trữ đông",
   wnKind:"Loại", wnKindBase:"Cháo nền", wnKindTop:"Topping",
   wnKindHint:"Cháo nền không hiện trong danh sách đi chợ — bột gạo, bột yến mạch thì tự thêm khi hết.",
@@ -12569,7 +12602,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261103a';
+var BUILD = '20261103d';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -15479,6 +15512,11 @@ var WEAN_UNITS = ['g', 'ea', 'tbsp'];
 var WEAN_WATCH_DAYS = 3;
 /* 냉동 큐브는 2주가 한계 */
 var WEAN_CUBE_DAYS = 14;
+/* 사흘 남으면 '임박' — 주말에 한 주치를 만드니 사흘이면 그 주 안에 쓴다 */
+var WEAN_CUBE_SOON = 3;
+/* 칸 막대는 열여섯 칸까지 긋는다 — 한 번에 만드는 양이 열두 칸쯤이라
+   여기까지는 한 칸 한 대시로 정확히 세어진다. 넘으면 +N 으로 접는다. */
+var WEAN_BAR_CAP = 16;
 
 function weanPlan(){ return (appState && appState.weanPlan) || {}; }
 function weanIngs(){ return (appState && appState.weanIngs) || []; }
@@ -15817,6 +15855,18 @@ function weanCubeIngs(){
 }
 function weanCubeN(ing){
   return weanCubesOf(ing).reduce(function(n, c){ return n + (Number(c.n) || 0); }, 0);
+}
+/* 한 덩어리를 몇 칸 만들었나. made는 2026-11-03부터 적히므로 없는 덩어리는
+   남은 칸이 곧 만든 칸이다 — 그 전에 쓴 것은 적어둔 데가 없다. */
+function weanCubeMade(c){
+  var n = Math.max(0, Math.round(Number(c && c.n) || 0));
+  var m = Math.round(Number(c && c.made) || 0);
+  return Math.max(n, m > 0 ? m : 0);
+}
+/* 남은 기한. 만든 날이 없으면 null — 셀 수 없는 것에 칩을 달지 않는다. */
+function weanCubeLeft(c){
+  if (!c || !c.madeOn) return null;
+  return WEAN_CUBE_DAYS - weanDaysSince(c.madeOn);
 }
 function weanDaysSince(ds){
   if (!ds) return 0;
@@ -16777,33 +16827,91 @@ function weanCubesHtml(){
   /* 냉동실에 있는 것은 '소고기 12칸'이 아니라 '9/14에 만든 4칸'과 '9/28에
      만든 8칸'이다 — 꺼내 쓰는 것도 버리는 것도 덩어리 단위라, 한 줄에 합쳐
      놓으면 어느 쪽이 오래된 건지 -/+로 어느 쪽이 줄어드는지 알 수 없다.
-     만든 날마다 한 줄, 그 줄의 -/+는 그 덩어리만 건드린다. */
-  var ings = weanCubeIngs().sort(function(a, b){ return weanCubeN(b) - weanCubeN(a); });
-  html += '<div class="card">';
-  if (!ings.length){
-    html += '<div class="t-caption" style="padding:6px 0">' + esc(t('wnCubeEmpty')) + '</div>';
-  }
-  ings.forEach(function(ing){
-    var g = weanIng(ing) || { ko: ing, vi: '' };
+     만든 날마다 한 줄, 그 줄의 -/+는 그 덩어리만 건드린다.
+
+     줄의 순서는 재료별 칸 수가 아니라 **급한 순**이다(2026-11-03 개편).
+     재고를 보는 이유는 '뭐가 많나'가 아니라 '뭘 먼저 써야 하나'다. */
+  var batches = [];
+  weanCubeIngs().forEach(function(ing){
     weanCubesOf(ing).forEach(function(c){
-      var days = c.madeOn ? weanDaysSince(c.madeOn) : 0;
-      var old = !!c.madeOn && days > WEAN_CUBE_DAYS;
-      var sub = (c.madeOn ? t('wnMadeOnTpl').replace('{d}', weanShortDate(c.madeOn)) + ' · ' : '') +
-        t('wnPerCubeTpl').replace('{g}', c.perG || 10);
-      html += '<div class="wn-cube' + (old ? ' warn' : '') + '">' +
-        '<button type="button" class="wn-name" data-wn-cubedef="' + esc(ing) + '"' +
-          ' style="text-align:left;background:transparent;border:0;padding:0">' +
-          '<b>' + weanIngIcon(ing, 'wi-sm wi-lead') +
-          esc(state.lang === 'vi' ? (g.vi || g.ko) : g.ko) + '</b>' +
-        '<span>' + esc(sub) + '</span>' +
-        '<span class="wn-madeof">' + esc(weanMadeOf(ing)) + '</span></button>' +
-        (old ? '<span class="pay-chip warn">' + esc(t('wnCubeOldTpl').replace('{d}', days)) + '</span>' : '') +
-        '<span class="wn-step">' +
-          '<button type="button" data-wn-cube="' + esc(ing) + '" data-id="' + esc(c.id || '') + '" data-d="-1">\u2212</button>' +
-          '<b>' + (Number(c.n) || 0) + '</b>' +
-          '<button type="button" data-wn-cube="' + esc(ing) + '" data-id="' + esc(c.id || '') + '" data-d="1">+</button>' +
-        '</span></div>';
+      batches.push({ ing: ing, c: c, left: weanCubeLeft(c) });
     });
+  });
+  batches.sort(function(a, b){
+    var la = a.left === null ? 1e9 : a.left, lb = b.left === null ? 1e9 : b.left;
+    if (la !== lb) return la - lb;
+    return weanCubeN(b.ing) - weanCubeN(a.ing);
+  });
+  function sfMatch(b, f){
+    if (f === 'soon') return b.left !== null && b.left >= 0 && b.left <= WEAN_CUBE_SOON;
+    if (f === 'over') return b.left !== null && b.left < 0;
+    return true;
+  }
+  var nSoon = batches.filter(function(b){ return sfMatch(b, 'soon'); }).length;
+  var nOver = batches.filter(function(b){ return sfMatch(b, 'over'); }).length;
+  var sf = state.weanStockFilter;
+  if (sf !== 'soon' && sf !== 'over') sf = 'all';
+
+  /* 알약을 눌러도 수가 0이면 빈 줄이 뜬다 — 누른 것을 무시하고 전체로
+     돌려놓으면 왜 그대로인지 알 수 없다. 없다고 말해주는 쪽이 낫다. */
+  if (batches.length){
+    html += '<div class="chips-nav" style="margin-top:4px">' +
+      [['all', 'wnStockAll', batches.length], ['soon', 'wnStockSoon', nSoon],
+       ['over', 'wnStockOver', nOver]].map(function(x){
+        return '<button type="button" data-wn-sf="' + x[0] + '" aria-pressed="' +
+          (sf === x[0]) + '">' + esc(t(x[1])) +
+          '<span class="cnt">' + x[2] + '</span></button>';
+      }).join('') + '</div>';
+  }
+
+  var shown = batches.filter(function(b){ return sfMatch(b, sf); });
+  html += '<div class="card">';
+  if (!batches.length){
+    html += '<div class="t-caption" style="padding:6px 0">' + esc(t('wnCubeEmpty')) + '</div>';
+  } else if (!shown.length){
+    html += '<div class="t-caption" style="padding:6px 0">' +
+      esc(t(sf === 'over' ? 'wnStockOverNone' : 'wnStockSoonNone')) + '</div>';
+  }
+  shown.forEach(function(b){
+    var ing = b.ing, c = b.c, g = weanIng(ing) || { ko: ing, vi: '' };
+    var n = Math.max(0, Math.round(Number(c.n) || 0));
+    var made = weanCubeMade(c), used = Math.max(0, made - n);
+    var chip = '';
+    if (b.left !== null){
+      chip = b.left < 0
+        ? '<span class="cb-d over">' + esc(t('wnCubeDOverTpl').replace('{d}', -b.left)) + '</span>'
+        : '<span class="cb-d' + (b.left <= WEAN_CUBE_SOON ? ' soon' : '') + '">' +
+            esc(t('wnCubeDTpl').replace('{d}', b.left)) + '</span>';
+    }
+    /* '10/24 만든 것 · 한 칸 20g' 에서 말을 다 뺐다 — 날짜와 g 만 남으면
+       읽을 것이 둘인데, 말이 붙으면 줄마다 같은 말을 여덟 번 읽는다
+       ("이거 그냥 10/24 · 20g 이렇게 표기해", 2026-11-03). */
+    var sub = (c.madeOn ? weanShortDate(c.madeOn) + ' \u00b7 ' : '') + (c.perG || 10) + 'g';
+    /* 무엇으로 만드는지는 섞은 것에만 적는다 — 소고기 줄 밑에 '소고기'가
+       한 번 더 적히면 읽을 것이 늘기만 한다. 쌀오트밀죽 = 쌀 + 오트밀. */
+    var nm = state.lang === 'vi' ? (g.vi || g.ko) : g.ko;
+    var raws = weanMadeOf(ing);
+    if (raws === nm) raws = '';
+    /* 남은 칸을 먼저 긋고 쓴 칸을 회색으로 잇는다. 열 개를 넘으면 +N. */
+    var solid = Math.min(n, WEAN_BAR_CAP);
+    var grey = Math.max(0, Math.min(used, WEAN_BAR_CAP - solid));
+    var rest = made - solid - grey;
+    html += '<div class="cb-row">' +
+      '<button type="button" class="cb-main" data-wn-cubedef="' + esc(ing) + '">' +
+        '<div class="cb-head">' + weanIngIcon(ing, '') +
+          '<b>' + esc(nm) + '</b>' + chip + '</div>' +
+        '<div class="cb-sub">' + esc(sub) + (raws ? ' \u00b7 ' + esc(raws) : '') + '</div>' +
+        '<div class="cb-bar">' + new Array(solid + 1).join('<i></i>') +
+          new Array(grey + 1).join('<i class="gone"></i>') +
+          (rest > 0 ? '<em>+' + rest + '</em>' : '') + '</div>' +
+      '</button>' +
+      '<span class="wn-step">' +
+        '<button type="button" data-wn-cube="' + esc(ing) + '" data-id="' +
+          esc(c.id || '') + '" data-d="-1">\u2212</button>' +
+        '<b>' + n + '</b>' +
+        '<button type="button" data-wn-cube="' + esc(ing) + '" data-id="' +
+          esc(c.id || '') + '" data-d="1">+</button>' +
+      '</span></div>';
   });
   html += '</div><div class="t-caption" style="padding:0 2px">' + esc(t('wnCubeFoot')) + '</div>';
   return html;
@@ -17520,6 +17628,10 @@ function wireWean(){
     var el;
     if ((el = ev.target.closest('[data-wn-cv]'))){
       state.weanCubeView = el.dataset.wnCv;
+      renderWean(); return;
+    }
+    if ((el = ev.target.closest('[data-wn-sf]'))){
+      state.weanStockFilter = el.dataset.wnSf;
       renderWean(); return;
     }
     if ((el = ev.target.closest('[data-wn-week]'))){

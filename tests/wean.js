@@ -704,7 +704,7 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   // ═══ 재고 ═══
   await p.click('#wn-tabs button[data-wn="cubes"]'); await p.waitForTimeout(800);
   check('재고에 재료별 칸 수가 나온다',
-    await p.evaluate(()=>document.querySelectorAll('.wn-cube').length) >= 4, true);
+    await p.evaluate(()=>document.querySelectorAll('.cb-row').length) >= 4, true);
 
   /* ── 주 단위 재고(2026-10-31) ──
      묻는 것이 셋이라 화면도 셋이다 — 있는 것 / 만들 것 / 쓸 것.
@@ -728,7 +728,7 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
     !document.querySelector('#wn-body .wn-weeknav')), true);
   check('...총 칸수와 덩어리 목록이 한 화면에 있다', await p.evaluate(()=>
     !!document.querySelector('#wn-body .wn-hero .t-money') &&
-    document.querySelectorAll('#wn-body .wn-cube').length > 0), true);
+    document.querySelectorAll('#wn-body .cb-row').length > 0), true);
 
   await pill('use');
   check('쓸 것에는 주 네비가 선다', await p.evaluate(()=>
@@ -784,13 +784,13 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   await pill('have');
   await p.evaluate(() => window.dispatchEvent(new Event('focus')));
   await p.waitForTimeout(1500);
-  await p.click('.wn-cube:has-text("소고기") [data-d="1"]');
+  await p.click('.cb-row:has-text("소고기") [data-d="1"]');
   await p.waitForTimeout(1200);
   s = await st();
   check('+ 를 누르면 한 칸 는다', (s.weanCubes.find(c=>c.ing==='beef')||{}).n, 6);
   check('...재고 줄마다 만든 날이 적힌다',
-    await p.evaluate(()=>[...document.querySelectorAll('.wn-cube')]
-      .every(x=>/\d\d\/\d\d 만든 것/.test(x.textContent))), true);
+    await p.evaluate(()=>[...document.querySelectorAll('.cb-row')]
+      .every(x=>/\d\d\/\d\d · \d+g/.test(x.textContent))), true);
   /* '+ 큐브 만들었어요' 텍스트 버튼도 뗐다 — 재고 화면의 FAB 이 그 일을 한다 */
   await p.click('#wn-add'); await p.waitForTimeout(700);
   await p.fill('#wn-cube-n', '10');
@@ -808,11 +808,12 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   await p.waitForTimeout(1500);
   check('큐브 줄에 무엇으로 만드는지가 적힌다',
     await p.evaluate(()=>{
-      const r = [...document.querySelectorAll('.wn-cube')].find(x=>x.textContent.indexOf('쌀오트밀죽')>=0);
-      return r ? r.querySelector('.wn-madeof').textContent.trim() : null;
-    }), '쌀 + 오트밀');
+      const r = [...document.querySelectorAll('.cb-row')].find(x=>x.textContent.indexOf('쌀오트밀죽')>=0);
+      const s = r ? r.querySelector('.cb-sub').textContent : '';
+      return s.indexOf('쌀 + 오트밀') >= 0;
+    }), true);
   /* 이름을 누르면 그 큐브를 고친다 — 한 칸 용량과 무엇으로 만드는지 */
-  await p.click('.wn-cube:has-text("쌀오트밀죽") [data-wn-cubedef]');
+  await p.click('.cb-row:has-text("쌀오트밀죽") [data-wn-cubedef]');
   await p.waitForTimeout(700);
   check('큐브 이름을 누르면 고치기가 열린다',
     await p.evaluate(()=>document.getElementById('wn-cubedef-sheet').classList.contains('show')), true);
@@ -848,15 +849,15 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   await p.click('#wn-tabs button[data-wn="cubes"]'); await p.waitForTimeout(800);
   /* 만든 날마다 한 줄 — 9/10 만든 2칸, 9/30 만든 5칸이 따로 선다 */
   check('...화면에 만든 날마다 한 줄이 선다',
-    await p.evaluate(()=>[...document.querySelectorAll('.wn-cube')]
+    await p.evaluate(()=>[...document.querySelectorAll('.cb-row')]
       .filter(x=>x.textContent.indexOf('소고기')>=0)
       .map(x=>x.querySelector('.wn-step b').textContent.trim())), ['2', '5']);
   check('...오래된 덩어리에만 지났다고 적힌다',
-    await p.evaluate(()=>[...document.querySelectorAll('.wn-cube')]
+    await p.evaluate(()=>[...document.querySelectorAll('.cb-row')]
       .filter(x=>x.textContent.indexOf('소고기')>=0)
-      .map(x=>/지남/.test(x.textContent))), [true, false]);
+      .map(x=>/D\+\d/.test(x.textContent))), [true, false]);
   /* 그 줄의 -/+ 는 그 덩어리만 건드린다 — 합계에서 오래된 것부터 빠지면 안 된다 */
-  await p.click('.wn-cube:has-text("소고기"):last-of-type [data-d="1"]');
+  await p.locator('.cb-row', { hasText: '소고기' }).last().locator('[data-d="1"]').click();
   await p.waitForTimeout(1300);
   check('...줄의 +는 그 날짜의 덩어리만 늘린다',
     (await st()).weanCubes.filter(c=>c.ing==='beef')

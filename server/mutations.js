@@ -343,8 +343,14 @@ function addCubes(state, ing, n, perG, madeOn) {
   const g = Math.max(1, Math.round(num(perG, defaultPerG(state, ing))));
   const day = DATE_RE.test(madeOn || '') ? madeOn : new Date().toISOString().slice(0, 10);
   let row = state.weanCubes.find((c) => c.ing === ing && c.madeOn === day && Math.round(num(c.perG, 0)) === g);
-  if (!row) { row = { id: uid('c_'), ing, n: 0, perG: g, madeOn: day }; state.weanCubes.push(row); }
+  if (!row) { row = { id: uid('c_'), ing, n: 0, made: 0, perG: g, madeOn: day }; state.weanCubes.push(row); }
   row.n = Math.max(0, Math.round(num(row.n, 0))) + add;
+  /* 몇 칸 만들었는지는 따로 남긴다 — n 은 남은 칸이라 먹일수록 줄고, 그러면
+     "몇 개 만들었는데 몇 개 썼고 몇 개 남았는지"를 말할 수 없다
+     (2026-11-03). 쓴 칸 = made − n. 옛 덩어리는 made 가 없으므로 화면에서
+     n 으로 친다(= 쓴 것 0칸). */
+  row.made = Math.max(Math.round(num(row.made, 0)), 0) + add;
+  if (row.made < row.n) row.made = row.n;
   return row;
 }
 /* 이유식을 한 건 기록하면 그날 쓴 재료가 한 칸씩 빠진다. 지우면 되돌아온다.
@@ -359,6 +365,8 @@ function bumpCubesForEntry(state, entry, sign) {
       /* 되돌릴 때는 가장 오래된 덩어리로 — 그게 빠졌던 자리다.
          남은 덩어리가 없으면 그날 만든 것으로 하나 세운다. */
       const olds = cubesOf(state, it.ing);
+      /* 기록을 지우면 쓴 칸이 하나 돌아온다 — made 는 그대로 두면 '쓴 칸'이
+         저절로 하나 줄어든다(쓴 칸 = made − n). */
       if (olds.length) olds[0].n = Math.max(0, Math.round(num(olds[0].n, 0))) + 1;
       else addCubes(state, it.ing, 1, defaultPerG(state, it.ing), (entry.start || '').slice(0, 10));
     }
@@ -1746,7 +1754,12 @@ function applyMutation(prevState, type, payload) {
         if (id) {
           const row = (state.weanCubes || []).filter((c) => c.id === id && c.ing === ing)[0];
           if (!row) throw httpError(404, 'no such cube batch');
-          row.n = Math.max(0, Math.round(num(row.n, 0)) + d);
+          const before = Math.max(0, Math.round(num(row.n, 0)));
+          row.n = Math.max(0, before + d);
+          /* + 는 '더 만들었다'(만든 수도 같이 오른다), − 는 '썼다'(만든 수는
+             그대로 두고 남은 수만 준다) */
+          const made0 = Math.max(Math.round(num(row.made, 0)), before);
+          row.made = d > 0 ? made0 + (row.n - before) : made0;
           if (!row.n) state.weanCubes = state.weanCubes.filter((c) => c !== row);
         } else if (d < 0) takeCubes(state, ing, -d);
         else if (d > 0) {
