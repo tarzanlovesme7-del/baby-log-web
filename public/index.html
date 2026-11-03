@@ -4295,6 +4295,11 @@
     <div class="fp-body">
       <div class="card" id="pp-sum"></div>
       <div class="card" id="pp-days"></div>
+      <!-- 입금 완료는 '이번 기간' 카드 바닥에만 있었다. 달이 바뀌면 지난
+           기간은 목록으로 내려가고, 그 상세에는 버튼이 없어서 **찍을 자리가
+           사라졌다** (2026-11-02 "10월 16일부터 일한거 입금 했는데 입금완료
+           어디서 누르냐"). 같은 버튼을 여기에도 둔다. -->
+      <div id="pp-foot"></div>
     </div>
   </div>
 
@@ -8133,7 +8138,7 @@ function renderStampRow(){
   if (!box) return;
   var today = toDateValue();
   /* 엄마·아빠 폰에는 뜨지 않는다. 출근하는 사람은 한 사람이다. */
-  var show = isNannyUser() && stampBandOpen() &&
+  var show = isNannyUser() && (stampBandOpen() || !canSeePayTab()) &&
              payStarted(today) && !shiftOn(today);
   box.hidden = !show;
   syncAnnounceStack();
@@ -11044,6 +11049,7 @@ function ppPrev(ds){
   return toDateValue(d.toISOString());
 }
 function openPayPeriodPage(from, to){
+  if (!canSeeSettle()) return;   /* 가리는 기간에는 어느 길로도 못 연다 */
   ppRange = { from: from, to: to };
   renderPayPeriodPage();
   openFullpage('fp-payperiod');
@@ -11079,6 +11085,9 @@ function renderPayPeriodPage(){
     (paid ? '<div class="pay-chip ok" style="margin-top:9px">' +
       esc(t('payPaidAt').replace('{d}', payDateLabel(paid.paidAt.slice(0,10)).replace(/\s*\(.*\)$/, ''))) +
       '</div>' : '');
+  /* 이 기간을 입금 완료로 찍는 자리. '이번 기간' 카드와 같은 부품·같은 규칙
+     (엄마만, 줄 것이 있을 때만) — renderPaySettleFoot 하나를 같이 쓴다. */
+  renderPaySettleFoot(pr, paid, tot, 'pp-foot');
 
   var html = '', sum = 0, notYetDrawn = false;
   /* 앞 기간 마지막 날의 오버타임은 이 기간의 돈이다 — 기간 밖 날짜라
@@ -11349,6 +11358,12 @@ function maybePostPaydayMemo(){
    한 가지는 분명히 해 둔다: 이건 **화면에서 가리는 것**이지 데이터를
    감추는 게 아니다. 서버는 여전히 모든 폰에 같은 문서를 내려준다. */
 var SETTLE_HIDE_FROM = '2026-11-01', SETTLE_HIDE_TO = '2026-12-01';
+/* 정산을 가리는 기간에는 **금액이 적힌 모든 자리**를 같이 가린다. 서브탭만
+   숨기고 도장 화면의 '이번 기간 ₫'·오늘 일당·고른 날 일당을 남겨 두면 가린
+   뜻이 없다 — 2026-11-02 그녀가 아빠 프로필로 들어가 스크린샷으로 잡아냈다.
+   숨기는 건 금액뿐이고, 날짜·근무 일수·연차 일수는 그대로 보여준다(내니가
+   자기 출근을 확인하는 데 필요한 값이다). */
+function payVnd(n){ return canSeeSettle() ? fmtVnd(n) : ''; }
 function canSeeSettle(){
   var d = toDateValue();
   if (d < SETTLE_HIDE_FROM || d > SETTLE_HIDE_TO) return true;
@@ -11358,6 +11373,18 @@ function canSeeSettle(){
 /* ---- 렌더 ---- */
 function renderPay(){
   maybePostPaydayMemo();
+  /* 탭이 가려진 동안에는 **그리지도 않는다**. 숨긴 칸에 금액이 적힌 마크업이
+     남아 있으면, 그 칸을 다시 여는 길이 하나라도 생기는 순간 새어 나온다
+     (2026-11-02). 치우고 나간다. */
+  if (!canSeePayTab()){
+    ['pay-today','pay-approvals','pay-mine','pay-day','pay-glance',
+     'pay-period','pay-leave-year','pay-history','pay-settle-foot'].forEach(function(id){
+      var el = document.getElementById(id);
+      if (el) el.innerHTML = '';
+    });
+    syncPayTabAccess();
+    return;
+  }
   var maySettle = canSeeSettle();
   var pv = (state.paySub === 'settle' && maySettle) ? 'settle' : 'stamp';
   $$('#pay-tabs button').forEach(function(b){
@@ -11389,6 +11416,10 @@ function renderPay(){
 function renderPayGlance(){
   var box = document.getElementById('pay-glance');
   if (!box) return;
+  /* 이 카드는 제목부터가 정산이다('이번 기간' → 누르면 정산 화면). 가리는
+     기간에는 통째로 치운다. */
+  if (!canSeeSettle()){ box.innerHTML = ''; box.hidden = true; return; }
+  box.hidden = false;
   var pr = periodOf(toDateValue());
   var start = payroll().startDate;
   if (pr.to < start) pr = periodOf(start);
@@ -11441,6 +11472,19 @@ function setTabBadge(tab, n){
    아니다. 톱니를 감추는 것으로 충분한 이유: 돌아올 길이 따로 있기 때문이다.
    헤더의 이름 동그라미(#btn-profile)는 누구에게나 남아 있고, 거기서 '엄마'를
    고르면 PIN을 거쳐 다시 엄마가 된다. 톱니를 감춘다고 잠기지 않는다. */
+/* 급여 탭(돼지저금통) 자체를 보여도 되는가. 가리는 기간에는 서브탭·금액만
+   치우는 게 아니라 **탭을 통째로** 치운다 — 2026-11-02 "아예 저 돼지저금통
+   메뉴가 안보이게 해달라고 다른 사람들은".
+   내니는 그 안에서 출근 도장을 찍었으므로, 탭이 사라지는 동안에는 첫 화면
+   도장 띠가 아침 시간대를 넘어 하루 종일 서 있는다(renderStampRow 참고). */
+function canSeePayTab(){ return canSeeSettle(); }
+function syncPayTabAccess(){
+  var btn = document.querySelector('.tab-btn[data-tab="pay"]');
+  if (!btn) return;
+  var ok = canSeePayTab();
+  btn.hidden = !ok;
+  if (!ok && state.tab === 'pay') switchTab('record');
+}
 function syncSettingsAccess(){
   var btn = document.getElementById('btn-settings');
   if (!btn) return;
@@ -11450,6 +11494,7 @@ function syncSettingsAccess(){
   if (!master && state.tab === 'settings') switchTab('record');
 }
 function syncPayBadge(){
+  syncPayTabAccess();
   setTabBadge('pay', isMasterUser() ? payPendingCount() : 0);
 }
 /* 안읽은 메모는 기록탭 배너로만 알리고 있었다. 내니가 출근 도장을 찍으러
@@ -11477,14 +11522,14 @@ function renderPayToday(){
   } else if (lvT){
     mark = '<span class="ok">\u2713</span>';
     sub = t('leaveLabel') + (lvT.status !== 'ok' ? ' · ' + t('payRequested') : '');
-    right = fmtVnd(payroll().leavePay);
+    right = payVnd(payroll().leavePay);
   } else if (sh){
     mark = '<span class="ok">\u2713</span>';
     sub = shiftTimeLabel(sh) + ' · ' +
       fmtWorkDur(shiftMins(sh) !== null ? shiftMins(sh) : stdWorkMin()) +
       ((!sh.start && !sh.end && fmtTime(sh.at)) ? ' · ' + t('payStampShortTpl').replace('{t}', fmtTime(sh.at)) : '') +
       (sh.status === 'pending' ? ' · ' + t('payPending') : '');
-    right = fmtVnd(todayWage);
+    right = payVnd(todayWage);
   } else {
     sub = t('payNotStampedYet');
   }
@@ -11508,7 +11553,7 @@ function renderPayToday(){
       (oPend ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') +
       (otCarriesOut(o.date) ? ' <span class="pay-chip quiet">' + esc(t('payOtNext')) + '</span>' : '') + '</span>' +
       '<div class="pay-val"><span class="t-value' + (oPend ? ' is-quiet' : '') + '">' +
-        esc(fmtVnd(otMins(o) * otPerMinute())) + '</span>' +
+        esc(payVnd(otMins(o) * otPerMinute())) + '</span>' +
       '<span class="t-caption">' + esc(otWhen(o)) + '</span>' +
       '<span class="t-caption">' + esc(otCalc(o)) + '</span></div></div>';
   });
@@ -11608,7 +11653,7 @@ function renderPayApprovals(){
       : t('leaveOverWarn');
     return payApprovalRow(esc(payDateLabel(x.date)) + ' · ' + esc(t('leaveLabel')) +
         '<br><span class="pay-sub' + (st.left > 0 ? '' : '" style="color:var(--warn-fg)') + '">' + esc(sub) + '</span>',
-      fmtVnd(payroll().leavePay), 'leave', x.id);
+      payVnd(payroll().leavePay), 'leave', x.id);
   })).join('');
   box.innerHTML = '<div class="card" style="border-color:var(--primary)">' +
     '<div class="pay-row"><b class="t-card">' + esc(t('payApprovals')) + '</b>' +
@@ -11662,7 +11707,7 @@ function renderPayMine(){
     return '<div class="pay-line"><div class="grow">' +
       '<div class="t-value">' + esc(payDateLabel(x.date)) + '</div>' +
       '<div class="pay-sub">' + esc(t('leaveLabel')) + '</div></div>' +
-      '<div class="pay-val"><span class="t-value">' + esc(fmtVnd(payroll().leavePay)) + '</span>' +
+      '<div class="pay-val"><span class="t-value">' + esc(payVnd(payroll().leavePay)) + '</span>' +
       '<span class="pay-chip soft">' + esc(t('payRequested')) + '</span></div>' +
       '<button type="button" class="pay-chip" data-mine-leave="' + esc(x.id) + '">' +
         esc(t('leaveCancel')) + '</button></div>';
@@ -11790,7 +11835,7 @@ function renderPayDay(){
     html += '<div class="pay-line"><span>' + esc(t('leaveLabel')) +
       (lv.status !== 'ok' ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
       '<span class="t-money' + (lv.status !== 'ok' ? ' is-quiet' : '') + '">' +
-        esc(fmtVnd(payroll().leavePay)) + '</span></div>';
+        esc(payVnd(payroll().leavePay)) + '</span></div>';
     if (!locked && (isMasterUser() || (lv.status === 'pending' && sameAuthor(lv.by, state.author)))){
       html += '<div class="pay-actions"><button type="button" class="pay-textbtn quiet" id="pay-day-leave-del">' +
         esc(lv.status === 'pending' ? t('leaveCancel') : t('payRemove')) + '</button></div>';
@@ -11826,7 +11871,7 @@ function renderPayDay(){
     html += '<div class="pay-line"><span>' + esc(t('payWorkTime')) +
       (pend ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') + '</span>' +
       '<div class="pay-val"><span class="t-value' + (pend ? ' is-quiet' : '') + '">' +
-        esc(fmtVnd(shiftWage(sh))) + '</span>' +
+        esc(payVnd(shiftWage(sh))) + '</span>' +
       '<span class="t-caption">' + esc(shiftTimeLabel(sh)) + ' · ' +
         esc(fmtWorkDur(shiftMins(sh) !== null ? shiftMins(sh) : stdWorkMin())) +
         (edited ? '' : ' · ' + esc(t('payFullDay'))) + '</span></div>' +
@@ -11841,7 +11886,7 @@ function renderPayDay(){
       (o.status === 'pending' ? ' <span class="pay-chip soft">' + esc(t('payRequested')) + '</span>' : '') +
       (otCarriesOut(o.date) ? ' <span class="pay-chip quiet">' + esc(t('payOtNext')) + '</span>' : '') + '</span>' +
       '<div class="pay-val"><span class="t-value' + (o.status === 'pending' ? ' is-quiet' : '') + '">' +
-        esc(fmtVnd(otMins(o) * otPerMinute())) + '</span>' +
+        esc(payVnd(otMins(o) * otPerMinute())) + '</span>' +
       '<span class="t-caption">' + esc(otWhen(o)) + '</span>' +
       '<span class="t-caption">' + esc(otCalc(o)) + '</span></div>' +
       (!locked && (isMasterUser() || (o.status === 'pending' && sameAuthor(o.by, state.author)))
@@ -11850,7 +11895,7 @@ function renderPayDay(){
   });
   if (sh && sh.status === 'ok'){
     html += '<div class="pay-line"><b>' + esc(t('payDayWage')) + '</b>' +
-      '<span class="t-money">' + esc(fmtVnd(shiftWage(sh) + Math.round(dayMin * otPerMinute()))) + '</span></div>';
+      '<span class="t-money">' + esc(payVnd(shiftWage(sh) + Math.round(dayMin * otPerMinute()))) + '</span></div>';
   }
   if (!locked && payStarted(ds)){
     html += '<div class="pay-actions">';
@@ -11952,23 +11997,26 @@ function renderPayPeriodCard(){
 }
 /* 바닥 버튼. 한 기간에 한 번 누르는 일이라 화면 가운데가 아니라 바닥이다.
    줄 것이 없으면 버튼도 없다 — 0 ₫을 입금 완료로 표시하는 화면은 뜻이 없다. */
-function renderPaySettleFoot(pr, already, tot){
-  var foot = document.getElementById('pay-settle-foot');
+function renderPaySettleFoot(pr, already, tot, boxId){
+  var foot = document.getElementById(boxId || 'pay-settle-foot');
   if (!foot) return;
   if (!isMasterUser() || !(already || tot.days || tot.otMin)){ foot.innerHTML = ''; return; }
   foot.className = 'pay-foot';
   foot.innerHTML = already
-    ? '<button type="button" class="btn ghost" id="pay-unpaid">' + esc(t('payPaidUndo')) + '</button>'
-    : '<button type="button" class="btn primary" id="pay-paid">' + esc(t('payMarkPaid')) + '</button>';
-  var b1 = document.getElementById('pay-paid');
+    ? '<button type="button" class="btn ghost" data-pay-undo="1">' + esc(t('payPaidUndo')) + '</button>'
+    : '<button type="button" class="btn primary" data-pay-mark="1">' + esc(t('payMarkPaid')) + '</button>';
+  /* 같은 버튼이 두 화면(정산 카드·지난 기간 상세)에 떠 있을 수 있으므로
+     id 가 아니라 통 안에서 찾는다 — id 가 겹치면 뒤에 그려진 쪽이 먹는다. */
+  var redraw = function(){ renderPay(); if (ppRange) renderPayPeriodPage(); };
+  var b1 = foot.querySelector('[data-pay-mark]');
   if (b1) b1.addEventListener('click', function(){
     apiMutate('markPaid', { from: pr.from, to: pr.to, payday: pr.payday })
-      .then(function(){ renderPay(); toast(t('savedToast')); })
+      .then(function(){ redraw(); toast(t('savedToast')); })
       .catch(function(e){ toast(e.message); });
   });
-  var b2 = document.getElementById('pay-unpaid');
+  var b2 = foot.querySelector('[data-pay-undo]');
   if (b2) b2.addEventListener('click', function(){
-    apiMutate('unmarkPaid', { id: already.id }).then(renderPay).catch(function(e){ toast(e.message); });
+    apiMutate('unmarkPaid', { id: already.id }).then(redraw).catch(function(e){ toast(e.message); });
   });
 }
 /* 기간이 며칠짜리인가 — 막대의 분모 */
@@ -12521,7 +12569,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261102h';
+var BUILD = '20261103a';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -15334,6 +15382,7 @@ if (typeof ResizeObserver === 'function'){
 function renderAll(){
   applyI18n();
   syncSettingsAccess();
+  syncPayTabAccess();    /* 프로필이 바뀌면 급여 탭이 서거나 사라진다 */
   measureHeaderHeight();
   applyTheme();
   renderHeader();
@@ -15382,6 +15431,8 @@ function renderAll(){
    EVENT WIRING
    ================================================================ */
 function switchTab(name){
+  /* 가려진 탭으로는 들어갈 수 없다 — 링크든 복구된 상태든 */
+  if (name === 'pay' && !canSeeSettle()) name = 'record';
   /* leaving the memo tab is what marks its memos read: she has had them in
      front of her, and nothing disappeared while she was looking */
   if (state.tab === 'memo' && name !== 'memo') markMemosRead();
