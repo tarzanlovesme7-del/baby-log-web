@@ -1,4 +1,4 @@
-/* 재고 '있는 것' 화면 — 급한 순 · 남은 기한 칩 · 칸 막대 · 필터 알약.
+/* 재고 '있는 것' 화면 — 급한 순 · 남은 기한 칩 · 칸 막대.
 
    "이유식 재고 이런식으로 보여주는거 좋은듯 디벨롭해봐 참고해서" (2026-11-03)
    "몇개 만들었는데 몇개 썼고 몇개 남았는지가 보여야지"
@@ -12,8 +12,8 @@
        그으면 열 칸 중 아홉을 쓴 줄과 한 칸만 만든 줄이 똑같이 보인다.
      - 만든/쓴/남은을 글로 한 번 더 적지는 않는다 — 줄이 복잡해진다
        ("이거 텍스트는 필요없어 복잡해보여"). 막대가 셋을 다 말한다.
-     - 알약으로 전체 / 임박 / 지남을 가른다. 눌러서 수가 0이면 없다고
-       말한다(누른 것을 무시하고 전체로 돌려놓지 않는다).
+     - 거르는 알약은 두지 않는다 — 줄마다 D-N 칩이 붙고 급한 것이 맨 위에
+       모이므로 걸러 볼 일이 없다("밑에 디데이 보여주잖아").
      - 옛 덩어리(made 없음)는 남은 칸을 만든 칸으로 친다 = 쓴 것 0칸. */
 const { chromium } = require(process.env.PW || '/home/claude/.npm-global/lib/node_modules/playwright');
 const BASE = 'http://localhost:3311';
@@ -116,36 +116,9 @@ const dAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d
   check('이유식을 기록해서 빠진 칸도 쓴 것으로 센다 (만든 4 · 쓴 1 · 남은 3)',
     [ap.on, ap.gone, ap.n], [3, 1, '3']);
 
-  /* ── 필터 알약 ── */
-  const pills = () => p.evaluate(()=>[...document.querySelectorAll('#wn-body [data-wn-sf]')].map(b=>({
-    k: b.dataset.wnSf, n: b.querySelector('.cnt').textContent.trim(),
-    on: b.getAttribute('aria-pressed') })));
-  check('알약 셋으로 갈린다', (await pills()).map(x=>x.k), ['all', 'soon', 'over']);
-  check('...처음엔 전체가 눌려 있다', (await pills()).map(x=>x.on), ['true', 'false', 'false']);
-  check('...알약마다 몇 줄인지 적힌다', (await pills()).map(x=>x.n), ['3', '1', '1']);
-
-  await p.click('#wn-body [data-wn-sf="soon"]'); await p.waitForTimeout(700);
-  check('임박만 고르면 임박한 줄만 남는다', (await rows()).map(r=>r.name), ['사과']);
-  await p.click('#wn-body [data-wn-sf="over"]'); await p.waitForTimeout(700);
-  check('지남만 고르면 지난 줄만 남는다', (await rows()).map(r=>r.name), ['소고기']);
-  check('...고른 알약이 눌린 채로 남는다',
-    (await pills()).filter(x=>x.on==='true').map(x=>x.k), ['over']);
-
-  /* 지난 줄을 다 쓰면 — 누른 것을 무시하고 전체로 돌리지 않고 없다고 말한다 */
-  const beef = p.locator('#wn-body .cb-row', { hasText: '소고기' });
-  for (let i = 0; i < 3; i++){ await beef.locator('[data-d="-1"]').click(); await p.waitForTimeout(900); }
-  await p.waitForTimeout(700);
-  check('지난 줄이 없어지면 없다고 말한다',
-    await p.evaluate(()=>{
-      const c = [...document.querySelectorAll('#wn-body .card')].pop();
-      return /기한이 지난 큐브가 없어요/.test(c.textContent) &&
-        !document.querySelector('#wn-body .cb-row');
-    }), true);
-  check('...알약은 그대로 지남에 머문다',
-    (await pills()).filter(x=>x.on==='true').map(x=>x.k), ['over']);
-  await p.click('#wn-body [data-wn-sf="all"]'); await p.waitForTimeout(700);
-  check('전체로 돌아오면 남은 줄이 다시 보인다',
-    (await rows()).map(r=>r.name), ['사과', '애호박']);
+  check('거르는 알약은 두지 않는다',
+    await p.evaluate(()=>document.querySelectorAll('#wn-body [data-wn-sf]').length), 0);
+  check('...덩어리는 늘 다 보인다', (await rows()).length, 3);
 
   /* ── 아주 큰 덩어리 ── */
   /* 열여섯 칸까지는 한 칸 한 대시로 센다. 넘치면 +N 으로 접는다 —
@@ -156,6 +129,13 @@ const dAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d
   const pot = (await rows()).filter(r=>r.name==='감자')[0];
   check('열여섯 칸을 넘으면 +N 으로 접는다', [pot.on, pot.gone, pot.more, pot.n],
     [16, 0, '+4', '20']);
+
+  /* 지난 덩어리를 다 쓰면 줄째로 사라진다 */
+  const beef = p.locator('#wn-body .cb-row', { hasText: '소고기' });
+  for (let i = 0; i < 3; i++){ await beef.locator('[data-d="-1"]').click(); await p.waitForTimeout(900); }
+  await p.waitForTimeout(700);
+  check('덩어리를 다 쓰면 줄이 사라진다',
+    (await rows()).map(r=>r.name), ['사과', '감자', '애호박']);
 
   /* ── 기록을 지우면 쓴 칸도 돌아온다 ── */
   /* 쓴 칸 = 만든 칸 − 남은 칸이다. 기록을 지워 남은 칸이 돌아오면 쓴 칸이
@@ -179,13 +159,12 @@ const dAgo = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d
   await pv.click('#btn-settings'); await pv.waitForTimeout(600);
   await pv.click('#set-wean'); await pv.waitForTimeout(700);
   await pv.click('#wn-tabs button[data-wn="cubes"]'); await pv.waitForTimeout(900);
-  check('베트남어에도 알약과 줄이 한글 없이 뜬다', await pv.evaluate(()=>{
-    const ps = [...document.querySelectorAll('#wn-body [data-wn-sf]')].map(b=>b.textContent.trim());
-    const hero = (document.querySelector('#wn-body .wn-hero')||{textContent:''}).textContent;
+  check('베트남어에도 줄이 한글 없이 뜬다', await pv.evaluate(()=>{
+    const names = [...document.querySelectorAll('#wn-body .cb-head b')].map(e=>e.textContent.trim());
     const sub = (document.querySelector('#wn-body .cb-sub')||{textContent:''}).textContent;
-    return [ps.length, /[가-힣]/.test(ps.join('')), /[가-힣]/.test(hero),
+    return [names.length > 0, /[가-힣]/.test(names.join('')),
             /^\d\d\/\d\d · \d+g$/.test(sub.trim())];
-  }), [3, false, false, true]);
+  }), [true, false, true]);
 
   check('페이지 오류 없음', errs, []);
   await b.close();

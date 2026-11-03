@@ -3424,7 +3424,6 @@
     font-variant-numeric:tabular-nums; }
   .cb-d.soon{ background:var(--cb-soon-bg); color:var(--cb-soon-fg); }
   .cb-d.over{ background:var(--wn-bad); color:var(--wn-bad-fg); }
-  .chips-nav .cnt{ font-variant-numeric:tabular-nums; opacity:.65; margin-left:4px; }
   .wn-step{ flex:0 0 auto; margin-left:auto; display:flex; align-items:center; gap:2px; }
   .wn-step button{ width:36px; height:36px; border-radius:50%; background:var(--surface-2);
     color:var(--fg); font-size:17px; font-weight:var(--fw-strong); line-height:1; }
@@ -4906,9 +4905,7 @@ ko: {
   wnMoreTpl:"외 {n}", wnWatchMoreTpl:"그리고 {n}가지 더 지켜보는 중",
   wnEditMenu:"눌러서 먹은 양 적기",
  
-  wnStockNow:"현재 재고", wnStockOldTpl:"오래된 것 {n}칸", wnStockKindsTpl:"재료 {n}가지",
-  wnStockAll:"전체", wnStockSoon:"기한 임박", wnStockOver:"기한 지남",
-  wnStockSoonNone:"기한이 임박한 큐브가 없어요.", wnStockOverNone:"기한이 지난 큐브가 없어요.",
+  wnStockKindsTpl:"재료 {n}가지",
   wnCubeDTpl:"D-{d}", wnCubeDOverTpl:"D+{d}",
   wnPillHave:"있는 것", wnPillMake:"만들 것", wnPillUse:"쓸 것",
   wnWeekMake:"이번 주 만들 큐브", wnWeekMakeNone:"안 만들어도 돼요",
@@ -5218,9 +5215,7 @@ vi: {
   wnMoreTpl:"và {n} nữa", wnWatchMoreTpl:"Và {n} loại nữa đang theo dõi",
   wnEditMenu:"Bấm để ghi lượng ăn",
  
-  wnStockNow:"Tồn kho hiện tại", wnStockOldTpl:"Để lâu {n} viên", wnStockKindsTpl:"{n} loại",
-  wnStockAll:"Tất cả", wnStockSoon:"Gần hết hạn", wnStockOver:"Quá hạn",
-  wnStockSoonNone:"Không có viên nào gần hết hạn.", wnStockOverNone:"Không có viên nào quá hạn.",
+  wnStockKindsTpl:"{n} loại",
   wnCubeDTpl:"D-{d}", wnCubeDOverTpl:"D+{d}",
   wnPillHave:"Đang có", wnPillMake:"Cần làm", wnPillUse:"Sẽ dùng",
   wnWeekMake:"Viên cần làm tuần này", wnWeekMakeNone:"Không cần làm thêm",
@@ -12602,7 +12597,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261103d';
+var BUILD = '20261103f';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -16798,31 +16793,12 @@ function weanCubesHtml(){
   }
 
   /* ── 지금 있는 것 ── */
-  var total = weanCubeIngs().reduce(function(n, ing){ return n + weanCubeN(ing); }, 0);
-  /* 오래 둔 칸은 수를 세는 것만으로는 안 보인다 — 숫자 옆에 같이 띄운다 */
-  var oldN = 0;
-  weanCubeIngs().forEach(function(ing){
-    weanCubesOf(ing).forEach(function(c){
-      if (c.madeOn && weanDaysSince(c.madeOn) > WEAN_CUBE_DAYS) oldN += Number(c.n) || 0;
-    });
-  });
-  /* 오른쪽은 늘 한 마디가 선다 — 오래 둔 칸이 있으면 그걸 먼저, 없으면
-     몇 가지인지. 한쪽이 비면 카드가 짝짝이로 읽힌다. */
-  html += '<div class="card">';
-  if (!total){
-    html += '<div class="t-caption" style="padding:6px 0">' + esc(t('wnCubeEmpty')) + '</div>';
-  } else {
-    html += '<div class="wn-hero"><div>' +
-        '<div class="t-label">' + esc(t('wnStockNow')) + '</div>' +
-        '<div class="t-money big">' + esc(t('wnCubeNTpl').replace('{n}', total)) + '</div></div>' +
-        (oldN
-          ? '<span class="pay-chip warn">' + esc(t('wnStockOldTpl').replace('{n}', oldN)) + '</span>'
-          : '<span class="pay-chip quiet">' +
-              esc(t('wnStockKindsTpl').replace('{n}', weanCubeIngs().length)) + '</span>') +
-      '</div>';
-  }
-  html += '</div>';
-
+  /* '큐브 47칸'이라는 합계는 뗐다 — 종류가 다른 것들을 더한 수라 그렇게
+     먹을 수 있는 날이 하루도 없고, 보고 할 일이 생기지도 않는다
+     ("종류 불문 큐브 36칸, 이 정보는 진짜 쓸데없는듯", 2026-11-03).
+     전체/임박/지남 필터 알약도 같이 뗐다 — 줄마다 D-N 칩이 붙어 있어서
+     급한 것은 맨 위에 모여 있고, 거르지 않아도 한눈에 보인다
+     ("기한임박 기한 지남 이거는 필요없어, 밑에 디데이 보여주잖아"). */
 
   /* 냉동실에 있는 것은 '소고기 12칸'이 아니라 '9/14에 만든 4칸'과 '9/28에
      만든 8칸'이다 — 꺼내 쓰는 것도 버리는 것도 덩어리 단위라, 한 줄에 합쳐
@@ -16842,37 +16818,11 @@ function weanCubesHtml(){
     if (la !== lb) return la - lb;
     return weanCubeN(b.ing) - weanCubeN(a.ing);
   });
-  function sfMatch(b, f){
-    if (f === 'soon') return b.left !== null && b.left >= 0 && b.left <= WEAN_CUBE_SOON;
-    if (f === 'over') return b.left !== null && b.left < 0;
-    return true;
-  }
-  var nSoon = batches.filter(function(b){ return sfMatch(b, 'soon'); }).length;
-  var nOver = batches.filter(function(b){ return sfMatch(b, 'over'); }).length;
-  var sf = state.weanStockFilter;
-  if (sf !== 'soon' && sf !== 'over') sf = 'all';
-
-  /* 알약을 눌러도 수가 0이면 빈 줄이 뜬다 — 누른 것을 무시하고 전체로
-     돌려놓으면 왜 그대로인지 알 수 없다. 없다고 말해주는 쪽이 낫다. */
-  if (batches.length){
-    html += '<div class="chips-nav" style="margin-top:4px">' +
-      [['all', 'wnStockAll', batches.length], ['soon', 'wnStockSoon', nSoon],
-       ['over', 'wnStockOver', nOver]].map(function(x){
-        return '<button type="button" data-wn-sf="' + x[0] + '" aria-pressed="' +
-          (sf === x[0]) + '">' + esc(t(x[1])) +
-          '<span class="cnt">' + x[2] + '</span></button>';
-      }).join('') + '</div>';
-  }
-
-  var shown = batches.filter(function(b){ return sfMatch(b, sf); });
   html += '<div class="card">';
   if (!batches.length){
     html += '<div class="t-caption" style="padding:6px 0">' + esc(t('wnCubeEmpty')) + '</div>';
-  } else if (!shown.length){
-    html += '<div class="t-caption" style="padding:6px 0">' +
-      esc(t(sf === 'over' ? 'wnStockOverNone' : 'wnStockSoonNone')) + '</div>';
   }
-  shown.forEach(function(b){
+  batches.forEach(function(b){
     var ing = b.ing, c = b.c, g = weanIng(ing) || { ko: ing, vi: '' };
     var n = Math.max(0, Math.round(Number(c.n) || 0));
     var made = weanCubeMade(c), used = Math.max(0, made - n);
@@ -17628,10 +17578,6 @@ function wireWean(){
     var el;
     if ((el = ev.target.closest('[data-wn-cv]'))){
       state.weanCubeView = el.dataset.wnCv;
-      renderWean(); return;
-    }
-    if ((el = ev.target.closest('[data-wn-sf]'))){
-      state.weanStockFilter = el.dataset.wnSf;
       renderWean(); return;
     }
     if ((el = ev.target.closest('[data-wn-week]'))){

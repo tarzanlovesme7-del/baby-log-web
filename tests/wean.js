@@ -726,8 +726,12 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
     document.querySelector('#wn-body [data-wn-cv="have"]').getAttribute('aria-pressed')), 'true');
   check('...있는 것에는 주 네비가 없다', await p.evaluate(()=>
     !document.querySelector('#wn-body .wn-weeknav')), true);
-  check('...총 칸수와 덩어리 목록이 한 화면에 있다', await p.evaluate(()=>
-    !!document.querySelector('#wn-body .wn-hero .t-money') &&
+  /* 합계 카드는 뗐다 — 종류가 다른 것들을 더한 '큐브 47칸'은 그렇게 먹을
+     수 있는 날이 하루도 없는 수였다. 필터 알약이 그 자리를 대신한다. */
+  check('...있는 것에는 합계 카드가 없다', await p.evaluate(()=>
+    !document.querySelector('#wn-body .wn-hero')), true);
+  check('...거르는 알약도 없이 덩어리 목록만 선다', await p.evaluate(()=>
+    document.querySelectorAll('#wn-body [data-wn-sf]').length === 0 &&
     document.querySelectorAll('#wn-body .cb-row').length > 0), true);
 
   await pill('use');
@@ -862,10 +866,14 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   check('...줄의 +는 그 날짜의 덩어리만 늘린다',
     (await st()).weanCubes.filter(c=>c.ing==='beef')
       .sort((a,b)=>a.madeOn<b.madeOn?-1:1).map(c=>c.n), [2, 6]);
-  /* '몇 칸 남았나'가 아니라 '무엇이 먼저 떨어지나' — 53칸이라는 합계는
-     재료가 다른 것들을 더한 값이라 그렇게 먹을 수 있는 날이 하루도 없다 */
-  check('먼저 떨어지는 재료를 짚어준다',
-    await p.evaluate(()=>document.querySelector('#wn-body .t-money.big').textContent.trim().length) > 0, true);
+  /* '몇 칸 남았나'가 아니라 '무엇이 먼저 떨어지나' — 재료가 다른 것들을
+     더한 합계 대신, 기한이 급한 덩어리가 맨 위에 선다 */
+  check('급한 덩어리가 맨 위에 선다',
+    await p.evaluate(()=>{
+      const chips = [...document.querySelectorAll('#wn-body .cb-row .cb-d')]
+        .map(e=>e.textContent.trim());
+      return chips.length > 0 && /^D\+/.test(chips[0]);
+    }), true);
   await p.close();
   p = await open('엄마');
   await p.click('#btn-settings'); await p.waitForTimeout(600);
