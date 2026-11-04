@@ -1,11 +1,14 @@
 /* 내니가 둘이 된 뒤 (2026-10-27)
 
-   11월 한 달은 업체를 통해 오신 분이 출근한다. 두 가지만 바뀌었다:
-     1) 프로필이 '내니' 하나에서 '내니 Vi' · '내니 Linh' 둘로 갈라졌다.
+   업체를 통해 오신 분(Linh)이 11/1~11/9 아흐레 출근하고, 원래 내니(Vi)가
+   11월 10일에 돌아온다(2026-11-04 확정). 그 아흐레 동안만:
+     1) 프로필이 '내니' 하나에서 '내니 Vi' · '내니 Linh' 둘로 갈라진다.
         지난 두 달치 기록에는 그냥 '내니'라고 적혀 있는데, 그걸 전부
         고쳐 쓰지 않고 **같은 사람으로 읽기만** 한다(AUTHOR_ALIASES).
-     2) 11/1~12/1 동안 '정산' 서브탭은 엄마 폰에서만 열린다. '출근 도장'은
-        그대로 둔다 — 닫으면 본인이 출근을 찍을 길이 없다. */
+     2) '정산' 서브탭은 엄마 폰에서만 열린다. '출근 도장'은 그대로 둔다 —
+        닫으면 본인이 출근을 찍을 길이 없다.
+   10일부터는 셋 다 되돌아온다 — 이름은 다시 그냥 '내니', Linh 칩은 사라지고,
+   정산은 모두에게 보인다. Linh 의 **이름만** 남아 그가 적은 기록을 지킨다. */
 const { chromium } = require(process.env.PW || '/home/claude/.npm-global/lib/node_modules/playwright');
 const BASE = 'http://localhost:3311';
 const R = [];
@@ -91,25 +94,50 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
 
   /* ── 4. 11월 · 내니 폰: 정산은 없고 도장은 있다 ───────────── */
   await p.close();
-  p = await open('내니 Linh', '2026-11-15T09:00:00+07:00');
+  p = await open('내니 Linh', '2026-11-05T09:00:00+07:00');
   await p.evaluate(() => document.querySelector('.tab-btn[data-tab="pay"]').click());
   await p.waitForTimeout(800);
-  check('11월 내니 폰 — 정산 서브탭이 없다', await p.evaluate(() => {
-    const s = document.querySelector('#pay-tabs [data-pv="settle"]');
-    return [s.hidden, document.getElementById('pay-tabs').hidden];
+  /* 2026-11-02 부터는 서브탭만이 아니라 급여 탭 자체가 없다 — 숨은 칸의
+     hidden 속성이 아니라 '닿을 수 있는가'로 잰다. */
+  check('11월 초 내니 폰 — 급여 화면에 닿을 길이 없다', await p.evaluate(() => {
+    const b = document.querySelector('.tab-btn[data-tab="pay"]');
+    return [!!(b && b.hidden), document.getElementById('tab-pay').hidden];
   }), [true, true]);
-  check('...출근 도장 화면은 그대로 열린다', await p.evaluate(() => [
-    !document.querySelector('[data-pv-panel="stamp"]').hidden,
-    document.querySelector('[data-pv-panel="settle"]').hidden]), [true, true]);
-  check('...금액이 한 글자도 화면에 없다', await p.evaluate(() =>
-    /₫/.test(document.getElementById('tab-pay').innerText)), false);
+  /* 도장은 Vi 의 급여로 이어지는 것이라 Linh 폰에는 띠가 없다
+     ("내니 linh으로 로그인해도 출근도장 배너 뜨더라", 2026-11-04) */
+  check('...Linh 폰에는 출근 도장 띠가 없다', await p.evaluate(() => {
+    const row = document.getElementById('stamp-row');
+    return !!(row && row.hidden); }), true);
+  /* 숨은 칸의 innerText 는 화면에 없는 글자까지 돌려준다 — '보이는가'로 재야
+     한다. 그리고 2026-11-02 부터 이 기간에는 급여 탭 자체가 없다. */
+  check('...금액이 한 글자도 화면에 없다', await p.evaluate(() => {
+    const hits = [];
+    document.querySelectorAll('#app *').forEach((el) => {
+      if (el.children.length === 0 && /₫/.test(el.textContent) && el.offsetParent !== null)
+        hits.push(el.textContent.trim().slice(0, 24));
+    });
+    return hits;
+  }), []);
+  check('...급여 탭(돼지저금통)이 아예 없다', await p.evaluate(() => {
+    const b = document.querySelector('.tab-btn[data-tab="pay"]');
+    return !!(b && b.hidden); }), true);
+  await p.close();
+
+  /* ── 4-b. 11월 · Vi 폰: 도장 띠는 Vi 에게만 뜬다 ──────────── */
+  p = await open('내니 Vi', '2026-11-05T09:00:00+07:00');
+  check('11월 초 Vi 폰 — 출근 도장은 첫 화면 띠로 찍는다', await p.evaluate(() => {
+    const row = document.getElementById('stamp-row');
+    return !!(row && !row.hidden && document.getElementById('stamp-row-btn')); }), true);
+  check('...Vi 폰에도 급여 탭은 없다', await p.evaluate(() => {
+    const b = document.querySelector('.tab-btn[data-tab="pay"]');
+    return !!(b && b.hidden); }), true);
   await p.close();
 
   /* ── 5. 11월 · 엄마 폰: 둘 다 보인다 ──────────────────────── */
-  p = await open('엄마', '2026-11-15T09:00:00+07:00');
+  p = await open('엄마', '2026-11-05T09:00:00+07:00');
   await p.evaluate(() => document.querySelector('.tab-btn[data-tab="pay"]').click());
   await p.waitForTimeout(800);
-  check('11월 엄마 폰 — 정산 서브탭이 있다', await p.evaluate(() => [
+  check('11월 초 엄마 폰 — 정산 서브탭이 있다', await p.evaluate(() => [
     document.querySelector('#pay-tabs [data-pv="settle"]').hidden,
     document.getElementById('pay-tabs').hidden]), [false, false]);
   await p.evaluate(() => document.querySelector('#pay-tabs [data-pv="settle"]').click());
@@ -118,12 +146,13 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
     !document.querySelector('[data-pv-panel="settle"]').hidden), true);
   await p.close();
 
-  /* ── 6. 12월 1일 — Linh 마지막 근무일. 아직 다 그대로다 ───── */
-  p = await open('내니 Vi', '2026-12-01T09:00:00+07:00');
+  /* ── 6. 11월 9일 — Linh 마지막 근무일. 아직 다 그대로다 ───── */
+  p = await open('내니 Vi', '2026-11-09T09:00:00+07:00');
   await p.evaluate(() => document.querySelector('.tab-btn[data-tab="pay"]').click());
   await p.waitForTimeout(800);
-  check('12월 1일까지는 정산이 아직 가려져 있다', await p.evaluate(() =>
-    document.querySelector('#pay-tabs [data-pv="settle"]').hidden), true);
+  check('11월 9일까지는 급여 탭이 아직 가려져 있다', await p.evaluate(() => {
+    const b = document.querySelector('.tab-btn[data-tab="pay"]');
+    return !!(b && b.hidden); }), true);
   await p.evaluate(() => document.getElementById('btn-settings').click());
   await p.waitForTimeout(700);
   await p.click('[data-set-go="who"]'); await p.waitForTimeout(700);
@@ -132,26 +161,34 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
     ['엄마', '아빠', '내니 Vi', '내니 Linh']);
   await p.close();
 
-  /* ── 7. 12월 2일에 정산이 돌아온다 ────────────────────────── */
-  p = await open('내니 Vi', '2026-12-02T09:00:00+07:00');
+  /* ── 7. 11월 10일 — Vi 가 돌아온다 ────────────────────────── */
+  p = await open('내니 Vi', '2026-11-10T09:00:00+07:00');
   await p.evaluate(() => document.querySelector('.tab-btn[data-tab="pay"]').click());
   await p.waitForTimeout(800);
-  check('12월 2일부터 내니도 정산을 다시 본다', await p.evaluate(() =>
+  check('11월 10일부터 내니도 정산을 다시 본다', await p.evaluate(() =>
     document.querySelector('#pay-tabs [data-pv="settle"]').hidden), false);
   await p.close();
 
-  /* ── 8. 12월부터 Linh 칩은 사라지고, 이름은 남는다 ─────────── */
-  p = await open('엄마', '2026-12-02T09:00:00+07:00');
+  /* ── 8. 10일부터 이름은 다시 그냥 '내니', Linh 칩은 사라진다 ── */
+  p = await open('엄마', '2026-11-10T09:00:00+07:00');
   await p.click('#btn-settings'); await p.waitForTimeout(700);
   await p.click('[data-set-go="who"]'); await p.waitForTimeout(700);
-  check('12월 2일부터 Linh 칩은 사라진다', await p.evaluate(() =>
+  check('10일부터 칩은 셋, Vi 는 그냥 "내니"다', await p.evaluate(() =>
     [...document.querySelectorAll('#author-chip-row .chip')].map(c => c.textContent.trim())),
-    ['엄마', '아빠', '내니 Vi']);
+    ['엄마', '아빠', '내니']);
   await p.evaluate(() => document.querySelector('.tab-btn[data-tab="record"]').click());
   await p.waitForTimeout(800);
-  check('...그래도 Linh가 적은 기록은 그 이름 그대로다', await p.evaluate(() =>
+  /* Vi 가 적은 것은 그냥 '내니'로, Linh 가 적은 것은 이름 그대로 —
+     "내니 Linh은 그대로 이름 남겨놔. 기록용도로" */
+  check('...Vi 가 적은 기록은 그냥 "내니"로 보인다', await p.evaluate(() =>
+    [...document.querySelectorAll('.entry-row .e-author')].map(x => x.textContent.trim())
+      .indexOf('내니') >= 0), true);
+  check('...Linh 가 적은 기록은 그 이름 그대로다', await p.evaluate(() =>
     [...document.querySelectorAll('.entry-row .e-author')].map(x => x.textContent.trim())
       .indexOf('내니 Linh') >= 0), true);
+  check('...화면 어디에도 "내니 Vi" 는 남지 않는다', await p.evaluate(() =>
+    [...document.querySelectorAll('.entry-row .e-author')].map(x => x.textContent.trim())
+      .indexOf('내니 Vi') >= 0), false);
   await p.close();
 
   check('콘솔 에러 없음', errs, []);

@@ -14,7 +14,11 @@ async function mut(t,p){const r=await fetch(BASE+'/api/mutate',{method:'POST',
   return {status:r.status, body: await r.json().catch(()=>({}))};}
 const st = async () => { const j = await (await fetch(BASE+'/api/state')).json();
   const d = j.data||j; d.entries=d.entries||[]; d.shifts=d.shifts||[]; return d; };
-const D=d=>{const x=new Date();x.setDate(x.getDate()+d);
+/* 시계를 못 박는다. 11/1~11/9 은 정산을 가리는 기간이라 급여 탭 자체가
+   엄마 폰에만 선다 — 이 스위트가 묻는 것은 '이름 없이 기록이 나가는가'이지
+   가리기가 아니므로, 가리지 않는 날짜 위에서 본다(2026-11-04). */
+const NOW = '2027-01-15T09:00:00+07:00';
+const D=d=>{const x=new Date(NOW);x.setDate(x.getDate()+d);
   return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');};
 
 (async () => {
@@ -26,6 +30,7 @@ const D=d=>{const x=new Date();x.setDate(x.getDate()+d);
 
   /* 이름이 없는 폰 — 언어만 베트남어로 남아 있는 상태(그 아침 그대로) */
   const p = await b.newPage({ viewport:{width:390,height:844} });
+  await p.clock.install({ time: new Date(NOW) });
   p.on('pageerror', e => errs.push(String(e)));
   await p.addInitScript(()=>{ localStorage.removeItem('bbl_author');
     localStorage.setItem('bbl_lang','vi'); });

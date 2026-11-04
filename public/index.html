@@ -5797,19 +5797,25 @@ var AUTHOR_ALIASES = { '내니': 2, 'Bảo mẫu': 2 };
    없다 — 새 분이 오기 전에 앱에 이름이 먼저 떠 있으면 설명할 일이 생긴다.
    저장되는 값은 오늘부터도 '내니 Vi'다(보이는 것과 적히는 것은 다른 일이고,
    적히는 쪽을 미루면 11월 1일에 경계가 생긴다). */
-var NANNY_SPLIT_FROM = '2026-11-01';
-function nannySplitOn(){ return toDateValue() >= NANNY_SPLIT_FROM; }
-/* Linh 칩은 근무하는 동안만 고를 수 있다 — 11/1부터 12/1까지(마지막 날이
-   12월 1일이다). 그 뒤로는 **칩만** 사라지고 이름은 그대로 살아 있다:
-   Linh가 적은 기록은 12월에도, 내년에도 '내니 Linh'로 읽혀야 한다.
+/* 이름이 둘로 갈라져 보이는 기간. Vi 가 11월 10일에 돌아오므로 Linh 가
+   대신 오는 것은 11/1~11/9 아흐레다("10일부터 내니 Vi > 내니로 이름
+   바꿔주고", 2026-11-04). 그 앞뒤로 2번은 그냥 '내니'로 보인다 — 내니가
+   한 사람인 동안 'Vi'를 붙여 둘 이유가 없다.
+   보이는 이름만 돌아오고 **적히는 이름은 계속 '내니 Vi'** 다. 저장값을
+   바꾸면 9월 기록과 11월 기록이 서로 다른 사람이 되어 버린다. 둘 다
+   AUTHOR_ALIASES 로 같은 2번으로 읽히므로 화면에서는 한 사람이다. */
+var NANNY_SPLIT_FROM = '2026-11-01', NANNY_SPLIT_TO = '2026-11-09';
+function nannySplitOn(){
+  var d = toDateValue();
+  return d >= NANNY_SPLIT_FROM && d <= NANNY_SPLIT_TO;
+}
+/* Linh 칩은 근무하는 동안만 고를 수 있다. 그 뒤로는 **칩만** 사라지고
+   이름은 그대로 살아 있다: Linh가 적은 기록은 내년에도 '내니 Linh'로
+   읽혀야 한다("내니 Linh은 그대로 이름 남겨놔. 기록용도로").
    또 오시게 되면 이 날짜 한 줄만 고치면 된다.
    정산을 가리는 기간(SETTLE_HIDE_TO)과 끝나는 날이 같다 — 같은 사실의
-   두 얼굴이라 그래야 맞다. */
-var NANNY_LINH_TO = '2026-12-01';
-function nannyLinhPickable(){
-  var d = toDateValue();
-  return d >= NANNY_SPLIT_FROM && d <= NANNY_LINH_TO;
-}
+   세 얼굴이라 그래야 맞다. */
+function nannyLinhPickable(){ return nannySplitOn(); }
 /* 화면에 보일 이름. 갈라지기 전에는 2번이 그냥 '내니'이고 3번은 없다. */
 function authorLabel(i){
   if (i === 2 && !nannySplitOn()) return t('authorNannyOne');
@@ -5829,11 +5835,12 @@ function sameAuthor(a, b){
   return !!String(a || '').trim() && String(a || '').trim() === String(b || '').trim();
 }
 function isMasterUser(){ return authorIndex(state.author) === MASTER_INDEX; }
-/* 도장을 찍는 사람 — 이제 둘이다(내니 Vi · 내니 Linh). 아침 도장 띠는
-   둘 중 누구로 보고 있든 뜬다. */
+/* 도장을 찍는 사람은 내니 Vi 한 사람이다. 내니가 둘이 되었을 때(Linh)
+   잠깐 둘 다에게 띠를 띄웠는데, 도장은 Vi 의 급여로 이어지는 것이고 Linh 는
+   11월 한 달 대신 오는 분이라 그 정산에 들어가지 않는다
+   ("내니 linh으로 로그인해도 출근도장 배너 뜨더라", 2026-11-04). */
 var NANNY_INDEX = 2;    /* 내니 Vi */
-var NANNY_INDEXES = [2, 3];
-function isNannyUser(){ return NANNY_INDEXES.indexOf(authorIndex(state.author)) !== -1; }
+function isStampUser(){ return authorIndex(state.author) === NANNY_INDEX; }
 /* WHO MAY DELETE. Mine, or everything if I am 엄마. Editing is free for
    everyone — the family hands care over mid-record all day (mom puts him
    down, dad enters the wake-up), so only deletion, the one destructive
@@ -8155,8 +8162,8 @@ function renderStampRow(){
   var box = document.getElementById('stamp-row');
   if (!box) return;
   var today = toDateValue();
-  /* 엄마·아빠 폰에는 뜨지 않는다. 출근하는 사람은 한 사람이다. */
-  var show = isNannyUser() && (stampBandOpen() || !canSeePayTab()) &&
+  /* 엄마·아빠 폰에는 뜨지 않는다. 도장을 찍는 사람은 내니 Vi 한 사람이다. */
+  var show = isStampUser() && (stampBandOpen() || !canSeePayTab()) &&
              payStarted(today) && !shiftOn(today);
   box.hidden = !show;
   syncAnnounceStack();
@@ -9592,7 +9599,12 @@ function syncInsight(){
     if (w7) w7.innerHTML = weanWeek7Html(toDateValue());
   }
 }
+/* 마지막으로 일과표를 그린 언어. 일과표는 폴링에서 다시 그리지 않으므로
+   (renderAll 안의 설명), 언어만 바꾸면 범례와 요일이 한국어로 남아 있었다
+   ("베트남어 버전으로 바꾸면 일과표 범례는 한국어로 남아있음", 2026-11-04). */
+var patternLang = '';
 function renderPattern(){
+  patternLang = state.lang;
   var colsBox = document.getElementById('pattern-cols');
   var togBox = document.getElementById('pattern-toggles');
   var legendBox = document.getElementById('pattern-legend');
@@ -11375,7 +11387,7 @@ function maybePostPaydayMemo(){
    본인이 출근을 찍을 길이 없어진다.
    한 가지는 분명히 해 둔다: 이건 **화면에서 가리는 것**이지 데이터를
    감추는 게 아니다. 서버는 여전히 모든 폰에 같은 문서를 내려준다. */
-var SETTLE_HIDE_FROM = '2026-11-01', SETTLE_HIDE_TO = '2026-12-01';
+var SETTLE_HIDE_FROM = '2026-11-01', SETTLE_HIDE_TO = '2026-11-09';
 /* 정산을 가리는 기간에는 **금액이 적힌 모든 자리**를 같이 가린다. 서브탭만
    숨기고 도장 화면의 '이번 기간 ₫'·오늘 일당·고른 날 일당을 남겨 두면 가린
    뜻이 없다 — 2026-11-02 그녀가 아빠 프로필로 들어가 스크린샷으로 잡아냈다.
@@ -12587,7 +12599,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261103g';
+var BUILD = '20261104b';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -15427,7 +15439,10 @@ function renderAll(){
   /* renderPattern() is deliberately NOT here: it re-pins the day-column
      scroll to today, and renderAll() runs on every 4s poll — that would yank
      the chart back while someone is swiping through earlier days. The pattern
-     tab renders on entry instead (see switchTab). */
+     tab renders on entry instead (see switchTab).
+     언어가 바뀐 때만은 예외다 — 그건 폴링이 아니라 사람이 누른 것이고,
+     범례와 요일이 한국어로 남으면 이모가 읽을 수 없다. */
+  if (patternLang && patternLang !== state.lang) renderPattern();
   /* the growth tab IS here: a schedule or weigh-in another phone writes must
      appear on an open calendar. The form inputs are static elements, so a
      re-render never eats what someone is typing into them. */
