@@ -3276,12 +3276,6 @@
   .wn-line > .t-label{ flex:0 0 auto; }
   .wn-val{ margin-left:auto; text-align:right; display:flex; flex-direction:column;
     align-items:flex-end; gap:2px; min-width:0; }
-  .wn-hero{ display:flex; align-items:flex-end; justify-content:space-between; gap:10px;
-    padding:2px 0 13px; }
-  /* 라벨과 큰 값이 딱 붙어 한 덩어리로 읽혔다 — 둘은 묻는 말과 답이라
-     한 줄 띄워 준다. */
-  .wn-hero .t-label{ margin-bottom:6px; display:block; }
-
   /* 지난 7일. 막대에 height:100%를 주고 칸 자체를 세로 flex로 두면, 밑의
      글자 두 줄만큼 막대가 칸 밖으로 자라 카드 위의 제목을 덮는다. 막대가 설
      트랙(.wn-bar)을 고정 높이로 따로 두고 막대는 그 안에서만 크게 한다. */
@@ -4905,11 +4899,9 @@ ko: {
   wnMoreTpl:"외 {n}", wnWatchMoreTpl:"그리고 {n}가지 더 지켜보는 중",
   wnEditMenu:"눌러서 먹은 양 적기",
  
-  wnStockKindsTpl:"재료 {n}가지",
   wnCubeDTpl:"D-{d}", wnCubeDOverTpl:"D+{d}",
   wnPillHave:"있는 것", wnPillMake:"만들 것", wnPillUse:"쓸 것",
-  wnWeekMake:"이번 주 만들 큐브", wnWeekMakeNone:"안 만들어도 돼요",
-  wnWeekMakeSub:"지금 재고 {n}칸을 빼고 센 거예요.", wnWeekUse:"이번 주 쓸 큐브",
+  wnWeekMakeNone:"안 만들어도 돼요",
   wnWeekUseNone:"이 주에는 식단이 없어요.", wnWeekDaysTpl:"{a}일차 ~ {b}일차",
   wnHaveNeedTpl:"지금 {have}칸 · 필요 {need}칸",
   wnAddExtra:"직접 추가", wnExtraName:"살 것", wnExtraNamePh:"예: 이유식 큐브 트레이",
@@ -5215,11 +5207,9 @@ vi: {
   wnMoreTpl:"và {n} nữa", wnWatchMoreTpl:"Và {n} loại nữa đang theo dõi",
   wnEditMenu:"Bấm để ghi lượng ăn",
  
-  wnStockKindsTpl:"{n} loại",
   wnCubeDTpl:"D-{d}", wnCubeDOverTpl:"D+{d}",
   wnPillHave:"Đang có", wnPillMake:"Cần làm", wnPillUse:"Sẽ dùng",
-  wnWeekMake:"Viên cần làm tuần này", wnWeekMakeNone:"Không cần làm thêm",
-  wnWeekMakeSub:"Đã trừ {n} viên đang có.", wnWeekUse:"Viên dùng tuần này",
+  wnWeekMakeNone:"Không cần làm thêm",
   wnWeekUseNone:"Tuần này chưa có thực đơn.", wnWeekDaysTpl:"ngày {a} ~ ngày {b}",
   wnHaveNeedTpl:"đang có {have} · cần {need}",
   wnAddExtra:"Tự thêm", wnExtraName:"Thứ cần mua", wnExtraNamePh:"VD: khay trữ đông",
@@ -12597,7 +12587,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261103f';
+var BUILD = '20261103g';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -16742,7 +16732,6 @@ function weanCubesHtml(){
   if (cv !== 'have'){
     var week = state.weanWeek, days = weanWeekDays(week);
     var wk = weanWeekCubes(week);
-    var total0 = weanCubeIngs().reduce(function(n, ing){ return n + weanCubeN(ing); }, 0);
     var d1 = weanDayNo(days[0]), d2 = weanDayNo(days[6]);
     html += '<div class="wn-weeknav">' +
       '<button type="button" class="log-arrow" data-wn-week="-1">\u2039</button><div>' +
@@ -16759,15 +16748,9 @@ function weanCubesHtml(){
         esc(t(cv === 'make' ? 'wnWeekMakeNone' : 'wnWeekUseNone')) + '</div></div>';
       return html;
     }
-    html += '<div class="wn-hero"><div>' +
-        '<div class="t-label">' + esc(t(cv === 'make' ? 'wnWeekMake' : 'wnWeekUse')) + '</div>' +
-        '<div class="t-money big">' + esc(t('wnCubeNTpl')
-          .replace('{n}', cv === 'make' ? wk.make : wk.use)) + '</div></div>' +
-      (cv === 'make'
-        ? '<span class="pay-chip quiet">' + esc(t('wnWeekMakeSub').replace('{n}', total0)) + '</span>'
-        : '<span class="pay-chip quiet">' +
-            esc(t('wnStockKindsTpl').replace('{n}', rows.length)) + '</span>') +
-      '</div>';
+    /* 합계 카드는 세 화면에서 다 뗐다 — '큐브 34칸'은 재료가 다른 것들을
+       더한 수라 그걸 보고 할 일이 정해지지 않는다. 할 일은 아래 줄마다
+       재료 이름과 함께 적혀 있다("셋다 빼야지 뺄거면", 2026-11-03). */
     rows.forEach(function(r){
       /* 만들 것은 한 줄이 곧 할 일 하나다 — 누르면 그 재료·그 칸 수로 열린다.
          쓸 것은 읽기만 하는 숫자라 누를 데가 없다. */

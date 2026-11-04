@@ -715,10 +715,10 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   const pill = async (v) => {
     await p.click('[data-wn-cv="' + v + '"]'); await p.waitForTimeout(600);
   };
-  const heroN = () => p.evaluate(()=>{
-    const e = document.querySelector('#wn-body .wn-hero .t-money');
-    return e ? Number((e.textContent.match(/\d+/)||[0])[0]) : null;
-  });
+  /* 합계 카드를 뗀 뒤로(2026-11-03) 그 주의 칸 수는 줄들을 더해서 센다 */
+  const lineSum = () => p.evaluate(()=>
+    [...document.querySelectorAll('#wn-body .wn-line .t-value')]
+      .reduce((n,e)=>n+Number((e.textContent.match(/\d+/)||[0])[0]), 0));
   check('재고 화면이 알약 셋으로 갈린다', await p.evaluate(()=>
     [...document.querySelectorAll('#wn-body [data-wn-cv]')].map(e=>e.dataset.wnCv)),
     ['have', 'make', 'use']);
@@ -737,13 +737,8 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   await pill('use');
   check('쓸 것에는 주 네비가 선다', await p.evaluate(()=>
     !!document.querySelector('#wn-body .wn-weeknav [data-wn-week]')), true);
-  check('...합계는 아래 줄들의 합과 같다', await p.evaluate(()=>{
-    const body = document.getElementById('wn-body');
-    const hero = Number((body.querySelector('.wn-hero .t-money').textContent.match(/\d+/)||[0])[0]);
-    const sum = [...body.querySelectorAll('.wn-line .t-value')]
-      .reduce((n,e)=>n+Number((e.textContent.match(/\d+/)||[0])[0]), 0);
-    return hero === sum;
-  }), true);
+  check('...쓸 것에도 합계 카드는 없다', await p.evaluate(()=>
+    !document.querySelector('#wn-body .wn-hero')), true);
 
   /* 빈 주로 옮겨 **정확한 숫자**를 센다 — 이 스위트가 앞에서 여기저기
      식단을 깔아 둬서, 이번 주로는 '몇 칸이어야 한다'를 못 박기 어렵다.
@@ -752,7 +747,7 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
     await p.click('#wn-body .wn-weeknav [data-wn-week="1"]'); await p.waitForTimeout(450);
   }
   const FARWK = await p.evaluate(()=>null) || dAdd(weekOf(TODAY), 28);
-  const beforeUse = await heroN();
+  const beforeUse = await lineSum();
   /* 하루 두 끼. 한 칸 g은 쌀오트밀죽 40 · 소고기 10 · 애호박 10.
      하루에 죽 80g(=2칸) · 소고기 20g(=2칸) · 애호박 10g(=1칸) = 5칸,
      이틀이면 10칸. '하루에 한 재료 = 한 칸'으로 세면 6칸이 나온다. */
@@ -763,7 +758,7 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   await p.evaluate(() => window.dispatchEvent(new Event('focus')));
   await p.waitForTimeout(1600);
   check('...한 칸 g으로 나눠 올림한다 (두 끼 × 이틀 = 10칸 늘어난다)',
-    (await heroN()) - beforeUse, 10);
+    (await lineSum()) - beforeUse, 10);
 
   /* '쓸 것'은 재고와 무관한 소비량이고 '만들 것'은 거기서 재고를 뺀 것이다.
      두 화면의 숫자가 그 관계를 지키는지 본다 — 재고가 넉넉해서 만들 것이
@@ -775,7 +770,7 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
     }).filter(Boolean));
   const wantMake = needHave.reduce((n, r) => n + Math.max(0, r.use - r.have), 0);
   await pill('make');
-  check('만들 것 합계 = Σ(필요 − 지금 있는 것)', (await heroN()) || 0, wantMake);
+  check('만들 것 합계 = Σ(필요 − 지금 있는 것)', await lineSum(), wantMake);
   check('...줄마다도 그 관계를 지킨다', await p.evaluate(()=>
     [...document.querySelectorAll('#wn-body .wn-line[data-wn-make]')].every(e => {
       const m = e.querySelector('.t-caption').textContent.match(/(\d+)칸 · 필요 (\d+)칸/);
