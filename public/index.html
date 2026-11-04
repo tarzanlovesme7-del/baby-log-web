@@ -4789,7 +4789,7 @@ ko: {
   photoClose:"닫기", photoOf:"{i}/{n}", memoUnreadTpl:"새 메모 {n}개",
   memoNoMemos:"아직 등록된 메모가 없어요.", tabMemo:"메모", typeOrder:"항목 순서",
   quickAdd:"빠른 기록", timeline:"기록", loadMore:"이전 기록 더 보기", emptyDay:"이 날은 기록이 없어요", todayBtn:"오늘", babyInfo:"아기 정보", babyNameKo:"이름 (한국어)", babyNameVi:"이름 (베트남어)", babyBirth:"태어난 날",
-  whoAmI:"나는 누구", customTypes:"커스텀 항목 관리",
+  whoAmI:"나는 누구", customTypes:"커스텀 항목 관리", typeViPh:"베트남어 이름",
   rxAdd:"반응 남기기",
   icoNames:{ heart:"하트", pencil:"연필", food:"이유식", water:"물", star:"별", music:"노래",
              sun:"햇빛", book:"책", camera:"사진", tooth:"치아", cross:"병원", smile:"기분" },
@@ -5099,7 +5099,7 @@ vi: {
   photoClose:"Đóng", photoOf:"{i}/{n}", memoUnreadTpl:"{n} ghi chú mới",
   memoNoMemos:"Chưa có ghi chú nào được đăng.", tabMemo:"Ghi chú", typeOrder:"Thứ tự mục",
   quickAdd:"Ghi nhanh", timeline:"Nhật ký", loadMore:"Xem ngày trước đó", emptyDay:"Ngày này chưa có ghi chép", todayBtn:"Hôm nay", babyInfo:"Thông tin bé", babyNameKo:"Tên (Tiếng Hàn)", babyNameVi:"Tên (Tiếng Việt)", babyBirth:"Ngày sinh",
-  whoAmI:"Bạn là ai", customTypes:"Quản lý mục tùy chỉnh",
+  whoAmI:"Bạn là ai", customTypes:"Quản lý mục tùy chỉnh", typeViPh:"Tên tiếng Việt",
   rxAdd:"Bày tỏ cảm xúc",
   icoNames:{ heart:"Trái tim", pencil:"Bút chì", food:"Ăn dặm", water:"Nước", star:"Ngôi sao", music:"Bài hát",
              sun:"Nắng", book:"Sách", camera:"Ảnh", tooth:"Răng", cross:"Bệnh viện", smile:"Tâm trạng" },
@@ -6552,9 +6552,17 @@ function readCustomTypes(){
   return (appState.customTypes || []).map(function(c){
     /* unit 이 여기 빠지면 없는 것이 된다 — 아래 readCustomAuthors 윗주석의
        그 함정이다(서버에는 kg 이 있는데 화면에 숫자 칸이 안 서던 이유). */
-    return { id: c.id, name: c.name || '', color: c.color || 'var(--c-custom)',
+    return { id: c.id, name: c.name || '', nameVi: c.nameVi || '',
+             color: c.color || 'var(--c-custom)',
              emoji: c.emoji || '🏷️', unit: String(c.unit || '').trim() };
   });
+}
+/* 커스텀 항목도 이름이 둘이다 — 이모 폰에서는 베트남어로 읽혀야 한다
+   ("유산균, 터미타임, 몸무게도 베트남어로 보이게 해줘", 2026-11-04).
+   내니 이름과 같은 규칙: 베트남어가 비어 있으면 한국어 이름으로 떨어진다. */
+function customTypeName(c){
+  if (!c) return '';
+  return (state.lang === 'vi' && c.nameVi) ? c.nameVi : (c.name || '');
 }
 /* custom author names — the three presets are built into the UI; these are the
    extra names the household added (a grandparent, a second sitter). Shared
@@ -6788,7 +6796,8 @@ function typeMeta(typeStr){
   if (typeStr.indexOf('custom:') === 0){
     var cid = typeStr.slice(7);
     var found = readCustomTypes().filter(function(c){ return c.id===cid; })[0];
-    if (found) return {id:typeStr, emoji: found.emoji, color: found.color, label: found.name,
+    if (found) return {id:typeStr, emoji: found.emoji, color: found.color,
+      label: customTypeName(found), name: found.name, nameVi: found.nameVi,
       isCustom:true, unit: String(found.unit || '').trim()};
     return {id:typeStr, emoji:'🏷️', color:'var(--c-custom)', label: t('t_custom'), isCustom:true};
   }
@@ -6809,7 +6818,7 @@ function typeMeta(typeStr){
 function readTypeOrderIds(){ return (appState.typeOrder || []).slice(); }
 function allTypesInOrder(){
   var all = BUILT_IN.map(function(b){ return {id:b.id, emoji:b.emoji, color:b.color, label:t('t_'+b.id), isCustom:false}; })
-    .concat(readCustomTypes().map(function(c){ return {id:'custom:'+c.id, emoji:c.emoji, color:c.color, label:c.name, isCustom:true}; }));
+    .concat(readCustomTypes().map(function(c){ return {id:'custom:'+c.id, emoji:c.emoji, color:c.color, label:customTypeName(c), isCustom:true}; }));
   var order = readTypeOrderIds();
   if (!order.length) return all;
   var pos = {}; order.forEach(function(id,i){ pos[id]=i; });
@@ -12599,7 +12608,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261104b';
+var BUILD = '20261104c';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -12654,11 +12663,21 @@ function renderSettings(){
       return '<div class="row-item"><div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">' +
         typeIconHtml(c, 'ty-chip', 'background:color-mix(in srgb, '+esc(c.color)+' 16%, var(--surface-2));color:'+esc(c.color)) +
         '<div style="flex:1;min-width:0"><div class="r-label">'+esc(c.name)+'</div>' +
+        '<input type="text" class="author-vi" data-vi-type="'+esc(c.id)+'" maxlength="24" value="'+
+          esc(String(c.nameVi || ''))+'" placeholder="'+esc(t('typeViPh'))+'" />' +
         '<input type="text" class="author-vi" data-unit-type="'+esc(c.id)+'" maxlength="4" value="'+
           esc(String(c.unit || ''))+'" placeholder="'+esc(t('typeUnitPh'))+'" /></div></div>' +
         '<button type="button" class="text-btn danger-btn" data-del-type="'+esc(c.id)+'">'+esc(t('delete'))+'</button>' +
       '</div>';
     }).join('');
+    /* 기계 번역은 짐작이다 — 여기가 고치는 자리다(내니 이름 칸과 같다) */
+    $$('[data-vi-type]', customBox).forEach(function(input){
+      input.addEventListener('change', function(){
+        apiMutate('updateCustomType', { id: input.dataset.viType, nameVi: input.value.trim() })
+          .then(function(){ renderAll(); toast(t('savedToast')); })
+          .catch(function(err){ toast(err.message); });
+      });
+    });
     $$('[data-unit-type]', customBox).forEach(function(input){
       input.addEventListener('change', function(){
         apiMutate('updateCustomType', { id: input.dataset.unitType, unit: input.value.trim() })
@@ -15311,12 +15330,15 @@ function saveTypeSheet(){
   var name = document.getElementById('new-type-name').value.trim();
   if (!name){ toast(state.lang==='vi'?'Vui lòng nhập tên':'이름을 입력해 주세요'); return; }
   var unit = document.getElementById('new-type-unit').value.trim();
-  apiMutate('addCustomType', { name: name, color: pickedSwatch, emoji: pickedEmoji, unit: unit }).then(function(){
-    closeSheet('type-sheet');
-    renderQuickActions();
-    renderSettings();
-    toast(t('savedToast'));
-  }).catch(function(err){ toast(err.message); });
+  apiMutate('addCustomType', { name: name, color: pickedSwatch, emoji: pickedEmoji, unit: unit })
+    .then(function(res){
+      closeSheet('type-sheet');
+      renderQuickActions();
+      renderSettings();
+      toast(t('savedToast'));
+      /* 저장을 기다리지 않는다 — 이름은 적은 그 순간부터 쓸 수 있어야 한다 */
+      return translateTypeName(res && res.customType);
+    }).catch(function(err){ toast(err.message); });
 }
 
 /* ================================================================
@@ -18322,6 +18344,34 @@ function translateAuthorName(author){
   }).then(function(){ renderAll(); renderSettings(); })
     .catch(function(){});
 }
+/* 커스텀 항목의 베트남어 이름. 내니 이름과 같은 길을 쓴다 — 적는 걸 막지
+   않고, 사람이 손으로 적어 둔 이름은 절대 덮지 않는다. */
+function translateTypeName(ct){
+  if (!ct || !ct.id || !ct.name || ct.nameVi) return Promise.resolve();
+  return apiTranslate(ct.name, 'vi').then(function(vi){
+    if (!vi || vi === ct.name) return;
+    return apiMutate('updateCustomType', { id: ct.id, nameVi: vi });
+  }).then(function(){ renderAll(); renderSettings(); })
+    .catch(function(){});
+}
+var typeBackfillDone = false;
+function backfillTypeNames(){
+  if (typeBackfillDone) return;
+  var missing = readCustomTypes().filter(function(c){ return c.name && !c.nameVi; });
+  if (!missing.length) return;
+  typeBackfillDone = true;
+  var next = function(i){
+    if (i >= missing.length) return;
+    var c = missing[i];
+    apiTranslate(c.name, 'vi').then(function(vi){
+      if (!vi || vi === c.name) return;
+      return apiMutate('updateCustomType', { id: c.id, nameVi: vi }).then(function(){
+        renderAll(); renderSettings();
+      });
+    }).catch(function(){}).then(function(){ next(i + 1); });
+  };
+  next(0);
+}
 var authorBackfillDone = false;
 function backfillAuthorNames(){
   if (authorBackfillDone) return;
@@ -18536,6 +18586,7 @@ function init(){
     splitWeanIfNeeded();
     /* after the first paint, never before it */
     setTimeout(backfillAuthorNames, 1500);
+    setTimeout(backfillTypeNames, 2000);
     setTimeout(backfillTranslations, 2600);
   }).catch(function(err){
     /* it failed rather than being slow: an honest empty screen and the

@@ -1328,6 +1328,9 @@ function applyMutation(prevState, type, payload) {
         /* 단위를 적어 두면 그 항목은 숫자도 받는다(투약의 ml 칸과 같은 칸).
            'kg' 이면 그 숫자가 새싹 탭 몸무게로 간다 — syncEntryWeight 참고 */
         unit: String(payload.unit || '').trim().slice(0, 4),
+        /* 이모 폰에서 읽을 이름. 내니 이름(customAuthors.nameVi)과 같은 짜임 —
+           비어 있으면 화면이 한국어 이름으로 떨어진다. */
+        nameVi: String(payload.nameVi || '').trim(),
       };
       state.customTypes.push(ct);
       return { state, result: { customType: ct } };
@@ -1338,6 +1341,7 @@ function applyMutation(prevState, type, payload) {
       if (!ct) throw httpError(404, 'custom type not found');
       ['name', 'color', 'emoji'].forEach((f) => { if (payload[f] !== undefined) ct[f] = payload[f]; });
       if (payload.unit !== undefined) ct.unit = String(payload.unit || '').trim().slice(0, 4);
+      if (payload.nameVi !== undefined) ct.nameVi = String(payload.nameVi || '').trim();
       return { state, result: { customType: ct } };
     }
 
