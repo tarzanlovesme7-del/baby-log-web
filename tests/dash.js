@@ -189,6 +189,15 @@ const D = (n) => { const d = new Date(); d.setDate(d.getDate() + n);
   await p.close();
 
   // ═══ 6. 이유식 띠 ═══
+  /* 식단이 하나도 없으면 엄마 폰이 열릴 때 90일치를 심는다(seedWeanIfEmpty).
+     씨앗 식단은 이유식 시작일부터 깔리는데 그 날이 지나 버리면 '시작 전'이
+     사라져서, 날짜만 흘러도 이 검사가 깨졌다(2026-11-08). 그래서 **아직
+     오지 않은 날** 하루를 먼저 깔아 둔다 — 식단이 비어 있지 않으니 씨앗도
+     안 심기고, 띠가 세어야 할 D-N 도 분명해진다. */
+  for (const k of Object.keys((await st()).weanPlan || {}))
+    await mut('deleteWeanDay', { date: k, actor: '엄마' });
+  await mut('setWeanDay', { actor: '엄마', date: D(30), meals: [
+    { name: '아침', base: [{ ing: 'pgyo', g: 40 }], tops: [{ ing: 'beef', g: 10 }] }] });
   p = await open();
   let w = await band(p);
   check('식단 시작 전에는 띠가 D-N을 센다', /^D-\d+$/.test(w.more), true);

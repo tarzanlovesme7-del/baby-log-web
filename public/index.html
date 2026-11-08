@@ -12608,7 +12608,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261104c';
+var BUILD = '20261108b';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -15936,10 +15936,47 @@ function weanRecIngs(e){
   if (e && e.ings && e.ings.length) return e.ings;
   return weanDayIngs(weanDay(toDateValue(e && e.start)));
 }
+/* 보여줄 때는 토핑이 먼저고 죽이 뒤다.
+   쌀죽·오트밀은 거의 매일 같은 자리에 같은 이름으로 선다. 그게 맨 앞에
+   서면 좁은 달력 칸에서 자리를 다 먹고, 정작 그날 뭐가 다른지(소고기냐
+   애호박이냐)는 +2 뒤로 밀려 안 보인다
+   ("그걸 뒤로 보내고 나머지 재료를 먼저 보여줘", 2026-11-08).
+   **보이는 차례만** 바꾼다 — 저장되는 base/tops 는 그대로다.
+
+   토핑 안에서도 차례가 있다. 소고기는 거의 매일 들어가서 맨 앞에 서면
+   죽과 똑같은 일을 한다 — 자리만 먹고 그날 뭐가 다른지는 안 알려준다.
+   그래서 **식단표에 늦게 들어온 재료가 앞**이다("새 재료가 항상 먼저
+   나오도록", 2026-11-08). 같은 날 들어왔으면 나중에 적은 쪽이 앞.
+   weanIngFirsts() 는 캐시가 있어서 줄마다 불러도 된다. */
+function weanNewestFirst(list){
+  var first = weanIngFirsts();
+  return (list || []).map(function(x, i){ return { x: x, i: i, f: first[x.ing] || '' }; })
+    .sort(function(a, b){
+      if (a.f !== b.f) return a.f < b.f ? 1 : -1;   /* 늦게 들어온 것이 앞 */
+      return b.i - a.i;                             /* 같으면 나중에 적은 것이 앞 */
+    })
+    .map(function(o){ return o.x; });
+}
+/* base/tops 를 들고 있는 자리에서는 그걸 그대로 쓴다. */
+function weanMealItems(m){
+  return weanNewestFirst((m && m.tops) || [])
+    .concat(weanNewestFirst((m && m.base) || []));
+}
+/* 차례가 이미 뭉개진 납작한 목록(기록에 박힌 사본)에만 쓴다 — 재료 사전을
+   뒤져 죽인지 묻고, 사전에 없는 재료는 토핑으로 친다. */
+function weanTopsFirst(items){
+  var tops = [], base = [];
+  (items || []).forEach(function(x){
+    var g = weanIng(x.ing);
+    (g && g.isBase ? base : tops).push(x);
+  });
+  return weanNewestFirst(tops).concat(weanNewestFirst(base));
+}
 /* 식단표의 끼니 카드와 **같은 컴포넌트**를 쓴다 — 같은 한 끼를 두 화면에서
    다른 모양으로 그리면 같은 것인지 알 수가 없다. 그림 네 칸 + 이름 + 부제. */
 function weanMealCardHtml(items, sub, colorKey){
   var c = colorKey ? weanColorOf(colorKey) : 0;
+  items = weanTopsFirst(items);
   return '<span class="wd-thumb ' + (WEAN_PAL[c] || '') + '">' +
       items.slice(0, 4).map(function(x){ return weanIngIcon(x.ing); }).join('') + '</span>' +
     '<span class="wd-t"><b>' + esc(items.map(function(x){ return weanIngName(x.ing); }).join(' ')) + '</b>' +
@@ -16131,7 +16168,7 @@ var WC_ICO = 13, WC_ICO_GAP = 2, WC_ITEM_GAP = 4, WC_PILL_PAD = 10;
    알약이든 늘 13px — 칸이 좁다고 그림까지 줄이면 달력이 들쭉날쭉해진다. */
 function weanPillHtml(ds, k, span, cellW){
   var m = weanDay(ds).meals[k];
-  var items = (m.base || []).concat(m.tops || []);
+  var items = weanMealItems(m);
   var key = weanMenuKey(m), c = weanColorOf(key);
   var budget = (cellW ? span * cellW + (span - 1) * 2 : 999) - WC_PILL_PAD;
 
@@ -16161,8 +16198,16 @@ function weanPillHtml(ds, k, span, cellW){
     }
     tag = '<em class="wc-more">+' + rest + '</em>';
   }
-  /* 아무것도 못 넣을 만큼 좁으면 그림 하나는 억지로라도 보여준다 */
-  if (!withName && !iconOnly && !rest && items.length) iconOnly = 1;
+  /* 아무것도 못 넣을 만큼 좁으면 그림 하나는 억지로라도 보여준다.
+     '+3'만 남은 알약은 그날 뭘 먹는지 한 글자도 말해 주지 않는다 — 숫자
+     하나보다 그림 하나가 낫다(일요일처럼 한 칸짜리 날에서 실제로 났다). */
+  if (!withName && !iconOnly && items.length){
+    iconOnly = 1;
+    if (rest > 0){
+      rest--;
+      tag = rest > 0 ? '<em class="wc-more">+' + rest + '</em>' : '';
+    }
+  }
 
   var html = '';
   for (var a = 0; a < withName; a++)
@@ -16179,9 +16224,9 @@ function weanPillHtml(ds, k, span, cellW){
     '" style="grid-column:span ' + span + '" data-wn-pick="' + esc(ds) + '">' +
     html + tag + '</div>';
 }
-/* 색 고르기 시트의 제목에 쓰는 이름 — '쌀죽 + 소고기' */
+/* 색 고르기 시트의 제목에 쓰는 이름 — '소고기 + 쌀죽' */
 function weanMenuLabel(m){
-  var items = (m.base || []).concat(m.tops || []);
+  var items = weanMealItems(m);
   return items.map(function(x){ return weanIngName(x.ing); }).join(' + ');
 }
 /* 접힌 달력의 손잡이 — 아래로 끌면(또는 눌러도) 달력이 다시 펴진다.
@@ -16542,7 +16587,7 @@ function weanDayPanelHtml(ds){
     return html + weanWatchHtml(ds) + '</div>';
   }
   day.meals.forEach(function(m, mi){
-    var items = (m.base || []).concat(m.tops || []);
+    var items = weanMealItems(m);
     var g = items.reduce(function(n, x){ return n + (Number(x.g) || 0); }, 0);
     var key = weanMenuKey(m), c = weanColorOf(key);
     /* 카드를 누르면 그날 식단 고치기. 오른쪽 동그라미는 이 메뉴의 색 —
