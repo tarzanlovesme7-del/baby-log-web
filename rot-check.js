@@ -33,7 +33,10 @@ const stripHtmlComments = t => t.replace(/<!--[\s\S]*?-->/g, ' ');
 
 const cssBody = /<style>([\s\S]*?)<\/style>/.exec(src)[1];
 const scriptBody = /<script>\n\(function\(\)\{([\s\S]*?)\n<\/script>/.exec(src)[1];
-const markupRaw = src.slice(src.indexOf('<div id="app">'), src.indexOf('<script>'));
+/* <body> 부터 센다. 예전엔 <div id="app"> 부터 잘랐는데, 그 바깥에 서는
+   화면이 생기면서(비번 화면은 #app 을 숨기고 그 자리에 선다) 거기 쓰인
+   글과 클래스가 통째로 '아무도 안 쓴다'로 잡혔다. */
+const markupRaw = src.slice(src.indexOf('<body'), src.indexOf('<script>'));
 const markup = stripHtmlComments(markupRaw);
 
 // ---- i18n -----------------------------------------------------------------

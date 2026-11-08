@@ -68,6 +68,71 @@ app.use((req, res, next) => {
 app.get('/', sendIndex);
 app.use(express.static(PUBLIC_DIR, { index: false }));
 
+/* ── 집 비번 ────────────────────────────────────────────────────
+   이 앱에는 로그인이 없다 — 주소를 아는 사람이 곧 보는 사람이었다. 한 달
+   대신 오셨던 분이 그만둔 뒤 그 폰을 막을 길이 없었다(2026-11-08). 주소를
+   바꾸는 건 자물쇠가 아니라 숨기기고, 렌더는 주소를 바꿔 주지도 않는다.
+
+   열쇠는 Render 의 ZIO_PASSCODE 환경변수 하나다. 저장소에도, 사람과 주고받는
+   글에도 적지 않는다. **값이 비어 있으면 잠그지 않는다** — 키를 넣기 전에
+   앱이 통째로 죽으면 고칠 길까지 같이 막힌다.
+
+   기억은 쿠키로 한다. 헤더로 하면 <img src="/api/photo/…"> 가 못 넘어간다 —
+   사진은 브라우저가 알아서 가져오는 것이라 헤더를 붙일 자리가 없다.
+   쿠키에는 비번이 아니라 그 해시를 담는다. */
+const PASSCODE = String(process.env.ZIO_PASSCODE || '').trim();
+const GATE_COOKIE = 'zio_gate';
+function gateToken(pass){
+  return crypto.createHash('sha256').update('zio-gate:' + pass).digest('hex').slice(0, 32);
+}
+const GATE_TOKEN = PASSCODE ? gateToken(PASSCODE) : '';
+function sameSecret(a, b){
+  const x = Buffer.from(String(a)), y = Buffer.from(String(b));
+  if (x.length !== y.length || !x.length) return false;
+  return crypto.timingSafeEqual(x, y);
+}
+function cookieOf(req, name){
+  const raw = req.headers.cookie || '';
+  const parts = raw.split(';');
+  for (let i = 0; i < parts.length; i++){
+    const k = parts[i].indexOf('=');
+    if (k < 0) continue;
+    if (parts[i].slice(0, k).trim() === name){
+      try { return decodeURIComponent(parts[i].slice(k + 1).trim()); }
+      catch (e) { return parts[i].slice(k + 1).trim(); }
+    }
+  }
+  return '';
+}
+function gateOpen(req){
+  if (!PASSCODE) return true;
+  return sameSecret(cookieOf(req, GATE_COOKIE), GATE_TOKEN);
+}
+app.get('/api/gate', (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ locked: !!PASSCODE, open: gateOpen(req) });
+});
+app.post('/api/gate', jsonSmall, (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  if (!PASSCODE) return res.json({ open: true });
+  const given = String((req.body && req.body.pass) || '').trim();
+  if (!given || !sameSecret(gateToken(given), GATE_TOKEN)){
+    return res.status(401).json({ open: false });
+  }
+  /* 10년 — 가족 폰은 한 번 열면 다시 묻지 않는다 */
+  const https = req.secure || req.get('x-forwarded-proto') === 'https';
+  res.set('Set-Cookie', GATE_COOKIE + '=' + GATE_TOKEN +
+    '; Path=/; Max-Age=315360000; HttpOnly; SameSite=Lax' + (https ? '; Secure' : ''));
+  res.json({ open: true });
+});
+/* 이 아래로는 전부 잠긴다. /healthz 는 /api 바깥이라 그대로 열려 있다 —
+   렌더가 서비스가 살아 있는지 물어보는 길이다. */
+app.use('/api', (req, res, next) => {
+  if (gateOpen(req)) return next();
+  res.set('Cache-Control', 'no-store');
+  res.status(401).json({ error: 'locked' });
+});
+
 // ---- API ----
 app.get('/healthz', (req, res) => res.json({ ok: true }));
 

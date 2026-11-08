@@ -29,8 +29,44 @@ function send(res, status, body){
   res.end(JSON.stringify(body));
 }
 
+/* 집 비번 — 진짜 서버(server/server.js)와 같은 짜임을 흉내 낸다.
+   ZIO_PASSCODE 가 없으면 잠그지 않으므로 다른 스위트에는 아무 영향이 없다. */
+const crypto = require('crypto');
+const PASSCODE = String(process.env.ZIO_PASSCODE || '').trim();
+const GATE_COOKIE = 'zio_gate';
+const gateToken = (p) => crypto.createHash('sha256').update('zio-gate:' + p).digest('hex').slice(0, 32);
+const GATE_TOKEN = PASSCODE ? gateToken(PASSCODE) : '';
+function cookieOf(req, name){
+  const raw = req.headers.cookie || '';
+  for (const part of raw.split(';')){
+    const k = part.indexOf('=');
+    if (k >= 0 && part.slice(0, k).trim() === name) return part.slice(k + 1).trim();
+  }
+  return '';
+}
+const gateOpen = (req) => !PASSCODE || cookieOf(req, GATE_COOKIE) === GATE_TOKEN;
+
 const server = http.createServer((req, res) => {
   const u = new URL(req.url, 'http://x');
+  if (u.pathname === '/api/gate'){
+    if (req.method === 'GET') return send(res, 200, { locked: !!PASSCODE, open: gateOpen(req) });
+    if (req.method === 'POST'){
+      let body = '';
+      req.on('data', (c) => { body += c; });
+      return req.on('end', () => {
+        let pass = '';
+        try { pass = String((JSON.parse(body || '{}').pass) || '').trim(); } catch (e) {}
+        if (!PASSCODE) return send(res, 200, { open: true });
+        if (!pass || gateToken(pass) !== GATE_TOKEN) return send(res, 401, { open: false });
+        res.writeHead(200, { 'Content-Type': 'application/json',
+          'Set-Cookie': GATE_COOKIE + '=' + GATE_TOKEN + '; Path=/; Max-Age=315360000; HttpOnly; SameSite=Lax' });
+        return res.end(JSON.stringify({ open: true }));
+      });
+    }
+  }
+  if (u.pathname.startsWith('/api/') && !gateOpen(req)) return send(res, 401, { error: 'locked' });
+  /* 렌더가 서비스가 살아 있는지 묻는 길 — /api 바깥이라 자물쇠에 안 걸린다 */
+  if (req.method === 'GET' && u.pathname === '/healthz') return send(res, 200, { ok: true });
   if (req.method === 'GET' && u.pathname === '/api/version'){
     /* MOCK_BUILD로 배포 지문을 바꿔칠 수 있다 — '새 배포를 알아차리는지'를
        스위트에서 물어보려면 서버가 다른 지문을 내줘야 한다 */

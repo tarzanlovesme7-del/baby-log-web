@@ -3490,9 +3490,47 @@
   /* 정산 날짜별 보기가 쓰던 --fs-value는 어디에도 정의된 적이 없다.
      font-size:var(--없는토큰)은 계산 단계에서 무효가 되어 상속으로 떨어지므로,
      이 두 줄은 토큰이 아니라 body의 16px을 받아 왔다. 의도한 자리로 못 박는다. */
-  .pp-d, .pp-amt{ font-size:var(--fs-label); }</style>
+  .pp-d, .pp-amt{ font-size:var(--fs-label); }
+
+  /* 집 비번 화면. 앱 위에 덮는 것이 아니라 앱 대신 선다 — 뒤가 비쳐 보이면
+     막은 것 같지가 않다. */
+  body.gated #app{ display:none; }
+  #gate{ position:fixed; inset:0; z-index:9000; background:var(--surface);
+    display:flex; align-items:center; justify-content:center; padding:24px; }
+  #gate[hidden]{ display:none; }
+  .gate-card{ width:100%; max-width:300px; text-align:center; }
+  .gate-logo{ font-size:40px; line-height:1; margin-bottom:14px; }
+  .gate-card h1{ font-size:var(--fs-title); font-weight:var(--fw-display);
+    color:var(--fg); margin:0 0 6px; }
+  .gate-card p{ font-size:var(--fs-caption); color:var(--muted); margin:0 0 18px; }
+  /* 16px 아래로 내려가면 iOS 가 칸을 눌렀을 때 화면을 확대한다 */
+  #gate-pass{ width:100%; font-size:16px; text-align:center; letter-spacing:.14em;
+    padding:13px 14px; border-radius:12px; border:1px solid var(--border);
+    background:var(--surface-2); color:var(--fg); }
+  #gate-pass:focus{ outline:none; border-color:var(--c-wean); }
+  .gate-err{ font-size:var(--fs-caption); color:var(--wn-bad-fg); margin-top:9px; }
+  .gate-err[hidden]{ display:none; }
+  #gate-go{ width:100%; margin-top:14px; }
+  .gate-foot{ font-size:var(--fs-micro); color:var(--muted-2); margin-top:14px; }</style>
 </head>
 <body class="booting">
+
+<!-- ============ 집 비번 ============
+     주소를 아는 사람이 곧 보는 사람이던 앱에 자물쇠 하나. 폰마다 한 번만
+     묻고 쿠키로 기억한다(2026-11-08). 서버에 ZIO_PASSCODE 가 없으면 이
+     화면은 영영 뜨지 않는다. -->
+<div id="gate" hidden>
+  <div class="gate-card">
+    <div class="gate-logo" aria-hidden="true">🍼</div>
+    <h1 data-i18n="gateTitle">지오로그</h1>
+    <p data-i18n="gateSub">비밀번호를 입력해 주세요</p>
+    <input type="password" id="gate-pass" autocomplete="current-password"
+      inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" />
+    <div class="gate-err" id="gate-err" hidden data-i18n="gateErr">비밀번호가 달라요</div>
+    <button type="button" class="btn primary" id="gate-go" data-i18n="gateGo">들어가기</button>
+    <div class="gate-foot" data-i18n="gateOnce">이 폰에서는 한 번만 물어봐요</div>
+  </div>
+</div>
 
 <div id="app">
   <div class="ptr" id="ptr" aria-hidden="true"><div class="ptr-dot"></div></div>
@@ -4884,6 +4922,8 @@ ko: {
   wnCat_grain:"곡류", wnCat_veg:"야채류", wnCat_protein:"단백질류", wnCat_fruit:"과일류", wnCat_etc:"기타",
   wnKindLabel:"분류", wnInCubes:"들어가는 큐브", wnMadeOfLabel:"무엇으로 만드나요",
   wnMadeOfHint:"사 오는 재료예요. 쌀오트밀죽이면 쌀과 오트밀 둘을 고르세요.",
+  gateTitle:"지오로그", gateSub:"비밀번호를 입력해 주세요", gateGo:"들어가기",
+  gateErr:"비밀번호가 달라요", gateOnce:"이 폰에서는 한 번만 물어봐요",
   wnCopyVi:"베트남어 이름 베끼기", wnCopiedToast:"베꼈어요 · {s}", copyFail:"베끼지 못했어요",
   wnShopPantry:"집에 있는 것", wnShopPantrySub:"떨어지면 담기",
   wnReactHint:"이 재료를 먹고 탈이 난 적이 있나요? 적어 두면 재료 칸이 붉게 보여요.",
@@ -5194,6 +5234,8 @@ vi: {
   wnCat_grain:"Ngũ cốc", wnCat_veg:"Rau củ", wnCat_protein:"Đạm", wnCat_fruit:"Trái cây", wnCat_etc:"Khác",
   wnKindLabel:"Phân loại", wnInCubes:"Có trong viên", wnMadeOfLabel:"Làm từ gì",
   wnMadeOfHint:"Nguyên liệu mua về. Cháo gạo yến mạch thì chọn cả gạo và yến mạch.",
+  gateTitle:"Zio Log", gateSub:"Nhập mật khẩu", gateGo:"Vào",
+  gateErr:"Mật khẩu không đúng", gateOnce:"Máy này chỉ hỏi một lần",
   wnCopyVi:"Chép tên tiếng Việt", wnCopiedToast:"Đã chép · {s}", copyFail:"Không chép được",
   wnShopPantry:"Đồ có sẵn ở nhà", wnShopPantrySub:"Hết thì mua",
   wnReactHint:"Zio đã từng bị khó chịu với nguyên liệu này chưa? Ghi lại thì ô nguyên liệu sẽ chuyển đỏ.",
@@ -5948,8 +5990,40 @@ function applyServerState(json){
   appState = json.data; appVersion = json.version;
   return true;
 }
+/* 서버가 잠겼다고 하면(401) 그 사실만 들고 올라간다 — 부팅은 이걸 보고
+   앱 대신 비번 화면을 세운다. */
+var ERR_LOCKED = 'locked';
+function gateShow(){
+  var el = document.getElementById('gate');
+  if (!el) return;
+  applyI18n();                       /* 아직 renderAll 이 안 돌았다 */
+  document.body.classList.remove('booting');
+  document.body.classList.add('gated');
+  el.hidden = false;
+  var inp = document.getElementById('gate-pass');
+  if (inp) setTimeout(function(){ try { inp.focus(); } catch (e) {} }, 150);
+}
+function gateTry(){
+  var inp = document.getElementById('gate-pass');
+  var err = document.getElementById('gate-err');
+  var btn = document.getElementById('gate-go');
+  var pass = ((inp && inp.value) || '').trim();
+  if (!pass) return;
+  if (err) err.hidden = true;
+  if (btn) btn.disabled = true;
+  fetch('/api/gate', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ pass: pass }) })
+    .then(function(r){ if (!r.ok) throw new Error('no'); return r.json(); })
+    .then(function(){ location.reload(); })
+    .catch(function(){
+      if (btn) btn.disabled = false;
+      if (err) err.hidden = false;
+      if (inp){ inp.value = ''; try { inp.focus(); } catch (e) {} }
+    });
+}
 function apiGetState(){
   return fetch('/api/state').then(function(res){
+    if (res.status === 401) throw new Error(ERR_LOCKED);
     if (!res.ok) throw new Error('failed to load');
     return res.json();
   }).then(function(json){
@@ -12626,7 +12700,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261108d';
+var BUILD = '20261108e';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -18061,6 +18135,13 @@ function bumpCube(ing, d, id){
 }
 
 function wireEvents(){
+  /* 비번 화면 — 단추로도, 엔터로도 */
+  var gGo = document.getElementById('gate-go');
+  if (gGo) gGo.addEventListener('click', gateTry);
+  var gIn = document.getElementById('gate-pass');
+  if (gIn) gIn.addEventListener('keydown', function(ev){
+    if (ev.key === 'Enter'){ ev.preventDefault(); gateTry(); }
+  });
   /* every .lang-pill on the page drives the same setting — the header's and
      the profile sheet's — and they all restate the current choice together */
   $$('.lang-pill button').forEach(function(b){
@@ -18704,12 +18785,16 @@ function init(){
     setTimeout(backfillTypeNames, 2000);
     setTimeout(backfillTranslations, 2600);
   }).catch(function(err){
+    /* 잠긴 것은 고장이 아니다 — 앱 대신 비번 화면을 세우고 여기서 멈춘다.
+       폴링도 시작하지 않는다(401만 계속 긁어 올 뿐이다). */
+    if (err && err.message === ERR_LOCKED){ gateShow(); return; }
     /* it failed rather than being slow: an honest empty screen and the
        message, not a shimmer that never resolves */
     markBooted();
     toast(err.message || 'failed to load');
     renderAll();
   });
+  if (document.body.classList.contains('gated')) return;
   try{
     var darkQ = window.matchMedia('(prefers-color-scheme: dark)');
     var onScheme = function(){ if (state.theme === 'system') repaintForTheme(); };
