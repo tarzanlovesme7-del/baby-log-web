@@ -10,7 +10,10 @@
      - 틀리면 안 들어가고, 안 알려 준다.
      - ZIO_PASSCODE 가 비어 있으면 잠그지 않는다 — 키를 넣기 전에 앱이
        통째로 죽으면 고칠 길까지 막힌다.
-     - /healthz 는 열려 있다. 렌더가 서비스가 살아 있는지 묻는 길이다. */
+     - /healthz 는 열려 있다. 렌더가 서비스가 살아 있는지 묻는 길이다.
+     - **이미 켜 둔 폰은 쫓아낸다.** 비번을 켜도 그 폰은 화면에 기록과
+       사진을 그대로 띄우고 있었다("우리애기 얼굴 사진 남아있을텐데
+       강제로 튕겨줘야지"). 폴링이 401을 보는 순간 화면을 비운다. */
 const { chromium } = require(process.env.PW || '/home/claude/.npm-global/lib/node_modules/playwright');
 const BASE = 'http://localhost:3311';
 const PASS = process.env.ZIO_PASSCODE || '';
@@ -112,6 +115,59 @@ function check(n, a, e) { const ok = JSON.stringify(a) === JSON.stringify(e); R.
     const g = document.getElementById('gate');
     return !!(g && !g.hidden); }), true);
   await p2.close();
+
+  /* ── 3. 켜 둔 폰을 쫓아낸다 ──
+     비번을 켜기 전부터 열려 있던 화면. 서버만 막아서는 안 되고, 그려 둔
+     기록과 사진이 화면에서 사라져야 한다. */
+  const ctx3 = await b.newContext({ viewport:{ width:390, height:860 } });
+  const p3 = await ctx3.newPage();
+  p3.on('pageerror', e => errs.push('kick: ' + String(e)));
+  await p3.addInitScript(()=>{ localStorage.setItem('bbl_author','엄마');
+    localStorage.setItem('bbl_lang','ko'); });
+  /* 먼저 제대로 들어가서 화면을 띄운다 */
+  await ctx3.addCookies([{ name:'zio_gate', value: ck.split('=')[1],
+    domain:'localhost', path:'/' }]);
+  await p3.goto(BASE + '/'); await p3.waitForTimeout(2400);
+  check('켜 둔 폰은 화면이 그려져 있다', await p3.evaluate(()=>
+    !!document.getElementById('qa-grid') && document.getElementById('gate').hidden), true);
+
+  /* 비번이 켜진 것과 같은 상황 — 그 폰의 표식을 빼앗는다 */
+  await ctx3.clearCookies();
+  let kicked = true;
+  try {
+    await p3.waitForFunction(() => {
+      const g = document.getElementById('gate'), a = document.getElementById('app');
+      return !!(g && !g.hidden) && !!a && a.children.length === 0;
+    }, null, { timeout: 40000 });   /* 폴링은 25초마다 — 그 한 바퀴를 기다린다 */
+  } catch (e) { kicked = false; }
+  check('표식이 없어지면 스스로 쫓겨난다 (폴링이 알아챈다)', kicked, true);
+  check('...화면에 기록이 한 줄도 안 남는다', await p3.evaluate(()=>
+    document.querySelectorAll('.entry-row').length), 0);
+  check('...사진 태그도 안 남는다', await p3.evaluate(()=>
+    document.querySelectorAll('img[src*="/api/photo/"]').length), 0);
+  check('...손에 쥔 문서도 버린다', await p3.evaluate(()=>
+    document.getElementById('app').innerHTML.trim()), '');
+  await p3.close();
+
+  /* 폰을 주머니에서 꺼내는 순간(= 다시 보이게 되는 순간)에도 바로 묻는다 */
+  const ctx4 = await b.newContext({ viewport:{ width:390, height:860 } });
+  const p4 = await ctx4.newPage();
+  await p4.addInitScript(()=>{ localStorage.setItem('bbl_author','엄마');
+    localStorage.setItem('bbl_lang','ko'); });
+  await ctx4.addCookies([{ name:'zio_gate', value: ck.split('=')[1],
+    domain:'localhost', path:'/' }]);
+  await p4.goto(BASE + '/'); await p4.waitForTimeout(2400);
+  await ctx4.clearCookies();
+  await p4.evaluate(()=> window.dispatchEvent(new Event('focus')));
+  let kicked2 = true;
+  try {
+    await p4.waitForFunction(() => {
+      const g = document.getElementById('gate');
+      return !!(g && !g.hidden);
+    }, null, { timeout: 8000 });
+  } catch (e) { kicked2 = false; }
+  check('폰을 다시 들여다보면 그 자리에서 쫓겨난다', kicked2, true);
+  await p4.close();
 
   check('페이지 오류 없음', errs, []);
   await b.close();

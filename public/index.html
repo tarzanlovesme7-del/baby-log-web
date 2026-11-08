@@ -5993,9 +5993,30 @@ function applyServerState(json){
 /* 서버가 잠겼다고 하면(401) 그 사실만 들고 올라간다 — 부팅은 이걸 보고
    앱 대신 비번 화면을 세운다. */
 var ERR_LOCKED = 'locked';
+var gateLocked = false;
+/* 켜 둔 폰을 쫓아낸다.
+   비번을 켜는 순간, 이미 열려 있던 폰은 화면에 기록도 사진도 그대로 떠
+   있었다 — 서버가 막혀도 그려진 화면은 그대로니까("우리애기 얼굴 사진
+   남아있을텐데 강제로 튕겨줘야지", 2026-11-08). 그래서 숨기는 것으로
+   끝내지 않는다: 그려 둔 것을 **지우고** 손에 쥔 문서도 버린다. 다시
+   들어오려면 비번을 넣고 페이지를 새로 읽는 길밖에 없다. */
+function gateKick(){
+  if (gateLocked) return;
+  gateLocked = true;
+  clearTimeout(pollTimer);
+  /* 열려 있던 시트·전체화면까지 전부 닫고 화면을 비운다 */
+  try {
+    var app = document.getElementById('app');
+    if (app) app.innerHTML = '';
+    appState = { entries: [], active: null, customTypes: [], memos: [], typeOrder: [], profile: {} };
+    appVersion = 0;
+  } catch (e) {}
+  gateShow();
+}
 function gateShow(){
   var el = document.getElementById('gate');
   if (!el) return;
+  gateLocked = true;
   applyI18n();                       /* 아직 renderAll 이 안 돌았다 */
   document.body.classList.remove('booting');
   document.body.classList.add('gated');
@@ -6499,6 +6520,7 @@ var POLL_MS = 25000, POLL_MAX = 300000;
 var pollWait = POLL_MS, pollTimer = null;
 function pollSoon(ms){
   clearTimeout(pollTimer);
+  if (gateLocked) return;            /* 쫓겨난 폰은 더 묻지 않는다 */
   /* 세 대가 같은 초에 몰려 한 덩어리로 보이지 않게 ±15% 흩뿌린다 */
   pollTimer = setTimeout(pollTick, Math.round(ms * (0.85 + Math.random() * 0.3)));
 }
@@ -6513,6 +6535,7 @@ function pollTick(){
    state that looks exactly like her change was undone. Every way a page can
    come back to life asks the server at once. */
 function resyncNow(){
+  if (gateLocked) return;           /* 쫓겨난 폰은 깨어나도 다시 묻지 않는다 */
   pollBusy = false;                 /* a poll frozen mid-flight must not latch */
   pollWait = POLL_MS;               /* 물러나 있던 간격도 원래대로 */
   outboxReplay();                   /* anything still owed to the server */
@@ -6553,6 +6576,8 @@ function pollState(){
     return apiGetState().then(function(){ renderAll(); });
   }
   fetch('/api/version').then(function(res){
+    /* 비번이 켜진 순간 켜 둔 폰이 여기로 걸린다 — 4초 안에 쫓겨난다 */
+    if (res.status === 401){ gateKick(); throw new Error(ERR_LOCKED); }
     /* 404는 /api/version을 모르는 옛 서버다 — 그때만 통째로 받아 온다.
        그 밖의 비정상 응답(403 챌린지, 502·522 등)은 '한 번 더 요청'으로
        갚을 일이 아니라 물러날 일이다. */
@@ -12700,7 +12725,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261108e';
+var BUILD = '20261108f';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -18715,7 +18740,10 @@ function ptrRun(){
   var started = Date.now();
   apiGetState()
     .then(function(){ renderAll(); })
-    .catch(function(){ toast(t('refreshFailed')); })
+    .catch(function(err){
+      if (err && err.message === ERR_LOCKED){ gateKick(); return; }
+      toast(t('refreshFailed'));
+    })
     .then(function(){
       /* a refresh that answers in 40ms reads as "nothing happened"; hold the
          spinner just long enough to be seen */
@@ -18788,6 +18816,7 @@ function init(){
     /* 잠긴 것은 고장이 아니다 — 앱 대신 비번 화면을 세우고 여기서 멈춘다.
        폴링도 시작하지 않는다(401만 계속 긁어 올 뿐이다). */
     if (err && err.message === ERR_LOCKED){ gateShow(); return; }
+
     /* it failed rather than being slow: an honest empty screen and the
        message, not a shimmer that never resolves */
     markBooted();
