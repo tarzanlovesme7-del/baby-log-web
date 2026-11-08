@@ -7,8 +7,9 @@
         고쳐 쓰지 않고 **같은 사람으로 읽기만** 한다(AUTHOR_ALIASES).
      2) '정산' 서브탭은 엄마 폰에서만 열린다. '출근 도장'은 그대로 둔다 —
         닫으면 본인이 출근을 찍을 길이 없다.
-   10일부터는 셋 다 되돌아온다 — 이름은 다시 그냥 '내니', Linh 칩은 사라지고,
-   정산은 모두에게 보인다. Linh 의 **이름만** 남아 그가 적은 기록을 지킨다. */
+   Linh 칩은 11/7 까지만 고를 수 있다 — 그가 먼저 그만뒀다(2026-11-08).
+   10일부터는 이름도 다시 그냥 '내니'가 되고 정산도 모두에게 보인다.
+   어느 쪽이든 Linh 의 **이름만** 남아 그가 적은 기록을 지킨다. */
 const { chromium } = require(process.env.PW || '/home/claude/.npm-global/lib/node_modules/playwright');
 const BASE = 'http://localhost:3311';
 const R = [];
@@ -146,19 +147,34 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
     !document.querySelector('[data-pv-panel="settle"]').hidden), true);
   await p.close();
 
-  /* ── 6. 11월 9일 — Linh 마지막 근무일. 아직 다 그대로다 ───── */
-  p = await open('내니 Vi', '2026-11-09T09:00:00+07:00');
-  await p.evaluate(() => document.querySelector('.tab-btn[data-tab="pay"]').click());
-  await p.waitForTimeout(800);
-  check('11월 9일까지는 급여 탭이 아직 가려져 있다', await p.evaluate(() => {
-    const b = document.querySelector('.tab-btn[data-tab="pay"]');
-    return !!(b && b.hidden); }), true);
-  await p.evaluate(() => document.getElementById('btn-settings').click());
-  await p.waitForTimeout(700);
+  /* ── 6a. 11월 7일 — Linh 마지막 근무일. 칩이 아직 있다 ───── */
+  p = await open('엄마', '2026-11-07T09:00:00+07:00');
+  await p.click('#btn-settings'); await p.waitForTimeout(700);
   await p.click('[data-set-go="who"]'); await p.waitForTimeout(700);
-  check('...Linh 칩도 아직 있다 (마지막 근무일)', await p.evaluate(() =>
+  check('11월 7일까지는 Linh 칩이 있다', await p.evaluate(() =>
     [...document.querySelectorAll('#author-chip-row .chip')].map(c => c.textContent.trim())),
     ['엄마', '아빠', '내니 Vi', '내니 Linh']);
+  await p.close();
+
+  /* ── 6b. 11월 8일 — 칩만 사라지고 이름은 남는다 ───────────── */
+  p = await open('엄마', '2026-11-08T09:00:00+07:00');
+  await p.click('#btn-settings'); await p.waitForTimeout(700);
+  await p.click('[data-set-go="who"]'); await p.waitForTimeout(700);
+  check('11월 8일부터 Linh 칩은 고를 수 없다', await p.evaluate(() =>
+    [...document.querySelectorAll('#author-chip-row .chip')].map(c => c.textContent.trim())),
+    ['엄마', '아빠', '내니 Vi']);
+  await p.evaluate(() => document.querySelector('.tab-btn[data-tab="record"]').click());
+  await p.waitForTimeout(800);
+  check('...그래도 Linh 가 적은 기록은 그 이름 그대로다', await p.evaluate(() =>
+    [...document.querySelectorAll('.entry-row .e-author')].map(x => x.textContent.trim())
+      .indexOf('내니 Linh') >= 0), true);
+  await p.close();
+
+  /* 정산 가리기는 Linh 와 따로 간다 — 9일까지는 내니 폰에서 아직 닫혀 있다 */
+  p = await open('내니 Vi', '2026-11-08T09:00:00+07:00');
+  check('...정산은 9일까지 아직 가려져 있다', await p.evaluate(() => {
+    const b = document.querySelector('.tab-btn[data-tab="pay"]');
+    return !!(b && b.hidden); }), true);
   await p.close();
 
   /* ── 7. 11월 10일 — Vi 가 돌아온다 ────────────────────────── */
