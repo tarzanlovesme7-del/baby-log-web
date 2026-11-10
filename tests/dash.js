@@ -68,6 +68,7 @@ const D = (n) => { const d = new Date(); d.setDate(d.getDate() + n);
       rowIcons: [...el.querySelectorAll('.wn-mrow')].map(r => r.querySelectorAll('.wn-it').length),
       emoji: !document.getElementById('wn-emoji').hidden,
       title: !document.getElementById('wn-dn-line').hidden,
+      stage: (document.getElementById('wn-stage').textContent || '').trim(),
       dn: (document.getElementById('wn-dn').textContent || '').trim(),
       news: el.querySelectorAll('.wn-new').length,
       firstIsNew: !!(el.querySelector('.wn-it') && el.querySelector('.wn-it .wn-new')),
@@ -217,9 +218,10 @@ const D = (n) => { const d = new Date(); d.setDate(d.getDate() + n);
   check('...오늘 처음 먹는 재료에만 느낌표', w.news, 1);
   check('...그 재료가 맨 앞에 선다', w.firstIsNew, true);
   check('한 끼뿐인 날엔 끼니 이름을 적지 않는다', w.meals, []);
-  /* 식단이 서 있는 날에는 제목도 🍽️ 도 세우지 않는다 — 재료 그림이 이미
-     무엇인지 말하고 있어서 둘 다 자리만 먹었다 */
-  check('...제목과 이모지는 안 뜬다', [w.title, w.emoji], [false, false]);
+  /* 🍽️ 는 세우지 않는다 — 재료 그림이 이미 무엇인지 말하고 있어서 자리만
+     먹었다. 제목 줄은 단계와 며칠차를 적으러 남았다(2026-11-10). */
+  check('...이모지는 안 뜬다', w.emoji, false);
+  check('...제목 줄은 단계와 며칠차를 적는다', [w.title, !!w.stage], [true, true]);
   await p.click('#wean-row'); await p.waitForTimeout(900);
   check('띠를 누르면 이유식 화면이 열린다',
     await p.evaluate(() => { const f = document.getElementById('fp-wean'); return !!f && !f.hidden; }), true);

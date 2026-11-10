@@ -899,10 +899,13 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   p = await open('내니', 'vi');
   check('내니 폰에도 띠에 그림이 선다',
     await p.evaluate(()=>document.querySelectorAll('#wean-row .wn-it').length), 4);
-  /* 식단이 서 있는 날에는 띠에 '이유식' 제목을 안 적는다(그림이 말한다).
-     그러니 베트남어인지는 재료 이름으로 본다 — 내니가 실제로 읽는 글자다. */
-  check('...띠에 제목을 적지 않는다',
-    await p.evaluate(()=>document.getElementById('wn-dn-line').hidden), true);
+  /* 식단이 서 있는 날에도 제목 줄은 선다 — 단계와 며칠차(2026-11-10).
+     그림(🍽️)만 빠진다: 아래 재료 그림이 이미 이유식이라고 말한다.
+     자세한 것은 tests/wnstage.js. */
+  check('...띠에 단계 줄이 선다',
+    await p.evaluate(()=>!document.getElementById('wn-dn-line').hidden), true);
+  check('...그림은 빠진다',
+    await p.evaluate(()=>!!document.getElementById('wn-emoji').hidden), true);
   check('...재료 이름이 베트남어',
     /thịt bò/.test(await p.evaluate(()=>document.getElementById('wn-meals').textContent)), true);
   /* '보인다'는 건 hidden이 아니라는 것만으로는 모자라다 — 조상이 숨으면

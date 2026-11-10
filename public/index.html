@@ -596,6 +596,23 @@
   .announce-row.wean-row .a-chev{ margin-left:0; align-self:center; }
   /* 시작 전 한 줄짜리일 때만 제목과 이모지가 선다 */
   #wn-dn-line[hidden]{ display:none; }
+  /* 메뉴가 선 날에도 제목 줄은 남는다 — '초기 이유식' + '12일차'. 식단표에
+     며칠차가 적혀 있어도 첫 화면에서는 보이지 않아서, 지금이 어느 단계의
+     몇 일차인지 달력을 열어야 알 수 있었다(2026-11-10). 단계는 지오 개월수가
+     정하니 손으로 고칠 칸은 없다. 그림은 여전히 빠지고 — 아래 재료 그림이
+     이미 이유식이라고 말한다 — 두 줄 사이는 1px만 둬서 띠가 두 층으로
+     읽히지 않게 한다. */
+  /* 제목 줄과 메뉴 사이는 재료가 두 줄로 떨어질 때의 줄 간격(.wn-icons 의
+     row-gap 6px)보다 넓어야 한다 — 좁으면 '초기 이유식'이 재료 목록의 첫
+     줄처럼 붙어 읽힌다(2026-11-10). 글자 상자가 2px를 더 주므로 7px 이
+     화면에서 9px — 줄 간격의 한 칸 반이다. */
+  .wn-over-menu{ min-height:0; margin-bottom:7px; }
+  /* 끼니 이름 알약(.wn-meal)과 같은 모양. 같은 띠 안에서 같은 성격의 꼬리말이
+     둘 다 알약이면 눈이 한 번만 배운다. */
+  .wn-stage{ font-size:var(--fs-micro); font-weight:var(--fw-strong); color:var(--wn-fg);
+    background:color-mix(in srgb, var(--wn-fg) 14%, transparent);
+    border-radius:var(--radius-pill); padding:1px 8px; flex:0 0 auto; }
+  .wn-stage:empty{ display:none; }
   /* 그림 + 이름이 한 덩어리. 이름이 붙으니 그림은 작아도 된다 —
      그림은 눈이 먼저 걸리게 하는 표식이고, 읽는 것은 이름이다. */
   /* 재료를 흰 알약 하나에 담았던 자리. 알약이 하던 일은 '연두 바탕에서
@@ -3597,6 +3614,7 @@
         <div class="a-body">
           <div class="a-top" id="wn-dn-line">
             <span class="a-label" id="wn-label">이유식</span>
+            <span class="wn-stage" id="wn-stage"></span>
             <span class="wn-soon wn-dn" id="wn-dn"></span>
           </div>
           <div class="wn-meals" id="wn-meals"></div>
@@ -4965,6 +4983,7 @@ ko: {
   dashFeedNext:"다음 수유", dashSleepLast:"마지막 잠", dashPoopLast:"마지막 똥",
   dashSleptTpl:"{n} 잤음", dashDiaperTpl:"기저귀 {n} 전", dashAgo:"전", dashNth:"째",
   dashAsleep:"자는 중", dashAfter:"후", wnBandLabel:"이유식", wnNewTag:"새 재료",
+  wnStageEarly:"초기 이유식", wnStageMid:"중기 이유식", wnStageLate:"후기 이유식", wnStageDone:"완료기 이유식",
   dashDash:"\u2014", dashDminusTpl:"D-{n}", dashFeedDue:"지났어요", dashFeedDone:"완료",
   authorViPh:"베트남어 이름 (자동 번역)",
   mlUnit:"ml",
@@ -5281,6 +5300,7 @@ vi: {
   dashFeedNext:"Cữ bú tiếp", dashSleepLast:"Ngủ gần nhất", dashPoopLast:"Ị gần nhất",
   dashSleptTpl:"ngủ {n}", dashDiaperTpl:"thay tã {n} trước", dashAgo:"trước", dashNth:"",
   dashAsleep:"Đang ngủ", dashAfter:"nữa", wnBandLabel:"Ăn dặm", wnNewTag:"Mới",
+  wnStageEarly:"Ăn dặm giai đoạn đầu", wnStageMid:"Ăn dặm giai đoạn giữa", wnStageLate:"Ăn dặm giai đoạn cuối", wnStageDone:"Ăn dặm hoàn thiện",
   dashDash:"\u2014", dashDminusTpl:"D-{n}", dashFeedDue:"Quá giờ", dashFeedDone:"Xong",
   authorViPh:"Tên tiếng Việt (tự dịch)",
   mlUnit:"ml",
@@ -7736,7 +7756,9 @@ function renderWeanBand(){
       box.hidden = false;
       emo.hidden = false;
       dnLine.hidden = false;
+      dnLine.classList.remove('wn-over-menu');
       document.getElementById('wn-label').textContent = t('wnBandLabel');
+      document.getElementById('wn-stage').textContent = '';
       document.getElementById('wn-dn').textContent = t('dashDminusTpl').replace('{n}', String(n));
       meals.innerHTML = '';
       syncAnnounceStack();
@@ -7747,7 +7769,14 @@ function renderWeanBand(){
 
   box.hidden = false;
   emo.hidden = true;
-  dnLine.hidden = true;
+  /* 제목 줄은 남긴다 — 단계와 며칠차. 그림만 빠진다. */
+  dnLine.hidden = false;
+  dnLine.classList.add('wn-over-menu');
+  document.getElementById('wn-label').textContent = weanStageName(ds);
+  document.getElementById('wn-dn').textContent = '';
+  var dayNo = weanDayNo(ds);
+  document.getElementById('wn-stage').textContent =
+    dayNo > 0 ? t('wnDayNoTpl').replace('{n}', String(dayNo)) : '';
   /* 하루를 통째로 — 끼니마다 한 줄. '다음 안 먹인 끼니' 하나만 보여주던
      때는 아침을 먹이고 나면 점심이 나타나서, 아침에 뭘 줬는지 띠에서
      사라졌다. 하루 식단은 하루 종일 같은 자리에 있어야 한다. */
@@ -12725,7 +12754,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261108f';
+var BUILD = '20261110a';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -15818,6 +15847,34 @@ function weanDayNo(ds){
   if (!first || !ds) return 0;
   var a = new Date(first + 'T00:00:00'), b = new Date(ds + 'T00:00:00');
   return Math.round((b - a) / 86400000) + 1;
+}
+/* 초기 · 중기 · 후기 · 완료기.
+
+   식단표에 단계를 적는 칸을 따로 만들면 매달 누군가 고쳐야 하는 칸이
+   하나 더 생기고, 안 고치면 띠가 거짓말을 한다. 단계는 지오 개월수에서
+   나온다 — 생일 하나로 저절로 넘어간다.
+   6개월까지 초기, 7~8 중기, 9~11 후기, 12개월부터 완료기. */
+function babyMonthsOn(ds){
+  var birth = ((appState && appState.profile) || {}).birth;
+  if (!birth || !ds) return -1;
+  var b = new Date(birth + 'T00:00:00'), d = new Date(ds + 'T00:00:00');
+  if (isNaN(b.getTime()) || isNaN(d.getTime())) return -1;
+  var m = (d.getFullYear() - b.getFullYear()) * 12 + (d.getMonth() - b.getMonth());
+  if (d.getDate() < b.getDate()) m -= 1;
+  return m;
+}
+function weanStageKey(ds){
+  var m = babyMonthsOn(ds);
+  if (m < 0) return '';            /* 생일이 없으면 단계도 없다 */
+  if (m <= 6) return 'Early';
+  if (m <= 8) return 'Mid';
+  if (m <= 11) return 'Late';
+  return 'Done';
+}
+/* 단계를 모르면 그냥 '이유식' — 시작 전 한 줄이 쓰는 말과 같다. */
+function weanStageName(ds){
+  var k = weanStageKey(ds);
+  return k ? t('wnStage' + k) : t('wnBandLabel');
 }
 function weanDateAdd(ds, n){
   var d = new Date(ds + 'T00:00:00');
