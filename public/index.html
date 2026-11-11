@@ -3368,7 +3368,7 @@
     border-radius:var(--radius-sm); padding:12px 14px; background:var(--surface);
     width:100%; text-align:center; flex:0 0 auto; }
   .wn-span.warn{ border-color:var(--warn-fg); }
-  .wn-span .t{ flex:1; text-align:center; }
+  .wn-span .t{ flex:1; text-align:center; position:relative; }
   .wn-span .t em{ display:block; font-style:normal; font-size:var(--fs-micro); color:var(--muted-2); }
   .wn-span .t b{ display:block; font-size:var(--fs-label); font-weight:var(--fw-strong);
     margin-top:2px; font-variant-numeric:tabular-nums; color:var(--fg); }
@@ -3376,10 +3376,17 @@
   .wn-span .n{ flex:0 0 auto; font-size:var(--fs-micro); font-weight:var(--fw-strong);
     color:var(--muted); background:var(--surface-2); border-radius:var(--radius-pill);
     padding:4px 9px; }
-  /* 네이티브 날짜 칸 둘은 숨겨 두고 showPicker()로만 띄운다. display:none이면
-     사파리가 showPicker를 거부하므로 자리만 0으로 만든다. */
-  .wn-span-in{ position:absolute; width:1px; height:1px; opacity:0; padding:0; border:0;
-    pointer-events:none; }
+  /* 날짜 칸은 **진짜 칸이 그 자리에 깔려 있다**(2026-11-11).
+     전에는 1px짜리로 숨겨 두고 showPicker()로 띄웠는데, 사파리는 눈에 안
+     보이는 칸의 달력을 열어 주지 않고, 대신 쓰던 focus()+click() 도 사람이
+     직접 누른 것이 아니면 안 먹는다. 아이폰에서 날짜 줄을 눌러도 아무 일도
+     일어나지 않던 이유가 이것이다("식단 날짜 수정이 안되네?").
+     그래서 줄 모양은 그대로 두고, 그 위에 투명한 날짜 칸을 **꽉 차게** 깐다 —
+     손가락이 닿는 것이 네이티브 칸 자체라 달력은 저절로 열린다.
+     16px 은 아이폰이 화면을 확대하지 않는 최소 글자 크기다. */
+  .wn-span-in{ position:absolute; inset:0; width:100%; height:100%;
+    opacity:0; border:0; margin:0; padding:0; background:transparent;
+    font-size:16px; color:transparent; -webkit-appearance:none; appearance:none; }
   /* 겹침 경고는 글자까지 경고색 — 새 재료 알림(.wn-alert)보다 한 단 세다 */
   .wn-alert.warn{ margin-top:10px; }
   .wn-alert.warn b{ font-size:var(--fs-micro); }
@@ -12764,7 +12771,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261111b';
+var BUILD = '20261111c';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -17363,6 +17370,50 @@ function weanMealName(name){
   return n;
 }
 
+/* 기간 줄의 겹침 경고 — 마크업을 따로 빼 둔다. 날짜를 고칠 때 화면을
+   통째로 다시 그리지 않고 이 덩어리만 갈아 끼우기 위해서다. */
+function weanClashHtml(clash, mode){
+  if (!clash.length) return '';
+  return '<div class="wn-alert warn"><b>' +
+    esc(t('wnClashTpl').replace('{d}', weanShortDate(clash[0])).replace('{n}', clash.length)) + '</b>' +
+    '<span>' + esc(t('wnClashSub')) + '</span></div>' +
+    '<div class="chip-row" style="padding:10px 0 0" id="wn-span-mode">' +
+    '<button type="button" class="chip" data-wn-mode="fill" aria-pressed="' +
+      (mode === 'fill') + '">' + esc(t('wnModeFill')) + '</button>' +
+    '<button type="button" class="chip" data-wn-mode="overwrite" aria-pressed="' +
+      (mode !== 'fill') + '">' + esc(t('wnModeOver')) + '</button></div>';
+}
+function weanSpanHintText(from){
+  var no = weanDayNo(from);
+  return no > 0 ? t('wnDayNoTpl').replace('{n}', no) + ' · ' + t('wnSpanHint') : t('wnSpanHint');
+}
+/* 날짜만 바뀌었을 때 — **화면을 다시 그리지 않고** 글자만 고쳐 쓴다.
+   아이폰 달력은 바퀴를 돌릴 때마다 change 를 쏘는데, 그때마다 화면을 다시
+   그리면 열려 있던 달력이 사라진다. */
+function refreshWeanSpanRow(){
+  var sp = state.weanSpan;
+  if (!sp) return;
+  var row = document.getElementById('wn-span-row');
+  if (!row) return;
+  var days = weanDaysBetween(sp.from, sp.to);
+  var clash = weanSpanClashes(sp.from, sp.to, sp.meal.name || '', sp.wasFrom, sp.wasTo);
+  var set = function(id, txt){ var e = document.getElementById(id); if (e) e.textContent = txt; };
+  set('wn-span-from-lbl', weanLongDate(sp.from));
+  set('wn-span-to-lbl', weanLongDate(sp.to));
+  set('wn-span-n', t('wnSpanDaysTpl').replace('{n}', days));
+  set('wn-span-hint', weanSpanHintText(sp.from));
+  row.classList.toggle('warn', !!clash.length);
+  var box = document.getElementById('wn-span-clash');
+  if (box){ box.innerHTML = weanClashHtml(clash, sp.mode); box.hidden = !clash.length; }
+  /* 두 칸의 값도 서로 따라간다 — 시작을 끝 뒤로 밀면 끝도 같이 간다 */
+  var fi = document.getElementById('wn-span-from'), ti = document.getElementById('wn-span-to');
+  if (fi && fi.value !== sp.from && document.activeElement !== fi) fi.value = sp.from;
+  if (ti && ti.value !== sp.to && document.activeElement !== ti) ti.value = sp.to;
+  var save = document.getElementById('fp-weanday-save');
+  if (save) save.textContent = sp.isNew
+    ? t('wnMakeNTpl').replace('{n}', days)
+    : t('wnApplyNTpl').replace('{n}', days);
+}
 function renderWeanDayPage(){
   var sp = state.weanSpan;
   if (!sp) return;
@@ -17378,30 +17429,28 @@ function renderWeanDayPage(){
   var clash = weanSpanClashes(sp.from, sp.to, m.name || '', sp.wasFrom, sp.wasTo);
   var mkey = weanMenuKey(m), mcol = weanColorOf(mkey);
 
+  /* 날짜 칸이 줄 안에 **그대로 들어 있다**. 줄은 더 이상 <button> 이 아니다 —
+     버튼 안의 <input> 은 문법에도 안 맞고 사파리가 손가락을 버튼에게 줘
+     버려서 달력이 안 열린다. */
   var html = '<div class="wd-head"><h3>' + esc(t('wnSpanLabel')) + '</h3></div>' +
-    '<button type="button" class="wn-span' + (clash.length ? ' warn' : '') + '" data-wn-span>' +
-      '<span class="t"><em>' + esc(t('wnSpanFrom')) + '</em><b>' + esc(weanLongDate(sp.from)) + '</b></span>' +
+    '<div class="wn-span' + (clash.length ? ' warn' : '') + '" id="wn-span-row">' +
+      '<span class="t"><em>' + esc(t('wnSpanFrom')) + '</em>' +
+        '<b id="wn-span-from-lbl">' + esc(weanLongDate(sp.from)) + '</b>' +
+        '<input type="date" class="wn-span-in" id="wn-span-from" value="' + esc(sp.from) +
+          '" aria-label="' + esc(t('wnSpanFrom')) + '" /></span>' +
       '<span class="dash2">–</span>' +
-      '<span class="t"><em>' + esc(t('wnSpanTo')) + '</em><b>' + esc(weanLongDate(sp.to)) + '</b></span>' +
-      '<span class="n">' + esc(t('wnSpanDaysTpl').replace('{n}', days)) + '</span>' +
-    '</button>' +
-    '<input type="date" class="wn-span-in" id="wn-span-from" value="' + esc(sp.from) + '" />' +
-    '<input type="date" class="wn-span-in" id="wn-span-to" value="' + esc(sp.to) + '" />' +
-    '<div class="t-caption" style="padding:8px 2px 0">' +
-      esc(weanDayNo(sp.from) > 0 ? t('wnDayNoTpl').replace('{n}', weanDayNo(sp.from)) + ' · ' + t('wnSpanHint')
-                                 : t('wnSpanHint')) + '</div>';
-
-  if (clash.length){
-    html += '<div class="wn-alert warn"><b>' +
-      esc(t('wnClashTpl').replace('{d}', weanShortDate(clash[0]))
-        .replace('{n}', clash.length)) + '</b>' +
-      '<span>' + esc(t('wnClashSub')) + '</span></div>' +
-      '<div class="chip-row" style="padding:10px 0 0" id="wn-span-mode">' +
-      '<button type="button" class="chip" data-wn-mode="fill" aria-pressed="' +
-        (sp.mode === 'fill') + '">' + esc(t('wnModeFill')) + '</button>' +
-      '<button type="button" class="chip" data-wn-mode="overwrite" aria-pressed="' +
-        (sp.mode !== 'fill') + '">' + esc(t('wnModeOver')) + '</button></div>';
-  }
+      '<span class="t"><em>' + esc(t('wnSpanTo')) + '</em>' +
+        '<b id="wn-span-to-lbl">' + esc(weanLongDate(sp.to)) + '</b>' +
+        '<input type="date" class="wn-span-in" id="wn-span-to" value="' + esc(sp.to) +
+          '" aria-label="' + esc(t('wnSpanTo')) + '" /></span>' +
+      '<span class="n" id="wn-span-n">' + esc(t('wnSpanDaysTpl').replace('{n}', days)) + '</span>' +
+    '</div>' +
+    '<div class="t-caption" style="padding:8px 2px 0" id="wn-span-hint">' +
+      esc(weanSpanHintText(sp.from)) + '</div>' +
+    /* 겹침 경고는 **늘 자리에 있고 숨었다 보였다 한다**. 날짜를 고칠 때마다
+       화면을 다시 그리면, 아이폰에서 열려 있던 달력이 통째로 날아간다. */
+    '<div id="wn-span-clash"' + (clash.length ? '' : ' hidden') + '>' +
+      weanClashHtml(clash, sp.mode) + '</div>';
 
   html += '<div class="wd-head" style="margin-top:16px"><h3>' + esc(t('wnMealLabel')) + '</h3></div>' +
     '<div class="chip-row" style="padding:0" id="wn-meal-name">' +
@@ -17961,23 +18010,15 @@ function wireWean(){
       var p = el.dataset.wnEdit.split(':');
       openWeanIngPick(p[0], Number(p[1])); return;
     }
-    /* 기간 — 네이티브 날짜 칸 둘을 숨겨 두고 띄운다. iOS 사파리도 date 는 받는다
-       (month 와 달리). showPicker 가 없으면 칸을 눌러서 연다. */
-    if (ev.target.closest('[data-wn-span]')){
-      var side = ev.target.closest('.t');
-      var inp = document.getElementById(
-        (side && side.previousElementSibling === null) ? 'wn-span-from' :
-        (side && side.nextElementSibling && side.nextElementSibling.classList.contains('dash2')) ? 'wn-span-from' : 'wn-span-to');
-      if (inp){ try { inp.showPicker(); } catch (e) { inp.focus(); inp.click(); } }
-      return;
-    }
+    /* 기간 칸은 줄 안에 투명하게 깔려 있다 — 손가락이 네이티브 칸에 바로
+       닿으므로 여기서 달력을 열어 줄 일이 없다(2026-11-11). */
     if ((el = ev.target.closest('[data-wn-mname]'))){
       state.weanSpan.meal.name = el.dataset.wnMname;
       renderWeanDayPage(); return;
     }
     if ((el = ev.target.closest('[data-wn-mode]'))){
       state.weanSpan.mode = el.dataset.wnMode;
-      renderWeanDayPage(); return;
+      refreshWeanSpanRow(); return;
     }
     if ((el = ev.target.closest('[data-wn-color]'))){
       /* 아직 저장 전인 식단이라 색만 먼저 서버에 둔다 — 색은 메뉴에 붙는
@@ -18008,7 +18049,7 @@ function wireWean(){
         state.weanSpan.to = v;
         if (v < state.weanSpan.from) state.weanSpan.from = v;
       }
-      renderWeanDayPage();
+      refreshWeanSpanRow();
     });
   });
 

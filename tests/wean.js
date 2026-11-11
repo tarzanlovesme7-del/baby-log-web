@@ -533,6 +533,35 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   /* 편집 화면이 아직 열려 있다 — 방금 저장했으니 다시 들어간다 */
   await p.click('.wd-card'); await p.waitForTimeout(700);
   check('기간 칸이 있다', /시작/.test(await spanTxt()), true);
+  /* 날짜 칸은 줄 **위에 투명하게 깔린 진짜 네이티브 칸**이다. 전에는 1px로
+     숨겨 두고 showPicker()로 띄웠는데, 사파리는 안 보이는 칸의 달력을 열어
+     주지 않아서 아이폰에서 날짜 줄을 눌러도 아무 일도 없었다
+     ("식단 날짜 수정이 안되네?", 2026-11-11). 손가락이 닿는 것이 칸 자체여야
+     달력이 열린다 — 그래서 칸이 줄의 절반을 **꽉** 덮는지까지 본다. */
+  check('날짜 칸을 손가락이 바로 짚는다', await p.evaluate(()=>
+    [...document.querySelectorAll('#fp-weanday-body .wn-span .t')].map(t=>{
+      const r = t.getBoundingClientRect();
+      const hit = document.elementFromPoint(r.left + r.width/2, r.top + r.height/2);
+      const i = t.querySelector('input[type=date]');
+      if (!i || !hit || hit !== i) return 'no';
+      const ir = i.getBoundingClientRect();
+      return (Math.abs(ir.width - r.width) < 1.5 && Math.abs(ir.height - r.height) < 1.5) ? 'ok' : 'small';
+    })), ['ok','ok']);
+  /* 날짜를 고칠 때 화면을 통째로 다시 그리면 아이폰에서 열려 있던 달력이
+     날아간다 — 칸은 **그 자리에 그대로 살아 있어야** 한다. */
+  const sameInputs = await p.evaluate(async ()=>{
+    const grab = () => [document.getElementById('wn-span-from'), document.getElementById('wn-span-to')];
+    const was = grab();
+    const d = new Date(); d.setDate(d.getDate() + 3);
+    const v = d.toISOString().slice(0,10);
+    was[1].value = v; was[1].dispatchEvent(new Event('change', { bubbles:true }));
+    await new Promise(r=>setTimeout(r,300));
+    const now = grab();
+    return [was[0] === now[0], was[1] === now[1],
+      document.getElementById('wn-span-to-lbl').textContent.length > 0];
+  });
+  check('날짜를 고쳐도 칸이 살아 있다 (달력이 안 닫힌다)', sameInputs, [true, true, true]);
+  await setSpan('to', TODAY);
   check('...끼니 추가 버튼은 없다',
     await p.evaluate(()=>!!document.querySelector('#fp-weanday-body [data-wn-addmeal]')), false);
 
