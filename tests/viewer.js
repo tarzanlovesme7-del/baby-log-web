@@ -53,16 +53,46 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
   const count = () => p.evaluate(() => document.getElementById('fp-photo-count').textContent);
   check('첫 장부터 열린다', await count(), '1/3');
 
-  /* ── 화살표는 사진 아래 ─────────────────────────────────── */
-  check('화살표가 사진 위에 얹혀 있지 않다', await p.evaluate(() => {
-    const st = document.getElementById('fp-photo-stage').getBoundingClientRect();
+  /* ── 화살표는 사진 아래쪽에 ─────────────────────────────
+     2026-11-11부터 무대가 화면 전체라 화살표는 사진 **위에** 뜬다. 가리면
+     안 되는 것은 사진 한가운데다 — 거기가 손가락이 쓸고 지나가는 자리라
+     한 번 치웠었다(2026-10-26). 아래 4분의 1 안에 있어야 한다. */
+  check('화살표는 화면 아래쪽에만 뜬다', await p.evaluate(() => {
+    const vh = window.innerHeight;
     return [...document.querySelectorAll('.photo-nav')]
-      .every(n => n.getBoundingClientRect().top >= st.bottom - 0.5);
+      .every(n => n.getBoundingClientRect().top >= vh * 0.75);
   }), true);
   check('...화살표 줄이 화면 바닥에 붙어 있다', await p.evaluate(() => {
     const f = document.getElementById('fp-photo-foot').getBoundingClientRect();
     return Math.round(window.innerHeight - f.bottom);
   }), 0);
+
+  /* ── 사진은 화면 한가운데 선다 ──────────────────────────
+     예전 무대는 '위는 머리 높이만큼, 아래는 화살표 줄만큼' 비운 자리였다.
+     그런데 화살표 줄은 사진이 두 장 이상일 때만 생긴다 — 그래서 **한 장짜리
+     기록에서만** 위만 비어 사진이 머리 절반(그녀 폰에서 61px)만큼 내려앉았다
+     ("기록에 붙은 사진 누르면 가끔 이렇게 아래로 정렬될 때가 있어",
+     2026-11-11). 이제 무대가 화면 전체라 줄이 있든 없든 자리가 같다. */
+  const photoMid = () => p.evaluate(() => {
+    const r = document.querySelector('#fp-photo-track img').getBoundingClientRect();
+    return (r.top + r.bottom) / 2;
+  });
+  check('사진이 화면 한가운데 선다',
+    Math.round(await photoMid() - (await p.evaluate(() => window.innerHeight / 2))), 0);
+  check('...화살표 줄이 없어도 자리가 같다 (한 장짜리 기록)', await p.evaluate(() => {
+    const img = document.querySelector('#fp-photo-track img');
+    const mid = () => { const r = img.getBoundingClientRect(); return (r.top + r.bottom) / 2; };
+    const was = mid();
+    const foot = document.getElementById('fp-photo-foot');
+    foot.hidden = true;
+    const now = mid();
+    foot.hidden = false;
+    return Math.round(now - was);
+  }), 0);
+  /* 머리가 사진 위에 떠 있어도 ‹ 는 눌린다 — 무대가 화면 전체를 덮으므로
+     머리가 그 위에 서지 않으면 손가락이 무대에 먹힌다. */
+  check('‹ 가 무대 위에 있다 (닫기가 눌린다)',
+    await p.evaluate(() => (document.elementFromPoint(26, 30) || {}).id), 'fp-photo-back');
 
   /* ── 좌우 스와이프 ──────────────────────────────────────── */
   const swipe = async (fx, tx, fy, ty) => {
@@ -129,11 +159,17 @@ const st = async () => { const j = await (await fetch(BASE + '/api/state')).json
   await p.click('.e-pic[data-epic="0"]'); await p.waitForTimeout(900);
   check('한 장뿐이면 화살표 줄이 없다', await p.evaluate(() => [
     document.getElementById('fp-photo-foot').hidden,
-    document.getElementById('fp-photo').classList.contains('has-nav'),
-    document.getElementById('fp-photo-count').textContent]), [true, false, '']);
-  check('...그만큼 사진이 바닥까지 쓴다', await p.evaluate(() =>
-    Math.round(window.innerHeight -
-      document.getElementById('fp-photo-stage').getBoundingClientRect().bottom)), 0);
+    document.getElementById('fp-photo-count').textContent]), [true, '']);
+  check('...무대는 화면을 통째로 쓴다', await p.evaluate(() => {
+    const r = document.getElementById('fp-photo-stage').getBoundingClientRect();
+    return [Math.round(r.top), Math.round(window.innerHeight - r.bottom)];
+  }), [0, 0]);
+  /* 여기가 그녀가 본 그 화면이다 — 사진 한 장짜리 기록. 예전에는 여기서만
+     사진이 아래로 쏠렸다(2026-11-11). */
+  check('...사진 한 장짜리도 화면 한가운데 선다', await p.evaluate(() => {
+    const r = document.querySelector('#fp-photo-track img').getBoundingClientRect();
+    return Math.round(((r.top + r.bottom) / 2) - window.innerHeight / 2);
+  }), 0);
 
   check('콘솔 에러 없음', errs, []);
   await b.close();

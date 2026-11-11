@@ -1263,7 +1263,16 @@
      light mode the whole viewer came out pale grey with white chevrons on
      it. A photograph wants a dark surround whichever theme the phone is in. */
   .fullpage.photo-page{ background:#0b0b0c; }
-  .fullpage.photo-page .photo-head{ background:transparent; box-shadow:none; color:#fff; }
+  /* 머리는 사진 **위에 뜬다**(2026-11-11). 자리를 차지하고 서 있으면 그만큼
+     무대가 아래로 밀려서, 사진 한 장짜리 기록에서 사진이 화면 한가운데보다
+     헤더 절반만큼(그녀 폰에서 61px) 내려앉았다("가끔 아래로 정렬될 때가
+     있어"). 사진 앱들이 하는 대로 머리를 띄우고 사진은 화면 복판에 세운다.
+     흰 ‹ 가 밝은 사진 위에서 묻히지 않게 뒤에 옅은 그늘을 깐다 — 사진
+     꼭대기만 아주 살짝 어두워지는 정도다. */
+  .fullpage.photo-page .photo-head{
+    position:absolute; top:0; left:0; right:0; z-index:3; box-shadow:none; color:#fff;
+    background:linear-gradient(to bottom, rgba(0,0,0,.40), rgba(0,0,0,0));
+  }
   .fullpage.photo-page .photo-head h1{ color:#fff; font-variant-numeric:tabular-nums; }
   .fullpage.photo-page .fp-back{ color:#fff; }
   /* 사진 화면에서는 **아무것도 안 굴러간다**. 다른 전체 화면은 문서째
@@ -1277,7 +1286,7 @@
     overflow:hidden; overscroll-behavior:none; touch-action:none;
   }
   .fullpage.photo-page .photo-stage{
-    position:absolute; inset:var(--header-h, 64px) 0 var(--photo-foot, 0px) 0;
+    position:absolute; inset:0;
     overflow:hidden; touch-action:none;
     -webkit-user-select:none; user-select:none;
   }
@@ -1299,14 +1308,15 @@
   /* 아래로 끌어 내려 닫기 — 사진이 손가락을 따라 내려가고 화면이 옅어진다 */
   .photo-stage.sliding{ transition:transform .2s ease-out; }
   .fullpage.photo-page.fading{ transition:opacity .2s ease-out; }
-  /* 사진이 한 장뿐이면 화살표 줄이 없고, 그만큼 사진이 더 크게 선다 */
-  .fullpage.photo-page{ --photo-foot:0px; }
-  .fullpage.photo-page.has-nav{ --photo-foot:calc(62px + env(safe-area-inset-bottom)); }
-  /* 화살표 줄 — 사진 아래 */
+  /* 화살표 줄 — 사진 위에 뜬다. 알약 바탕이 있어 사진이 밝아도 읽힌다 */
   .photo-foot{
     position:absolute; left:0; right:0; bottom:0; z-index:2;
     display:flex; align-items:center; justify-content:center; gap:34px;
-    height:62px; padding-bottom:env(safe-area-inset-bottom);
+    height:62px; padding-top:26px; box-sizing:content-box;
+    padding-bottom:env(safe-area-inset-bottom);
+    /* 머리와 같은 그늘 — 사진이 화면을 꽉 채우면 화살표가 사진 위에 뜨는데,
+       밝은 사진에서는 반투명 흰 알약이 흰 바탕에 묻혔다(2026-11-11). */
+    background:linear-gradient(to top, rgba(0,0,0,.42), rgba(0,0,0,0));
   }
   .photo-foot[hidden]{ display:none; }
   .photo-nav{
@@ -12754,7 +12764,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261111a';
+var BUILD = '20261111b';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -15162,13 +15172,12 @@ function renderPhotoViewer(animate){
   }
   var back = document.getElementById('fp-photo-back');
   if (back) back.setAttribute('aria-label', t('photoClose'));
-  /* 화살표는 사진 **아래** 줄에 있다. 한 장뿐이면 줄째로 없애고, 그만큼
-     사진이 더 크게 선다(--photo-foot). */
-  var many = viewerPhotos.length > 1;
+  /* 화살표는 사진 **위에** 뜬다. 한 장뿐이면 줄째로 없앤다 — 예전에는
+     이 줄이 무대 아래를 밀어내서, 줄이 없는 한 장짜리에서만 사진이
+     아래로 쏠렸다(2026-11-11). 이제 무대는 화면 전체라 줄이 있든 없든
+     사진은 같은 자리에 선다. */
   var foot = document.getElementById('fp-photo-foot');
-  if (foot) foot.hidden = !many;
-  var page = document.getElementById('fp-photo');
-  if (page) page.classList.toggle('has-nav', many);
+  if (foot) foot.hidden = viewerPhotos.length < 2;
 }
 function stepPhotoViewer(d){
   if (viewerPhotos.length < 2) return;
