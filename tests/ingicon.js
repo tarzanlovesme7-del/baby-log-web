@@ -56,6 +56,11 @@ const today = (()=>{ const d=new Date();
   const srcs = await p.evaluate(()=>
     [...document.querySelectorAll('#wean-row img.wi')].map(i=>i.getAttribute('src')));
   check('아는 id 는 그대로 붙는다 (소고기)', srcs.indexOf('icons/beef.svg') >= 0, true);
+  /* 쌀죽은 쌀(rice.svg)이 아니라 흰죽 그릇이다 — 연두 띠 위에서 거의
+     흰색인 쌀알이 안 보였다("쌀죽이 잘 안보여", 2026-11-10). 사 오는
+     재료 '쌀'은 그대로 rice.svg 를 쓴다 — 죽이 아니라 쌀이니까. */
+  check('쌀죽(pgy)은 흰죽 그릇', srcs.indexOf('icons/rice-porridge.svg') >= 0, true);
+  check('...쌀알 그림이 아니다', srcs.indexOf('icons/rice.svg') >= 0, false);
   check('이름으로 붙는다 (돼지고기 → pork.svg)', srcs.indexOf('icons/pork.svg') >= 0, true);
   check('괄호는 떼고 맞춘다 (비타민 (다채) → tatsoi.svg)',
     srcs.indexOf('icons/tatsoi.svg') >= 0, true);

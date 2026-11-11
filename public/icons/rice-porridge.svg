@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="72" height="72" viewBox="0 0 72 72">
+  <!-- 흰죽 한 그릇 — 그릇이 윤곽을 만들고 죽은 크림색 -->
+  <path fill="#fbf6ea" d="M13.5 34 A22.5 13.5 0 0 1 58.5 34 Z"/>
+  <path fill="#efe6d1" d="M24 27.5 A12 6 0 0 1 48 27.5 A12 6 0 0 1 24 27.5 Z" opacity="0.55"/>
+  <path fill="#e0a86e" d="M9 34 A27 24 0 0 0 63 34 Z"/>
+  <path fill="#cf8e4c" d="M14.6 48 A27 24 0 0 0 57.4 48 A33 20 0 0 1 14.6 48 Z" opacity="0.45"/>
+  <rect x="6" y="30.6" width="60" height="6.8" rx="3.4" fill="#f4ead6"/>
+</svg>
