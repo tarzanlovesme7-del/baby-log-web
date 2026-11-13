@@ -55,6 +55,13 @@ const d = n => M + (n<10?'0':'') + n;
   /* ── 모드 전환 ───────────────────────────────────────── */
   check('달력 옆에 표로 바꾸는 단추가 있다',
     await p.evaluate(()=>document.querySelectorAll('[data-wn-layout]').length), 2);
+  /* "어떻게 볼까"는 "며칠을 볼까"보다 위에 있는 결정이다 — 달력 아래에 두면
+     날짜를 누르면 생기는 것처럼 읽힌다(2026-11-13). */
+  check('전환 단추는 식단표 맨 위, 달력보다 먼저다', await p.evaluate(()=>{
+    const body = document.getElementById('wn-body');
+    const mode = body.querySelector('.wt-mode'), cal = body.querySelector('.wcal');
+    return !!(mode && cal) &&
+      (mode.compareDocumentPosition(cal) & Node.DOCUMENT_POSITION_FOLLOWING) > 0; }), true);
   check('처음엔 달력이고 상세 패널이 선다', await p.evaluate(()=>[
     !!document.querySelector('.wd-panel'), !!document.querySelector('.wt')]), [true, false]);
   await p.click('[data-wn-layout="table"]'); await p.waitForTimeout(700);
@@ -63,6 +70,24 @@ const d = n => M + (n<10?'0':'') + n;
   /* 달력은 두 모드에 다 남는다 — 그녀가 "기존 캘린더는 살렸으면" 했다 */
   check('표에서도 달력은 남아 있다',
     await p.evaluate(()=>!!document.querySelector('.wcal [data-wn-pick]')), true);
+
+  /* ── 고른 날부터 ─────────────────────────────────────
+     달 1일부터 그리면 이미 지나간 날이 위에 쌓여서 볼 때마다 지나쳐
+     내려와야 한다("13일 선택한 상황이면 13일부터 나와야 하는 거 아냐"). */
+  check('표는 고른 날(3일)부터 시작한다', await p.evaluate(()=>
+    [...document.querySelectorAll('.wt tbody .wt-date b')].map(e=>Number(e.textContent))),
+    [3,4,5,6,7]);
+  await p.click('[data-wn-pick="'+d(5)+'"]'); await p.waitForTimeout(700);
+  await p.click('[data-wn-layout="table"]'); await p.waitForTimeout(700);
+  check('...다른 날을 고르면 거기서 다시 시작한다', await p.evaluate(()=>
+    [...document.querySelectorAll('.wt tbody .wt-date b')].map(e=>Number(e.textContent))),
+    [5,6,7]);
+  /* 아래 병합 검사는 달 전체가 보여야 하므로 1일부터 세운다 */
+  await p.click('[data-wn-pick="'+d(1)+'"]'); await p.waitForTimeout(700);
+  await p.click('[data-wn-layout="table"]'); await p.waitForTimeout(700);
+  check('...1일을 고르면 달 전체가 선다', await p.evaluate(()=>
+    [...document.querySelectorAll('.wt tbody .wt-date b')].map(e=>Number(e.textContent))),
+    [1,2,3,4,5,6,7]);
 
   /* ── 열은 그 달에 쓰는 끼니만 ─────────────────────────── */
   check('끼니 두 가지면 열도 둘', await p.evaluate(()=>

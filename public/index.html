@@ -3468,7 +3468,7 @@
   .wt-empty{ padding:28px 0; text-align:center; color:var(--muted-2); font-size:var(--fs-caption); }
   /* 달력 ⇄ 표 */
   .wt-mode{ display:flex; gap:4px; background:var(--surface-2); border-radius:var(--radius-pill);
-    padding:3px; margin:10px 0 2px; align-self:flex-start; flex:0 0 auto; }
+    padding:3px; margin:0 0 2px; align-self:flex-start; flex:0 0 auto; }
   .wt-mode button{ border:0; background:transparent; border-radius:var(--radius-pill);
     padding:5px 14px; font-size:var(--fs-micro); font-weight:var(--fw-strong); color:var(--muted-2); }
   .wt-mode button[aria-pressed="true"]{ background:var(--surface); color:var(--fg); }
@@ -12861,7 +12861,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261113b';
+var BUILD = '20261113c';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -16778,15 +16778,15 @@ function weanPlanHtml(){
   if (!anyInMonth){
     /* 식단이 하나도 없는 달. 그래도 고른 날이 있으면 그 날은 펴 준다 —
        먹은 양은 식단이 없는 날에도 적을 수 있어야 한다(시작 전에 맛만 본 날). */
-    return '<div class="wcal">' + head + '</div><div class="card wn-empty"><div class="wn-empty-t">' + esc(t('wnWeekEmpty')) + '</div>' +
+    var empty = '<div class="wcal">' + head + '</div><div class="card wn-empty"><div class="wn-empty-t">' + esc(t('wnWeekEmpty')) + '</div>' +
       '<div class="t-caption">' + esc(t('wnWeekEmptySub')) + '</div>' +
       (isMasterUser()
         ? '<button type="button" class="btn primary" style="margin-top:16px" data-wn-newday="' +
           esc(ym + '-01') + '">' + esc(t('wnPickDate')) + '</button>'
         : '') + '</div>' +
-      weanLayoutHtml() +
       (state.weanLayout === 'table' ? weanTableHtml(ym)
         : (state.weanPick && state.weanPick.slice(0, 7) === ym ? weanDayPanelHtml(state.weanPick) : ''));
+    return weanLayoutHtml() + empty;
   }
 
   if (mini){
@@ -16848,10 +16848,13 @@ function weanPlanHtml(){
   /* 달력은 두 모드에 다 남는다 — 표를 볼 때도 날짜 점프는 달력이 맡는다.
      상세 패널(먹은 양을 적는 자리)과 표는 같은 질문에 답하므로 한 번에
      하나만 선다. */
-  html += weanLayoutHtml();
   if (state.weanLayout === 'table') html += weanTableHtml(ym);
   else if (pick) html += weanDayPanelHtml(pick);
-  return html;
+  /* 전환은 **식단표 맨 위**다. "어떻게 볼까"는 "며칠을 볼까"보다 위에 있는
+     결정이라, 달력 아래에 두면 날짜를 누르면 생기는 것처럼 읽힌다
+     (2026-11-13 "캘린더 클릭했을 때가 아니라 식단표 맨 위 선택사항으로
+     둬야 하는 거 아닌가"). */
+  return weanLayoutHtml() + html;
 }
 /* ── 식단 표 ────────────────────────────────────────────────────
    달력이 "이 달이 어떻게 생겼나"에 답한다면, 표는 "뭐가 언제부터
@@ -16881,8 +16884,19 @@ function weanKindOf(name){ return WEAN_KINDS[weanMealRank(name)] || 'sn'; }
 function weanMonthDays(ym){
   return Object.keys(weanPlan()).filter(function(d){ return d.slice(0, 7) === ym; }).sort();
 }
+/* 표는 **고른 날부터** 그 달 끝까지다. 달 1일부터 그리면 이미 지나간 날이
+   위에 쌓여서, 볼 때마다 그걸 지나쳐 내려와야 한다 — 표가 답하는 질문은
+   "앞으로 뭘 먹이나"다(2026-11-13 "13일 선택한 상황이면 13일부터 나와야
+   하는 거 아냐"). 앞을 보고 싶으면 달력에서 그 날을 고르면 된다. */
+function weanTableFrom(ym){
+  var today = toDateValue();
+  if (state.weanPick && state.weanPick.slice(0, 7) === ym) return state.weanPick;
+  if (today.slice(0, 7) === ym) return today;
+  return ym + '-01';
+}
 function weanTableHtml(ym){
-  var days = weanMonthDays(ym), today = toDateValue();
+  var today = toDateValue(), from = weanTableFrom(ym);
+  var days = weanMonthDays(ym).filter(function(d){ return d >= from; });
   if (!days.length) return '<div class="wt-empty">' + esc(t('wnTableEmpty')) + '</div>';
   var names = [];
   days.forEach(function(d){
