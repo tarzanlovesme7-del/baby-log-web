@@ -3387,6 +3387,92 @@
   .wn-span-in{ position:absolute; inset:0; width:100%; height:100%;
     opacity:0; border:0; margin:0; padding:0; background:transparent;
     font-size:16px; color:transparent; -webkit-appearance:none; appearance:none; }
+  /* ── 식단 표 ─────────────────────────────────────────────
+     열이 끼니, 행이 날짜. 같은 식단이 이어지면 칸 하나로 묶는다(rowspan).
+     칸 색은 **끼니**가 정한다(2026-11-11 그녀 선택) — 메뉴 색은 달력
+     알약에 그대로 남는다. 한 칸이 두 가지 색을 주장하지 않게. */
+  :root{
+    --wt-am-bg:#f6f0e2; --wt-am-fg:#82662f;
+    --wt-pm-bg:#eaf0e4; --wt-pm-fg:#3e6033;
+    --wt-dn-bg:#ece7f5; --wt-dn-fg:#56468a;
+    --wt-sn-bg:#f2f4ed; --wt-sn-fg:#5f6975;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --wt-am-bg:#423b2a; --wt-am-fg:#e6cb91;
+      --wt-pm-bg:#303e2b; --wt-pm-fg:#bde08c;
+      --wt-dn-bg:#2f2a3d; --wt-dn-fg:#c3b6e6;
+      --wt-sn-bg:#353d31; --wt-sn-fg:#b0bcae;
+    }
+  }
+  :root[data-theme="dark"]{
+    --wt-am-bg:#423b2a; --wt-am-fg:#e6cb91;
+    --wt-pm-bg:#303e2b; --wt-pm-fg:#bde08c;
+    --wt-dn-bg:#2f2a3d; --wt-dn-fg:#c3b6e6;
+    --wt-sn-bg:#353d31; --wt-sn-fg:#b0bcae;
+  }
+  .wt-wrap{ margin-top:2px; }
+  .wt{ width:100%; border-collapse:separate; border-spacing:4px 0; table-layout:fixed; }
+  .wt-datecol{ width:30px; }
+  .wt thead th{ padding:2px 0 9px; }
+  .wt-kind{ display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-micro);
+    font-weight:var(--fw-strong); color:var(--muted); }
+  .wt-kind.am{ color:var(--wt-am-fg); }
+  .wt-kind.pm{ color:var(--wt-pm-fg); }
+  .wt-kind.dn{ color:var(--wt-dn-fg); }
+  .wt-kind.sn{ color:var(--wt-sn-fg); }
+  .wt-kico{ width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:1.9;
+    stroke-linecap:round; stroke-linejoin:round; flex:0 0 auto; }
+  .wt tbody tr{ height:46px; }
+  .wt tbody th{ vertical-align:top; border-bottom:1px solid var(--border); padding:0; }
+  .wt-date{ width:100%; border:0; background:transparent; padding:9px 0 0; text-align:center;
+    color:inherit; }
+  .wt-date b{ display:block; font-size:var(--fs-caption); font-weight:var(--fw-strong);
+    font-variant-numeric:tabular-nums; }
+  .wt-date small{ display:block; font-size:10px; color:var(--muted-2); }
+  .wt tbody tr.wt-today .wt-date b, .wt tbody tr.wt-today .wt-date small{ color:var(--wn-fg); }
+  .wt td{ vertical-align:top; padding:0 0 4px; }
+  .wt-none{ }
+  .wt-card{ width:100%; height:100%; display:flex; flex-direction:column; gap:6px;
+    text-align:left; border:0; border-radius:13px; padding:9px 9px 10px;
+    background:var(--wt-am-bg); color:inherit; }
+  .wt-card.pm{ background:var(--wt-pm-bg); }
+  .wt-card.dn{ background:var(--wt-dn-bg); }
+  .wt-card:active{ opacity:.65; }
+  .wt-top{ display:flex; align-items:center; justify-content:space-between; gap:4px;
+    font-size:10px; color:var(--muted-2); font-variant-numeric:tabular-nums; }
+  .wt-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px 3px; }
+  .wt-grid.c3{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+  /* 세 끼면 한 칸이 106px — 재료를 한 줄에 하나씩, 그림은 왼쪽에 눕힌다 */
+  .wt-grid.c1{ grid-template-columns:1fr; gap:4px; }
+  .wt-grid.c1 .wt-ing{ flex-direction:row; justify-content:flex-start; gap:4px; text-align:left; }
+  .wt-grid.c1 .wt-ing b{ font-size:10.5px; }
+  .wt-grid.c1 .wt-ic{ width:19px; height:19px; }
+  .wt-ing{ display:flex; flex-direction:column; align-items:center; gap:2px; min-width:0; }
+  .wt-ing b{ font-size:11px; font-weight:var(--fw-medium); color:var(--wn-ink); line-height:1.3;
+    text-align:center; word-break:keep-all; }
+  .wt-ic{ width:27px; height:27px; flex:0 0 auto; }
+  .wt-ing.new{ position:relative; }
+  .wt-ing.new::after{ content:''; position:absolute; top:0; right:50%; margin-right:-16px;
+    width:6px; height:6px; border-radius:50%; background:var(--wn-newtag); }
+  .wt-grid.c1 .wt-ing.new::after{ position:static; margin:0 0 0 2px; align-self:center; }
+  .wt-until{ margin-top:auto; font-size:10px; color:var(--muted-2); }
+  .wt-snackrow{ height:auto; }
+  .wt-snackrow th{ border-bottom:0; }
+  .wt-snack{ width:100%; display:flex; align-items:center; gap:8px; background:var(--wt-sn-bg);
+    border:0; border-radius:11px; padding:5px 9px; margin-bottom:4px; color:inherit; }
+  .wt-snack:active{ opacity:.65; }
+  .wt-snack .wt-ing{ flex-direction:row; gap:4px; }
+  .wt-snack .wt-ic{ width:18px; height:18px; }
+  .wt-snack .wt-ing.new::after{ position:static; margin:0 0 0 2px; }
+  .wt-empty{ padding:28px 0; text-align:center; color:var(--muted-2); font-size:var(--fs-caption); }
+  /* 달력 ⇄ 표 */
+  .wt-mode{ display:flex; gap:4px; background:var(--surface-2); border-radius:var(--radius-pill);
+    padding:3px; margin:10px 0 2px; align-self:flex-start; flex:0 0 auto; }
+  .wt-mode button{ border:0; background:transparent; border-radius:var(--radius-pill);
+    padding:5px 14px; font-size:var(--fs-micro); font-weight:var(--fw-strong); color:var(--muted-2); }
+  .wt-mode button[aria-pressed="true"]{ background:var(--surface); color:var(--fg); }
+
   /* 겹침 경고는 글자까지 경고색 — 새 재료 알림(.wn-alert)보다 한 단 세다 */
   .wn-alert.warn{ margin-top:10px; }
   .wn-alert.warn b{ font-size:var(--fs-micro); }
@@ -5001,6 +5087,8 @@ ko: {
   dashSleptTpl:"{n} 잤음", dashDiaperTpl:"기저귀 {n} 전", dashAgo:"전", dashNth:"째",
   dashAsleep:"자는 중", dashAfter:"후", wnBandLabel:"이유식", wnNewTag:"새 재료",
   wnStageEarly:"초기 이유식", wnStageMid:"중기 이유식", wnStageLate:"후기 이유식", wnStageDone:"완료기 이유식",
+  wnViewCal:"달력", wnViewTable:"표", wnUntilTpl:"{d}일까지 같은 식단",
+  wnTableEmpty:"이 달은 식단이 없어요",
   dashDash:"\u2014", dashDminusTpl:"D-{n}", dashFeedDue:"지났어요", dashFeedDone:"완료",
   authorViPh:"베트남어 이름 (자동 번역)",
   mlUnit:"ml",
@@ -5318,6 +5406,8 @@ vi: {
   dashSleptTpl:"ngủ {n}", dashDiaperTpl:"thay tã {n} trước", dashAgo:"trước", dashNth:"",
   dashAsleep:"Đang ngủ", dashAfter:"nữa", wnBandLabel:"Ăn dặm", wnNewTag:"Mới",
   wnStageEarly:"Ăn dặm giai đoạn đầu", wnStageMid:"Ăn dặm giai đoạn giữa", wnStageLate:"Ăn dặm giai đoạn cuối", wnStageDone:"Ăn dặm hoàn thiện",
+  wnViewCal:"Lịch", wnViewTable:"Bảng", wnUntilTpl:"Giống nhau đến ngày {d}",
+  wnTableEmpty:"Tháng này chưa có thực đơn",
   dashDash:"\u2014", dashDminusTpl:"D-{n}", dashFeedDue:"Quá giờ", dashFeedDone:"Xong",
   authorViPh:"Tên tiếng Việt (tự dịch)",
   mlUnit:"ml",
@@ -12771,7 +12861,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261111c';
+var BUILD = '20261113b';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -15950,7 +16040,15 @@ function weanDayIngs(day){
 var _weanFirstCache = null, _weanFirstKey = '';
 function weanIngFirsts(){
   var plan = weanPlan();
-  var key = Object.keys(plan).length + ':' + weanIngs().length + ':' + (appState.__weanStamp || 0);
+  /* 캐시 열쇠에 **서버 판 번호**가 들어가야 한다. 예전 열쇠는 '식단 날 수 :
+     재료 수 : 내가 고친 횟수'뿐이라, 날 수도 재료 수도 그대로인 채 내용만
+     바뀐 식단(= 재료 순서를 바꾸거나 다른 폰에서 고친 경우)이 폴링으로
+     들어오면 열쇠가 같아서 **옛 첫날 표를 그대로 돌려줬다**.
+     11/16을 당근으로 바꿨는데 '새 재료 · 브로콜리'가 떠 있던 것이 이것이다
+     (2026-11-13). __weanStamp 는 appState 안에 있어 폴링 때 통째로 덮여
+     0으로 돌아가므로, 옛 열쇠가 되살아나기까지 했다. */
+  var key = appVersion + ':' + Object.keys(plan).length + ':' + weanIngs().length +
+    ':' + (appState.__weanStamp || 0);
   if (_weanFirstCache && _weanFirstKey === key) return _weanFirstCache;
   var first = {};
   Object.keys(plan).sort().forEach(function(ds){
@@ -16686,7 +16784,9 @@ function weanPlanHtml(){
         ? '<button type="button" class="btn primary" style="margin-top:16px" data-wn-newday="' +
           esc(ym + '-01') + '">' + esc(t('wnPickDate')) + '</button>'
         : '') + '</div>' +
-      (state.weanPick && state.weanPick.slice(0, 7) === ym ? weanDayPanelHtml(state.weanPick) : '');
+      weanLayoutHtml() +
+      (state.weanLayout === 'table' ? weanTableHtml(ym)
+        : (state.weanPick && state.weanPick.slice(0, 7) === ym ? weanDayPanelHtml(state.weanPick) : ''));
   }
 
   if (mini){
@@ -16744,9 +16844,140 @@ function weanPlanHtml(){
     html += '<button type="button" class="wc-grab' + (mini ? '' : ' is-open') + '" data-wn-grab' +
       ' aria-label="' + esc(t(mini ? 'wnCalOpen' : 'wnCalClose')) + '">' +
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>';
-    html += weanDayPanelHtml(pick);
   }
+  /* 달력은 두 모드에 다 남는다 — 표를 볼 때도 날짜 점프는 달력이 맡는다.
+     상세 패널(먹은 양을 적는 자리)과 표는 같은 질문에 답하므로 한 번에
+     하나만 선다. */
+  html += weanLayoutHtml();
+  if (state.weanLayout === 'table') html += weanTableHtml(ym);
+  else if (pick) html += weanDayPanelHtml(pick);
   return html;
+}
+/* ── 식단 표 ────────────────────────────────────────────────────
+   달력이 "이 달이 어떻게 생겼나"에 답한다면, 표는 "뭐가 언제부터
+   언제까지"에 답한다. 열이 끼니, 행이 날짜이고, 같은 식단이 이어지면
+   칸 하나로 묶는다(rowspan) — 반복을 글자가 아니라 **칸 모양**으로
+   말하므로 '전날과 같음' 같은 줄이 필요 없고, 끼니는 열이 말하므로
+   줄마다 이름을 다시 적지 않는다. (2026-11-13, 그녀가 보낸 시안 기준)
+
+   열 수는 **그 달에 실제로 쓰는 끼니 수**다. 11월은 아침 하나라 한 열이
+   화면을 다 쓰고, 12월부터 점심이 붙어 두 열이 된다. 간식은 나흘뿐이라
+   열을 상설하지 않고 그 날 밑에 가로 한 줄로 눕힌다. */
+var WEAN_MEAL_ORDER = ['wnMealMorning', 'wnMealLunch', 'wnMealDinner', 'wnMealSnack'];
+/* 끼니 이름을 열 순서로 — 저장값은 쓴 사람 말(아침 / Sáng)이므로 둘 다 본다 */
+function weanMealRank(name){
+  var n = String(name || '').trim();
+  for (var i = 0; i < WEAN_MEAL_ORDER.length; i++){
+    var k = WEAN_MEAL_ORDER[i];
+    if (n === I18N.ko[k] || n === I18N.vi[k]) return i;
+  }
+  return WEAN_MEAL_ORDER.length;
+}
+function weanIsSnack(name){ return weanMealRank(name) === 3; }
+/* 아침=am · 점심=pm · 저녁=dn · 간식=sn. 칸 색은 메뉴가 아니라 **끼니**가
+   정한다(2026-11-11 그녀 선택). 메뉴 색은 달력 알약에 그대로 남는다. */
+var WEAN_KINDS = ['am', 'pm', 'dn', 'sn'];
+function weanKindOf(name){ return WEAN_KINDS[weanMealRank(name)] || 'sn'; }
+function weanMonthDays(ym){
+  return Object.keys(weanPlan()).filter(function(d){ return d.slice(0, 7) === ym; }).sort();
+}
+function weanTableHtml(ym){
+  var days = weanMonthDays(ym), today = toDateValue();
+  if (!days.length) return '<div class="wt-empty">' + esc(t('wnTableEmpty')) + '</div>';
+  var names = [];
+  days.forEach(function(d){
+    (weanDay(d).meals || []).forEach(function(m){
+      if (!weanIsSnack(m.name) && names.indexOf(m.name || '') < 0) names.push(m.name || '');
+    });
+  });
+  names.sort(function(a, b){ return weanMealRank(a) - weanMealRank(b); });
+  var cols = names.length || 1;
+  var hasSnack = function(d){
+    return (weanDay(d).meals || []).some(function(m){ return weanIsSnack(m.name); });
+  };
+  /* 끼니마다 이어지는 덩어리. **간식이 있는 날에서 끊는다** — 간식은 표에서
+     가로 한 줄을 먹는데 그 줄이 병합 칸 가운데 끼면 rowspan 이 어긋나
+     아래가 한 칸씩 밀린다. 나흘뿐이라 끊어도 잃는 게 없다. */
+  var span = {};
+  names.forEach(function(nm){
+    span[nm] = {}; var cur = null;
+    days.forEach(function(d, i){
+      var m = weanMealOn(d, nm);
+      if (!m){ cur = null; return; }
+      var prev = i > 0 ? days[i - 1] : null;
+      var cont = cur && prev === cur.last && weanSameMeal(m, cur.meal);
+      if (cont){ cur.n++; cur.last = d; }
+      else { cur = { meal: m, n: 1, from: d, last: d }; span[nm][d] = cur; }
+      if (hasSnack(d)) cur = null;
+    });
+  });
+  var ingHtml = function(x, ds, news){
+    return '<span class="wt-ing' + (news[x.ing] ? ' new' : '') + '">' +
+      weanIngIcon(x.ing, 'wt-ic') + '<b>' + esc(weanIngName(x.ing)) + '</b></span>';
+  };
+  var cellHtml = function(nm, d){
+    var sp = span[nm][d];
+    if (!sp) return weanMealOn(d, nm) ? '' : '<td class="wt-none"></td>';
+    var news = {}; weanNewOn(sp.from).forEach(function(id){ news[id] = 1; });
+    var last = days[days.indexOf(d) + sp.n - 1];
+    var items = weanMealItems(sp.meal);
+    return '<td rowspan="' + sp.n + '">' +
+      '<button type="button" class="wt-card ' + weanKindOf(nm) + '" data-wn-cell="' + esc(sp.from) +
+        '" data-wn-cellmeal="' + esc(nm) + '">' +
+      '<span class="wt-top"><span>' + esc(weanShortDate(sp.from) + (sp.n > 1 ? '–' + Number(last.slice(8)) : '')) + '</span>' +
+      (sp.n > 1 ? '<span>' + esc(t('wnSpanDaysTpl').replace('{n}', sp.n)) + '</span>' : '') + '</span>' +
+      '<span class="wt-grid' + (cols === 1 ? ' c3' : cols >= 3 ? ' c1' : '') + '">' +
+        items.map(function(x){ return ingHtml(x, d, news); }).join('') + '</span>' +
+      /* 사흘 이상이면 칸이 내용보다 길어진다 — 그 빈자리에만 받쳐 쓴다.
+         이틀짜리는 위의 날짜 범위가 이미 같은 말을 하고 있다. */
+      (sp.n >= 3 ? '<span class="wt-until">' +
+        esc(t('wnUntilTpl').replace('{d}', Number(last.slice(8)))) + '</span>' : '') +
+      '</button></td>';
+  };
+  var rows = '';
+  days.forEach(function(d){
+    var wd = new Date(d + 'T00:00:00').getDay();
+    rows += '<tr' + (d === today ? ' class="wt-today"' : '') + '>' +
+      '<th scope="row"><button type="button" class="wt-date" data-wn-trow="' + esc(d) + '">' +
+        '<b>' + Number(d.slice(8)) + '</b><small>' + esc(t('weekday_short')[wd]) + '</small>' +
+      '</button></th>' + names.map(function(nm){ return cellHtml(nm, d); }).join('') + '</tr>';
+    var sn = (weanDay(d).meals || []).filter(function(m){ return weanIsSnack(m.name); })[0];
+    if (sn){
+      var news = {}; weanNewOn(d).forEach(function(id){ news[id] = 1; });
+      rows += '<tr class="wt-snackrow"><th></th><td colspan="' + cols + '">' +
+        '<button type="button" class="wt-snack" data-wn-cell="' + esc(d) +
+          '" data-wn-cellmeal="' + esc(sn.name || '') + '">' +
+        '<span class="wt-kind sn">' + esc(weanMealName(sn.name)) + '</span>' +
+        weanMealItems(sn).map(function(x){ return ingHtml(x, d, news); }).join('') +
+        '</button></td></tr>';
+    }
+  });
+  var head = '<thead><tr><th></th>' + names.map(function(nm){
+    return '<th><span class="wt-kind ' + weanKindOf(nm) + '">' + weanKindIcon(nm) +
+      esc(weanMealName(nm)) + '</span></th>';
+  }).join('') + '</tr></thead>';
+  return '<div class="wt-wrap"><table class="wt">' +
+    '<colgroup><col class="wt-datecol">' + names.map(function(){ return '<col>'; }).join('') +
+    '</colgroup>' + head + '<tbody>' + rows + '</tbody></table></div>';
+}
+/* 해 뜨는 모양 / 해 / 달 — 끼니 머리글에 하나씩. 그림 셋뿐이라 파일로 두지
+   않고 패스를 그대로 박는다. */
+function weanKindIcon(nm){
+  var k = weanKindOf(nm);
+  var d = k === 'am' ? 'M12 2v8M4.9 10.9l1.4 1.4M2 18h2M20 18h2M19.1 10.9l-1.4 1.4M22 22H2M8 6l4-4 4 4M16 18a4 4 0 0 0-8 0'
+    : k === 'dn' ? 'M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9z'
+    : 'M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M6.3 17.7l-1.4 1.4M19.1 4.9l-1.4 1.4';
+  return '<svg class="wt-kico" viewBox="0 0 24 24" aria-hidden="true">' +
+    (k === 'pm' ? '<circle cx="12" cy="12" r="4"/>' : '') + '<path d="' + d + '"/></svg>';
+}
+/* 달력 ⇄ 표 */
+function weanLayoutHtml(){
+  var cur = state.weanLayout === 'table' ? 'table' : 'cal';
+  return '<div class="wt-mode">' +
+    ['cal', 'table'].map(function(v){
+      return '<button type="button" data-wn-layout="' + v + '" aria-pressed="' +
+        (v === cur) + '">' + esc(t(v === 'cal' ? 'wnViewCal' : 'wnViewTable')) + '</button>';
+    }).join('') + '</div>';
 }
 /* 고른 날 한 장 — 목업 2번 화면. 끼니마다 카드 하나, 오른쪽 '수정'이
    하루 고치기(전체화면)를 연다. 달력에서 날짜를 누르면 여기로 온다. */
@@ -17928,6 +18159,28 @@ function wireWean(){
     }
     if ((el = ev.target.closest('[data-wn-colorpick]'))){
       openWeanColor(el.dataset.wnColorpick, el.dataset.wnColorlabel); return;
+    }
+    /* 달력 ⇄ 표 */
+    if ((el = ev.target.closest('[data-wn-layout]'))){
+      state.weanLayout = el.dataset.wnLayout;
+      renderWean();
+      return;
+    }
+    /* 표의 칸 — 그 덩어리 고치기. 달력 알약을 누르는 것과 같은 자리다. */
+    if ((el = ev.target.closest('[data-wn-cell]'))){
+      openWeanDay(el.dataset.wnCell, el.dataset.wnCellmeal || '');
+      return;
+    }
+    /* 표의 날짜 — 달력 모드로 돌아가 그 날을 편다. 먹은 양을 적는 자리가
+       거기이기 때문이다(표는 보는 곳, 상세 패널은 적는 곳). */
+    if ((el = ev.target.closest('[data-wn-trow]'))){
+      state.weanPick = el.dataset.wnTrow;
+      state.weanMonth = weanMonthOf(state.weanPick);
+      state.weanCalOpen = false;
+      state.weanLayout = 'cal';
+      renderWean();
+      scrollWeanDayIntoView();
+      return;
     }
     /* 날짜를 누르면 그날을 펼치고 달력은 그 주만 남긴다. 여닫는 일은 아래
        손잡이가 맡는다 — 날짜를 한 번 더 누르게 하면 '이 날을 보고 싶다'와
