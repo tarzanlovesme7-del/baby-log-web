@@ -3411,10 +3411,17 @@
     --wt-dn-bg:#2f2a3d; --wt-dn-fg:#c3b6e6;
     --wt-sn-bg:#353d31; --wt-sn-fg:#b0bcae;
   }
+  /* 표 모드의 달력은 년월 한 줄뿐이라 격자용 여백이 남으면 허전하다 */
+  .wcal.is-bare{ padding-bottom:0; margin-bottom:0; }
   .wt-wrap{ margin-top:2px; }
-  .wt{ width:100%; border-collapse:separate; border-spacing:4px 0; table-layout:fixed; }
-  .wt-datecol{ width:30px; }
-  .wt thead th{ padding:2px 0 9px; }
+  /* 표는 <table> 이 아니라 격자다. rowspan 은 남는 높이를 묶인 줄들에
+     제멋대로 나눠 줘서, 재료가 석 줄로 넘어가면 첫 날짜와 둘째 날짜의
+     간격이 배로 벌어지고 칸 아래로 빈 자리가 길게 남았다(2026-11-13
+     "식단 높이를 각 날짜가 동일하게 나눠 가졌으면 해"). 격자는 묶인 칸의
+     높이를 **걸친 줄 수로 똑같이** 나누므로 날짜 간격이 고르다. */
+  .wt{ display:grid; grid-template-columns:30px repeat(var(--wt-cols,1),minmax(0,1fr));
+    column-gap:4px; row-gap:0; --wt-row:46px; }
+  .wt-hd{ padding:2px 0 9px; }
   .wt-kind{ display:inline-flex; align-items:center; gap:4px; font-size:var(--fs-micro);
     font-weight:var(--fw-strong); color:var(--muted); }
   .wt-kind.am{ color:var(--wt-am-fg); }
@@ -3423,22 +3430,22 @@
   .wt-kind.sn{ color:var(--wt-sn-fg); }
   .wt-kico{ width:13px; height:13px; fill:none; stroke:currentColor; stroke-width:1.9;
     stroke-linecap:round; stroke-linejoin:round; flex:0 0 auto; }
-  .wt tbody tr{ height:46px; }
-  .wt tbody th{ vertical-align:top; border-bottom:1px solid var(--border); padding:0; }
-  .wt-date{ width:100%; border:0; background:transparent; padding:9px 0 0; text-align:center;
-    color:inherit; }
+  .wt-date{ grid-column:1; width:100%; border:0; border-bottom:1px solid var(--border);
+    background:transparent; padding:9px 0 0; text-align:center; color:inherit; }
   .wt-date b{ display:block; font-size:var(--fs-caption); font-weight:var(--fw-strong);
     font-variant-numeric:tabular-nums; }
   .wt-date small{ display:block; font-size:10px; color:var(--muted-2); }
-  .wt tbody tr.wt-today .wt-date b, .wt tbody tr.wt-today .wt-date small{ color:var(--wn-fg); }
-  .wt td{ vertical-align:top; padding:0 0 4px; }
-  .wt-none{ }
-  .wt-card{ width:100%; height:100%; display:flex; flex-direction:column; gap:6px;
+  .wt-date.wt-today b, .wt-date.wt-today small{ color:var(--wn-fg); }
+  .wt-card{ width:100%; display:flex; flex-direction:column; margin-bottom:4px;
     text-align:left; border:0; border-radius:13px; padding:9px 9px 10px;
     background:var(--wt-am-bg); color:inherit; }
   .wt-card.pm{ background:var(--wt-pm-bg); }
   .wt-card.dn{ background:var(--wt-dn-bg); }
   .wt-card:active{ opacity:.65; }
+  /* 속 상자는 **내용 높이 그대로**다 — 칸은 줄에 맞춰 늘어나므로, 늘어난
+     칸만 재면 원래 얼마가 필요했는지 알 수 없다. 줄 높이를 정하려면
+     늘어나지 않는 자가 하나 있어야 한다. */
+  .wt-in{ display:flex; flex-direction:column; gap:6px; }
   .wt-top{ display:flex; align-items:center; justify-content:space-between; gap:4px;
     font-size:10px; color:var(--muted-2); font-variant-numeric:tabular-nums; }
   .wt-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px 3px; }
@@ -3457,8 +3464,6 @@
     width:6px; height:6px; border-radius:50%; background:var(--wn-newtag); }
   .wt-grid.c1 .wt-ing.new::after{ position:static; margin:0 0 0 2px; align-self:center; }
   .wt-until{ margin-top:auto; font-size:10px; color:var(--muted-2); }
-  .wt-snackrow{ height:auto; }
-  .wt-snackrow th{ border-bottom:0; }
   .wt-snack{ width:100%; display:flex; align-items:center; gap:8px; background:var(--wt-sn-bg);
     border:0; border-radius:11px; padding:5px 9px; margin-bottom:4px; color:inherit; }
   .wt-snack:active{ opacity:.65; }
@@ -12861,7 +12866,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261113c';
+var BUILD = '20261113e';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -16335,6 +16340,7 @@ function renderWean(){
   if (state.weanView === 'plan'){
     box.innerHTML = weanPlanHtml();
     wireWeanCalDrag(box);
+    sizeWeanTable();
   }
   else if (state.weanView === 'shop') box.innerHTML = weanShopHtml();
   else if (state.weanView === 'cubes') box.innerHTML = weanCubesHtml();
@@ -16376,6 +16382,21 @@ function weanWeek7Html(ds){
    같은 메뉴가 이어지면 알약 하나로 며칠을 가로지른다. */
 /* 고른 날 패널을 화면 안으로. 렌더 직후에는 아직 자리가 안 잡혀 있어서
    다음 프레임에 잰다. 패널이 화면보다 길면 패널 머리를 위에 붙인다. */
+/* 표에 들어오면 오늘 줄로 데려다 준다. 한 달을 통째로 그리므로 들어오자마자
+   보이는 것이 1일이면, 볼 때마다 오늘까지 내려와야 한다(2026-11-13).
+   **폴링마다 하지 않는다** — 손으로 올려 둔 자리를 25초마다 빼앗으면 안 된다.
+   모드를 켤 때와 달을 넘길 때만 부른다. */
+function scrollWeanTodayIntoView(){
+  requestAnimationFrame(function(){
+    var row = document.querySelector('#wn-body .wt .wt-today');
+    if (!row){ window.scrollTo(0, 0); return; }
+    var head = document.querySelector('#fp-wean .fp-head');
+    var pad = (head ? head.getBoundingClientRect().height : 0) + 8;
+    var want = (window.scrollY || 0) + row.getBoundingClientRect().top - pad;
+    var max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+    window.scrollTo({ top: Math.max(0, Math.min(want, max)), behavior: 'smooth' });
+  });
+}
 function scrollWeanDayIntoView(){
   requestAnimationFrame(function(){
     var panel = document.querySelector('#wn-body .wd-panel');
@@ -16765,6 +16786,12 @@ function weanPlanHtml(){
   var innerW = (box && box.clientWidth) || 358;
   var cellW = (innerW - 16 - 12) / 7;
 
+  /* 표를 볼 때는 달력 격자를 접는다 — 표가 그 달을 통째로 들고 있으므로
+     주 스트립이 같은 말을 두 번 한다(2026-11-13 "맨 첫줄 캘린더는 안 보여도
+     되잖아"). 년월만 남겨 달을 넘길 길은 지킨다. */
+  if (state.weanLayout === 'table')
+    return weanLayoutHtml() + '<div class="wcal is-bare">' + head + '</div>' + weanTableHtml(ym);
+
   var weeks = weanMonthWeeks(ym);
   /* 고른 날이 이 달 안에 있으면 달력을 접는다 — 그 날이 든 한 주만 그린다.
      '펴기'와 '날짜 고르기 해제'는 다른 일이다. 예전엔 손잡이가 weanPick 을
@@ -16784,8 +16811,7 @@ function weanPlanHtml(){
         ? '<button type="button" class="btn primary" style="margin-top:16px" data-wn-newday="' +
           esc(ym + '-01') + '">' + esc(t('wnPickDate')) + '</button>'
         : '') + '</div>' +
-      (state.weanLayout === 'table' ? weanTableHtml(ym)
-        : (state.weanPick && state.weanPick.slice(0, 7) === ym ? weanDayPanelHtml(state.weanPick) : ''));
+      (state.weanPick && state.weanPick.slice(0, 7) === ym ? weanDayPanelHtml(state.weanPick) : '');
     return weanLayoutHtml() + empty;
   }
 
@@ -16848,8 +16874,7 @@ function weanPlanHtml(){
   /* 달력은 두 모드에 다 남는다 — 표를 볼 때도 날짜 점프는 달력이 맡는다.
      상세 패널(먹은 양을 적는 자리)과 표는 같은 질문에 답하므로 한 번에
      하나만 선다. */
-  if (state.weanLayout === 'table') html += weanTableHtml(ym);
-  else if (pick) html += weanDayPanelHtml(pick);
+  if (pick) html += weanDayPanelHtml(pick);
   /* 전환은 **식단표 맨 위**다. "어떻게 볼까"는 "며칠을 볼까"보다 위에 있는
      결정이라, 달력 아래에 두면 날짜를 누르면 생기는 것처럼 읽힌다
      (2026-11-13 "캘린더 클릭했을 때가 아니라 식단표 맨 위 선택사항으로
@@ -16884,19 +16909,12 @@ function weanKindOf(name){ return WEAN_KINDS[weanMealRank(name)] || 'sn'; }
 function weanMonthDays(ym){
   return Object.keys(weanPlan()).filter(function(d){ return d.slice(0, 7) === ym; }).sort();
 }
-/* 표는 **고른 날부터** 그 달 끝까지다. 달 1일부터 그리면 이미 지나간 날이
-   위에 쌓여서, 볼 때마다 그걸 지나쳐 내려와야 한다 — 표가 답하는 질문은
-   "앞으로 뭘 먹이나"다(2026-11-13 "13일 선택한 상황이면 13일부터 나와야
-   하는 거 아냐"). 앞을 보고 싶으면 달력에서 그 날을 고르면 된다. */
-function weanTableFrom(ym){
-  var today = toDateValue();
-  if (state.weanPick && state.weanPick.slice(0, 7) === ym) return state.weanPick;
-  if (today.slice(0, 7) === ym) return today;
-  return ym + '-01';
-}
+/* 표는 그 달을 **통째로** 그리고, 들어올 때 오늘로 데려다 준다. 고른
+   날부터 자르는 안을 먼저 해 봤는데, 지나간 날을 아예 못 보게 되는 것이
+   달력과 달랐다(2026-11-13). 긴 것은 스크롤이 맡는다. */
 function weanTableHtml(ym){
-  var today = toDateValue(), from = weanTableFrom(ym);
-  var days = weanMonthDays(ym).filter(function(d){ return d >= from; });
+  var today = toDateValue();
+  var days = weanMonthDays(ym);
   if (!days.length) return '<div class="wt-empty">' + esc(t('wnTableEmpty')) + '</div>';
   var names = [];
   days.forEach(function(d){
@@ -16929,15 +16947,26 @@ function weanTableHtml(ym){
     return '<span class="wt-ing' + (news[x.ing] ? ' new' : '') + '">' +
       weanIngIcon(x.ing, 'wt-ic') + '<b>' + esc(weanIngName(x.ing)) + '</b></span>';
   };
-  var cellHtml = function(nm, d){
+  /* 격자 줄 번호를 먼저 정한다. 1줄은 머리글, 그 다음부터 하루에 한 줄이고
+     간식이 있는 날은 밑에 한 줄을 더 벌어 가로로 눌힙다. 날짜 줄은 최소
+     높이만 정해 주고(--wt-row), 내용이 더 길면 묶인 칸이 걸친 줄들에
+     **똑같이** 나뉘어 부풀린다 — rowspan 과 다른 점이 여기다. */
+  var rowOf = {}, rn = 2, tracks = ['auto'], kinds = '';
+  days.forEach(function(d){
+    rowOf[d] = rn++; tracks.push('minmax(var(--wt-row),auto)'); kinds += 'd';
+    if (hasSnack(d)){ rn++; tracks.push('auto'); kinds += 's'; }
+  });
+  var cellHtml = function(nm, d, ci){
     var sp = span[nm][d];
-    if (!sp) return weanMealOn(d, nm) ? '' : '<td class="wt-none"></td>';
+    if (!sp) return '';
     var news = {}; weanNewOn(sp.from).forEach(function(id){ news[id] = 1; });
     var last = days[days.indexOf(d) + sp.n - 1];
     var items = weanMealItems(sp.meal);
-    return '<td rowspan="' + sp.n + '">' +
-      '<button type="button" class="wt-card ' + weanKindOf(nm) + '" data-wn-cell="' + esc(sp.from) +
-        '" data-wn-cellmeal="' + esc(nm) + '">' +
+    return '<button type="button" class="wt-card ' + weanKindOf(nm) + '" data-wn-cell="' + esc(sp.from) +
+        '" data-wn-cellmeal="' + esc(nm) + '" data-wn-span="' + sp.n +
+        '" data-wn-row="' + rowOf[d] + '" style="grid-column:' +
+        (ci + 2) + ';grid-row:' + rowOf[d] + '/' + (rowOf[last] + 1) + '">' +
+      '<span class="wt-in">' +
       '<span class="wt-top"><span>' + esc(weanShortDate(sp.from) + (sp.n > 1 ? '–' + Number(last.slice(8)) : '')) + '</span>' +
       (sp.n > 1 ? '<span>' + esc(t('wnSpanDaysTpl').replace('{n}', sp.n)) + '</span>' : '') + '</span>' +
       '<span class="wt-grid' + (cols === 1 ? ' c3' : cols >= 3 ? ' c1' : '') + '">' +
@@ -16946,33 +16975,78 @@ function weanTableHtml(ym){
          이틀짜리는 위의 날짜 범위가 이미 같은 말을 하고 있다. */
       (sp.n >= 3 ? '<span class="wt-until">' +
         esc(t('wnUntilTpl').replace('{d}', Number(last.slice(8)))) + '</span>' : '') +
-      '</button></td>';
+      '</span></button>';
   };
   var rows = '';
   days.forEach(function(d){
     var wd = new Date(d + 'T00:00:00').getDay();
-    rows += '<tr' + (d === today ? ' class="wt-today"' : '') + '>' +
-      '<th scope="row"><button type="button" class="wt-date" data-wn-trow="' + esc(d) + '">' +
-        '<b>' + Number(d.slice(8)) + '</b><small>' + esc(t('weekday_short')[wd]) + '</small>' +
-      '</button></th>' + names.map(function(nm){ return cellHtml(nm, d); }).join('') + '</tr>';
+    rows += '<button type="button" class="wt-date' + (d === today ? ' wt-today' : '') +
+      '" data-wn-trow="' + esc(d) + '" style="grid-row:' + rowOf[d] + '">' +
+      '<b>' + Number(d.slice(8)) + '</b><small>' + esc(t('weekday_short')[wd]) + '</small></button>' +
+      names.map(function(nm, ci){ return cellHtml(nm, d, ci); }).join('');
     var sn = (weanDay(d).meals || []).filter(function(m){ return weanIsSnack(m.name); })[0];
     if (sn){
       var news = {}; weanNewOn(d).forEach(function(id){ news[id] = 1; });
-      rows += '<tr class="wt-snackrow"><th></th><td colspan="' + cols + '">' +
-        '<button type="button" class="wt-snack" data-wn-cell="' + esc(d) +
-          '" data-wn-cellmeal="' + esc(sn.name || '') + '">' +
+      rows += '<button type="button" class="wt-snack" data-wn-cell="' + esc(d) +
+          '" data-wn-cellmeal="' + esc(sn.name || '') + '" style="grid-column:2/-1;grid-row:' +
+          (rowOf[d] + 1) + '">' +
         '<span class="wt-kind sn">' + esc(weanMealName(sn.name)) + '</span>' +
         weanMealItems(sn).map(function(x){ return ingHtml(x, d, news); }).join('') +
-        '</button></td></tr>';
+        '</button>';
     }
   });
-  var head = '<thead><tr><th></th>' + names.map(function(nm){
-    return '<th><span class="wt-kind ' + weanKindOf(nm) + '">' + weanKindIcon(nm) +
-      esc(weanMealName(nm)) + '</span></th>';
-  }).join('') + '</tr></thead>';
-  return '<div class="wt-wrap"><table class="wt">' +
-    '<colgroup><col class="wt-datecol">' + names.map(function(){ return '<col>'; }).join('') +
-    '</colgroup>' + head + '<tbody>' + rows + '</tbody></table></div>';
+  var head = '<div class="wt-hd"></div>' + names.map(function(nm){
+    return '<div class="wt-hd"><span class="wt-kind ' + weanKindOf(nm) + '">' + weanKindIcon(nm) +
+      esc(weanMealName(nm)) + '</span></div>';
+  }).join('');
+  return '<div class="wt-wrap"><div class="wt" role="table" data-wn-rowkind="' + kinds +
+    '" style="--wt-cols:' + cols + ';grid-template-rows:' + tracks.join(' ') + '">' +
+    head + rows + '</div></div>';
+}
+/* 묶인 칸은 걸친 날짜 수만큼 높이를 **똑같이** 나눠 가져야 한다
+   (2026-11-13 "식단높이를 각 날짜가 동일하게 나눠가졌으면 해").
+   격자가 알아서 해 주는 줄 알았는데, 열이 둘이고 덩어리의 시작·끝이
+   서로 어긋나면 먼저 잰 덩어리가 제 줄만 키워 놓아 한쪽이 벌어진다
+   (아침 5~7 / 점심 6~7 이면 5일만 짧아진다). 그래서 겹치는 덩어리끼리
+   한 묶음으로 묶고, 묶음 안의 줄 높이를 한 값으로 직접 적어 준다.
+   달 전체를 한 값으로 맞추지는 않는다 — 재료가 여섯인 하루 때문에 서른
+   날이 다 길어지면 표가 두 배로 늘어진다. */
+function sizeWeanTable(){
+  var grid = document.querySelector('#wn-body .wt');
+  if (!grid) return;
+  var kinds = String(grid.dataset.wnRowkind || '');
+  var cards = [].slice.call(grid.querySelectorAll('[data-wn-row]'));
+  if (!kinds || !cards.length) return;
+  var par = []; for (var i = 0; i < kinds.length; i++) par.push(i);
+  function find(a){ while (par[a] !== a){ par[a] = par[par[a]]; a = par[a]; } return a; }
+  var mins = {}, sig = {};
+  cards.forEach(function(c){
+    var r0 = Number(c.dataset.wnRow) - 2, sp = Number(c.dataset.wnSpan) || 1;
+    for (var k = 1; k < sp; k++){
+      var a = find(r0), b = find(r0 + k); if (a !== b) par[b] = a;
+    }
+  });
+  cards.forEach(function(c){
+    var r0 = Number(c.dataset.wnRow) - 2, sp = Number(c.dataset.wnSpan) || 1;
+    var inner = c.firstElementChild, cs = getComputedStyle(c);
+    var nat = (inner ? inner.getBoundingClientRect().height : 0) +
+      parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + parseFloat(cs.marginBottom);
+    var g = find(r0), per = Math.ceil(nat / sp), mine = r0 + '/' + sp;
+    if (sig[g] === undefined) sig[g] = mine;
+    else if (sig[g] !== mine) sig[g] = null;
+    if (!mins[g] || mins[g] < per) mins[g] = per;
+  });
+  var floor = parseFloat(getComputedStyle(grid).getPropertyValue('--wt-row')) || 46;
+  var out = ['auto'];
+  for (var j = 0; j < kinds.length; j++){
+    if (kinds.charAt(j) === 's'){ out.push('auto'); continue; }
+    var g2 = find(j);
+    /* 끼니마다 덩어리의 시작·끝이 서로 어긋나는 자리는 건드리지 않는다.
+       거기서 줄을 억지로 맞추면 재료가 여섯인 하루 하나 때문에 옆 칸이
+       갑절로 늘어나 흰 자리만 길어진다 — 가지런함보다 손해가 크다. */
+    out.push(sig[g2] ? Math.max(floor, mins[g2] || 0) + 'px' : 'minmax(var(--wt-row),auto)');
+  }
+  grid.style.gridTemplateRows = out.join(' ');
 }
 /* 해 뜨는 모양 / 해 / 달 — 끼니 머리글에 하나씩. 그림 셋뿐이라 파일로 두지
    않고 패스를 그대로 박는다. */
@@ -18178,6 +18252,7 @@ function wireWean(){
     if ((el = ev.target.closest('[data-wn-layout]'))){
       state.weanLayout = el.dataset.wnLayout;
       renderWean();
+      if (state.weanLayout === 'table') scrollWeanTodayIntoView();
       return;
     }
     /* 표의 칸 — 그 덩어리 고치기. 달력 알약을 누르는 것과 같은 자리다. */
@@ -18377,6 +18452,7 @@ function wireWean(){
     var el = ev.target.closest('[data-wn-mo]');
     if (!el) return;
     state.weanMonth = el.dataset.wnMo;
+    if (state.weanLayout === 'table') setTimeout(scrollWeanTodayIntoView, 0);
     closeSheet('wn-month-sheet'); renderWean();
   });
   var colorSw = document.getElementById('wn-color-sw');
