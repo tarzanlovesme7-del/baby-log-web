@@ -79,20 +79,25 @@ const dAgo = n => { const d = new Date(); d.setDate(d.getDate()-n); return ds(d)
   check('...이름이 붙는 것도 토핑부터다',
     pill.names.length === 0 || ['소고기','애호박'].indexOf(pill.names[0]) >= 0, true);
 
-  /* 날짜를 눌러 펼친 하루의 끼니 카드도 같은 차례 */
+  /* 날짜를 누르면 아래에 표가 서고, 그 날이 든 칸도 같은 차례다.
+     하루 상세 패널(끼니 카드)은 2026-11-16에 없어졌다 — 표 칸이 그 자리다. */
   await p.click('#wn-body [data-wn-pick="' + today + '"]'); await p.waitForTimeout(900);
-  const card = await p.evaluate(()=>{
-    const el = document.querySelector('#wn-body .wd-t b');
-    const th = document.querySelector('#wn-body .wd-thumb');
-    return { title: el ? el.textContent.trim() : null,
-      icons: th ? [...th.querySelectorAll('img.wi')].map(x=>x.getAttribute('src')) : [] };
-  });
-  check('하루 카드 제목도 새 재료부터', (card.title || '').split(' ').slice(0, 2),
-    ['애호박', '소고기']);
-  check('...카드 그림도 새 재료부터', card.icons.slice(0, 2),
+  const card = await p.evaluate((d)=>{
+    const span=(from,n)=>{ const out=[]; const x=new Date(from+'T00:00:00');
+      for(let i=0;i<n;i++){ const y=new Date(x); y.setDate(x.getDate()+i);
+        const z=v=>(v<10?'0':'')+v; out.push(y.getFullYear()+'-'+z(y.getMonth()+1)+'-'+z(y.getDate())); }
+      return out; };
+    const c=[...document.querySelectorAll('#wn-body .wt-card[data-wn-cell]')]
+      .find(e=>span(e.dataset.wnCell, Number(e.dataset.wnSpan)||1).includes(d));
+    if (!c) return { names: [], icons: [] };
+    return { names: [...c.querySelectorAll('.wt-ing b')].map(x=>x.textContent.trim()),
+      icons: [...c.querySelectorAll('.wt-ing img.wi')].map(x=>x.getAttribute('src')) };
+  }, today);
+  check('표 칸 재료도 새 재료부터', card.names.slice(0, 2), ['애호박', '소고기']);
+  check('...칸 그림도 새 재료부터', card.icons.slice(0, 2),
     ['icons/zucchini.svg', 'icons/beef.svg']);
   check('...죽이 빠지지는 않는다',
-    /쌀죽/.test(card.title) && /오트밀/.test(card.title), true);
+    card.names.indexOf('쌀죽') >= 0 && card.names.indexOf('오트밀') >= 0, true);
 
   check('페이지 오류 없음', errs, []);
   /* 깔아 둔 식단은 치우고 나간다 — 다른 스위트가 '식단이 없는 날'을 본다 */

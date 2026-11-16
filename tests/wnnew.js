@@ -42,13 +42,28 @@ const T = (...v) => v.map(i=>({ing:i,g:10}));
     meals:[{ name:'아침', base:B, tops:T('broccoli','beef') }] });
 
   await p.goto(BASE + '/'); await p.waitForTimeout(2200);
-  /* 이유식 → 식단표 → 그 날 → 끼니 카드. **다시 불러오지 않는다** —
+  /* 이유식 → 식단표 → 그 날 → 표 칸. **다시 불러오지 않는다** —
      새로고침하면 캐시가 비어서 버그가 숨는다. */
   await p.click('#btn-settings'); await p.waitForTimeout(500);
   await p.click('#set-wean'); await p.waitForTimeout(900);
   const openSpan = async (d) => {
-    await p.click('[data-wn-pick="'+d+'"]'); await p.waitForTimeout(700);
-    await p.click('#wn-body [data-wn-day]'); await p.waitForTimeout(800);
+    /* 달력이 접혀 있어도 그 날이 든 주가 아닐 수 있다 — 표의 날짜 줄이 더
+       확실한 입구다. 표가 아직 없으면(처음) 달력에서 고른다.
+       하루 상세 패널은 없다(2026-11-16) — 끼니 카드 대신 표 칸을 누른다. */
+    const viaRow = await p.evaluate((d)=>{
+      const r=document.querySelector('#wn-body .wt-date[data-wn-trow="'+d+'"]');
+      if (r){ r.click(); return true; } return false; }, d);
+    if (!viaRow) await p.click('[data-wn-pick="'+d+'"]');
+    await p.waitForTimeout(700);
+    await p.evaluate((d)=>{
+      const span=(from,n)=>{ const out=[]; const x=new Date(from+'T00:00:00');
+        for(let i=0;i<n;i++){ const y=new Date(x); y.setDate(x.getDate()+i);
+          const z=v=>(v<10?'0':'')+v; out.push(y.getFullYear()+'-'+z(y.getMonth()+1)+'-'+z(y.getDate())); }
+        return out; };
+      const c=[...document.querySelectorAll('#wn-body .wt-card[data-wn-cell]')]
+        .find(e=>span(e.dataset.wnCell, Number(e.dataset.wnSpan)||1).includes(d));
+      if (c) c.click(); return !!c; }, d);
+    await p.waitForTimeout(800);
     const txt = await p.evaluate(()=>{ const a=document.querySelector('#fp-weanday-body .wn-alert b');
       return a ? a.textContent.replace(/\s+/g,' ').trim() : null; });
     await p.click('#fp-weanday-back'); await p.waitForTimeout(600);

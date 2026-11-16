@@ -417,36 +417,17 @@
      덮는 바람에 손가락이 거기 닿으면 페이지가 아니라 상자 안이 스크롤돼서
      아래 식단으로 내려갈 수가 없었다. 한 주만 그리면 상자가 필요 없다. */
   .wcal.is-mini{ padding-bottom:6px; border-bottom:1px solid var(--border); }
+  /* 접혔을 때는 한 주뿐이라 '달마다 높이가 들쭉날쭉'할 일이 없다 — 빈
+     자리를 세 줄씩 잡아 두면 달력과 표 사이가 허옇게 뜬다(2026-11-16). */
+  .wcal.is-mini .wc-slots{ min-height:0; }
+  .wcal.is-mini .wc-wk{ margin-bottom:2px; }
   .wc-dn{ position:relative; border:0; background:transparent; font:inherit; width:100%; }
   .wc-dn .wc-ring{ position:absolute; left:50%; top:48%; transform:translate(-50%,-50%);
     width:25px; height:25px; border:1.4px solid var(--fg); border-radius:50%; }
-  /* 고른 날 패널 */
-  .wd-panel{ padding-top:4px; }
-  /* 날짜 줄은 제목이 아니라 '어디를 보고 있나'를 말하는 줄이다 — 아래 '식단'이
-     이 화면의 제목이고, 그보다 무거우면 위계가 뒤집힌다. */
-  .wd-nav{ display:flex; align-items:center; justify-content:space-between;
-    padding:15px 2px 11px; font-size:var(--fs-label); font-weight:var(--fw-medium);
-    color:var(--fg); }
-  .wd-nav button{ border:0; background:transparent; font:inherit; color:var(--muted-2);
-    font-size:19px; font-weight:var(--fw-body); padding:0 6px; }
   .wd-head{ display:flex; align-items:baseline; justify-content:space-between; margin:4px 0 10px; }
   .wd-head h3{ font-size:18px; font-weight:var(--fw-display); margin:0; letter-spacing:-.02em; }
   .wd-head button{ border:0; background:transparent; font:inherit;
     font-size:var(--fs-caption); color:var(--muted); padding:0; }
-  /* 한 끼 = 줄 하나. 줄 전체가 '이 날 식단 고치기'이고, 오른쪽 동그라미만
-     따로 색 고르기를 연다. */
-  .wd-row{ display:flex; align-items:center; gap:10px; }
-  .wd-sub{ font-size:var(--fs-caption); font-weight:var(--fw-strong);
-    color:var(--muted); margin:14px 0 2px; }
-  /* 먹은 양 칩 — 줄 오른쪽. 안 적은 날은 테두리만 있는 빈 칩이라
-     "아직 비어 있다"가 한눈에 보이고, 적힌 날은 채워진 칩이 된다. */
-  .wd-ate{ flex:0 0 auto; border:1px dashed var(--border); background:transparent;
-    border-radius:var(--radius-pill); padding:7px 12px; font:inherit;
-    font-size:var(--fs-caption); font-weight:var(--fw-medium); color:var(--muted-2);
-    white-space:nowrap; }
-  .wd-ate.on{ border-style:solid; background:var(--surface);
-    color:var(--fg); font-weight:var(--fw-strong); }
-  .wd-ate:active{ filter:brightness(.94); }
   /* 지켜보는 중 — 재료 탭과 같은 말씨의 카드 */
   /* 강조하지 않는다 — 지켜보는 중은 '알아 두라'는 말이지 '지금 하라'는 말이
      아니다. 색을 칠하면 화면에서 제일 먼저 눈에 걸린다. */
@@ -462,9 +443,6 @@
   .wn-watch .ww-n{ flex:0 0 auto; font-size:var(--fs-caption);
     font-weight:var(--fw-display); color:var(--fg); }
   .wn-watch.is-next .ww-n{ color:var(--muted); }
-  .wd-card{ flex:1; min-width:0; display:flex; align-items:center; gap:11px;
-    padding:11px 0; border:0; background:transparent; font:inherit; text-align:left; }
-  .wd-card:active{ opacity:.6; }
   /* 달력을 여닫는 손잡이. 처음엔 시트의 그랩바(회색 막대)였는데, 막대는
      '끌 수 있다'까지만 말하고 어느 쪽으로 가는지는 말하지 않는다 — 화살표는
      방향까지 말한다. 접혔을 때 아래, 펴졌을 때 위를 가리킨다. */
@@ -501,7 +479,6 @@
   /* 부제만 — **바로 밑의** span 이다. 이름 옆 토핑/죽 알약도 span 이라
      후손 선택자로 잡으면 알약이 통째로 블록이 되어 줄을 하나 더 먹는다. */
   .wd-t > span{ display:block; font-size:var(--fs-micro); color:var(--muted); margin-top:3px; }
-  .wd-empty{ padding:18px 0 8px; }
 
   /* 알약 바탕은 메뉴마다 고를 수 있다(--pc/--pt). 안 고른 메뉴는 목업 기본값. */
   .wc-pill{ display:flex; align-items:center; gap:4px; min-width:0; overflow:hidden;
@@ -3420,8 +3397,6 @@
     --wt-dn-bg:#2f2a3d; --wt-dn-fg:#c3b6e6;
     --wt-sn-bg:#353d31; --wt-sn-fg:#b0bcae;
   }
-  /* 표 모드의 달력은 년월 한 줄뿐이라 격자용 여백이 남으면 허전하다 */
-  .wcal.is-bare{ padding-bottom:0; margin-bottom:0; }
   .wt-wrap{ margin-top:2px; }
   /* 표는 <table> 이 아니라 격자다. rowspan 은 남는 높이를 묶인 줄들에
      제멋대로 나눠 줘서, 재료가 석 줄로 넘어가면 첫 날짜와 둘째 날짜의
@@ -3493,12 +3468,6 @@
   .wt-snack .wt-ic{ width:18px; height:18px; }
   .wt-snack .wt-ing.new::after{ position:static; margin:0 0 0 2px; }
   .wt-empty{ padding:28px 0; text-align:center; color:var(--muted-2); font-size:var(--fs-caption); }
-  /* 달력 ⇄ 표 */
-  .wt-mode{ display:flex; gap:4px; background:var(--surface-2); border-radius:var(--radius-pill);
-    padding:3px; margin:0 0 2px; align-self:flex-start; flex:0 0 auto; }
-  .wt-mode button{ border:0; background:transparent; border-radius:var(--radius-pill);
-    padding:5px 14px; font-size:var(--fs-micro); font-weight:var(--fw-strong); color:var(--muted-2); }
-  .wt-mode button[aria-pressed="true"]{ background:var(--surface); color:var(--fg); }
 
   /* 겹침 경고는 글자까지 경고색 — 새 재료 알림(.wn-alert)보다 한 단 세다 */
   .wn-alert.warn{ margin-top:10px; }
@@ -5012,7 +4981,7 @@ ko: {
   /* ---- 이유식 ---- */
   t_wean:"이유식",
   wnTitle:"이유식", wnPlan:"식단표", wnShop:"장보기", wnCubes:"재고", wnIngs:"재료",
-  wnDayNoTpl:"{n}일차", wnNotYet:"아직 안 먹였어요",
+  wnDayNoTpl:"{n}일차",
   wnFirstDayTpl:"{n} 첫날", wnMeal:"끼니", wnMealMorning:"아침", wnMealLunch:"점심", wnMealDinner:"저녁", wnMealSnack:"간식",
   wnEaten:"먹은 양",
   wnAte_full:"다 먹음", wnAte_half:"반", wnAte_little:"조금", wnAte_refused:"거부", wnAteNone:"안 적음",
@@ -5024,10 +4993,10 @@ ko: {
   wnWeekEmpty:"이 달은 아직 비어 있어요",
   wnWeekEmptySub:"식단이 정해지면 여기에 넣으면 돼요.",
   wnMonthTpl:"{y}년 {m}월", wnBadgeDayTpl:"{n}일차 · {d} 시작", wnBadgeDminusTpl:"D-{n} · {d} 시작",
-  wnPickMonth:"달 고르기", wnDayNavTpl:"{m}월 {d}일 {w}요일", wnNoPlanDay:"이 날은 식단이 없어요.",
+  wnPickMonth:"달 고르기",
   wnCalOpen:"달력 펴기", wnCalClose:"달력 접기",
   wnNoPlanToday:"오늘 식단이 없어요",
-  wnMealSection:"식단", wnAteGTpl:"{n}g 먹음", wnAteRemove:"이 기록 지우기",
+  wnAteRemove:"이 기록 지우기",
   wnLast7Sub:"막대 하나가 하루예요. 기록이 없는 날은 비어 있어요.", wnMonthDaysTpl:"{n}일", wnPickColor:"색 고르기",
   wnColorHint:"이 메뉴가 나오는 날은 달력에서 모두 같은 색이에요.",
   wnPickDate:"날짜 골라서 넣기",
@@ -5128,7 +5097,7 @@ ko: {
   dashSleptTpl:"{n} 잤음", dashDiaperTpl:"기저귀 {n} 전", dashAgo:"전", dashNth:"째",
   dashAsleep:"자는 중", dashAfter:"후", wnBandLabel:"이유식", wnNewTag:"새 재료",
   wnStageEarly:"초기 이유식", wnStageMid:"중기 이유식", wnStageLate:"후기 이유식", wnStageDone:"완료기 이유식",
-  wnViewCal:"달력", wnViewTable:"표", wnUntilTpl:"{d}일까지 같은 식단",
+  wnUntilTpl:"{d}일까지 같은 식단",
   wnTableEmpty:"이 달은 식단이 없어요",
   dashDash:"\u2014", dashDminusTpl:"D-{n}", dashFeedDue:"지났어요", dashFeedDone:"완료",
   authorViPh:"베트남어 이름 (자동 번역)",
@@ -5335,7 +5304,7 @@ vi: {
   /* ---- Ăn dặm ---- */
   t_wean:"Ăn dặm",
   wnTitle:"Ăn dặm", wnPlan:"Thực đơn", wnShop:"Đi chợ", wnCubes:"Kho đông", wnIngs:"Nguyên liệu",
-  wnDayNoTpl:"ngày {n}", wnNotYet:"Chưa cho ăn",
+  wnDayNoTpl:"ngày {n}",
   wnFirstDayTpl:"{n}: ngày đầu", wnMeal:"Bữa", wnMealMorning:"Sáng", wnMealLunch:"Trưa", wnMealDinner:"Tối", wnMealSnack:"Bữa phụ",
   wnEaten:"Ăn được",
   wnAte_full:"Hết", wnAte_half:"Một nửa", wnAte_little:"Một ít", wnAte_refused:"Không ăn", wnAteNone:"Chưa ghi",
@@ -5347,10 +5316,10 @@ vi: {
   wnWeekEmpty:"Tháng này chưa có gì",
   wnWeekEmptySub:"Khi đã định thực đơn thì thêm vào đây.",
   wnMonthTpl:"Tháng {m}/{y}", wnBadgeDayTpl:"Ngày {n} · bắt đầu {d}", wnBadgeDminusTpl:"D-{n} · bắt đầu {d}",
-  wnPickMonth:"Chọn tháng", wnDayNavTpl:"{m}/{d} ({w})", wnNoPlanDay:"Ngày này chưa có thực đơn.",
+  wnPickMonth:"Chọn tháng",
   wnCalOpen:"Mở lịch", wnCalClose:"Thu lịch",
   wnNoPlanToday:"Hôm nay chưa có thực đơn",
-  wnMealSection:"Thực đơn", wnAteGTpl:"Ăn {n}g", wnAteRemove:"Xoá ghi chép này",
+  wnAteRemove:"Xoá ghi chép này",
   wnLast7Sub:"Mỗi cột là một ngày. Ngày chưa ghi thì để trống.", wnMonthDaysTpl:"{n} ngày", wnPickColor:"Chọn màu",
   wnColorHint:"Những ngày có thực đơn này đều cùng một màu trên lịch.",
   wnPickDate:"Chọn ngày để thêm",
@@ -5453,7 +5422,7 @@ vi: {
   dashSleptTpl:"ngủ {n}", dashDiaperTpl:"thay tã {n} trước", dashAgo:"trước", dashNth:"",
   dashAsleep:"Đang ngủ", dashAfter:"nữa", wnBandLabel:"Ăn dặm", wnNewTag:"Mới",
   wnStageEarly:"Ăn dặm giai đoạn đầu", wnStageMid:"Ăn dặm giai đoạn giữa", wnStageLate:"Ăn dặm giai đoạn cuối", wnStageDone:"Ăn dặm hoàn thiện",
-  wnViewCal:"Lịch", wnViewTable:"Bảng", wnUntilTpl:"Giống nhau đến ngày {d}",
+  wnUntilTpl:"Giống nhau đến ngày {d}",
   wnTableEmpty:"Tháng này chưa có thực đơn",
   dashDash:"\u2014", dashDminusTpl:"D-{n}", dashFeedDue:"Quá giờ", dashFeedDone:"Xong",
   authorViPh:"Tên tiếng Việt (tự dịch)",
@@ -7880,11 +7849,6 @@ var WEAN_BAND_SLOTS = 8;
 function weanEntriesForMeal(ds, m){
   var name = (m && m.name) || '';
   return weanEntriesOn(ds).filter(function(e){ return (e.mealName || '') === name; });
-}
-function weanEntriesLoose(ds, day){
-  var names = {};
-  ((day && day.meals) || []).forEach(function(m){ names[(m.name || '')] = 1; });
-  return weanEntriesOn(ds).filter(function(e){ return !names[e.mealName || '']; });
 }
 /* 아직 안 먹인 끼니 — 빠른기록 타일과 첫 화면 띠가 모두 이걸로 '다음 것'을 고른다 */
 function weanNextMeal(ds, day){
@@ -12926,7 +12890,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261116b';
+var BUILD = '20261116c';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -15928,6 +15892,7 @@ var WEAN_ICON_FILE = {
   'onion':'onion', 'pea':'peas', 'peanut':'peanut', 'pgb':'barley',
   'pgd':'black-rice', 'pgl':'brown-rice', 'pglo':'brown-rice', 'pgq':'quinoa',
   'pgs':'sorghum', 'pgy':'rice-porridge', 'pgyo':'oatmeal', 'pgyow':'wheat-flour',
+  'pgbeef':'beef-porridge',
   'potato':'potato', 'pumpkin':'pumpkin', 'radish':'radish', 'redcab':'red-cabbage',
   'spinach':'spinach', 'sweetpot':'sweet-potato', 'tofu':'tofu', 'tomato':'tomato',
   'vitamin':'tatsoi', 'wheat':'wheat-flour', 'zucchini':'zucchini',
@@ -15955,6 +15920,7 @@ var WEAN_ICON_BY_NAME = {
   '샐러리':'celery', '생선':'cod', '셀러리':'celery', '소고기':'beef', '소금':'salt', '수박':'watermelon',
   '수수':'sorghum', '시금치':'spinach', '쌀':'rice', '쌀가루':'rice-flour',
   '쌀죽':'rice-porridge', '흰죽':'rice-porridge', '아기치즈':'cheese',
+  '소고기 베이스죽':'beef-porridge', '소고기죽':'beef-porridge',
   '아보카도':'avocado', '아스파라거스':'asparagus', '아욱':'mallow', '애호박':'zucchini', '양배추':'cabbage',
   '양상추':'lettuce', '양송이버섯':'button-mushroom', '양파':'onion', '연근':'lotus-root', '연어':'salmon',
   '오이':'cucumber', '오트밀':'oatmeal', '옥수수':'corn', '완두콩':'peas', '요거트':'yogurt', '우엉':'burdock',
@@ -16512,26 +16478,19 @@ function weanWeek7Html(ds){
    보이는 것이 1일이면, 볼 때마다 오늘까지 내려와야 한다(2026-11-13).
    **폴링마다 하지 않는다** — 손으로 올려 둔 자리를 25초마다 빼앗으면 안 된다.
    모드를 켤 때와 달을 넘길 때만 부른다. */
-function scrollWeanTodayIntoView(){
+/* 고른 날의 표 줄을 화면 위쪽에 세운다. 표는 그 달을 통째로 들고 있으므로
+   **앞 날짜를 자르는 것이 아니라 스크롤 자리만** 거기로 간다 — 위로 올리면
+   지난 날이 그대로 있다(2026-11-16). 굴러가는 것은 전체 화면 상자가 아니라
+   문서이고(.fullpage.show 참고), 머리말이 위에 붙어 있으니 그만큼 비운다. */
+function scrollWeanRowIntoView(ds){
   requestAnimationFrame(function(){
-    var row = document.querySelector('#wn-body .wt .wt-today');
-    if (!row){ window.scrollTo(0, 0); return; }
+    var row = ds
+      ? document.querySelector('#wn-body .wt .wt-date[data-wn-trow="' + ds + '"]')
+      : document.querySelector('#wn-body .wt .wt-today');
+    if (!row) return;
     var head = document.querySelector('#fp-wean .fp-head');
     var pad = (head ? head.getBoundingClientRect().height : 0) + 8;
     var want = (window.scrollY || 0) + row.getBoundingClientRect().top - pad;
-    var max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
-    window.scrollTo({ top: Math.max(0, Math.min(want, max)), behavior: 'smooth' });
-  });
-}
-function scrollWeanDayIntoView(){
-  requestAnimationFrame(function(){
-    var panel = document.querySelector('#wn-body .wd-panel');
-    if (!panel) return;
-    /* 굴러가는 것은 전체 화면 상자가 아니라 문서다(.fullpage.show 참고).
-       머리말이 위에 붙어 있으므로 그 높이만큼은 비워 두고 세운다. */
-    var head = document.querySelector('#fp-wean .fp-head');
-    var pad = (head ? head.getBoundingClientRect().height : 0) + 8;
-    var want = (window.scrollY || 0) + panel.getBoundingClientRect().top - pad;
     var max = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
     window.scrollTo({ top: Math.max(0, Math.min(want, max)), behavior: 'smooth' });
   });
@@ -16912,12 +16871,6 @@ function weanPlanHtml(){
   var innerW = (box && box.clientWidth) || 358;
   var cellW = (innerW - 16 - 12) / 7;
 
-  /* 표를 볼 때는 달력 격자를 접는다 — 표가 그 달을 통째로 들고 있으므로
-     주 스트립이 같은 말을 두 번 한다(2026-11-13 "맨 첫줄 캘린더는 안 보여도
-     되잖아"). 년월만 남겨 달을 넘길 길은 지킨다. */
-  if (state.weanLayout === 'table')
-    return weanLayoutHtml() + '<div class="wcal is-bare">' + head + '</div>' + weanTableHtml(ym);
-
   var weeks = weanMonthWeeks(ym);
   /* 고른 날이 이 달 안에 있으면 달력을 접는다 — 그 날이 든 한 주만 그린다.
      '펴기'와 '날짜 고르기 해제'는 다른 일이다. 예전엔 손잡이가 weanPick 을
@@ -16929,16 +16882,15 @@ function weanPlanHtml(){
     return row.some(function(c){ return !c.out && weanDay(c.ds); });
   });
   if (!anyInMonth){
-    /* 식단이 하나도 없는 달. 그래도 고른 날이 있으면 그 날은 펴 준다 —
-       먹은 양은 식단이 없는 날에도 적을 수 있어야 한다(시작 전에 맛만 본 날). */
-    var empty = '<div class="wcal">' + head + '</div><div class="card wn-empty"><div class="wn-empty-t">' + esc(t('wnWeekEmpty')) + '</div>' +
+    /* 식단이 하나도 없는 달 — 달력과 안내 한 장뿐이다. 먹은 양은 기록
+       화면에서 적는 것이라(2026-11-16) 여기 붙일 것이 없다. */
+    return '<div class="wcal">' + head + '</div><div class="card wn-empty"><div class="wn-empty-t">' +
+      esc(t('wnWeekEmpty')) + '</div>' +
       '<div class="t-caption">' + esc(t('wnWeekEmptySub')) + '</div>' +
       (isMasterUser()
         ? '<button type="button" class="btn primary" style="margin-top:16px" data-wn-newday="' +
           esc(ym + '-01') + '">' + esc(t('wnPickDate')) + '</button>'
-        : '') + '</div>' +
-      (state.weanPick && state.weanPick.slice(0, 7) === ym ? weanDayPanelHtml(state.weanPick) : '');
-    return weanLayoutHtml() + empty;
+        : '') + '</div>';
   }
 
   if (mini){
@@ -16997,15 +16949,18 @@ function weanPlanHtml(){
       ' aria-label="' + esc(t(mini ? 'wnCalOpen' : 'wnCalClose')) + '">' +
       '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9.5l6 6 6-6"/></svg></button>';
   }
-  /* 달력은 두 모드에 다 남는다 — 표를 볼 때도 날짜 점프는 달력이 맡는다.
-     상세 패널(먹은 양을 적는 자리)과 표는 같은 질문에 답하므로 한 번에
-     하나만 선다. */
-  if (pick) html += weanDayPanelHtml(pick);
-  /* 전환은 **식단표 맨 위**다. "어떻게 볼까"는 "며칠을 볼까"보다 위에 있는
-     결정이라, 달력 아래에 두면 날짜를 누르면 생기는 것처럼 읽힌다
-     (2026-11-13 "캘린더 클릭했을 때가 아니라 식단표 맨 위 선택사항으로
-     둬야 하는 거 아닌가"). */
-  return weanLayoutHtml() + html;
+  /* 달력과 표는 **한 화면**이다(2026-11-16 "하나로 합치자"). 날짜를 고르기
+     전에는 달력뿐이고, 고르면 달력이 그 주로 접히면서 아래에 그 달 표가
+     선다. 표는 달을 통째로 그리고 고른 날로 스크롤만 해 준다 — 앞 날짜를
+     자르면 "위로 올리면 지난 날짜"가 깨진다.
+
+     지켜보는 새 재료는 표 위 한 줄이다. 날짜마다 다른 것이 아니라 지금의
+     상태라, 줄마다 적을 일이 아니다. */
+  if (pick){
+    html += weanWatchHtml(pick);
+    html += weanTableHtml(ym);
+  }
+  return html;
 }
 /* ── 식단 표 ────────────────────────────────────────────────────
    달력이 "이 달이 어떻게 생겼나"에 답한다면, 표는 "뭐가 언제부터
@@ -17185,89 +17140,10 @@ function weanKindIcon(nm){
   return '<svg class="wt-kico" viewBox="0 0 24 24" aria-hidden="true">' +
     (k === 'pm' ? '<circle cx="12" cy="12" r="4"/>' : '') + '<path d="' + d + '"/></svg>';
 }
-/* 달력 ⇄ 표 */
-function weanLayoutHtml(){
-  var cur = state.weanLayout === 'table' ? 'table' : 'cal';
-  return '<div class="wt-mode">' +
-    ['cal', 'table'].map(function(v){
-      return '<button type="button" data-wn-layout="' + v + '" aria-pressed="' +
-        (v === cur) + '">' + esc(t(v === 'cal' ? 'wnViewCal' : 'wnViewTable')) + '</button>';
-    }).join('') + '</div>';
-}
-/* 고른 날 한 장 — 목업 2번 화면. 끼니마다 카드 하나, 오른쪽 '수정'이
-   하루 고치기(전체화면)를 연다. 달력에서 날짜를 누르면 여기로 온다. */
-function weanDayPanelHtml(ds){
-  var day = weanDay(ds);
-  var d = new Date(ds + 'T00:00:00');
-  var wd = t('weekday_short')[d.getDay()];
-  var no = weanDayNo(ds);
-  var html = '<div class="wd-panel"><div class="wd-nav">' +
-    '<button type="button" data-wn-pickadd="-1">\u2039</button>' +
-    '<span>' + esc(t('wnDayNavTpl')
-      .replace('{m}', String(d.getMonth() + 1)).replace('{d}', String(d.getDate()))
-      .replace('{w}', wd) + (no > 0 ? ' / ' + t('wnDayNoTpl').replace('{n}', no) : '')) + '</span>' +
-    '<button type="button" data-wn-pickadd="1">\u203a</button></div>';
-  html += '<div class="wd-head"><h3>' + esc(t('wnMealSection')) + '</h3>' +
-    (isMasterUser() ? '<button type="button" data-wn-newday="' + esc(ds) + '">+ ' +
-      esc(t('wnNewMeal')) + '</button>' : '') + '</div>';
-  if (!day || !(day.meals || []).length){
-    html += '<div class="t-caption wd-empty">' + esc(t('wnNoPlanDay')) + '</div>' +
-      (isMasterUser() ? '<button type="button" class="pay-textbtn" data-wn-newday="' + esc(ds) + '">+ ' +
-        esc(t('wnPickDate')) + '</button>' : '');
-    /* 식단이 없는 날에도 먹은 양은 적을 수 있다 — 끼니가 없으니 하루 한 줄 */
-    var rec0 = weanEntriesOn(ds)[0] || null;
-    html += '<div class="wd-row" style="margin-top:10px">' +
-      '<span class="wd-t" style="flex:1"><b>' + esc(t('wnEaten')) + '</b></span>' +
-      '<button type="button" class="wd-ate' + (rec0 ? ' on' : '') + '"' +
-        ' data-wn-ate="' + esc(ds) + '" data-wn-atemeal="-1">' +
-        esc(weanAteChipText(rec0)) + '</button></div>';
-    return html + weanWatchHtml(ds) + '</div>';
-  }
-  day.meals.forEach(function(m, mi){
-    var items = weanMealItems(m);
-    var g = items.reduce(function(n, x){ return n + (Number(x.g) || 0); }, 0);
-    var key = weanMenuKey(m), c = weanColorOf(key);
-    /* 카드를 누르면 그날 식단 고치기. 오른쪽 동그라미는 이 메뉴의 색 —
-       색은 하루가 아니라 메뉴에 붙으므로 같은 메뉴가 나오는 날이 한꺼번에
-       바뀐다. 알약이 눌리지 않게 되면서 색 고르기가 갈 자리가 여기다. */
-    /* 왼쪽(그림 + 이름)은 식단 고치기, 오른쪽 칩은 그 끼니의 먹은 양.
-       두 가지가 한 줄에 있지만 손가락이 닿는 곳이 둘로 분명히 갈린다. */
-    var rec = weanEntriesForMeal(ds, m)[0] || null;
-    html += '<div class="wd-row">' +
-      '<button type="button" class="wd-card" data-wn-day="' + esc(ds) +
-        '" data-wn-daymeal="' + esc(m.name || '') + '">' +
-        weanMealCardHtml(items, [weanMealName(m.name), g + 'g',
-          weanIsMix(m) ? t('wnFormMix') : t('wnCubeNTpl').replace('{n}', items.length)]
-          .filter(Boolean).join(' \u00b7 '), key, weanFormPillHtml(m, weanKindOf(m.name))) +
-      '</button>' +
-      '<button type="button" class="wd-ate' + (rec ? ' on' : '') + '"' +
-        ' data-wn-ate="' + esc(ds) + '" data-wn-atemeal="' + mi + '">' +
-        esc(weanAteChipText(rec)) + '</button>' +
-      '</div>';
-  });
-  /* 끼니 이름이 없는 옛 기록 — 어느 끼니 것인지 알 수 없어 따로 둔다 */
-  var loose = weanEntriesLoose(ds, day);
-  if (loose.length){
-    html += '<div class="wd-sub">' + esc(t('wnEaten')) + '</div>';
-    loose.forEach(function(e){ html += weanRecRowHtml(e); });
-  }
-  html += weanWatchHtml(ds);
-  return html + '</div>';
-}
 
 /* ── 먹은 양 ────────────────────────────────────────────────
    '오늘' 탭이 하던 일이 여기로 왔다. 식단표가 "무엇을 먹일지"를 말하는
    곳이니 "얼마나 먹었는지"도 같은 날짜, 같은 끼니 아래 있는 것이 맞다. */
-function weanRecRowHtml(e){
-  return '<button type="button" class="wn-line" data-wn-entry="' + esc(e.id) + '">' +
-    '<span class="t-label">' + esc(weanAteLabel(e.ate)) + '</span>' +
-    '<div class="wn-val"><span class="t-value">' + esc(e.amount ? e.amount + 'g' : '\u2014') + '</span>' +
-    '<span class="t-caption">' + esc([fmtTime(e.start),
-      e.author ? localizeAuthorName(e.author) : '',
-      (e.react && e.react !== 'none' ? t('wnReact_' + e.react) : '')
-    ].filter(Boolean).join(' \u00b7 ')) + '</span></div>' +
-    '<span class="r-chev">\u203a</span></button>';
-}
 var WEAN_ATES = ['', 'refused', 'little', 'half', 'full'];
 /* 기록 한 줄에서 바로 여는 길 — 식단표에서 여는 것과 같은 시트다 */
 function openWeanAteForEntry(id){
@@ -17345,11 +17221,6 @@ function deleteWeanAte(){
 
 /* 칩 한 줄로 '얼마나 먹었나'를 말한다. 그램이 적혀 있으면 그게 제일 정확한
    말이므로 그걸 먼저 쓰고, 없으면 상태 라벨(다 먹음·반·조금·거부). */
-function weanAteChipText(rec){
-  if (!rec) return t('wnNotYet');
-  if (rec.amount) return t('wnAteGTpl').replace('{n}', rec.amount);
-  return weanAteLabel(rec.ate);
-}
 /* 지켜보는 중 — 새 재료는 사흘을 지켜본다. 그 사흘이 어느 날인지가
    중요하므로 날짜를 고른 자리에 같이 선다. */
 function weanWatchHtml(ds){
@@ -18466,33 +18337,30 @@ function wireWean(){
       renderWean(); return;
     }
     /* 날짜를 누르면 그날을 펼친다. 같은 날을 다시 누르면 접는다. */
-    if ((el = ev.target.closest('[data-wn-ate]'))){
-      openWeanAte(el.dataset.wnAte, Number(el.dataset.wnAtemeal)); return;
-    }
     if ((el = ev.target.closest('[data-wn-colorpick]'))){
       openWeanColor(el.dataset.wnColorpick, el.dataset.wnColorlabel); return;
     }
-    /* 달력 ⇄ 표 */
-    if ((el = ev.target.closest('[data-wn-layout]'))){
-      state.weanLayout = el.dataset.wnLayout;
-      renderWean();
-      if (state.weanLayout === 'table') scrollWeanTodayIntoView();
-      return;
-    }
-    /* 표의 칸 — 그 덩어리 고치기. 달력 알약을 누르는 것과 같은 자리다. */
+    /* 표의 칸 — 그 덩어리 고치기. 고른 날이 이 덩어리 **안에** 있으면 그 날로
+       연다. 하루 상세 패널이 빠진 뒤로 '이 날만 떼기 / 이 날만 지우기'가 갈
+       수 있는 날은 고치기 화면이 기준으로 쥔 날(sp.day)뿐인데, 칸의 첫날로만
+       열면 덩어리 가운데 날은 영영 뗄 수가 없다. 날짜를 눌러 고르고 → 칸을
+       누르면 그 날이 기준이 된다. */
     if ((el = ev.target.closest('[data-wn-cell]'))){
-      openWeanDay(el.dataset.wnCell, el.dataset.wnCellmeal || '');
+      var cFrom = el.dataset.wnCell, cN = Number(el.dataset.wnSpan) || 1;
+      var cPick = state.weanPick;
+      var cDs = (cPick && cPick >= cFrom && weanDaysBetween(cFrom, cPick) <= cN) ? cPick : cFrom;
+      openWeanDay(cDs, el.dataset.wnCellmeal || '');
       return;
     }
-    /* 표의 날짜 — 달력 모드로 돌아가 그 날을 편다. 먹은 양을 적는 자리가
-       거기이기 때문이다(표는 보는 곳, 상세 패널은 적는 곳). */
+    /* 표의 날짜 — 그 날을 고른다. 접힌 달력이 그 주로 옮겨가고 + 로 새
+       식단을 넣을 때의 기준도 그 날이 된다. 펼칠 것은 없다 — 먹은 양은
+       기록 화면에서 적는다(2026-11-16 "그냥 기록 화면에서만"). */
     if ((el = ev.target.closest('[data-wn-trow]'))){
       state.weanPick = el.dataset.wnTrow;
       state.weanMonth = weanMonthOf(state.weanPick);
       state.weanCalOpen = false;
-      state.weanLayout = 'cal';
       renderWean();
-      scrollWeanDayIntoView();
+      scrollWeanRowIntoView(state.weanPick);
       return;
     }
     /* 날짜를 누르면 그날을 펼치고 달력은 그 주만 남긴다. 여닫는 일은 아래
@@ -18508,13 +18376,8 @@ function wireWean(){
          이유가 그 아래를 보려는 것이다(2026-10-21 "스크롤을 아래로
          보내줄까?"). 달력은 그대로 한 주로 접는다: 펼친 채로 두면 한 달이
          위에 깔려서 손으로 되돌아오기가 더 멀다. */
-      scrollWeanDayIntoView();
+      scrollWeanRowIntoView(state.weanPick);
       return;
-    }
-    if ((el = ev.target.closest('[data-wn-pickadd]'))){
-      state.weanPick = weanDateAdd(state.weanPick || toDateValue(), Number(el.dataset.wnPickadd));
-      state.weanMonth = weanMonthOf(state.weanPick);
-      renderWean(); return;
     }
     if ((el = ev.target.closest('[data-wn-cubedef]'))){ openWeanCubeDef(el.dataset.wnCubedef); return; }
     if (ev.target.closest('[data-wn-mopick]')){ openWeanMonthPick(); return; }
@@ -18690,8 +18553,8 @@ function wireWean(){
     var el = ev.target.closest('[data-wn-mo]');
     if (!el) return;
     state.weanMonth = el.dataset.wnMo;
-    if (state.weanLayout === 'table') setTimeout(scrollWeanTodayIntoView, 0);
     closeSheet('wn-month-sheet'); renderWean();
+    setTimeout(function(){ scrollWeanRowIntoView(state.weanPick); }, 0);
   });
   var colorSw = document.getElementById('wn-color-sw');
   if (colorSw) colorSw.addEventListener('click', function(ev){

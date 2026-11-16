@@ -376,8 +376,14 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   await p.click('#wn-tabs button[data-wn="ings"]'); await p.waitForTimeout(400);
   await p.click('#wn-tabs button[data-wn="plan"]'); await p.waitForTimeout(700);
 
-  /* 날짜를 누르면 달력이 접히고 아래에 그날 끼니가 펼쳐진다 (목업 2번 화면).
-     한 번 이 화면을 안 만들고 넘어갔다가 "목업이랑 달라"는 말을 들었다. */
+  /* 날짜를 누르면 달력이 그 주로 접히고, 아래에 그 달 표가 선다.
+     달력/표 토글은 없다 — 한 화면이다(2026-11-16 "하나로 합치자").
+     하루 상세 패널도 없다 — 먹은 양은 기록 화면에서 적는다
+     ("그냥 기록 화면에서만 기록할 수 있게 하면 될거 같은데"). */
+  check('달력/표 토글 단추가 없다',
+    await p.evaluate(()=>document.querySelectorAll('[data-wn-layout]').length), 0);
+  check('고르기 전에는 달력뿐이다 (표가 없다)',
+    await p.evaluate(()=>!!document.querySelector('#wn-body .wt')), false);
   const pickDs = await p.evaluate(()=>{
     const e = document.querySelectorAll('.wc-pill');
     return e.length > 3 ? e[3].dataset.wnPick : (e[0] ? e[0].dataset.wnPick : '');
@@ -387,69 +393,53 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
     await p.evaluate(()=>!!document.querySelector('.wcal.is-mini')), true);
   check('...고른 날에 고리가 붙는다',
     await p.evaluate(()=>!!document.querySelector('.wc-ring')), true);
-  check('...아래에 그날 끼니 카드가 선다',
-    await p.evaluate(()=>document.querySelectorAll('.wd-card').length) > 0, true);
-  check('...카드에 끼니·그램·큐브 칸수가 적힌다',
-    await p.evaluate(()=>/\d+g/.test((document.querySelector('.wd-t > span')||{}).textContent||'')), true);
-  check('...머리줄에 며칠차가 적힌다',
-    await p.evaluate(()=>/일차/.test((document.querySelector('.wd-nav span')||{}).textContent||'')), true);
-  /* › 로 다음 날 */
-  const navWas = await p.evaluate(()=>document.querySelector('.wd-nav span').textContent);
-  await p.click('[data-wn-pickadd="1"]'); await p.waitForTimeout(600);
-  check('...화살표로 하루씩 넘긴다',
-    await p.evaluate(()=>document.querySelector('.wd-nav span').textContent) !== navWas, true);
-  /* 먹은 양은 끼니마다 따로 붙는다. 중기부터 하루 두 끼라 하루 한 줄로는
-     "아침은 다 먹고 점심은 반 먹었다"를 적을 수가 없다. */
-  /* 앞에서 › 로 하루 넘겼으므로 지금 펼쳐진 날을 화면에서 읽어 쓴다 */
-  const mealDs = await p.evaluate(()=>{
-    const e = document.querySelector('.wc-ring');
-    return e ? e.parentElement.dataset.wnPick : '';
-  });
-  const mealPrev = (await st()).weanPlan[mealDs] || null;
-  await mut('setWeanDay', { date: mealDs, actor: '엄마', meals: [
+  check('...아래에 그 달 표가 선다',
+    await p.evaluate(()=>!!document.querySelector('#wn-body .wt')), true);
+  check('...고른 날 줄이 표에 있다',
+    await p.evaluate((d)=>!!document.querySelector('.wt-date[data-wn-trow="'+d+'"]'), pickDs), true);
+  check('...하루 상세 패널과 먹은 양 칩은 없다',
+    await p.evaluate(()=>[!!document.querySelector('.wd-panel'),
+      document.querySelectorAll('.wd-ate, [data-wn-ate]').length]), [false, 0]);
+
+  /* 표의 날짜를 누르면 그 날을 고른다 — 펼칠 것은 없다 */
+  /* 이 시험의 식단은 이 달에 하루뿐이다 — 표에서 다른 날을 누르려면 하루가
+     더 있어야 한다. 이틀 뒤에 한 끼 넣고, 끝나면 지운다. 새 재료(브로콜리·
+     현미죽)를 일부러 넣어 '지켜보는 중'도 같이 본다. */
+  const nextDs = dAdd(pickDs, 2);
+  const mealPrev = (await st()).weanPlan[nextDs] || null;
+  await mut('setWeanDay', { date: nextDs, actor: '엄마', meals: [
     { name: '아침', base: [{ ing: 'pgyo', g: 60 }], tops: [{ ing: 'beef', g: 15 }] },
     { name: '점심', base: [{ ing: 'pgl',  g: 60 }], tops: [{ ing: 'broccoli', g: 15 }] } ] });
   await p.evaluate(() => window.dispatchEvent(new Event('focus')));
   await p.waitForTimeout(1600);
-  check('끼니마다 먹은 양 칩이 하나씩 있다',
-    await p.evaluate(()=>[document.querySelectorAll('.wd-card').length,
-                          document.querySelectorAll('.wd-ate').length]), [2, 2]);
-  check('...아직 적지 않은 칩은 비어 있다',
-    await p.evaluate(()=>[...document.querySelectorAll('.wd-ate')].every(e=>!e.classList.contains('on'))), true);
-  /* 점심 칩을 눌러 반 · 45g */
-  await p.evaluate(()=>{ const b=[...document.querySelectorAll('[data-wn-ate]')]; if(b[1]) b[1].click(); });
-  await p.waitForTimeout(700);
-  check('...칩을 누르면 먹은 양 시트가 열린다 (전체화면으로 안 보낸다)',
-    await p.evaluate(()=>document.getElementById('wn-ate-sheet').classList.contains('show')), true);
-  await p.click('#wn-ate-seg [data-wn-atev="half"]');
-  await p.fill('#wn-ate-g', '45');
-  await p.click('#wn-ate-save'); await p.waitForTimeout(1800);
-  check('...이유식 화면에 그대로 남는다',
-    await p.evaluate(()=>document.getElementById('fp-wean').classList.contains('show')), true);
-  /* 그램이 적혀 있으면 상태 라벨보다 그램이 먼저다 — 그게 더 정확한 말이다 */
-  check('...칩에 그램이 먼저 나온다',
-    await p.evaluate(()=>[...document.querySelectorAll('.wd-ate')].map(e=>e.textContent)),
-    ['아직 안 먹였어요', '45g 먹음']);
-  s = await st();
-  const dayOf = iso => { const d = new Date(iso), z = x => (x < 10 ? '0' : '') + x;
-    return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()); };
-  const wrec = s.entries.filter(e => e.type === 'wean' && dayOf(e.start) === mealDs);
-  check('...적은 끼니 이름이 기록에 남는다', wrec.map(e => e.mealName), ['점심']);
-  check('...그 끼니의 재료만 사본으로 붙는다',
-    (wrec[0].ings || []).map(x => x.ing), ['pgl', 'broccoli']);
-  await p.evaluate(()=>{ const x=document.querySelector('#fp-entry .fp-back'); if(x) x.click(); });
-  await p.waitForTimeout(900);
-  /* 지켜보는 중은 재료 탭과 같은 말씨의 카드 — 그림이 먼저 온다 */
-  check('...지켜보는 중이 그림 카드로 선다',
+  await p.click('.wt-date[data-wn-trow="' + nextDs + '"]'); await p.waitForTimeout(700);
+  check('표에서 날짜를 누르면 그 날을 고른다',
+    await p.evaluate(()=>{ const e=document.querySelector('.wc-ring');
+      return e ? e.parentElement.dataset.wnPick : ''; }), nextDs);
+  /* 표는 달을 통째로 들고 있다 — 고른 날 앞을 자르면 "위로 올리면 지난
+     날짜"가 깨진다. 스크롤 자리만 옮긴다. */
+  check('...고른 날 앞의 날짜도 표에 그대로 있다',
+    await p.evaluate((d)=>[...document.querySelectorAll('.wt-date')].some(e=>e.dataset.wnTrow < d),
+      nextDs > pickDs ? nextDs : pickDs), true);
+  check('...펼쳐지는 줄은 없다',
+    await p.evaluate(()=>!!document.querySelector('.wt-open, .wd-panel')), false);
+
+  /* 지켜보는 새 재료는 표 위 한 줄이다. 하루 상세 패널에만 있던 것이라
+     패널이 빠지면서 갈 데가 필요했다 — 2일마다 새 재료를 넣고 있어서
+     관찰 창이 사라지면 안 된다. */
+  check('지켜보는 중이 그림 카드로 선다',
     await p.evaluate(()=>{
       const c = document.querySelector('.wn-watch');
       return !!c && !!c.querySelector('.ww-ico .wi');
     }), true);
-  /* 되돌린다 — 아래 장보기 계산이 이 날을 쓴다 */
-  await mut('deleteEntry', { id: wrec[0].id, actor: '엄마' });
-  /* 건드리기 전 그대로 되돌린다 — 아래 장보기(한 주치 합계)가 이 날을 센다 */
-  if (mealPrev) await mut('setWeanDay', { date: mealDs, meals: mealPrev.meals, actor: '엄마' });
-  else await mut('deleteWeanDay', { date: mealDs, actor: '엄마' });
+  check('...표보다 위에 선다',
+    await p.evaluate(()=>{
+      const w=document.querySelector('.wn-watch'), t=document.querySelector('#wn-body .wt');
+      return !!(w && t) && (w.compareDocumentPosition(t) & Node.DOCUMENT_POSITION_FOLLOWING) > 0; }), true);
+  check('...두 끼면 표가 두 열이다',
+    await p.evaluate(()=>document.querySelectorAll('.wt-hd .wt-kind').length), 2);
+  if (mealPrev) await mut('setWeanDay', { date: nextDs, meals: mealPrev.meals, actor: '엄마' });
+  else await mut('deleteWeanDay', { date: nextDs, actor: '엄마' });
   await p.evaluate(() => window.dispatchEvent(new Event('focus')));
   await p.waitForTimeout(1600);
 
@@ -469,8 +459,8 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
     await p.evaluate(()=>!!document.querySelector('.wcal.is-mini')), false);
   /* 펴도 보고 있던 날은 놓지 않는다 — 예전엔 손잡이가 weanPick 을 비워서
      달력을 펴면 그날 식단이 같이 사라졌고, 다시 접을 길도 없었다. */
-  check('...펴도 그날 식단은 그대로 있다',
-    await p.evaluate(()=>!!document.querySelector('.wd-panel')), true);
+  check('...펴도 표는 그대로 있다',
+    await p.evaluate(()=>!!document.querySelector('#wn-body .wt')), true);
   check('...달이 통째로 보인다',
     await p.evaluate(()=>document.querySelectorAll('.wcal .wc-wk').length > 1), true);
   check('...손잡이가 그대로 있다',
@@ -480,6 +470,23 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
     await p.evaluate(()=>document.querySelectorAll('.wcal.is-mini .wc-wk').length), 1);
   await p.click('[data-wn-grab]'); await p.waitForTimeout(600);
 
+
+  /* 고른 날이 든 표 칸을 누른다. 칸은 덩어리 첫날을 들고 있지만, 고른 날이
+     그 안에 있으면 고치기가 고른 날을 기준으로 열린다(이 날만 떼기·지우기). */
+  const clickPickedCell = async () => {
+    await p.evaluate(()=>{
+      const ring = document.querySelector('.wc-ring');
+      const d = ring ? ring.parentElement.dataset.wnPick : '';
+      const span = (from, n) => { const out=[]; const x=new Date(from+'T00:00:00');
+        for (let i=0;i<n;i++){ const y=new Date(x); y.setDate(x.getDate()+i);
+          const z=v=>(v<10?'0':'')+v; out.push(y.getFullYear()+'-'+z(y.getMonth()+1)+'-'+z(y.getDate())); }
+        return out; };
+      const c=[...document.querySelectorAll('.wt-card[data-wn-cell]')]
+        .find(e=>span(e.dataset.wnCell, Number(e.dataset.wnSpan)||1).includes(d));
+      if (c) c.click();
+    });
+    await p.waitForTimeout(700);
+  };
   // ═══ 하루 고치기 ═══
   /* 알약 자체는 누를 수 없다 — 달력에서 손가락이 닿는 곳은 '날짜' 하나뿐이다.
      알약 위를 눌러도 그 날이 펼쳐지고, 고치기는 아래 끼니 카드로 들어간다. */
@@ -488,10 +495,11 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   await p.evaluate(()=>{ const t=[...document.querySelectorAll('.wc-pill')]
     .find(e=>e.dataset.wnPick === new Date().toISOString().slice(0,10)); if(t) t.click(); });
   await p.waitForTimeout(700);
-  check('알약 위를 눌러도 그 날이 펼쳐진다',
-    await p.evaluate(()=>!!document.querySelector('.wd-panel')), true);
-  await p.click('.wd-card'); await p.waitForTimeout(700);
-  check('끼니 카드를 누르면 하루 고치기가 열린다',
+  check('알약 위를 눌러도 그 날을 고른다',
+    await p.evaluate(()=>{ const e=document.querySelector('.wc-ring');
+      return e ? e.parentElement.dataset.wnPick : ''; }), TODAY);
+  await clickPickedCell();
+  check('표 칸을 누르면 하루 고치기가 열린다',
     await p.evaluate(()=>document.getElementById('fp-weanday').classList.contains('show')), true);
   check('...재료가 칩으로 나온다',
     await p.evaluate(()=>document.querySelectorAll('#fp-weanday-body .wn-ing:not(.add)').length), 4);
@@ -530,8 +538,8 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
       .find(e=>e.dataset.wnPick === new Date().toISOString().slice(0,10)); if(t) t.click(); });
     await p.waitForTimeout(800);
   };
-  /* 편집 화면이 아직 열려 있다 — 방금 저장했으니 다시 들어간다 */
-  await p.click('.wd-card'); await p.waitForTimeout(700);
+  /* 방금 저장했으니 다시 들어간다 */
+  await clickPickedCell();
   check('기간 칸이 있다', /시작/.test(await spanTxt()), true);
   /* 날짜 칸은 줄 **위에 투명하게 깔린 진짜 네이티브 칸**이다. 전에는 1px로
      숨겨 두고 showPicker()로 띄웠는데, 사파리는 안 보이는 칸의 달력을 열어
@@ -581,7 +589,7 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
     [25,25,25]);
 
   /* 줄이기 — 덩어리에서 빠진 날은 비어야 한다 */
-  await p.click('.wd-card'); await p.waitForTimeout(700);
+  await clickPickedCell();
   check('덩어리로 열린다 (사흘)', /3일/.test(await spanTxt()), true);
   await setSpan('to', dAdd(TODAY, 1));
   await p.click('#fp-weanday-save'); await p.waitForTimeout(1600);
@@ -595,7 +603,7 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   await mut('setWeanSpan', { from: dAdd(TODAY,4), to: dAdd(TODAY,4), actor:'엄마',
     meal: { name:'아침', base:[{ing:'pgyo',g:50}], tops:[{ing:'broccoli',g:10}] } });
   await reopenPlan(); await pickToday();
-  await p.click('.wd-card'); await p.waitForTimeout(700);
+  await clickPickedCell();
   await setSpan('to', dAdd(TODAY, 5));
   check('겹치면 경고가 뜬다',
     await p.evaluate(()=>!!document.querySelector('#fp-weanday-body .wn-alert.warn')), true);
@@ -616,7 +624,7 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
 
   /* 이 날만 따로 떼기 + 하루만 지우기 */
   await pickToday();
-  await p.click('.wd-card'); await p.waitForTimeout(700);
+  await clickPickedCell();
   check('덩어리가 길면 이 날만 떼는 길이 있다',
     await p.evaluate(()=>!!document.querySelector('#fp-weanday-body [data-wn-split]')), true);
   await p.click('#fp-weanday-body [data-wn-delday]'); await p.waitForTimeout(500);
@@ -626,10 +634,9 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   check('...나머지 날은 그대로', !!s.weanPlan[dAdd(TODAY,1)], true);
 
   /* 덩어리 전체 지우기 — 머리말의 휴지통 */
-  await pickToday();
-  await p.evaluate(()=>{ const d=document.querySelector('[data-wn-pickadd="1"]'); if(d) d.click(); });
-  await p.waitForTimeout(600);
-  await p.click('.wd-card'); await p.waitForTimeout(700);
+  /* 다음 날로 — 화살표는 패널과 함께 없어졌다. 표의 날짜를 누른다. */
+  await p.click('.wt-date[data-wn-trow="' + dAdd(TODAY,1) + '"]'); await p.waitForTimeout(700);
+  await clickPickedCell();
   await p.click('#fp-weanday-del'); await p.waitForTimeout(500);
   await p.click('#confirm-yes'); await p.waitForTimeout(1600);
   s = await st();

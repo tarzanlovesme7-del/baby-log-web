@@ -50,36 +50,26 @@ const d = n => M + (n<10?'0':'') + n;
   await p.goto(BASE + '/'); await p.waitForTimeout(2200);
   await p.click('#btn-settings'); await p.waitForTimeout(500);
   await p.click('#set-wean'); await p.waitForTimeout(800);
-  await p.click('[data-wn-pick="'+d(3)+'"]'); await p.waitForTimeout(700);
 
-  /* ── 모드 전환 ───────────────────────────────────────── */
-  check('달력 옆에 표로 바꾸는 단추가 있다',
-    await p.evaluate(()=>document.querySelectorAll('[data-wn-layout]').length), 2);
-  /* "어떻게 볼까"는 "며칠을 볼까"보다 위에 있는 결정이다 — 달력 아래에 두면
-     날짜를 누르면 생기는 것처럼 읽힌다(2026-11-13). */
-  check('전환 단추는 식단표 맨 위, 달력보다 먼저다', await p.evaluate(()=>{
-    const body = document.getElementById('wn-body');
-    const mode = body.querySelector('.wt-mode'), cal = body.querySelector('.wcal');
-    return !!(mode && cal) &&
-      (mode.compareDocumentPosition(cal) & Node.DOCUMENT_POSITION_FOLLOWING) > 0; }), true);
-  check('처음엔 달력이고 상세 패널이 선다', await p.evaluate(()=>[
-    !!document.querySelector('.wd-panel'), !!document.querySelector('.wt')]), [true, false]);
-  await p.click('[data-wn-layout="table"]'); await p.waitForTimeout(700);
-  check('표로 바꾸면 표가 서고 상세 패널은 빠진다', await p.evaluate(()=>[
-    !!document.querySelector('.wt'), !!document.querySelector('.wd-panel')]), [true, false]);
-  /* 달력 격자는 달력 모드의 것이다 — 표는 그 달을 통째로 들고 있으므로
-     주 스트립이 같은 말을 두 번 한다. 년월만 남는다. */
+  /* ── 달력과 표는 한 화면 ─────────────────────────────
+     "하나로 합치자 / 달력이 디폴트로 나오고 날짜 선택하면 달력 한줄로 접고
+     그 아래에 선택한 날짜부터 아래로 쭉 표 뿌려주는거야" (2026-11-16) */
+  check('달력/표 전환 단추는 없다',
+    await p.evaluate(()=>document.querySelectorAll('[data-wn-layout]').length), 0);
+  check('고르기 전에는 달력뿐이다', await p.evaluate(()=>[
+    !!document.querySelector('#wn-body .wcal [data-wn-pick]'),
+    !!document.querySelector('.wt')]), [true, false]);
 
-  /* ── 표는 그 달을 통째로, 달력 격자는 접는다 ──────────
-     "맨 첫줄 캘린더는 안 보여도 되잖아 / 그냥 1일부터 30일까지 쭉 뿌리고
-     오늘 날짜로 스크롤 해줘" (2026-11-13) */
+  await p.click('[data-wn-pick="'+d(3)+'"]'); await p.waitForTimeout(900);
+  check('고른 날이 있으면 달력은 그 주 한 줄로 접힌다', await p.evaluate(()=>
+    !!document.querySelector('#wn-body .wcal.is-mini')), true);
+  check('...년월은 남아서 달을 넘길 수 있다', await p.evaluate(()=>
+    !!document.querySelector('#wn-body .wcal [data-wn-mopick]')), true);
+  check('...하루 상세 패널은 더 이상 없다 (먹은 양은 기록 화면에서)',
+    await p.evaluate(()=>!!document.querySelector('.wd-panel')), false);
   check('표는 달 전체를 그린다 (고른 날이 3일이어도)', await p.evaluate(()=>
     [...document.querySelectorAll('.wt .wt-date b')].map(e=>Number(e.textContent))),
     [1,2,3,4,5,6,7]);
-  check('표에서는 달력 격자가 접힌다', await p.evaluate(()=>
-    !!document.querySelector('#wn-body .wcal [data-wn-pick]')), false);
-  check('...년월은 남아서 달을 넘길 수 있다', await p.evaluate(()=>
-    !!document.querySelector('#wn-body .wcal [data-wn-mopick]')), true);
 
   /* ── 열은 그 달에 쓰는 끼니만 ─────────────────────────── */
   check('끼니 두 가지면 열도 둘', await p.evaluate(()=>
@@ -114,10 +104,15 @@ const d = n => M + (n<10?'0':'') + n;
     const f=document.getElementById('fp-weanday'); return !!(f && !f.hidden && f.classList.contains('show')); }), true);
   await p.click('#fp-weanday-back'); await p.waitForTimeout(600);
   check('...돌아오면 표가 그대로다', await p.evaluate(()=>!!document.querySelector('.wt')), true);
-  await p.click('.wt .wt-date'); await p.waitForTimeout(800);
-  check('날짜를 누르면 달력으로 돌아가 그 날이 펴진다', await p.evaluate(()=>[
-    !!document.querySelector('.wd-panel'), !!document.querySelector('.wt'),
-    !!document.querySelector('#wn-body .wcal [data-wn-pick]')]), [true, false, true]);
+  /* 표의 날짜를 누르면 그 날이 고른 날이 된다 — 펼칠 것은 없다.
+     접힌 달력이 그 주로 옮겨가고, + 로 새 식단을 넣을 기준도 그 날이 된다. */
+  await p.click('.wt .wt-date[data-wn-trow="'+d(6)+'"]'); await p.waitForTimeout(900);
+  check('표의 날짜를 누르면 그 날이 고른 날이 된다', await p.evaluate(()=>[
+    !!document.querySelector('.wt'),
+    !!document.querySelector('.wd-panel'),
+    !!document.querySelector('#wn-body .wcal.is-mini')]), [true, false, true]);
+  check('...접힌 달력이 그 주로 옮겨간다', await p.evaluate(()=>
+    !!document.querySelector('#wn-body .wc-ring')), true);
 
   /* ── 한 끼뿐인 달은 한 열 ────────────────────────────── */
   for (const n of [6,7]) await mut('setWeanDay',{ date:d(n), actor:'엄마',
@@ -125,8 +120,7 @@ const d = n => M + (n<10?'0':'') + n;
   await p.goto(BASE + '/'); await p.waitForTimeout(2000);
   await p.click('#btn-settings'); await p.waitForTimeout(500);
   await p.click('#set-wean'); await p.waitForTimeout(800);
-  await p.click('[data-wn-pick="'+d(3)+'"]'); await p.waitForTimeout(700);
-  await p.click('[data-wn-layout="table"]'); await p.waitForTimeout(700);
+  await p.click('[data-wn-pick="'+d(3)+'"]'); await p.waitForTimeout(900);
   check('한 끼뿐이면 열도 하나', await p.evaluate(()=>
     document.querySelectorAll('.wt-hd .wt-kind').length), 1);
   check('...그만큼 재료 격자가 넓어진다', await p.evaluate(()=>
@@ -159,16 +153,13 @@ const d = n => M + (n<10?'0':'') + n;
   await pv.click('#btn-settings'); await pv.waitForTimeout(500);
   await pv.click('#set-wean'); await pv.waitForTimeout(800);
   await pv.click('[data-wn-pick="'+d(3)+'"]'); await pv.waitForTimeout(700);
-  check('베트남어에서도 전환 단추가 베트남어', await pv.evaluate(()=>
-    [...document.querySelectorAll('[data-wn-layout]')].map(e=>e.textContent.trim())), ['Lịch','Bảng']);
-  await pv.click('[data-wn-layout="table"]'); await pv.waitForTimeout(700);
   check('...재료 이름도 베트남어', await pv.evaluate(()=>
     /cà rốt/.test(document.querySelector('.wt').textContent)), true);
   await pv.close();
 
-  /* ── 들어오면 오늘로 데려다 준다 ─────────────────────
-     한 달을 통째로 그리므로 들어오자마자 1일이면 볼 때마다 오늘까지
-     내려와야 한다("오늘 날짜로 스크롤 해줘"). */
+  /* ── 고른 날로 데려다 준다 ───────────────────────────
+     표는 **달을 통째로** 그리고 스크롤 자리만 고른 날로 간다 — 앞 날짜를
+     자르면 "위로 올리면 지난 날짜"가 깨진다(2026-11-16). */
   for (const n of [1,2,3,4,5,6,7]) await mut('deleteWeanDay',{ date:d(n), actor:'엄마' });
   const todayStr = new Date().toISOString().slice(0,10);
   const ymNow = todayStr.slice(0,7);
@@ -178,17 +169,19 @@ const d = n => M + (n<10?'0':'') + n;
   await p.goto(BASE + '/'); await p.waitForTimeout(2200);
   await p.click('#btn-settings'); await p.waitForTimeout(500);
   await p.click('#set-wean'); await p.waitForTimeout(900);
-  await p.click('[data-wn-layout="table"]'); await p.waitForTimeout(1600);
-  const jump = await p.evaluate(()=>{
-    const row = document.querySelector('.wt .wt-today');
-    return { y: Math.round(window.scrollY), hasToday: !!row,
-      /* 오늘 줄이 화면 위쪽에 와 있다 */
+  await p.click('[data-wn-pick="'+dd(20)+'"]'); await p.waitForTimeout(1800);
+  const jump = await p.evaluate((ds)=>{
+    const row = document.querySelector('.wt .wt-date[data-wn-trow="'+ds+'"]');
+    const first = document.querySelector('.wt .wt-date b');
+    return { y: Math.round(window.scrollY), has: !!row,
       top: row ? Math.round(row.getBoundingClientRect().top) : null,
+      firstDay: first ? Number(first.textContent) : null,
       vh: window.innerHeight };
-  });
-  check('오늘 줄이 표에 있다', jump.hasToday, true);
-  check('...들어오면 오늘로 스크롤한다 ' + JSON.stringify(jump), jump.y > 0, true);
-  check('...오늘 줄이 화면 위쪽에 선다', jump.top >= 0 && jump.top < jump.vh / 2, true);
+  }, dd(20));
+  check('고른 날 줄이 표에 있다', jump.has, true);
+  check('...표는 1일부터 그대로 그린다 (앞을 자르지 않는다)', jump.firstDay, 1);
+  check('...고른 날로 스크롤한다 ' + JSON.stringify(jump), jump.y > 0, true);
+  check('...고른 날 줄이 화면 위쪽에 선다', jump.top >= 0 && jump.top < jump.vh / 2, true);
 
   check('페이지 오류 없음', errs, []);
   await b.close();

@@ -67,7 +67,7 @@ const mixKeyOf = (...ids) => 'mix_' + hash(ids.slice().sort().join(','));
   await p.goto(BASE + '/'); await p.waitForTimeout(2200);
   await p.click('#btn-settings'); await p.waitForTimeout(500);
   await p.click('#set-wean'); await p.waitForTimeout(800);
-  await p.click('[data-wn-layout="table"]'); await p.waitForTimeout(900);
+  await p.click('[data-wn-pick="'+d(1)+'"]'); await p.waitForTimeout(900);
 
   /* ── 식단표 라벨 ─────────────────────────────────────── */
   check('칸마다 토핑/죽 라벨이 붙는다', await p.evaluate(()=>
@@ -81,7 +81,6 @@ const mixKeyOf = (...ids) => 'mix_' + hash(ids.slice().sort().join(','));
     return !!t.querySelector('.wt-sp'); }), true);
 
   /* ── 재고: 죽은 큐브 칸에서 빠지고 끼로 선다 ─────────── */
-  await p.click('[data-wn-layout="cal"]'); await p.waitForTimeout(500);
   await p.click('#wn-tabs [data-wn="cubes"]');
   await p.waitForTimeout(600);
   const cv = await p.evaluate(()=>!!document.querySelector('[data-wn-cv]'));
@@ -219,8 +218,9 @@ const mixKeyOf = (...ids) => 'mix_' + hash(ids.slice().sort().join(','));
   await p.goto(BASE + '/'); await p.waitForTimeout(2000);
   await p.click('#btn-settings'); await p.waitForTimeout(500);
   await p.click('#set-wean'); await p.waitForTimeout(700);
-  await p.click('[data-wn-pick="'+d(2)+'"]'); await p.waitForTimeout(700);
-  await p.click('.wd-card'); await p.waitForTimeout(800);
+  await p.click('[data-wn-pick="'+d(2)+'"]'); await p.waitForTimeout(900);
+  /* 하루 상세 패널이 없어졌으니(2026-11-16) 표의 그 날 칸으로 들어간다 */
+  await p.click('.wt .wt-card[data-wn-cell="'+d(2)+'"]'); await p.waitForTimeout(900);
   check('하루 고치기에 토핑/죽 세그먼트가 있다', await p.evaluate(()=>
     [...document.querySelectorAll('[data-wn-form]')].map(e=>
       [e.dataset.wnForm, e.getAttribute('aria-pressed')])), [['top','false'],['mix','true']]);
@@ -236,7 +236,7 @@ const mixKeyOf = (...ids) => 'mix_' + hash(ids.slice().sort().join(','));
   await pv.goto(BASE + '/'); await pv.waitForTimeout(2200);
   await pv.click('#btn-settings'); await pv.waitForTimeout(500);
   await pv.click('#set-wean'); await pv.waitForTimeout(800);
-  await pv.click('[data-wn-layout="table"]'); await pv.waitForTimeout(800);
+  await pv.click('[data-wn-pick="'+d(1)+'"]'); await pv.waitForTimeout(900);
   check('베트남어 라벨', await pv.evaluate(()=>
     [...new Set([...document.querySelectorAll('.wt .wt-card .wn-form')].map(e=>e.textContent.trim()))].sort()),
     ['Rắc lên','Trộn đều']);

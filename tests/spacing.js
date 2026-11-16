@@ -170,7 +170,7 @@ const MEALS = [{ name:'아침',
 
     /* 하루 고치기와 재료 상세도 같은 자로 잰다 */
     await p.click('#wn-tabs [data-wn="plan"]'); await p.waitForTimeout(600);
-    /* 달력에서 오늘(없으면 아무 날)을 펼치고, 그 끼니 카드로 하루 고치기 */
+    /* 달력에서 오늘(없으면 아무 날)을 고르면 아래에 표가 선다 */
     await p.evaluate(()=>{ const d=new Date(); const p2=x=>(x<10?'0':'')+x;
       const ds=d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());
       const t=[...document.querySelectorAll('.wc-pill')].find(e=>e.dataset.wnPick===ds)
@@ -178,7 +178,8 @@ const MEALS = [{ name:'아침',
       if (t) t.click(); });
     await p.waitForTimeout(800);
     check(lang + ' · 고른 날 — 여백이 모자란 곳 없음', await p.evaluate(AUDIT), []);
-    await p.locator('.wd-card').first().click(); await p.waitForTimeout(800);
+    /* 하루 상세 패널은 없다(2026-11-16) — 표의 첫 칸으로 하루 고치기 */
+    await p.locator('#wn-body .wt-card[data-wn-cell]').first().click(); await p.waitForTimeout(800);
     check(lang + ' · 하루 고치기 — 여백이 모자란 곳 없음', await p.evaluate(AUDIT), []);
     await p.click('#fp-weanday-back'); await p.waitForTimeout(500);
     await p.click('#wn-tabs [data-wn="ings"]'); await p.waitForTimeout(700);
