@@ -491,7 +491,16 @@
      아는 것이다 — 넘치면 줄을 바꾼다. */
   .wd-t b{ display:block; font-size:var(--fs-caption); font-weight:var(--fw-strong);
     letter-spacing:-.02em; line-height:1.45; word-break:keep-all; }
-  .wd-t span{ display:block; font-size:var(--fs-micro); color:var(--muted); margin-top:3px; }
+  .wd-t b .wn-form{ margin-left:5px; vertical-align:1px; letter-spacing:0; }
+  .wn-mrow .wn-form{ margin-right:2px; }
+  /* 띠 머리줄('초기 이유식 · 9일차' 옆). 띠는 끼니색으로 칠해져 있지 않으므로
+     여기서는 띠 제 색(--wn-fg)을 쓴다. */
+  .wn-form.on-band{ color:var(--wn-fg); opacity:.6; }
+  .wn-form.on-band.is-mix{ opacity:1; background:var(--wn-fg); color:var(--wn-bg); }
+  #wn-form-tag:empty{ display:none; }
+  /* 부제만 — **바로 밑의** span 이다. 이름 옆 토핑/죽 알약도 span 이라
+     후손 선택자로 잡으면 알약이 통째로 블록이 되어 줄을 하나 더 먹는다. */
+  .wd-t > span{ display:block; font-size:var(--fs-micro); color:var(--muted); margin-top:3px; }
   .wd-empty{ padding:18px 0 8px; }
 
   /* 알약 바탕은 메뉴마다 고를 수 있다(--pc/--pt). 안 고른 메뉴는 목업 기본값. */
@@ -3446,8 +3455,21 @@
      칸만 재면 원래 얼마가 필요했는지 알 수 없다. 줄 높이를 정하려면
      늘어나지 않는 자가 하나 있어야 한다. */
   .wt-in{ display:flex; flex-direction:column; gap:6px; }
-  .wt-top{ display:flex; align-items:center; justify-content:space-between; gap:4px;
+  .wt-top{ display:flex; align-items:center; gap:4px;
     font-size:10px; color:var(--muted-2); font-variant-numeric:tabular-nums; }
+  /* 토핑 / 죽 알약. 색은 **끼니색 한 쌍 그대로** 쓴다 — 빨강을 쓰면 새 재료
+     점과 같은 말로 읽힌다. 기본(토핑)은 테두리만, 예외(죽)는 꽉 채워서
+     다른 쪽이 먼저 읽히게 한다. */
+  .wn-form{ display:inline-flex; align-items:center; font-size:9.5px; flex:0 0 auto;
+    font-weight:var(--fw-strong); line-height:1; padding:3px 7px; border-radius:var(--radius-pill);
+    border:1px solid currentColor; color:var(--wt-am-fg); opacity:.5; }
+  .wt-card.pm .wn-form, .wn-form.pm{ color:var(--wt-pm-fg); }
+  .wt-card.dn .wn-form, .wn-form.dn{ color:var(--wt-dn-fg); }
+  .wn-form.is-mix{ opacity:1; border-color:transparent;
+    background:var(--wt-am-fg); color:var(--surface); }
+  .wt-card.pm .wn-form.is-mix, .wn-form.pm.is-mix{ background:var(--wt-pm-fg); }
+  .wt-card.dn .wn-form.is-mix, .wn-form.dn.is-mix{ background:var(--wt-dn-fg); }
+  .wt-sp{ flex:1 1 auto; }
   .wt-grid{ display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px 3px; }
   .wt-grid.c3{ grid-template-columns:repeat(3,minmax(0,1fr)); }
   /* 세 끼면 한 칸이 106px — 재료를 한 줄에 하나씩, 그림은 왼쪽에 눕힌다 */
@@ -3723,6 +3745,7 @@
           <div class="a-top" id="wn-dn-line">
             <span class="a-label" id="wn-label">이유식</span>
             <span class="wn-stage" id="wn-stage"></span>
+            <span id="wn-form-tag"></span>
             <span class="wn-soon wn-dn" id="wn-dn"></span>
           </div>
           <div class="wn-meals" id="wn-meals"></div>
@@ -4696,19 +4719,25 @@
       <span style="width:30px"></span>
     </div>
     <div class="sheet-body">
-      <div class="field">
+      <div class="field" id="wn-cube-ingfield">
         <label data-i18n="wnIngredient">재료</label>
         <div class="chip-row" id="wn-cube-ings" style="padding:0"></div>
+      </div>
+      <!-- 죽 덩어리는 재료 사전에 없는 것이라 고를 칩이 없다. 대신 이름을
+           직접 적는다(자동으로 지어 두고 고칠 수 있게, 2026-11-16). -->
+      <div class="field" id="wn-cube-namefield" hidden>
+        <label data-i18n="wnName">이름</label>
+        <input type="text" id="wn-cube-name" maxlength="24" />
       </div>
       <div class="field">
         <label data-i18n="wnHowMany">몇 칸</label>
         <div class="wn-num"><input type="number" id="wn-cube-n" value="12" min="0" step="1" inputmode="numeric" />
-          <span data-i18n="wnCubeUnit">칸</span></div>
+          <span id="wn-cube-unit" data-i18n="wnCubeUnit">칸</span></div>
       </div>
       <div class="field">
         <label data-i18n="wnPerCube">한 칸 용량</label>
         <div class="wn-num"><input type="number" id="wn-cube-g" value="10" min="1" step="1" inputmode="numeric" /><span>g</span></div>
-        <div class="t-caption" style="margin-top:8px" data-i18n="wnPerCubeHint">재료에 저장된 기본값이에요. 여기서 바꾸면 재료에도 같이 저장돼요.</div>
+        <div class="t-caption" style="margin-top:8px" id="wn-cube-ghint" data-i18n="wnPerCubeHint">재료에 저장된 기본값이에요. 여기서 바꾸면 재료에도 같이 저장돼요.</div>
       </div>
       <div class="field">
         <label data-i18n="wnMadeOn">만든 날</label>
@@ -5037,6 +5066,13 @@ ko: {
   wnPerCube:"한 칸 용량", wnPerCubeHint:"재료에 저장된 기본값이에요. 여기서 바꾸면 재료에도 같이 저장돼요.",
   wnMadeOn:"만든 날",
   wnCubeNTpl:"큐브 {n}칸",
+  /* 토핑 / 죽 — 같은 재료라도 얹어 주느냐 섞어 주느냐 (2026-11-16) */
+  wnFormTop:"토핑", wnFormMix:"죽",
+  wnFormLabel:"주는 방법", wnFormTopSub:"죽 위에 재료를 따로 얹어요",
+  wnFormMixSub:"재료를 죽에 섞어 통째로 끓여요. 큐브를 안 쓰고 한 끼씩 얼려요.",
+  wnMixNameTpl:"{a}죽{more}", wnMixNameMore:" 외",
+  wnMealNTpl:"{n}끼",
+  wnMixFoot:"죽은 큐브를 안 써요. 한 끼씩 얼려 두고 먹이면 한 끼씩 빠져요.",
   wnCubeEmpty:"아직 만든 큐브가 없어요.",
   wnCubeFoot:"이유식을 기록하면 그날 메뉴의 재료가 한 칸씩 자동으로 빠져요. 안 맞으면 − + 로 고쳐요.",
   wnName:"이름", wnNameVi:"베트남어", wnUnit:"단위", wnAllergen:"알레르기 주의 재료",
@@ -5352,6 +5388,12 @@ vi: {
   wnPerCube:"Mỗi viên", wnPerCubeHint:"Đây là giá trị mặc định lưu ở nguyên liệu. Đổi ở đây thì nguyên liệu cũng đổi theo.",
   wnMadeOn:"Ngày làm",
   wnCubeNTpl:"{n} viên",
+  wnFormTop:"Rắc lên", wnFormMix:"Trộn đều",
+  wnFormLabel:"Cách cho ăn", wnFormTopSub:"Rắc nguyên liệu lên trên cháo.",
+  wnFormMixSub:"Trộn nguyên liệu vào cháo, nấu chung. Không dùng viên, trữ đông từng bữa.",
+  wnMixNameTpl:"Cháo {a}{more}", wnMixNameMore:"...",
+  wnMealNTpl:"{n} bữa",
+  wnMixFoot:"Cháo không dùng viên. Trữ đông từng bữa, cho ăn thì trừ một bữa.",
   wnCubeEmpty:"Chưa có viên trữ đông nào.",
   wnCubeFoot:"Ghi ăn dặm thì nguyên liệu của ngày đó tự trừ 1 viên. Không khớp thì sửa bằng − +.",
   wnName:"Tên", wnNameVi:"Tiếng Việt", wnUnit:"Đơn vị", wnAllergen:"Nguyên liệu dễ dị ứng",
@@ -6784,6 +6826,8 @@ function readEntries(){
          먹은 양을 저장했는데 로그 줄이 계속 "안 적음"이라고 했던 이유다. */
       ate: e.ate || '', react: e.react || '', menu: e.menu || '', mealName: e.mealName || '',
       ings: Array.isArray(e.ings) ? e.ings : [],
+      form: e.form === 'mix' ? 'mix' : 'top',
+      mixKey: e.mixKey || '',
       /* 기록 화면 개편에서 들어온 칸들. 같은 이유로 여기 빠지면 없는 것이
          된다 — 서버에는 Hemangiol 이 저장돼 있는데 로그 줄에 약 이름이
          안 뜨던 것이 바로 이 줄이 없어서였다. */
@@ -7871,6 +7915,7 @@ function renderWeanBand(){
       dnLine.classList.remove('wn-over-menu');
       document.getElementById('wn-label').textContent = t('wnBandLabel');
       document.getElementById('wn-stage').textContent = '';
+      document.getElementById('wn-form-tag').innerHTML = '';
       document.getElementById('wn-dn').textContent = t('dashDminusTpl').replace('{n}', String(n));
       meals.innerHTML = '';
       syncAnnounceStack();
@@ -7895,6 +7940,14 @@ function renderWeanBand(){
   var news = {};
   weanNewOn(ds).forEach(function(id){ news[id] = 1; });
   var many = day.meals.length > 1;
+  /* 하루 안에서 주는 방법이 갈리면(아침은 토핑, 점심은 죽) 머리줄 하나로는
+     거짓말이 된다 — 그럴 때만 줄마다 적는다. */
+  var forms = {};
+  day.meals.forEach(function(m){ forms[weanMealForm(m)] = 1; });
+  var mixedForms = Object.keys(forms).length > 1;
+  var tag = document.getElementById('wn-form-tag');
+  if (tag) tag.innerHTML = mixedForms ? ''
+    : weanFormPillHtml(day.meals[0], 'on-band');
   meals.innerHTML = day.meals.map(function(m){
     var seen = {}, items = [];
     ((m.base || []).concat(m.tops || [])).forEach(function(x){
@@ -7910,6 +7963,9 @@ function renderWeanBand(){
     }
     return '<span class="wn-mrow">' +
       (many ? '<span class="wn-meal">' + esc(weanMealName(m.name)) + '</span>' : '') +
+      /* 끼니마다 주는 방법이 다른 날에만 줄마다 적는다. 하루가 한 가지면
+         머리줄('9일차' 옆)에 한 번만 선다 — 같은 말을 두 줄에 쓰지 않는다. */
+      (mixedForms ? weanFormPillHtml(m, weanKindOf(m.name)) : '') +
       '<span class="wn-icons">' + items.map(function(id){
         return '<span class="wn-it">' + weanIngIcon(id) +
           '<b>' + esc(weanIngName(id)) + '</b>' +
@@ -8549,6 +8605,10 @@ function quickCreate(typeId){
     weanExtra = { ate: '', react: '',
       mealName: wm ? (wm.name || '') : '',
       menu: wm ? weanMealText(wm) : weanMenuText(wday),
+      /* 식단을 나중에 고쳐도 그날 기록은 안 흔들린다 — form 과 죽 키도
+         사본이다. 재고를 되돌릴 때 서버가 이 키를 보고 그 통을 찾는다. */
+      form: wm ? weanMealForm(wm) : 'top',
+      mixKey: (wm && weanIsMix(wm)) ? weanMixKey(wm) : '',
       ings: wm ? ((wm.base || []).concat(wm.tops || [])) : weanDayIngs(wday) };
     for (var wk in weanExtra) row[wk] = weanExtra[wk];
   }
@@ -12866,7 +12926,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261113e';
+var BUILD = '20261116b';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -13224,6 +13284,8 @@ function openEntryDetail(entryId){
        빈 값으로 그려진다 — 먹은 양을 고치러 들어갔다가 도로 지워지는 길이다. */
     ate: raw.ate || '', react: raw.react || '', menu: raw.menu || '', mealName: raw.mealName || '',
     ings: raw.ings || [],
+    form: raw.form === 'mix' ? 'mix' : 'top',
+    mixKey: raw.mixKey || '',
     /* 기록 화면 개편에서 들어온 칸들. 이 사본이 화이트리스트라서 여기 빠진
        칸은 폼이 빈 값으로 그려진다 — 고치러 들어갔다가 도로 지워지는 길이다. */
     poop: raw.poop || '', tempSite: raw.tempSite || '',
@@ -16040,6 +16102,58 @@ function weanDayIngs(day){
   return out;
 }
 
+/* ── 토핑 이유식 / 죽 이유식 ───────────────────────────────────
+   같은 재료라도 **얹어 주느냐 섞어 주느냐**가 다른 끼니다. 2026-11-16에
+   지오가 처음으로 0g을 먹었고(당근·소고기·청경채를 혀로 밀어냈다), 엄마의
+   가설이 "따로 얹으니 싫은 것만 골라 낸다"였다. 그걸 되짚으려면 그 끼니가
+   어느 쪽이었는지가 남아 있어야 한다.
+
+   저장은 **죽일 때만** `form:'mix'` 를 적는다. 없으면 토핑이다 — 쌓인 90일치를
+   건드리지 않고도 옛 식단이 전부 제 뜻으로 읽힌다. */
+function weanMealForm(m){ return (m && m.form === 'mix') ? 'mix' : 'top'; }
+/* 알약은 한 곳에서 찍는다 — 네 화면에 같은 모양으로 선다. kind 를 주면 그
+   끼니색을 입는다(식단표 칸 안에서는 칸이 이미 그 색을 쥐고 있다). */
+function weanFormPillHtml(m, kind){
+  var mix = weanIsMix(m);
+  return '<span class="wn-form' + (kind ? ' ' + kind : '') + (mix ? ' is-mix' : '') + '">' +
+    esc(t(mix ? 'wnFormMix' : 'wnFormTop')) + '</span>';
+}
+function weanIsMix(m){ return weanMealForm(m) === 'mix'; }
+/* 죽 한 덩어리의 이름표. 끼니 이름은 넣지 않는다 — 같은 죽을 아침에 주든
+   점심에 주든 냉동실에서는 같은 통이다. */
+function weanMixKey(m){
+  var items = (m.base || []).concat(m.tops || []);
+  return 'mix_' + weanHash(items.map(function(x){ return x.ing; }).sort().join(','));
+}
+/* 이름은 자동으로 짓고 고칠 수 있다(2026-11-16 그녀 선택). 토핑 재료를
+   차례로 잇고 '죽'을 붙인다. 넷을 넘으면 셋까지만 — 재고 줄이 넘친다. */
+var WEAN_MIX_NAME_MAX = 3;
+function weanMixAutoLabel(m){
+  var tops = (m.tops || []).map(function(x){ return weanIngName(x.ing); });
+  if (!tops.length) tops = (m.base || []).map(function(x){ return weanIngName(x.ing); });
+  var cut = tops.slice(0, WEAN_MIX_NAME_MAX).join('');
+  return t('wnMixNameTpl').replace('{a}', cut).replace('{more}',
+    tops.length > WEAN_MIX_NAME_MAX ? t('wnMixNameMore') : '');
+}
+/* 이름은 **식단에 붙는다**(m.mixLabel) — 냉동실의 통이 아니라 그 죽 자체의
+   이름이라, 통을 다 먹고 다시 끓여도 이름이 따라온다. 냉동실에서 손으로
+   고친 이름(c.label)이 있으면 그게 이기고, 둘 다 없으면 자동 이름이다. */
+function weanMixLabel(m){
+  var row = weanCubes().filter(function(c){ return c.ing === weanMixKey(m) && c.label; })[0];
+  return (m && m.mixLabel) || (row && row.label) || weanMixAutoLabel(m);
+}
+/* 큐브 계산에만 쓰는 재료 목록 — 죽 끼니는 뺀다. 죽은 통째로 끓여 한 끼씩
+   얼리므로 재료별 칸으로 쪼개지지 않는다. **연결을 끊는 자리는 여기 하나다.**
+   보여 주는 쪽(식단표·기록·장보기)은 `weanDayIngs` 를 그대로 쓴다 — 죽이어도
+   무엇이 들었는지는 보여야 하고, 무·배추는 사 오긴 해야 한다. */
+function weanDayCubeIngs(day){
+  return weanDayIngs({ meals: ((day && day.meals) || []).filter(function(m){ return !weanIsMix(m); }) });
+}
+/* 그날 죽 끼니들 — 재고에서 '끼'로 세는 쪽 */
+function weanDayMixMeals(day){
+  return ((day && day.meals) || []).filter(weanIsMix);
+}
+
 /* ---- 새 재료 ----
    식단표에서 그 재료가 처음 나오는 날이 첫날이다. 식단을 고치면 따라 움직인다. */
 var _weanFirstCache = null, _weanFirstKey = '';
@@ -16199,9 +16313,15 @@ function weanDaysSince(ds){
    세면 안 된다 — 중기부터는 하루 두 끼라 쌀죽만 120g, 두 칸이다.
    그날 쓰는 g을 한 칸 g으로 나눠 **올림**한다. */
 function weanWeekCubes(week){
-  var days = weanWeekDays(week), use = {};
+  var days = weanWeekDays(week), use = {}, mix = {};
   days.forEach(function(ds){
-    weanDayIngs(weanDay(ds)).forEach(function(x){
+    /* 죽 끼니는 재료별 칸이 아니라 **그 죽 한 끼**로 센다 */
+    weanDayMixMeals(weanDay(ds)).forEach(function(m){
+      var k = weanMixKey(m);
+      if (!mix[k]) mix[k] = { key: k, label: weanMixLabel(m), use: 0 };
+      mix[k].use += 1;
+    });
+    weanDayCubeIngs(weanDay(ds)).forEach(function(x){
       /* 한 칸 g은 재료 사전에서 읽는다. 사전에 없으면 씨앗 목록에서라도
          찾는다 — 쌀죽 한 칸은 60g인데 10g으로 세면 여섯 배가 나온다. */
       var gg = weanIng(x.ing) || WEAN_SEED_INGS.filter(function(z){ return z.id === x.ing; })[0];
@@ -16213,7 +16333,11 @@ function weanWeekCubes(week){
   var rows = Object.keys(use).map(function(ing){
     var have = weanCubeN(ing);
     return { ing: ing, use: use[ing], have: have, make: Math.max(0, use[ing] - have) };
-  }).sort(function(a, b){
+  }).concat(Object.keys(mix).map(function(k){
+    var r = mix[k], have = weanCubeN(k);
+    return { ing: k, mix: true, label: r.label, use: r.use, have: have,
+             make: Math.max(0, r.use - have) };
+  })).sort(function(a, b){
     if (b.make !== a.make) return b.make - a.make;
     return b.use - a.use;
   });
@@ -16268,12 +16392,13 @@ function weanTopsFirst(items){
 }
 /* 식단표의 끼니 카드와 **같은 컴포넌트**를 쓴다 — 같은 한 끼를 두 화면에서
    다른 모양으로 그리면 같은 것인지 알 수가 없다. 그림 네 칸 + 이름 + 부제. */
-function weanMealCardHtml(items, sub, colorKey){
+function weanMealCardHtml(items, sub, colorKey, pill){
   var c = colorKey ? weanColorOf(colorKey) : 0;
   items = weanTopsFirst(items);
   return '<span class="wd-thumb ' + (WEAN_PAL[c] || '') + '">' +
       items.slice(0, 4).map(function(x){ return weanIngIcon(x.ing); }).join('') + '</span>' +
-    '<span class="wd-t"><b>' + esc(items.map(function(x){ return weanIngName(x.ing); }).join(' ')) + '</b>' +
+    '<span class="wd-t"><b>' + esc(items.map(function(x){ return weanIngName(x.ing); }).join(' ')) +
+      (pill || '') + '</b>' +
       '<span>' + esc(sub) + '</span></span>';
 }
 function weanMenuBoxHtml(e){
@@ -16281,12 +16406,13 @@ function weanMenuBoxHtml(e){
   var fromPlan = !(e.ings && e.ings.length);
   var g = list.reduce(function(n, x){ return n + (Number(x.g) || 0); }, 0);
   var sub = [e.mealName || '', g ? g + 'g' : '',
-             list.length ? t('wnCubeNTpl').replace('{n}', list.length) : '']
+             weanIsMix(e) ? t('wnFormMix')
+               : (list.length ? t('wnCubeNTpl').replace('{n}', list.length) : '')]
             .filter(Boolean).join(' \u00b7 ');
   if (!list.length) return '<span class="wd-t"><b>' + esc(t('wnNoPlanToday')) + '</b>' +
     '<span>' + esc(t('wnEditMenu')) + ' \u203a</span></span>';
   return (fromPlan ? '<span class="wn-plan-tag">' + esc(t('wnFromPlan')) + '</span>' : '') +
-    weanMealCardHtml(list, sub, '') +
+    weanMealCardHtml(list, sub, '', weanFormPillHtml(e)) +
     '<span class="r-chev">\u203a</span>';
 }
 
@@ -16968,6 +17094,7 @@ function weanTableHtml(ym){
         (ci + 2) + ';grid-row:' + rowOf[d] + '/' + (rowOf[last] + 1) + '">' +
       '<span class="wt-in">' +
       '<span class="wt-top"><span>' + esc(weanShortDate(sp.from) + (sp.n > 1 ? '–' + Number(last.slice(8)) : '')) + '</span>' +
+      weanFormPillHtml(sp.meal) + '<span class="wt-sp"></span>' +
       (sp.n > 1 ? '<span>' + esc(t('wnSpanDaysTpl').replace('{n}', sp.n)) + '</span>' : '') + '</span>' +
       '<span class="wt-grid' + (cols === 1 ? ' c3' : cols >= 3 ? ' c1' : '') + '">' +
         items.map(function(x){ return ingHtml(x, d, news); }).join('') + '</span>' +
@@ -17109,8 +17236,9 @@ function weanDayPanelHtml(ds){
     html += '<div class="wd-row">' +
       '<button type="button" class="wd-card" data-wn-day="' + esc(ds) +
         '" data-wn-daymeal="' + esc(m.name || '') + '">' +
-        weanMealCardHtml(items, [weanMealName(m.name), g + 'g', t('wnCubeNTpl').replace('{n}', items.length)]
-          .filter(Boolean).join(' \u00b7 '), key) +
+        weanMealCardHtml(items, [weanMealName(m.name), g + 'g',
+          weanIsMix(m) ? t('wnFormMix') : t('wnCubeNTpl').replace('{n}', items.length)]
+          .filter(Boolean).join(' \u00b7 '), key, weanFormPillHtml(m, weanKindOf(m.name))) +
       '</button>' +
       '<button type="button" class="wd-ate' + (rec ? ' on' : '') + '"' +
         ' data-wn-ate="' + esc(ds) + '" data-wn-atemeal="' + mi + '">' +
@@ -17191,6 +17319,8 @@ function saveWeanAte(){
       ate: ate, amount: amount, react: '',
       mealName: m ? (m.name || '') : '',
       menu: m ? weanMealText(m) : weanMenuText(day),
+      form: m ? weanMealForm(m) : 'top',
+      mixKey: (m && weanIsMix(m)) ? weanMixKey(m) : '',
       ings: m ? ((m.base || []).concat(m.tops || [])) : weanDayIngs(day) });
   }
   p.then(function(){
@@ -17386,19 +17516,24 @@ function weanCubesHtml(){
     rows.forEach(function(r){
       /* 만들 것은 한 줄이 곧 할 일 하나다 — 누르면 그 재료·그 칸 수로 열린다.
          쓸 것은 읽기만 하는 숫자라 누를 데가 없다. */
+      /* 죽은 재료별 칸이 아니라 **그 죽 몇 끼**다. 줄 모양은 같고 단위만 다르다. */
+      var nTpl = r.mix ? 'wnMealNTpl' : 'wnCubeNTpl';
+      var nm = r.mix
+        ? '<span class="wn-form is-mix">' + esc(t('wnFormMix')) + '</span>' + esc(r.label)
+        : weanIngIcon(r.ing, 'wi-sm wi-lead') + esc(weanIngName(r.ing));
       if (cv === 'make'){
         html += '<button type="button" class="wn-line" data-wn-make="' + esc(r.ing) +
           '" data-n="' + r.make + '">' +
-          '<span class="t-label">' + weanIngIcon(r.ing, 'wi-sm wi-lead') + esc(weanIngName(r.ing)) + '</span>' +
-          '<div class="wn-val"><span class="t-value">' + esc(t('wnCubeNTpl').replace('{n}', r.make)) + '</span>' +
+          '<span class="t-label">' + nm + '</span>' +
+          '<div class="wn-val"><span class="t-value">' + esc(t(nTpl).replace('{n}', r.make)) + '</span>' +
           '<span class="t-caption">' + esc(t('wnHaveNeedTpl')
             .replace('{have}', r.have).replace('{need}', r.use)) + '</span></div>' +
           '<span class="r-chev">\u203a</span></button>';
       } else {
         html += '<div class="wn-line" style="cursor:default">' +
-          '<span class="t-label">' + weanIngIcon(r.ing, 'wi-sm wi-lead') + esc(weanIngName(r.ing)) + '</span>' +
+          '<span class="t-label">' + nm + '</span>' +
           '<div class="wn-val"><span class="t-value">' +
-            esc(t('wnCubeNTpl').replace('{n}', r.use)) + '</span>' +
+            esc(t(nTpl).replace('{n}', r.use)) + '</span>' +
           '<span class="t-caption">' + esc(t('wnHaveNeedTpl')
             .replace('{have}', r.have).replace('{need}', r.use)) + '</span></div></div>';
       }
@@ -17439,6 +17574,7 @@ function weanCubesHtml(){
   }
   batches.forEach(function(b){
     var ing = b.ing, c = b.c, g = weanIng(ing) || { ko: ing, vi: '' };
+    var isMix = weanIsMixId(ing);
     var n = Math.max(0, Math.round(Number(c.n) || 0));
     var made = weanCubeMade(c), used = Math.max(0, made - n);
     var chip = '';
@@ -17452,19 +17588,32 @@ function weanCubesHtml(){
        읽을 것이 둘인데, 말이 붙으면 줄마다 같은 말을 여덟 번 읽는다
        ("이거 그냥 10/24 · 20g 이렇게 표기해", 2026-11-03). */
     var sub = (c.madeOn ? weanShortDate(c.madeOn) + ' \u00b7 ' : '') + (c.perG || 10) + 'g';
+    /* 죽 덩어리는 이름표가 제 이름이고, 밑줄에 무엇이 들었는지 적는다 —
+       '소고기무배추죽' 밑에 '소고기 + 무 + 배추'. 큐브와 달리 재료 사전에
+       없는 것이라 그림도 없다(알약이 그 자리를 대신한다). */
+    if (isMix){
+      var parts = Array.isArray(c.parts) ? c.parts : [];
+      sub = (c.madeOn ? weanShortDate(c.madeOn) + ' \u00b7 ' : '') + (c.perG || 70) + 'g' +
+        (parts.length ? ' \u00b7 ' + parts.map(weanIngName).join(' + ') : '');
+    }
     /* 무엇으로 만드는지는 섞은 것에만 적는다 — 소고기 줄 밑에 '소고기'가
        한 번 더 적히면 읽을 것이 늘기만 한다. 쌀오트밀죽 = 쌀 + 오트밀. */
-    var nm = state.lang === 'vi' ? (g.vi || g.ko) : g.ko;
-    var raws = weanMadeOf(ing);
+    var nm = isMix ? (c.label || t('wnFormMix')) : (state.lang === 'vi' ? (g.vi || g.ko) : g.ko);
+    var raws = isMix ? '' : weanMadeOf(ing);
     if (raws === nm) raws = '';
     /* 남은 칸을 먼저 긋고 쓴 칸을 회색으로 잇는다. 열 개를 넘으면 +N. */
     var solid = Math.min(n, WEAN_BAR_CAP);
     var grey = Math.max(0, Math.min(used, WEAN_BAR_CAP - solid));
     var rest = made - solid - grey;
     html += '<div class="cb-row">' +
-      '<button type="button" class="cb-main" data-wn-cubedef="' + esc(ing) + '">' +
-        '<div class="cb-head">' + weanIngIcon(ing, '') +
-          '<b>' + esc(nm) + '</b>' + chip + '</div>' +
+      /* 죽 줄을 누르면 재료 상세가 아니라 **이름 고치기**가 열린다 — 죽은
+         재료 사전에 없는 것이라 거기 갈 데가 없다. */
+      '<button type="button" class="cb-main" data-wn-' + (isMix ? 'mixname' : 'cubedef') +
+        '="' + esc(ing) + '">' +
+        '<div class="cb-head">' + (isMix ? '' : weanIngIcon(ing, '')) +
+          '<b>' + esc(nm) + '</b>' +
+          (isMix ? '<span class="wn-form is-mix">' + esc(t('wnFormMix')) + '</span>' : '') +
+          chip + '</div>' +
         '<div class="cb-sub">' + esc(sub) + (raws ? ' \u00b7 ' + esc(raws) : '') + '</div>' +
         '<div class="cb-bar">' + new Array(solid + 1).join('<i></i>') +
           new Array(grey + 1).join('<i class="gone"></i>') +
@@ -17478,8 +17627,27 @@ function weanCubesHtml(){
           esc(c.id || '') + '" data-d="1">+</button>' +
       '</span></div>';
   });
-  html += '</div><div class="t-caption" style="padding:0 2px">' + esc(t('wnCubeFoot')) + '</div>';
+  html += '</div><div class="t-caption" style="padding:0 2px">' + esc(t('wnCubeFoot')) +
+    (batches.some(function(b){ return weanIsMixId(b.ing); })
+      ? ' ' + esc(t('wnMixFoot')) : '') + '</div>';
   return html;
+}
+/* 죽 덩어리인지 — id 앞머리로 가른다. 재료 id 는 이 앞머리를 쓰지 않는다. */
+function weanIsMixId(id){ return String(id || '').slice(0, 4) === 'mix_'; }
+/* 덩어리에 무엇이 들었나. 덩어리 줄이 들고 있으면 그게 먼저고, 없으면
+   같은 키를 내는 식단 끼니에서 읽는다(처음 만들 때가 그렇다). */
+function weanMixPartsOf(key){
+  var row = weanCubesOf(key).filter(function(c){ return (c.parts || []).length; })[0];
+  if (row) return row.parts;
+  var plan = weanPlan(), out = [];
+  Object.keys(plan).some(function(d){
+    return ((plan[d] && plan[d].meals) || []).some(function(m){
+      if (!weanIsMix(m) || weanMixKey(m) !== key) return false;
+      out = (m.base || []).concat(m.tops || []).map(function(x){ return x.ing; });
+      return true;
+    });
+  });
+  return out;
 }
 
 /* ---- 재료 ---- */
@@ -17777,6 +17945,17 @@ function renderWeanDayPage(){
       return '<button type="button" class="chip" data-wn-mname="' + esc(t(k)) + '" aria-pressed="' +
         (weanMealName(m.name) === t(k)) + '">' + esc(t(k)) + '</button>';
     }).join('') + '</div>';
+
+  /* 주는 방법 — 끼니 이름 바로 밑이다. '언제 주느냐' 다음이 '어떻게 주느냐'고,
+     재료를 고르기 전에 정해져야 아래 '토핑' 칸의 뜻이 분명해진다. */
+  html += '<div class="wd-head" style="margin-top:16px"><h3>' + esc(t('wnFormLabel')) + '</h3></div>' +
+    '<div class="seg" id="wn-form-seg">' +
+    [['top', 'wnFormTop'], ['mix', 'wnFormMix']].map(function(x){
+      return '<button type="button" data-wn-form="' + x[0] + '" aria-pressed="' +
+        (weanMealForm(m) === x[0]) + '">' + esc(t(x[1])) + '</button>';
+    }).join('') + '</div>' +
+    '<div class="t-caption" style="padding:8px 2px 0">' +
+      esc(t(weanIsMix(m) ? 'wnFormMixSub' : 'wnFormTopSub')) + '</div>';
 
   html += '<div class="wd-head" style="margin-top:16px"><h3>' + esc(t('wnBase')) + '</h3></div>' +
     '<div class="wn-ing-row">';
@@ -18092,7 +18271,37 @@ function saveWeanExtra(){
 /* ================================================================
    큐브 만들기 시트
    ================================================================ */
+/* 죽 덩어리 한 통 — 만들기와 고치기가 같은 시트다. 냉동실에서 하는 일이
+   '한 통 만들었다 / 몇 끼 남았는지 고친다 / 이름을 바꾼다' 셋뿐이라,
+   화면을 둘로 가르면 같은 통을 두 자리에서 고치게 된다. */
+function openMixSheet(key, pre){
+  pre = pre || {};
+  state.weanMix = { key: key, id: pre.id || '', parts: pre.parts || [] };
+  document.getElementById('wn-cube-ingfield').hidden = true;
+  document.getElementById('wn-cube-namefield').hidden = false;
+  document.getElementById('wn-cube-ghint').hidden = true;
+  document.getElementById('wn-cube-unit').textContent = t('wnMealNTpl').replace('{n}', '').trim();
+  document.getElementById('wn-cube-name').value = pre.label || '';
+  document.getElementById('wn-cube-n').value = pre.n || 1;
+  document.getElementById('wn-cube-g').value = pre.perG || 70;
+  document.getElementById('wn-cube-date').value = pre.madeOn || toDateValue();
+  openSheet('wn-cube-sheet');
+}
 function openCubeSheet(pickIng, pickN){
+  /* 죽은 재료가 아니다 — 같은 '만들 것' 줄을 눌렀어도 가는 곳이 다르다 */
+  if (weanIsMixId(pickIng)){
+    var have = weanCubesOf(pickIng)[0];
+    var row = weanWeekCubes(state.weanWeek).rows.filter(function(r){ return r.ing === pickIng; })[0];
+    openMixSheet(pickIng, { label: (have && have.label) || (row && row.label) || '',
+      n: pickN || 1, perG: (have && have.perG) || 70,
+      parts: (have && have.parts) || weanMixPartsOf(pickIng) });
+    return;
+  }
+  state.weanMix = null;
+  document.getElementById('wn-cube-ingfield').hidden = false;
+  document.getElementById('wn-cube-namefield').hidden = true;
+  document.getElementById('wn-cube-ghint').hidden = false;
+  document.getElementById('wn-cube-unit').textContent = t('wnCubeUnit');
   var box = document.getElementById('wn-cube-ings');
   var list = weanIngs();
   var sel = pickIng || (list[0] && list[0].id);
@@ -18114,6 +18323,21 @@ function openCubeSheet(pickIng, pickN){
   openSheet('wn-cube-sheet');
 }
 function saveCubeSheet(){
+  var mix = state.weanMix;
+  if (mix){
+    var mn = Math.max(0, Math.round(Number(document.getElementById('wn-cube-n').value) || 0));
+    var mg = Math.max(1, Math.round(Number(document.getElementById('wn-cube-g').value) || 70));
+    var ml = String(document.getElementById('wn-cube-name').value || '').trim();
+    var md = document.getElementById('wn-cube-date').value || toDateValue();
+    closeSheet('wn-cube-sheet');
+    state.weanMix = null;
+    toast(t('savedToast'));
+    apiMutate('setWeanMixBatch', { key: mix.key, id: mix.id, n: mn, perG: mg,
+      madeOn: md, label: ml, parts: mix.parts })
+      .then(function(){ appState.__weanStamp = (appState.__weanStamp || 0) + 1; renderAll(); })
+      .catch(function(err){ toast(err.message); });
+    return;
+  }
   var b = $('#wn-cube-ings button[aria-pressed="true"]');
   if (!b){ closeSheet('wn-cube-sheet'); return; }
   var ing = b.dataset.cubeIng;
@@ -18326,6 +18550,13 @@ function wireWean(){
     if ((el = ev.target.closest('[data-wn-make]'))){
       openCubeSheet(el.dataset.wnMake, Number(el.dataset.n)); return;
     }
+    if ((el = ev.target.closest('[data-wn-mixname]'))){
+      var mk = el.dataset.wnMixname, mrow = weanCubesOf(mk)[0];
+      openMixSheet(mk, { id: (mrow && mrow.id) || '', label: (mrow && mrow.label) || '',
+        n: (mrow && mrow.n) || 1, perG: (mrow && mrow.perG) || 70,
+        madeOn: (mrow && mrow.madeOn) || '', parts: (mrow && mrow.parts) || weanMixPartsOf(mk) });
+      return;
+    }
     if ((el = ev.target.closest('[data-wn-ing]'))){ openWeanIng(el.dataset.wnIng); return; }
     if ((el = ev.target.closest('[data-wn-entry]'))){
       closeFullpage('fp-wean'); openEntryDetail(el.dataset.wnEntry); return;
@@ -18356,6 +18587,13 @@ function wireWean(){
        닿으므로 여기서 달력을 열어 줄 일이 없다(2026-11-11). */
     if ((el = ev.target.closest('[data-wn-mname]'))){
       state.weanSpan.meal.name = el.dataset.wnMname;
+      renderWeanDayPage(); return;
+    }
+    if ((el = ev.target.closest('[data-wn-form]'))){
+      /* 토핑은 기본값이라 칸을 아예 안 적는다 — 쌓인 식단이 전부 토핑으로
+         읽히고, 저장되는 것도 늘어나지 않는다. */
+      if (el.dataset.wnForm === 'mix') state.weanSpan.meal.form = 'mix';
+      else delete state.weanSpan.meal.form;
       renderWeanDayPage(); return;
     }
     if ((el = ev.target.closest('[data-wn-mode]'))){

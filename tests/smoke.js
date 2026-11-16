@@ -47,19 +47,35 @@ const D=d=>{const x=new Date();x.setDate(x.getDate()+d);
       await p.evaluate(()=>document.querySelectorAll('#qa-grid .qa-btn').length > 0), true);
 
     /* 다섯 탭이 전부 그려진다 */
-    for (const [tab, sel] of [['record','#qa-grid'], ['memo','#tab-memo'],
-                              ['stats','#tab-stats'], ['growth','#tab-growth'], ['pay','#pay-today']]){
+    /* 급여 탭은 가리는 기간(11/1~12/1) 동안 엄마 폰에만 있다 — 없는 탭은
+       누를 수 없으니 건너뛴다(2026-11-02). */
+    const payVisible = await p.evaluate(()=>{
+      const b = document.querySelector('.tab-btn[data-tab="pay"]');
+      return !!(b && !b.hidden); });
+    const tabs = [['record','#qa-grid'], ['memo','#tab-memo'],
+                  ['stats','#tab-stats'], ['growth','#tab-growth']];
+    if (payVisible) tabs.push(['pay','#pay-today']);
+    for (const [tab, sel] of tabs){
       await p.click('.tab-btn[data-tab="'+tab+'"]'); await p.waitForTimeout(900);
       check(who + ' — ' + tab + ' 탭이 그려진다', await drawn(p, sel), true);
     }
+    if (!payVisible) check(who + ' — 급여 탭은 가려져 있다', true, true);
     await p.close();
   }
 
   // ═══ 기록이 저장되고 이름이 붙는다 ═══
   const before = (await st()).entries.length;
   const nanny = await open('내니','vi');
-  await nanny.click('.tab-btn[data-tab="pay"]'); await nanny.waitForTimeout(800);
-  await nanny.click('#pay-stamp'); await nanny.waitForTimeout(1800);
+  /* 급여 탭이 가려진 기간에는 첫 화면 도장 띠로 찍는다 — 같은 doStamp 다 */
+  const payOpen = await nanny.evaluate(()=>{
+    const b = document.querySelector('.tab-btn[data-tab="pay"]');
+    return !!(b && !b.hidden); });
+  if (payOpen){
+    await nanny.click('.tab-btn[data-tab="pay"]'); await nanny.waitForTimeout(800);
+    await nanny.click('#pay-stamp'); await nanny.waitForTimeout(1800);
+  } else {
+    await nanny.click('#stamp-row-btn'); await nanny.waitForTimeout(1800);
+  }
   const sh = (await st()).shifts.filter(s=>s.date===D(0));
   check('출근 도장이 저장된다', sh.length, 1);
   /* '내니'로 켜 두어도 저장은 갈라진 새 이름으로 간다 — 2026-10-27부터

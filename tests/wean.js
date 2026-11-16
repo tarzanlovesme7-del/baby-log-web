@@ -390,7 +390,7 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   check('...아래에 그날 끼니 카드가 선다',
     await p.evaluate(()=>document.querySelectorAll('.wd-card').length) > 0, true);
   check('...카드에 끼니·그램·큐브 칸수가 적힌다',
-    await p.evaluate(()=>/\d+g/.test((document.querySelector('.wd-t span')||{}).textContent||'')), true);
+    await p.evaluate(()=>/\d+g/.test((document.querySelector('.wd-t > span')||{}).textContent||'')), true);
   check('...머리줄에 며칠차가 적힌다',
     await p.evaluate(()=>/일차/.test((document.querySelector('.wd-nav span')||{}).textContent||'')), true);
   /* › 로 다음 날 */

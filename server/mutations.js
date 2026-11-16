@@ -22,7 +22,11 @@ const ALLOWED_ENTRY_FIELDS = ['type', 'start', 'end', 'amount', 'diaper', 'temp'
   /* 기록 화면 개편에서 들어온 칸들. photos 는 메모·일기와 같은 저장소를
      가리키는 참조만 담는다(바이트는 photos 테이블에 있다) — server.js 의
      고아 사진 청소기가 이 목록을 읽는다. */
-  'poop', 'tempSite', 'med', 'medUnit', 'photos'];
+  'poop', 'tempSite', 'med', 'medUnit', 'photos',
+  /* 토핑 이유식 / 죽 이유식 (2026-11-16). 죽은 큐브를 안 쓰므로 재고에서
+     빠지는 것이 재료 칸이 아니라 '그 죽 한 끼'다 — mixKey 가 그 통이다. */
+  'form', 'mixKey'];
+const MIX_KEY_RE = /^mix_[0-9a-z]{1,12}$/;
 const POOP_KINDS = ['', 'loose', 'normal', 'firm', 'mucus', 'blood'];
 const TSITE_KINDS = ['ear', 'brow', 'arm'];
 
@@ -289,7 +293,7 @@ function cleanMeals(v) {
   const out = [];
   for (const raw of v) {
     if (!raw || typeof raw !== 'object') continue;
-    out.push({
+    const meal = {
       name: String(raw.name || '').slice(0, 20),
       /* 베이스죽('쌀오트밀죽')은 그 자체가 재료다 — 곡물가루를 따로 재료로
          두고 이름을 덧붙이면 냉동실에 있는 것(쌀죽 큐브)과 재료 목록에 있는
@@ -297,7 +301,16 @@ function cleanMeals(v) {
          그래서 base는 isBase 재료 한 칸이다. */
       base: cleanIngList(raw.base),
       tops: cleanIngList(raw.tops),
-    });
+    };
+    /* 토핑은 기본값이라 적지 않는다 — 쌓인 90일치를 건드리지 않고도 옛
+       식단이 전부 제 뜻으로 읽힌다(2026-11-16). */
+    if (raw.form === 'mix') {
+      meal.form = 'mix';
+      /* 이름은 식단에 붙는다 — 통을 다 먹고 다시 끓여도 따라온다 */
+      const lab = String(raw.mixLabel || '').slice(0, 24).trim();
+      if (lab) meal.mixLabel = lab;
+    }
+    out.push(meal);
     if (out.length >= 6) break;
   }
   return out;
@@ -336,7 +349,7 @@ function takeCubes(state, ing, n) {
   state.weanCubes = state.weanCubes.filter((c) => Math.round(num(c.n, 0)) > 0);
 }
 /* n칸 더한다. 같은 날 같은 용량이면 그 덩어리에 합치고, 아니면 새 덩어리. */
-function addCubes(state, ing, n, perG, madeOn) {
+function addCubes(state, ing, n, perG, madeOn, extra) {
   const add = Math.max(0, Math.round(n));
   if (!add) return null;
   state.weanCubes = Array.isArray(state.weanCubes) ? state.weanCubes : [];
@@ -344,6 +357,10 @@ function addCubes(state, ing, n, perG, madeOn) {
   const day = DATE_RE.test(madeOn || '') ? madeOn : new Date().toISOString().slice(0, 10);
   let row = state.weanCubes.find((c) => c.ing === ing && c.madeOn === day && Math.round(num(c.perG, 0)) === g);
   if (!row) { row = { id: uid('c_'), ing, n: 0, made: 0, perG: g, madeOn: day }; state.weanCubes.push(row); }
+  /* 죽 덩어리는 재료 사전에 없는 것이라 이름과 재료를 제가 들고 있어야 한다 */
+  if (extra && extra.label !== undefined) row.label = String(extra.label || '').slice(0, 24);
+  if (extra && Array.isArray(extra.parts)) row.parts = extra.parts.slice(0, 12).map((x) => String(x).slice(0, 24));
+  if (MIX_KEY_RE.test(ing)) row.form = 'mix';
   row.n = Math.max(0, Math.round(num(row.n, 0))) + add;
   /* 몇 칸 만들었는지는 따로 남긴다 — n 은 남은 칸이라 먹일수록 줄고, 그러면
      "몇 개 만들었는데 몇 개 썼고 몇 개 남았는지"를 말할 수 없다
@@ -358,6 +375,18 @@ function addCubes(state, ing, n, perG, madeOn) {
    재고 화면의 − + 가 언제나 정답을 이긴다. */
 function bumpCubesForEntry(state, entry, sign) {
   if (!entry || entry.type !== 'wean') return;
+  /* 죽은 재료별 칸이 아니라 **그 통에서 한 끼**가 빠진다. 2026-11-16 전까지
+     죽이라는 개념이 없어서, 죽을 먹인 날도 소고기·쌀죽 큐브가 한 칸씩
+     엉뚱하게 빠지고 있었다. */
+  if (entry.form === 'mix' && MIX_KEY_RE.test(String(entry.mixKey || ''))) {
+    const key = String(entry.mixKey);
+    if (sign < 0) { takeCubes(state, key, 1); return; }
+    const olds = cubesOf(state, key);
+    if (olds.length) olds[0].n = Math.max(0, Math.round(num(olds[0].n, 0))) + 1;
+    else addCubes(state, key, 1, 70, (entry.start || '').slice(0, 10),
+      { parts: cleanIngList(entry.ings).map((x) => x.ing) });
+    return;
+  }
   const list = cleanIngList(entry.ings);
   for (const it of list) {
     if (sign < 0) takeCubes(state, it.ing, 1);
@@ -445,6 +474,9 @@ function applyMutation(prevState, type, payload) {
         entry.react = REACT_KINDS.indexOf(entry.react) > 0 ? entry.react : '';
         entry.menu = String(entry.menu || '').slice(0, 200);
         entry.ings = cleanIngList(entry.ings);
+        entry.form = entry.form === 'mix' ? 'mix' : 'top';
+        entry.mixKey = MIX_KEY_RE.test(String(entry.mixKey || '')) ? String(entry.mixKey) : '';
+        if (entry.form !== 'mix') entry.mixKey = '';
       }
       state.entries.unshift(entry);
       bumpCubesForEntry(state, entry, -1);
@@ -1784,6 +1816,37 @@ function applyMutation(prevState, type, payload) {
       if (!ing) throw httpError(400, 'bad ingredient');
       const row = addCubes(state, ing, num(payload.n, 0), payload.perG, payload.madeOn);
       return { state, result: { cube: row, cubes: cubesOf(state, ing) } };
+    }
+
+    /* 죽 덩어리 한 통 — 만들기와 고치기가 같은 변이다. 냉동실에서 하는 일이
+       '한 통 만들었다 / 몇 끼 남았는지 고친다 / 이름을 바꾼다' 셋뿐이라,
+       변이를 셋으로 가르면 같은 통을 세 군데서 고치게 된다. */
+    case 'setWeanMixBatch': {
+      assertMaster(payload.actor, 'wean cubes');
+      const key = String(payload.key || '').trim();
+      if (!MIX_KEY_RE.test(key)) throw httpError(400, 'bad mix key');
+      const n = Math.max(0, Math.round(num(payload.n, 0)));
+      const perG = Math.max(1, Math.round(num(payload.perG, 70)));
+      const madeOn = DATE_RE.test(payload.madeOn || '') ? payload.madeOn
+        : new Date().toISOString().slice(0, 10);
+      const label = String(payload.label || '').slice(0, 24);
+      const parts = Array.isArray(payload.parts)
+        ? payload.parts.slice(0, 12).map((x) => String(x).slice(0, 24)) : [];
+      const id = payload.id ? String(payload.id) : '';
+      const row = id ? (state.weanCubes || []).filter((c) => c.id === id && c.ing === key)[0] : null;
+      if (row) {
+        const before = Math.max(0, Math.round(num(row.n, 0)));
+        row.n = n;
+        const made0 = Math.max(Math.round(num(row.made, 0)), before);
+        row.made = n > before ? made0 + (n - before) : made0;
+        row.perG = perG; row.madeOn = madeOn; row.form = 'mix';
+        if (label) row.label = label;
+        if (parts.length) row.parts = parts;
+        if (!row.n) state.weanCubes = state.weanCubes.filter((c) => c !== row);
+      } else if (n) {
+        addCubes(state, key, n, perG, madeOn, { label, parts });
+      }
+      return { state, result: { cubes: cubesOf(state, key) } };
     }
 
     default:
