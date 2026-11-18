@@ -451,8 +451,12 @@ function syncEntryWeight(state, entry, payload) {
   state.weights.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }
 
-function applyMutation(prevState, type, payload) {
-  const state = clone(prevState);
+/* opts.inPlace: 폰이 아직 서버에 닿지 않은 쓰기를 방금 받은 서버 문서 위에 다시
+   얹을 때 쓴다(public/index.html 의 overlayPending). 그 문서는 방금 파싱한
+   폰의 것이라 복사할 이유가 없고, 76만 바이트를 쓰기마다 복사하면 폰이 느려진다.
+   서버는 늘 복사한다 — 실패한 쓰기가 저장된 문서를 반쯤 고쳐 놓으면 안 된다. */
+function applyMutation(prevState, type, payload, opts) {
+  const state = opts && opts.inPlace ? prevState : clone(prevState);
   payload = payload || {};
   /* every write carries at most two names — who is doing it, and whose
      record it is filed under. Both arrive in the writer's language. */

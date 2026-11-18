@@ -194,6 +194,11 @@ const server = http.createServer((req, res) => {
     });
     return;
   }
+  if (req.method === 'GET' && u.pathname === '/reducer.js'){
+    /* 매번 새로 싼다 — mutations.js 를 고치고 서버를 다시 띄우지 않아도 맞게 */
+    res.writeHead(200, { 'Content-Type': 'application/javascript' });
+    return res.end(require('./server/reducer-bundle').build());
+  }
   // static file serving
   let filePath = u.pathname === '/' ? '/index.html' : u.pathname;
   filePath = path.join(__dirname, 'public', filePath);

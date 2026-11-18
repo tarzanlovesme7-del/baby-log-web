@@ -64,8 +64,27 @@ app.use((req, res, next) => {
   next();
 });
 
+/* 폰이 쓰는 reducer 사본 — server/reducer-bundle.js 참고. index.html 과 같은
+   방식으로 한 번 압축해 두고 ETag 로 304 를 돌려준다. */
+const reducerRaw = Buffer.from(require('./reducer-bundle').build(), 'utf8');
+const reducerGz = zlib.gzipSync(reducerRaw, { level: 9 });
+const reducerTag = '"' + crypto.createHash('sha1').update(reducerRaw).digest('hex').slice(0, 16) + '"';
+function sendReducer(req, res) {
+  res.set('Content-Type', 'application/javascript; charset=utf-8');
+  res.set('ETag', reducerTag);
+  res.set('Cache-Control', 'no-cache');
+  if (req.headers['if-none-match'] === reducerTag) return res.status(304).end();
+  if (/\bgzip\b/.test(req.headers['accept-encoding'] || '')) {
+    res.set('Content-Encoding', 'gzip');
+    res.set('Vary', 'Accept-Encoding');
+    return res.end(reducerGz);
+  }
+  res.end(reducerRaw);
+}
+
 // ---- static frontend ----
 app.get('/', sendIndex);
+app.get('/reducer.js', sendReducer);
 app.use(express.static(PUBLIC_DIR, { index: false }));
 
 /* ── 집 비번 ────────────────────────────────────────────────────

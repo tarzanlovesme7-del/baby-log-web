@@ -4944,6 +4944,9 @@
      script below. This used to be a hidden DOM "store" synced by the Claude
      Artifact platform; that's gone now that this is a real hosted site. -->
 
+<!-- 서버와 같은 reducer — 줄에 선 쓰기를 화면에 다시 얹는 데 쓴다(overlayPending).
+     못 받아도 앱은 그대로 돈다. -->
+<script src="/reducer.js" async></script>
 <script>
 (function(){
 'use strict';
@@ -5224,7 +5227,7 @@ ko: {
   startTime:"시작 시간", dateLabel:"날짜", minusTen:"-10분",
   amount:"먹은 양", ml:"ml", note:"메모", medNote:"약 이름 / 메모",
   celsius:"°C",
-  savedToast:"저장했어요", deletedToast:"삭제했어요", startedToast:"타이머를 시작했어요", recordedToast:"기록했어요",
+  savedToast:"저장했어요", savingToast:"저장 중…", deletedToast:"삭제했어요", startedToast:"타이머를 시작했어요", recordedToast:"기록했어요",
   alreadyActive:"이미 진행 중인 기록이 있어요", canceledToast:"취소했어요",
   adjustStart:"시작 시간 조정", discardActive:"기록하지 않고 취소",
   pauseBtn:"일시정지", resumeBtn:"재생", pausedLabel:"일시정지",
@@ -5548,7 +5551,7 @@ vi: {
   startTime:"Giờ bắt đầu", dateLabel:"Ngày", minusTen:"-10 phút",
   amount:"Lượng bú", ml:"ml", note:"Ghi chú", medNote:"Tên thuốc / Ghi chú",
   celsius:"°C",
-  savedToast:"Đã lưu", deletedToast:"Đã xóa", startedToast:"Đã bắt đầu hẹn giờ", recordedToast:"Đã ghi nhận",
+  savedToast:"Đã lưu", savingToast:"Đang lưu…", deletedToast:"Đã xóa", startedToast:"Đã bắt đầu hẹn giờ", recordedToast:"Đã ghi nhận",
   alreadyActive:"Đang có một mục hẹn giờ chạy rồi", canceledToast:"Đã hủy",
   adjustStart:"Chỉnh giờ bắt đầu", discardActive:"Hủy, không lưu",
   pauseBtn:"Tạm dừng", resumeBtn:"Tiếp tục", pausedLabel:"Tạm dừng",
@@ -6131,7 +6134,46 @@ function applyServerState(json){
   if (json.goodTranslator !== undefined) serverHasGoodTranslator = !!json.goodTranslator;
   if (typeof json.version === 'number' && json.version < appVersion) return false;
   appState = json.data; appVersion = json.version;
+  overlayPending();
   return true;
+}
+/* 줄에 선 쓰기를 서버 문서 위에 다시 얹는다.
+   "지오 로그 전체적으로 씹히는 현상이 있어 특히 분유랑 투약 한번에 찍을 때"
+   (2026-11-18). 쓰기는 하나씩 나가고, 답이 올 때마다 위에서 서버 문서로
+   상태를 갈아끼운다. 그 문서에는 아직 안 나간 쓰기가 없다 — 분유 답이 오는
+   순간 방금 찍은 투약 줄이 사라졌다가 제 답이 와야 돌아왔다. 큐브 −/+ 가
+   되돌아가던 것(11/17)도 같은 일이었다.
+   서버가 이미 받은 쓰기는 문서의 applied 목록에 제 mid 가 있으므로 건너뛰고,
+   나머지는 **서버와 같은 reducer**(/reducer.js)로 얹는다 — 화면은 서버가 곧
+   갖게 될 모습 그대로다. reducer 를 못 받았으면(옛 서버) 큐브만 손으로 얹는다. */
+function overlayPending(){
+  if (!outbox.length || !appState) return;
+  var seen = {};
+  (appState.applied || []).forEach(function(r){ if (r && r.mid) seen[r.mid] = 1; });
+  var pend = outbox.filter(function(w){ return w && w.type && !seen[w.mid]; });
+  if (!pend.length) return;
+  var R = window.zioReducer;
+  if (!R || typeof R.applyMutation !== 'function'){ weanReplayQueuedCubes(pend); return; }
+  var st = appState;
+  pend.forEach(function(w){
+    try {
+      var r = R.applyMutation(st, w.type, w.payload, { inPlace: true });
+      st = r.state;
+      /* 새로 만든 것은 이 폰이 지은 임시 id 로 남긴다 — 화면과 열린 시트,
+         뒤에 줄 선 쓰기가 모두 그 id 를 가리킨다. 진짜 id 는 답이 오면
+         remapEntryId 들이 바꾼다. */
+      var tmp = w.payload && w.payload.tempId, res = r.result || {};
+      if (tmp){
+        [['entry', 'entries'], ['shift', 'shifts'], ['leave', 'leaves']].forEach(function(k){
+          var made = res[k[0]];
+          if (!made || !made.id) return;
+          (st[k[1]] || []).forEach(function(x){ if (x && x.id === made.id) x.id = tmp; });
+          made.id = tmp;
+        });
+      }
+    } catch (e) { /* 서버도 이 쓰기를 거절할 것이다 — 얹지 않는다 */ }
+  });
+  appState = st;
 }
 /* 서버가 잠겼다고 하면(401) 그 사실만 들고 올라간다 — 부팅은 이걸 보고
    앱 대신 비번 화면을 세운다. */
@@ -6194,6 +6236,35 @@ function apiGetState(){
     applyServerState(json);
     return json;
   });
+}
+/* 큐브 −/+ 를 빠르게 누르면 숫자가 되돌아가던 것.
+   "이유식 큐브 숫자 조정하는거 계속 버튼이 씹히고 반응이 느려" (2026-11-17)
+   쓰기는 하나씩 나간다. 첫 번째 답이 오면 서버 문서로 상태를 갈아끼우는데,
+   그 문서에는 아직 줄에 서 있는 두 번째·세 번째 누름이 없다 — 다음 누름은
+   그 낮은 숫자에서 다시 세고, 화면에는 누른 게 안 먹은 것처럼 보였다. 그래서
+   더 누르고, 줄이 다 비면 숫자가 한꺼번에 튀었다(오이 9 → 18).
+   이제 서버 문서를 받은 뒤 아직 안 나간 큐브 누름을 그 위에 다시 얹는다. */
+function weanReplayQueuedCubes(list){
+  list.forEach(function(w){
+    var pl = w && w.payload;
+    if (!w || w.type !== 'setWeanCube' || !pl || !pl.id || pl.delta === undefined) return;
+    weanCubeLocalDelta(pl.ing, pl.id, Number(pl.delta) || 0);
+  });
+}
+/* 서버의 setWeanCube(id) 를 그대로 옮긴 것 — 둘이 다르게 세면 답이 올 때
+   화면이 튄다. + 는 만든 수도 올리고, − 는 남은 수만 줄인다. 0 이면 줄이
+   사라진다. 돌려주는 값: 남은 줄, 사라졌으면 null, 못 찾았으면 false. */
+function weanCubeLocalDelta(ing, id, d){
+  var list = appState.weanCubes || [];
+  var row = null;
+  list.forEach(function(c){ if (c.id === id && c.ing === ing) row = c; });
+  if (!row) return false;
+  var before = Math.max(0, Math.round(Number(row.n) || 0));
+  row.n = Math.max(0, before + d);
+  var made0 = Math.max(Math.round(Number(row.made) || 0), before);
+  row.made = d > 0 ? made0 + (row.n - before) : made0;
+  if (!row.n){ appState.weanCubes = list.filter(function(c){ return c !== row; }); return null; }
+  return row;
 }
 /* ================================================================
    THE OUTBOX — why a saved note could vanish on refresh.
@@ -6420,8 +6491,29 @@ function apiMutate(type, payload){
   w.payload.mid = w.mid;
   outboxAdd(w);
   var p = new Promise(function(resolve, reject){ w.resolve = resolve; w.reject = reject; });
+  if (/Wean/.test(type) && !WEAN_QUIET_WRITES[type]) weanAckToast(p);
   outboxDrain();
   return p;
+}
+/* 이유식에서 뭘 바꾸면 저장됐는지 알 수가 없었다("이유식 관련해서 뭐 바꾸면
+   저장됐는지 알수가 없어", 2026-11-18). 이유식 쓰기는 **서버가 받았을 때**
+   '저장했어요'를 띄운다 — 누른 순간이 아니라. 0.7초 안에 답이 없으면(잠든
+   서버) 그 사이엔 '저장 중…'이 떠 있다. 연달아 누르면(큐브 −/+) 마지막 답에
+   한 번만. 실패는 부른 쪽이 제 말로 알린다 — 여기선 '저장 중…'만 거둔다.
+   부팅 때 혼자 도는 이관(seed/split)은 사람이 한 일이 아니라 조용히. */
+var WEAN_QUIET_WRITES = { seedWean: 1, splitWeanRaw: 1 };
+var weanSaving = 0, weanSaveTimer = null;
+function weanAckToast(p){
+  weanSaving++;
+  clearTimeout(weanSaveTimer);
+  weanSaveTimer = setTimeout(function(){ if (weanSaving > 0) toastHold(t('savingToast')); }, 700);
+  function done(ok){
+    weanSaving = Math.max(0, weanSaving - 1);
+    if (weanSaving) return;
+    clearTimeout(weanSaveTimer);
+    if (ok) toast(t('savedToast')); else toastRelease(t('savingToast'));
+  }
+  p.then(function(){ done(true); }, function(){ done(false); });
 }
 /* anything a replayed write changed is now on screen from the server's copy */
 function outboxReplay(){ if (outbox.length) outboxDrain(); }
@@ -7204,6 +7296,18 @@ function toast(msg){
   elx.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(function(){ elx.classList.remove('show'); }, 1600);
+}
+/* 답을 기다리는 동안 떠 있는 토스트 — 시간이 지나도 안 꺼지고, 다음 toast()가
+   덮거나 toastRelease()가 거둔다 */
+function toastHold(msg){
+  var elx = document.getElementById('toast');
+  elx.textContent = msg;
+  elx.classList.add('show');
+  clearTimeout(toastTimer);
+}
+function toastRelease(msg){
+  var elx = document.getElementById('toast');
+  if (elx.textContent === msg) elx.classList.remove('show');
 }
 /* 되돌릴 수 있는 토스트. 확인 창을 띄우지 않기로 한 동작(새벽의 깸 기록)이
    잘못 눌렸을 때 빠져나갈 유일한 문인데, 그 문이 몇 초 뒤에 닫힌다는 걸
@@ -8480,6 +8584,12 @@ function renderQuickActions(){
     '<div class="qa-ico">+</div>' +
     '<div class="qa-label">'+esc(t('addNew'))+'</div>' +
   '</button>';
+  /* 그대로면 다시 그리지 않는다. renderAll 은 쓰기의 답이 올 때마다 돈다 —
+     분유를 찍고 바로 투약을 누르는 사이 분유의 답이 오면, 손가락이 닿아 있던
+     투약 칸이 새 칸으로 바뀌었다. 누른 칸(pointerdown)과 뗀 칸(pointerup)이
+     달라지면 기록이 안 된다. 그게 "분유랑 투약 한번에 찍을 때 씹힌다"였다. */
+  if (grid.__qaHtml === html && grid.querySelector('.qa-btn')) return;
+  grid.__qaHtml = html;
   grid.innerHTML = html;
   grid.scrollLeft = prevScroll;
   $$('.qa-btn[data-type]', grid).forEach(wireQuickButton);
@@ -8727,7 +8837,9 @@ function tuckActiveSlotUnderBand(){
   var container = document.getElementById('timeline');
   if (!slot || !container) return;
   var band = container.querySelector('.day-head');
-  if (band) band.insertAdjacentElement('afterend', slot);
+  /* 이미 그 자리면 옮기지 않는다 — 노드를 떼었다 붙이면 스탑워치 단추를
+     누르던 손가락이 허공을 누른다 */
+  if (band && band.nextElementSibling !== slot) band.insertAdjacentElement('afterend', slot);
   measureDayBand();
 }
 /* the band's height decides where the bar sticks; it moves with the type
@@ -8747,12 +8859,12 @@ function measureDayBand(){
 }
 function renderTimeline(){
   var container = document.getElementById('timeline');
-  parkActiveSlot();
   _surfaceRgb = null;   /* the theme may have changed since the last render */
   var entries = readEntries().slice().sort(function(a,b){ return new Date(b.start) - new Date(a.start); });
   var nowIso = new Date().toISOString();
 
   if (!entries.length){
+    parkActiveSlot();
     container.innerHTML = appBooted
       ? '<div class="empty-note">'+esc(t('emptyTimeline'))+'</div>'
       : skelRowsHtml(4);
@@ -8774,6 +8886,7 @@ function renderTimeline(){
     order = order.filter(function(k){ return k === state.logDate; });
     shownAll = true;
     if (!order.length){
+      parkActiveSlot();
       container.innerHTML = '<div class="empty-note">'+esc(t('emptyDay'))+'</div>';
       if (more) more.hidden = true;
       return;
@@ -8805,7 +8918,16 @@ function renderTimeline(){
     dayEntries.forEach(function(e){ html += entryRowHtml(e, !!(day.cont && day.cont[e.id])); });
     html += '</div>';
   });
+  /* 그대로면 다시 그리지 않는다 — 빠른 기록 칸과 같은 이유다. 답이 올 때마다
+     목록 전체를 갈아끼우면 누르던 줄이 손가락 밑에서 바뀌어 탭이 씹히고,
+     밀어서 열어 둔 줄도 닫혔다. 위에서 잠시 빼 둔 스탑워치 띠만 제자리로. */
+  if (container.__tlLast === html && container.querySelector('.day-group')){
+    tuckActiveSlotUnderBand();
+    return;
+  }
+  parkActiveSlot();
   container.innerHTML = html;
+  container.__tlLast = html;
   $$('.entry-swipe', container).forEach(function(wrap){ wireEntrySwipe(wrap); });
   wireReactions(container);
   tuckActiveSlotUnderBand();
@@ -12890,7 +13012,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261116c';
+var BUILD = '20261118a';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -16429,20 +16551,25 @@ function renderWean(){
   var box = document.getElementById('wn-body');
   if (!box) return;
   syncWeanTabs();
-  if (state.weanView === 'plan'){
-    box.innerHTML = weanPlanHtml();
-    wireWeanCalDrag(box);
-    sizeWeanTable();
-  }
-  else if (state.weanView === 'shop') box.innerHTML = weanShopHtml();
-  else if (state.weanView === 'cubes') box.innerHTML = weanCubesHtml();
-  else if (state.weanView === 'ings'){
-    box.innerHTML = weanIngsHtml();
-    $$('.gcell', box).forEach(function(el){
+  /* 장보기·재고·재료는 그대로면 다시 그리지 않는다. renderAll 은 쓰기의 답이
+     올 때마다 도는데, 그때 목록을 통째로 갈아끼우면 누르던 체크·−/+ 단추가
+     손가락 밑에서 새 단추로 바뀌어 씹혔다. 식단표는 끌어 고르기·스크롤 같은
+     화면 상태가 있어 늘 새로 그린다(거기선 탭이 시트를 여는 것뿐이다). */
+  var v = state.weanView;
+  if (v === 'shop' || v === 'cubes' || v === 'ings'){
+    var html = v === 'shop' ? weanShopHtml() : v === 'cubes' ? weanCubesHtml() : weanIngsHtml();
+    if (box.__wnHtml === v + html && box.firstElementChild) return;
+    box.__wnHtml = v + html;
+    box.innerHTML = html;
+    if (v === 'ings') $$('.gcell', box).forEach(function(el){
       wireHold(el, function(b){ openWeanReact(b.dataset.wnIng); });
     });
+    return;
   }
-  else box.innerHTML = weanPlanHtml();
+  box.__wnHtml = null;
+  box.innerHTML = weanPlanHtml();
+  wireWeanCalDrag(box);
+  sizeWeanTable();
 }
 
 /* ---- 오늘 ---- */
@@ -17472,10 +17599,6 @@ function weanCubesHtml(){
     var nm = isMix ? (c.label || t('wnFormMix')) : (state.lang === 'vi' ? (g.vi || g.ko) : g.ko);
     var raws = isMix ? '' : weanMadeOf(ing);
     if (raws === nm) raws = '';
-    /* 남은 칸을 먼저 긋고 쓴 칸을 회색으로 잇는다. 열 개를 넘으면 +N. */
-    var solid = Math.min(n, WEAN_BAR_CAP);
-    var grey = Math.max(0, Math.min(used, WEAN_BAR_CAP - solid));
-    var rest = made - solid - grey;
     html += '<div class="cb-row">' +
       /* 죽 줄을 누르면 재료 상세가 아니라 **이름 고치기**가 열린다 — 죽은
          재료 사전에 없는 것이라 거기 갈 데가 없다. */
@@ -17486,14 +17609,12 @@ function weanCubesHtml(){
           (isMix ? '<span class="wn-form is-mix">' + esc(t('wnFormMix')) + '</span>' : '') +
           chip + '</div>' +
         '<div class="cb-sub">' + esc(sub) + (raws ? ' \u00b7 ' + esc(raws) : '') + '</div>' +
-        '<div class="cb-bar">' + new Array(solid + 1).join('<i></i>') +
-          new Array(grey + 1).join('<i class="gone"></i>') +
-          (rest > 0 ? '<em>+' + rest + '</em>' : '') + '</div>' +
+        '<div class="cb-bar">' + weanCubeBarInner(n, made) + '</div>' +
       '</button>' +
       '<span class="wn-step">' +
         '<button type="button" data-wn-cube="' + esc(ing) + '" data-id="' +
           esc(c.id || '') + '" data-d="-1">\u2212</button>' +
-        '<b>' + n + '</b>' +
+        '<b class="cb-n">' + n + '</b>' +
         '<button type="button" data-wn-cube="' + esc(ing) + '" data-id="' +
           esc(c.id || '') + '" data-d="1">+</button>' +
       '</span></div>';
@@ -17502,6 +17623,16 @@ function weanCubesHtml(){
     (batches.some(function(b){ return weanIsMixId(b.ing); })
       ? ' ' + esc(t('wnMixFoot')) : '') + '</div>';
   return html;
+}
+/* 남은 칸을 먼저 긋고 쓴 칸을 회색으로 잇는다. 열여섯을 넘으면 +N. */
+function weanCubeBarInner(n, made){
+  var used = Math.max(0, made - n);
+  var solid = Math.min(n, WEAN_BAR_CAP);
+  var grey = Math.max(0, Math.min(used, WEAN_BAR_CAP - solid));
+  var rest = made - solid - grey;
+  return new Array(solid + 1).join('<i></i>') +
+    new Array(grey + 1).join('<i class="gone"></i>') +
+    (rest > 0 ? '<em>+' + rest + '</em>' : '');
 }
 /* 죽 덩어리인지 — id 앞머리로 가른다. 재료 id 는 이 앞머리를 쓰지 않는다. */
 function weanIsMixId(id){ return String(id || '').slice(0, 4) === 'mix_'; }
@@ -18675,17 +18806,36 @@ function toggleShopCheck(ing){
   apiMutate('setWeanShop', { week: week, ing: ing, checked: on })
     .catch(function(err){ toast(err.message); renderAll(); });
 }
+function weanPatchCubeRow(row){
+  var btn = null;
+  document.querySelectorAll('[data-wn-cube][data-id]').forEach(function(b){
+    if (!btn && b.dataset.id === row.id && b.dataset.wnCube === row.ing) btn = b;
+  });
+  var line = btn && btn.closest('.cb-row');
+  if (!line) return false;
+  var n = Math.max(0, Math.round(Number(row.n) || 0));
+  var nEl = line.querySelector('.cb-n'), bar = line.querySelector('.cb-bar');
+  if (!nEl || !bar) return false;
+  nEl.textContent = String(n);
+  bar.innerHTML = weanCubeBarInner(n, weanCubeMade(row));
+  /* 고친 화면이 곧 지금 그릴 화면이다 — 답이 와서 renderWean 이 돌아도 같은
+     숫자면 단추를 갈아끼우지 않게 기억해 둔다 */
+  var box = document.getElementById('wn-body');
+  if (box && state.weanView === 'cubes') box.__wnHtml = 'cubes' + weanCubesHtml();
+  return true;
+}
 function bumpCube(ing, d, id){
   appState.weanCubes = appState.weanCubes || [];
   var list = weanCubesOf(ing);
   /* 재고 줄은 만든 날 하나를 가리킨다 — 그 덩어리만 늘리고 줄인다 */
   if (id){
-    var row = null;
-    appState.weanCubes.forEach(function(c){ if (c.id === id && c.ing === ing) row = c; });
-    if (!row) return;
-    row.n = Math.max(0, (Number(row.n) || 0) + d);
-    if (!row.n) appState.weanCubes = appState.weanCubes.filter(function(c){ return c !== row; });
-    renderWean();
+    var row = weanCubeLocalDelta(ing, id, d);
+    if (row === false) return;
+    /* 줄이 남으면 그 줄의 숫자와 막대만 고친다. 화면 전체를 다시 그리면
+       손가락 밑의 단추가 새 단추로 바뀌어 다음 누름이 씹히고, 한 번 누를
+       때마다 탭 전체를 그리느라 느렸다. 줄 순서도 누르는 동안은 그대로 —
+       단추가 손가락 밑에서 도망가지 않게. 줄이 다 비면(0) 그때만 다시 그린다. */
+    if (!(row && weanPatchCubeRow(row))) renderWean();
     apiMutate('setWeanCube', { ing: ing, id: id, delta: d })
       .catch(function(err){ toast(err.message); renderAll(); });
     return;
