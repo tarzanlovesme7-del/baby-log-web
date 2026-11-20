@@ -99,10 +99,26 @@ async function init() {
   }
 }
 
+/* THE DOCUMENT IS KEPT IN MEMORY.
+   2026-11-20 the free Neon plan cut the database off: 5.5 GB had gone out
+   of it in twenty days. The whole document is ~800 KB, and every request
+   read all of it — every /api/state, every write (once to read, and again
+   because the UPDATE returned it), every photo sweep and calendar sync.
+   Now the server keeps the last document it read or wrote, and asks the
+   database only for the version number (a few bytes) to check that nobody
+   changed it behind its back — a direct SQL fix, a second instance. The
+   full document is read again only when that number moved.
+   Callers must treat the returned data as read-only: applyMutation clones
+   before it changes anything, and the routes only serialise it. */
+let cache = null; // { data, version }
+
 async function getState() {
+  const v = await getVersion();
+  if (cache && cache.version === v) return { data: cache.data, version: v };
   const { rows } = await pool.query('SELECT data, version FROM app_state WHERE id = 1');
   if (!rows.length) { await init(); return { data: EMPTY_STATE, version: 0 }; }
-  return { data: rows[0].data, version: Number(rows[0].version) };
+  cache = { data: rows[0].data, version: Number(rows[0].version) };
+  return { data: cache.data, version: cache.version };
 }
 
 /* Just the version counter. The app asks for this every few seconds to find
@@ -113,15 +129,18 @@ async function getVersion() {
   return rows.length ? Number(rows[0].version) : 0;
 }
 
+/* RETURNING only the version: returning the document sent the whole thing
+   straight back out of the database on every single write. */
 async function saveState(data, expectedVersion) {
   const { rows } = await pool.query(
     `UPDATE app_state SET data = $1, version = version + 1, updated_at = now()
      WHERE id = 1 AND version = $2
-     RETURNING data, version`,
+     RETURNING version`,
     [data, expectedVersion]
   );
-  if (!rows.length) return null; // version conflict — caller should retry
-  return { data: rows[0].data, version: Number(rows[0].version) };
+  if (!rows.length) { cache = null; return null; } // version conflict — caller should retry
+  cache = { data, version: Number(rows[0].version) };
+  return { data, version: cache.version };
 }
 
 module.exports = { pool, init, getState, getVersion, saveState, EMPTY_STATE };

@@ -13012,7 +13012,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261118a';
+var BUILD = '20261119a';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -16020,7 +16020,13 @@ var WEAN_ICON_FILE = {
   'vitamin':'tatsoi', 'wheat':'wheat-flour', 'zucchini':'zucchini',
   /* 재료(사 오는 것)의 곡물 여덟. 큐브(쌀죽·쌀오트밀죽…)와 그림은 같다. */
   'r_rice':'rice', 'r_oat':'oatmeal', 'r_brown':'brown-rice', 'r_barley':'barley',
-  'r_quinoa':'quinoa', 'r_black':'black-rice', 'r_sorghum':'sorghum', 'r_wheat':'wheat-flour'
+  'r_quinoa':'quinoa', 'r_black':'black-rice', 'r_sorghum':'sorghum', 'r_wheat':'wheat-flour',
+  /* 알러지 테스트 키트(스푼타임 스타트킷, 2026-11-19) — 재료와 한 봉. 그림은 같다. */
+  'milk':'milk', 'soy':'soybean', 'sesame':'sesame', 'buckwheat':'buckwheat',
+  'shrimp':'shrimp', 'crab':'crab', 'clam':'mussel', 'walnut':'walnut',
+  'k_wheat':'wheat-flour', 'k_egg':'egg', 'k_milk':'milk', 'k_peanut':'peanut',
+  'k_soy':'soybean', 'k_sesame':'sesame', 'k_buckwheat':'buckwheat', 'k_fish':'cod',
+  'k_shrimp':'shrimp', 'k_clam':'mussel', 'k_crab':'crab', 'k_walnut':'walnut'
 };
 
 /* 아직 식단에 안 나온 재료의 그림도 미리 들고 있는다(2026-11-02).
@@ -16235,8 +16241,14 @@ function weanMixLabel(m){
    보여 주는 쪽(식단표·기록·장보기)은 `weanDayIngs` 를 그대로 쓴다 — 죽이어도
    무엇이 들었는지는 보여야 하고, 무·배추는 사 오긴 해야 한다. */
 function weanDayCubeIngs(day){
-  return weanDayIngs({ meals: ((day && day.meals) || []).filter(function(m){ return !weanIsMix(m); }) });
+  return weanDayIngs({ meals: ((day && day.meals) || []).filter(function(m){ return !weanIsMix(m); }) })
+    .filter(function(x){ return !weanIsKit(x.ing); });
 }
+/* 알러지 테스트 키트 한 봉(2026-11-19, 스푼타임 스타트킷). 가루를 죽에 섞어
+   주는 것이라 **큐브도 아니고 장 볼 것도 아니다** — 재고 '만들 것/쓸 것'과
+   장보기에서 빠진다. 식단·기록·먹어본 재료·이상 반응에는 다른 토핑과
+   똑같이 들어간다(그게 이 키트를 먹이는 이유다). */
+function weanIsKit(id){ var g = weanIng(id); return !!(g && g.kit); }
 /* 그날 죽 끼니들 — 재고에서 '끼'로 세는 쪽 */
 function weanDayMixMeals(day){
   return ((day && day.meals) || []).filter(weanIsMix);
@@ -16314,7 +16326,7 @@ function weanShopCalc(week){
   weanWeekDays(week).forEach(function(ds){
     weanDayIngs(weanDay(ds)).forEach(function(x){
       var g = weanIng(x.ing);
-      if (g && g.isBase) return;
+      if (g && (g.isBase || g.kit)) return;
       sum[x.ing] = (sum[x.ing] || 0) + x.g;
     });
   });

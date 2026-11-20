@@ -1734,6 +1734,8 @@ function applyMutation(prevState, type, payload, opts) {
       /* 베이스죽이면 장보기에서 세지 않는다 — 곡물가루는 떨어질 때 사는 것이지
          주마다 g으로 계산할 것이 아니다 */
       if (payload.isBase !== undefined) row.isBase = !!payload.isBase;
+      /* 알러지 테스트 키트 한 봉 — 큐브도 장 볼 것도 아니다(index.html weanIsKit) */
+      if (payload.kit !== undefined) { if (payload.kit) row.kit = true; else delete row.kit; }
       return { state, result: { ing: row } };
     }
 
