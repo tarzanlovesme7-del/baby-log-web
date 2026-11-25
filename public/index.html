@@ -3568,6 +3568,36 @@
   .wn-seg5 button{ font-size:var(--fs-micro); padding:10px 2px; }
 
   /* 숫자 칸 + 단위 */
+  /* 큐브 만들었어요 — 재료 찾기 */
+  .wn-q{ width:100%; box-sizing:border-box; height:46px; padding:0 14px; border-radius:12px;
+    border:1px solid var(--border); background:var(--surface); color:var(--fg);
+    font-size:16px; -webkit-appearance:none; appearance:none; }
+  .wn-q:focus{ outline:none; border-color:var(--primary); }
+  .wn-pick{ margin-top:10px; display:flex; flex-direction:column; border-radius:12px;
+    background:var(--surface); border:1px solid var(--border); overflow:hidden; }
+  .wn-pick:empty{ display:none; }
+  .wn-pick-row{ display:flex; align-items:center; gap:10px; width:100%; min-height:48px;
+    padding:0 14px; background:transparent; border:0; color:var(--fg); text-align:left;
+    font-size:var(--fs-body); font-weight:var(--fw-medium); }
+  .wn-pick-row + .wn-pick-row{ border-top:1px solid var(--border); }
+  .wn-pick-row .wp-nm{ flex:1; min-width:0; }
+  .wn-pick-row .wp-g{ font-size:var(--fs-caption); color:var(--muted); font-variant-numeric:tabular-nums; }
+  .wn-pick-row .wp-ck{ width:20px; height:20px; color:var(--primary); stroke:currentColor;
+    fill:none; stroke-width:2.4; }
+  .wn-pick-row[aria-pressed="true"]{ background:color-mix(in srgb, var(--primary) 10%, var(--surface));
+    font-weight:var(--fw-strong); }
+  .wn-pick .wp-cap{ padding:10px 14px 4px; }
+  .wn-pick .wp-empty{ padding:12px 14px; }
+  .wn-pick .wp-cap + .wn-pick-row{ border-top:0; }
+  .wn-pick-row + .wp-empty{ border-top:1px solid var(--border); }
+  /* 재고 숫자를 눌러 바로 고친다 */
+  .wn-step b.cb-n{ cursor:pointer; border-radius:8px; padding:4px 2px; }
+  .wn-step b.cb-n:active{ background:var(--surface-2); }
+  .wn-step input.cb-n-in{ width:52px; height:36px; box-sizing:border-box; text-align:center;
+    border-radius:8px; border:1.5px solid var(--primary); background:var(--surface); color:var(--fg);
+    font-size:17px; font-weight:var(--fw-display); font-variant-numeric:tabular-nums; padding:0;
+    -moz-appearance:textfield; }
+  .wn-step input.cb-n-in::-webkit-inner-spin-button, .wn-step input.cb-n-in::-webkit-outer-spin-button{ -webkit-appearance:none; margin:0; }
   .wn-num{ display:flex; align-items:center; gap:9px; }
   .wn-num input{ flex:0 0 118px; }
   .wn-num span{ font-size:var(--fs-label); font-weight:var(--fw-medium); color:var(--muted); }
@@ -4679,18 +4709,23 @@
     </div>
   </div>
 
-  <div class="scrim" id="scrim-cube" style="z-index:55"></div>
-  <div class="sheet above-fullpage" id="wn-cube-sheet" data-scrim="scrim-cube" role="dialog" aria-modal="true">
-    <div class="sheet-head">
-      <div class="grabber"></div>
-      <button type="button" class="icon-btn" id="wn-cube-close">✕</button>
-      <h2 data-i18n="wnCubeMade">큐브 만들었어요</h2>
+  <!-- ============ FULL PAGE: 큐브 만들었어요 ============ -->
+  <!-- 바텀 시트였고 재료가 알약으로 전부 깔려 있었다. 재료가 마흔 개를 넘자
+       알약 밭에서 하나를 찾느라 눈이 아팠다("알약 너무 많아서 눈 아파. 바텀
+       시트 말고 풀 화면", 2026-11-25). 이제 이름을 쳐서 찾는다 — 초성(ㄷㅎㅂ)도
+       된다. 아무것도 안 쳤을 때는 이번 주에 만들 것만 보인다. -->
+  <div class="fullpage" id="fp-wncube">
+    <div class="fp-head">
+      <button type="button" class="fp-back" id="wn-cube-close">‹</button>
+      <h1 data-i18n="wnCubeMade">큐브 만들었어요</h1>
       <span style="width:30px"></span>
     </div>
-    <div class="sheet-body">
+    <div class="fp-body">
       <div class="field" id="wn-cube-ingfield">
         <label data-i18n="wnIngredient">재료</label>
-        <div class="chip-row" id="wn-cube-ings" style="padding:0"></div>
+        <input type="search" id="wn-cube-q" class="wn-q" autocomplete="off" enterkeyhint="search"
+          data-i18n-ph="wnCubeQPh" placeholder="재료 이름 (초성도 돼요)" />
+        <div class="wn-pick" id="wn-cube-ings"></div>
       </div>
       <!-- 죽 덩어리는 재료 사전에 없는 것이라 고를 칩이 없다. 대신 이름을
            직접 적는다(자동으로 지어 두고 고칠 수 있게, 2026-11-16). -->
@@ -4713,10 +4748,7 @@
         <input type="date" id="wn-cube-date" />
       </div>
     </div>
-    <div class="sheet-foot">
-      <button type="button" class="btn ghost" id="wn-cube-cancel" data-i18n="cancel">취소</button>
-      <button type="button" class="btn primary" id="wn-cube-save" data-i18n="save">저장</button>
-    </div>
+    <div class="fp-foot"><button type="button" class="btn primary" id="wn-cube-save" data-i18n="save">저장</button></div>
   </div>
 
   <!-- ============ SHEET: 장보기에 직접 추가 ============ -->
@@ -5034,7 +5066,7 @@ ko: {
   wnWeekScopeHint:"이번 주 목록에서만 바뀌어요. 다음 주는 다시 계산값으로 나와요.",
   wnAlwaysScopeHint:"다음 주 목록에도 이 값으로 나와요. 식단표가 바뀌어도 그대로예요.",
   wnSkipWeek:"이번 주 이 재료 건너뛰기", wnUnskipWeek:"이번 주에 다시 넣기",
-  wnCubeMade:"큐브 만들었어요", wnIngredient:"재료", wnHowMany:"몇 칸", wnCubeUnit:"칸",
+  wnCubeMade:"큐브 만들었어요", wnCubeQPh:"재료 이름 (초성도 돼요)", wnCubeQHint:"이번 주에 만들 것", wnCubeQNone:"찾는 재료가 없어요", wnCubeQTip:"위에 이름을 쳐서 다른 재료도 찾을 수 있어요", wnCubeSel:"선택됨", wnCubeNeedIng:"재료를 골라 주세요", wnIngredient:"재료", wnHowMany:"몇 칸", wnCubeUnit:"칸",
   wnPerCube:"한 칸 용량", wnPerCubeHint:"재료에 저장된 기본값이에요. 여기서 바꾸면 재료에도 같이 저장돼요.",
   wnMadeOn:"만든 날",
   wnCubeNTpl:"큐브 {n}칸",
@@ -5046,7 +5078,7 @@ ko: {
   wnMealNTpl:"{n}끼",
   wnMixFoot:"죽은 큐브를 안 써요. 한 끼씩 얼려 두고 먹이면 한 끼씩 빠져요.",
   wnCubeEmpty:"아직 만든 큐브가 없어요.",
-  wnCubeFoot:"이유식을 기록하면 그날 메뉴의 재료가 한 칸씩 자동으로 빠져요. 안 맞으면 − + 로 고쳐요.",
+  wnCubeFoot:"이유식을 기록하면 메뉴에 적힌 g만큼 맞는 칸으로 자동으로 빠져요(50g이면 50g 한 칸, 없으면 25g 두 칸). 안 맞으면 숫자를 눌러 바로 고쳐요.",
   wnName:"이름", wnNameVi:"베트남어", wnUnit:"단위", wnAllergen:"알레르기 주의 재료",
   wnAlwaysHint:"장보기 목록에서 계산값 대신 이 값을 써요. 비워두면 식단표에서 계산한 양이 나와요.",
   wnYes:"예", wnNo:"아니오",
@@ -5356,7 +5388,7 @@ vi: {
   wnWeekScopeHint:"Chỉ đổi trong danh sách tuần này. Tuần sau lại tính từ thực đơn.",
   wnAlwaysScopeHint:"Tuần sau cũng ra lượng này. Thực đơn đổi cũng không đổi theo.",
   wnSkipWeek:"Bỏ qua nguyên liệu này tuần này", wnUnskipWeek:"Cho lại vào tuần này",
-  wnCubeMade:"Đã làm viên trữ đông", wnIngredient:"Nguyên liệu", wnHowMany:"Bao nhiêu viên", wnCubeUnit:"viên",
+  wnCubeMade:"Đã làm viên trữ đông", wnCubeQPh:"Tên nguyên liệu", wnCubeQHint:"Cần làm tuần này", wnCubeQNone:"Không tìm thấy", wnCubeQTip:"Gõ tên ở trên để tìm nguyên liệu khác", wnCubeSel:"Đã chọn", wnCubeNeedIng:"Hãy chọn nguyên liệu", wnIngredient:"Nguyên liệu", wnHowMany:"Bao nhiêu viên", wnCubeUnit:"viên",
   wnPerCube:"Mỗi viên", wnPerCubeHint:"Đây là giá trị mặc định lưu ở nguyên liệu. Đổi ở đây thì nguyên liệu cũng đổi theo.",
   wnMadeOn:"Ngày làm",
   wnCubeNTpl:"{n} viên",
@@ -5367,7 +5399,7 @@ vi: {
   wnMealNTpl:"{n} bữa",
   wnMixFoot:"Cháo không dùng viên. Trữ đông từng bữa, cho ăn thì trừ một bữa.",
   wnCubeEmpty:"Chưa có viên trữ đông nào.",
-  wnCubeFoot:"Ghi ăn dặm thì nguyên liệu của ngày đó tự trừ 1 viên. Không khớp thì sửa bằng − +.",
+  wnCubeFoot:"Ghi ăn dặm thì tự trừ đúng số gam trong thực đơn (50g thì 1 viên 50g, không có thì 2 viên 25g). Không khớp thì chạm vào con số để sửa.",
   wnName:"Tên", wnNameVi:"Tiếng Việt", wnUnit:"Đơn vị", wnAllergen:"Nguyên liệu dễ dị ứng",
   wnAlwaysHint:"Danh sách đi chợ dùng giá trị này thay cho số tính từ thực đơn. Để trống thì dùng số tính từ thực đơn.",
   wnYes:"Có", wnNo:"Không",
@@ -13012,7 +13044,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261119a';
+var BUILD = '20261125a';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -16386,6 +16418,12 @@ function weanCubeIngs(){
 function weanCubeN(ing){
   return weanCubesOf(ing).reduce(function(n, c){ return n + (Number(c.n) || 0); }, 0);
 }
+/* 남은 g 합계 — 칸 크기가 섞여 있을 때 칸 수로는 얼마나 남았는지 모른다 */
+function weanCubeG(ing){
+  return weanCubesOf(ing).reduce(function(s, c){
+    return s + (Number(c.n) || 0) * (Number(c.perG) || 10);
+  }, 0);
+}
 /* 한 덩어리를 몇 칸 만들었나. made는 2026-11-03부터 적히므로 없는 덩어리는
    남은 칸이 곧 만든 칸이다 — 그 전에 쓴 것은 적어둔 데가 없다. */
 function weanCubeMade(c){
@@ -16431,7 +16469,11 @@ function weanWeekCubes(week){
     });
   });
   var rows = Object.keys(use).map(function(ing){
-    var have = weanCubeN(ing);
+    /* 남은 것도 g 으로 센 다음 한 칸 g 으로 나눈다. 베이스죽 50g 칸 6개와
+       25g 칸 12개는 '18칸'이 아니라 50g 열두 번이다(2026-11-25). */
+    var gg = weanIng(ing) || WEAN_SEED_INGS.filter(function(z){ return z.id === ing; })[0];
+    var per = (gg && Number(gg.cubeG)) || 10;
+    var have = Math.floor(weanCubeG(ing) / per);
     return { ing: ing, use: use[ing], have: have, make: Math.max(0, use[ing] - have) };
   }).concat(Object.keys(mix).map(function(k){
     var r = mix[k], have = weanCubeN(k);
@@ -16568,6 +16610,9 @@ function renderWean(){
      손가락 밑에서 새 단추로 바뀌어 씹혔다. 식단표는 끌어 고르기·스크롤 같은
      화면 상태가 있어 늘 새로 그린다(거기선 탭이 시트를 여는 것뿐이다). */
   var v = state.weanView;
+  /* 재고 숫자를 고치는 중이면 다시 그리지 않는다 — 치던 칸이 사라진다.
+     끝나면 editCubeN 이 그린다. */
+  if (v === 'cubes' && state.wnCubeEditing) return;
   if (v === 'shop' || v === 'cubes' || v === 'ings'){
     var html = v === 'shop' ? weanShopHtml() : v === 'cubes' ? weanCubesHtml() : weanIngsHtml();
     if (box.__wnHtml === v + html && box.firstElementChild) return;
@@ -17626,7 +17671,10 @@ function weanCubesHtml(){
       '<span class="wn-step">' +
         '<button type="button" data-wn-cube="' + esc(ing) + '" data-id="' +
           esc(c.id || '') + '" data-d="-1">\u2212</button>' +
-        '<b class="cb-n">' + n + '</b>' +
+        /* 숫자를 누르면 그 자리에서 바로 고친다 — 12를 3으로 만들려고 −를
+           아홉 번 누르지 않게(2026-11-25) */
+        '<b class="cb-n" role="button" tabindex="0" data-wn-cubeset="' + esc(ing) + '" data-id="' +
+          esc(c.id || '') + '">' + n + '</b>' +
         '<button type="button" data-wn-cube="' + esc(ing) + '" data-id="' +
           esc(c.id || '') + '" data-d="1">+</button>' +
       '</span></div>';
@@ -18299,7 +18347,7 @@ function openMixSheet(key, pre){
   document.getElementById('wn-cube-n').value = pre.n || 1;
   document.getElementById('wn-cube-g').value = pre.perG || 70;
   document.getElementById('wn-cube-date').value = pre.madeOn || toDateValue();
-  openSheet('wn-cube-sheet');
+  openFullpage('fp-wncube');
 }
 function openCubeSheet(pickIng, pickN){
   /* 죽은 재료가 아니다 — 같은 '만들 것' 줄을 눌렀어도 가는 곳이 다르다 */
@@ -18316,25 +18364,107 @@ function openCubeSheet(pickIng, pickN){
   document.getElementById('wn-cube-namefield').hidden = true;
   document.getElementById('wn-cube-ghint').hidden = false;
   document.getElementById('wn-cube-unit').textContent = t('wnCubeUnit');
-  var box = document.getElementById('wn-cube-ings');
-  var list = weanIngs();
-  var sel = pickIng || (list[0] && list[0].id);
-  box.innerHTML = list.map(function(g){
-    return '<button type="button" class="chip" data-cube-ing="' + esc(g.id) + '" aria-pressed="' +
-      (g.id === sel) + '">' + esc(state.lang === 'vi' ? (g.vi || g.ko) : g.ko) + '</button>';
-  }).join('');
-  $$('#wn-cube-ings button').forEach(function(b){
-    b.addEventListener('click', function(){
-      $$('#wn-cube-ings button').forEach(function(x){ x.setAttribute('aria-pressed', String(x === b)); });
-      var g = weanIng(b.dataset.cubeIng);
-      if (g) document.getElementById('wn-cube-g').value = g.cubeG || 10;
-    });
-  });
-  var selG = weanIng(sel);
+  state.wnCubeSel = pickIng || '';
+  var q = document.getElementById('wn-cube-q');
+  q.value = '';
+  renderCubePick();
+  var selG = weanIng(state.wnCubeSel);
   document.getElementById('wn-cube-g').value = selG ? (selG.cubeG || 10) : 10;
   document.getElementById('wn-cube-n').value = pickN || 12;
   document.getElementById('wn-cube-date').value = toDateValue();
-  openSheet('wn-cube-sheet');
+  openFullpage('fp-wncube');
+}
+/* 초성 — '단호박' → 'ㄷㅎㅂ'. 한글 음절이 아닌 글자는 그대로 둔다. */
+var WN_CHO = 'ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ';
+function weanCho(str){
+  return String(str || '').replace(/[\uac00-\ud7a3]/g, function(ch){
+    return WN_CHO.charAt(Math.floor((ch.charCodeAt(0) - 0xac00) / 588));
+  });
+}
+/* 베트남어 성조 부호는 떼고 비교한다 — 'xoai' 로 쳐도 'xoài' 가 나온다 */
+function weanFold(str){
+  return String(str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd').replace(/\s+/g, '');
+}
+function weanIngMatch(g, q){
+  q = String(q || '').replace(/\s+/g, '');
+  if (!q) return true;
+  var ko = String(g.ko || '').replace(/\s+/g, '');
+  if (/^[ㄱ-ㅎ]+$/.test(q)) return weanCho(ko).indexOf(q) >= 0;
+  if (ko.indexOf(q) >= 0) return true;
+  /* 치는 중인 마지막 글자가 받침 없이 덜 된 상태여도('단호바') 걸리게,
+     끝 글자는 초성까지만 맞춰 본다 */
+  var last = q.charAt(q.length - 1), head = q.slice(0, -1);
+  if (/[\uac00-\ud7a3]/.test(last)){
+    var lc = last.charCodeAt(0) - 0xac00;
+    /* 받침만 없는 글자 — '바'는 '박'의 앞모습이다. 받침이 있으면 비교 안 한다. */
+    if (lc % 28 === 0){
+      for (var i = 0; i + head.length < ko.length; i++){
+        if (ko.substr(i, head.length) !== head) continue;
+        var nc = ko.charCodeAt(i + head.length) - 0xac00;
+        if (nc >= 0 && nc < 11172 && Math.floor(nc / 28) === Math.floor(lc / 28)) return true;
+      }
+    }
+  }
+  var f = weanFold(q);
+  return weanFold(g.vi).indexOf(f) >= 0 || weanFold(g.id).indexOf(f) >= 0;
+}
+/* 고를 수 있는 재료 — 키트는 큐브로 만드는 것이 아니라 뺀다 */
+function weanCubePickable(){
+  return weanIngs().filter(function(g){ return !weanIsKit(g.id); });
+}
+function renderCubePick(){
+  var box = document.getElementById('wn-cube-ings');
+  if (!box) return;
+  var q = (document.getElementById('wn-cube-q').value || '').trim();
+  var all = weanCubePickable(), sel = state.wnCubeSel;
+  var name = function(g){ return state.lang === 'vi' ? (g.vi || g.ko) : g.ko; };
+  var row = function(g){
+    var on = g.id === sel;
+    return '<button type="button" class="wn-pick-row" data-cube-ing="' + esc(g.id) +
+      '" aria-pressed="' + on + '">' + weanIngIcon(g.id, 'wi-sm wi-lead') +
+      '<span class="wp-nm">' + esc(name(g)) + '</span>' +
+      '<span class="wp-g">' + (g.cubeG || 10) + 'g</span>' +
+      (on ? '<svg class="ui-ico wp-ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : '') +
+      '</button>';
+  };
+  var html = '', list;
+  if (q){
+    list = all.filter(function(g){ return weanIngMatch(g, q); });
+    list.sort(function(a, b){
+      /* 앞에서부터 맞는 것이 먼저 — '배'를 치면 배추보다 배가 위 */
+      var ak = String(a.ko || ''), bk = String(b.ko || '');
+      var ap = ak.indexOf(q) === 0 ? 0 : 1, bp = bk.indexOf(q) === 0 ? 0 : 1;
+      if (ap !== bp) return ap - bp;
+      if (ak.length !== bk.length) return ak.length - bk.length;
+      return ak.localeCompare(bk, 'ko');
+    });
+    html = list.length ? list.map(row).join('')
+      : '<div class="t-caption wp-empty">' + esc(t('wnCubeQNone')) + '</div>';
+  } else {
+    /* 안 쳤을 때 — 고른 것 + 이번 주에 만들 것만. 나머지는 쳐서 찾는다. */
+    var need = [];
+    try {
+      need = weanWeekCubes(state.weanWeek).rows
+        .filter(function(r){ return !r.mix && r.make > 0; }).map(function(r){ return r.ing; });
+    } catch (e) { need = []; }
+    var seen = {};
+    list = [];
+    if (sel && weanIng(sel)){ list.push(weanIng(sel)); seen[sel] = 1; }
+    need.forEach(function(id){
+      var g = weanIng(id);
+      if (g && !seen[id] && !weanIsKit(id)){ list.push(g); seen[id] = 1; }
+    });
+    if (list.length) html = '<div class="t-caption wp-cap">' + esc(t('wnCubeQHint')) + '</div>' + list.map(row).join('');
+    html += '<div class="t-caption wp-empty">' + esc(t('wnCubeQTip')) + '</div>';
+  }
+  box.innerHTML = html;
+}
+function pickCubeIng(id){
+  state.wnCubeSel = id;
+  var g = weanIng(id);
+  if (g) document.getElementById('wn-cube-g').value = g.cubeG || 10;
+  renderCubePick();
 }
 function saveCubeSheet(){
   var mix = state.weanMix;
@@ -18343,7 +18473,7 @@ function saveCubeSheet(){
     var mg = Math.max(1, Math.round(Number(document.getElementById('wn-cube-g').value) || 70));
     var ml = String(document.getElementById('wn-cube-name').value || '').trim();
     var md = document.getElementById('wn-cube-date').value || toDateValue();
-    closeSheet('wn-cube-sheet');
+    closeFullpage('fp-wncube');
     state.weanMix = null;
     toast(t('savedToast'));
     apiMutate('setWeanMixBatch', { key: mix.key, id: mix.id, n: mn, perG: mg,
@@ -18352,13 +18482,12 @@ function saveCubeSheet(){
       .catch(function(err){ toast(err.message); });
     return;
   }
-  var b = $('#wn-cube-ings button[aria-pressed="true"]');
-  if (!b){ closeSheet('wn-cube-sheet'); return; }
-  var ing = b.dataset.cubeIng;
+  var ing = state.wnCubeSel;
+  if (!ing || !weanIng(ing)){ toast(t('wnCubeNeedIng')); return; }
   var n = Math.max(0, Math.round(Number(document.getElementById('wn-cube-n').value) || 0));
   var perG = Math.max(1, Math.round(Number(document.getElementById('wn-cube-g').value) || 10));
   var madeOn = document.getElementById('wn-cube-date').value || toDateValue();
-  closeSheet('wn-cube-sheet');
+  closeFullpage('fp-wncube');
   toast(t('savedToast'));
   apiMutate('addWeanCubes', { ing: ing, n: n, perG: perG, madeOn: madeOn })
     .then(function(){
@@ -18550,6 +18679,9 @@ function wireWean(){
       if (!isMasterUser()) return;
       openWeanAmount(el.dataset.wnAmt); return;
     }
+    if ((el = ev.target.closest('[data-wn-cubeset]'))){
+      editCubeN(el); return;
+    }
     if ((el = ev.target.closest('[data-wn-cube]'))){
       bumpCube(el.dataset.wnCube, Number(el.dataset.d), el.dataset.id || ''); return;
     }
@@ -18685,10 +18817,27 @@ function wireWean(){
       .catch(function(err){ toast(err.message); });
   });
 
-  /* 큐브 시트 */
-  ['wn-cube-close', 'wn-cube-cancel'].forEach(function(id){
-    var el = document.getElementById(id);
-    if (el) el.addEventListener('click', function(){ closeSheet('wn-cube-sheet'); });
+  /* 큐브 만들었어요 — 전체 화면 */
+  var cubeBack = document.getElementById('wn-cube-close');
+  if (cubeBack) cubeBack.addEventListener('click', function(){
+    state.weanMix = null; closeFullpage('fp-wncube');
+  });
+  var cubeQ = document.getElementById('wn-cube-q');
+  if (cubeQ){
+    cubeQ.addEventListener('input', renderCubePick);
+    /* 엔터는 맨 위 결과를 고른다 — 쳐서 엔터로 끝낼 수 있게 */
+    cubeQ.addEventListener('keydown', function(ev){
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      var first = document.querySelector('#wn-cube-ings [data-cube-ing]');
+      if (first) pickCubeIng(first.dataset.cubeIng);
+      cubeQ.blur();
+    });
+  }
+  var cubeList = document.getElementById('wn-cube-ings');
+  if (cubeList) cubeList.addEventListener('click', function(ev){
+    var b = ev.target.closest('[data-cube-ing]');
+    if (b) pickCubeIng(b.dataset.cubeIng);
   });
   /* 두 시트는 #wn-body 바깥에 있어서 위 위임이 닿지 않는다 — 각자 받는다 */
   var moList = document.getElementById('wn-month-list');
@@ -18751,8 +18900,6 @@ function wireWean(){
   var monthScrim = document.getElementById('scrim-wnmonth');
   if (monthScrim) monthScrim.addEventListener('click', function(){ closeSheet('wn-month-sheet'); });
 
-  var cubeScrim = document.getElementById('scrim-cube');
-  if (cubeScrim) cubeScrim.addEventListener('click', function(){ closeSheet('wn-cube-sheet'); });
   var cubeSave = document.getElementById('wn-cube-save');
   if (cubeSave) cubeSave.addEventListener('click', saveCubeSheet);
 
@@ -18835,6 +18982,44 @@ function weanPatchCubeRow(row){
   var box = document.getElementById('wn-body');
   if (box && state.weanView === 'cubes') box.__wnHtml = 'cubes' + weanCubesHtml();
   return true;
+}
+/* 재고 숫자 칸을 입력칸으로 바꾼다. 엔터·바깥 누름에서 확정, Esc 는 취소.
+   보내는 것은 '차이'다(setWeanCube delta) — −/+ 와 같은 길이라 서버도,
+   먼저 그려 두는 화면도 따로 배울 것이 없다. */
+function editCubeN(b){
+  if (!b || b.tagName !== 'B') return;
+  var ing = b.dataset.wnCubeset, id = b.dataset.id;
+  var row = weanCubesOf(ing).filter(function(c){ return c.id === id; })[0];
+  if (!row) return;
+  var cur = Math.max(0, Math.round(Number(row.n) || 0));
+  var inp = document.createElement('input');
+  inp.type = 'number'; inp.inputMode = 'numeric'; inp.min = '0'; inp.step = '1';
+  inp.className = 'cb-n-in'; inp.value = String(cur);
+  inp.setAttribute('enterkeyhint', 'done');
+  b.replaceWith(inp);
+  state.wnCubeEditing = true;
+  inp.focus();
+  try { inp.select(); } catch (e) {}
+  var done = false;
+  function finish(commit){
+    if (done) return;
+    done = true;
+    state.wnCubeEditing = false;
+    var v = Math.round(Number(inp.value));
+    var d = (commit && inp.value !== '' && isFinite(v)) ? Math.max(0, v) - cur : 0;
+    var back = document.createElement('b');
+    back.className = 'cb-n'; back.setAttribute('role', 'button'); back.tabIndex = 0;
+    back.dataset.wnCubeset = ing; back.dataset.id = id;
+    back.textContent = String(cur);
+    if (inp.parentNode) inp.replaceWith(back);
+    if (d) bumpCube(ing, d, id);
+    else { var box = document.getElementById('wn-body'); if (box) box.__wnHtml = null; renderWean(); }
+  }
+  inp.addEventListener('keydown', function(ev){
+    if (ev.key === 'Enter'){ ev.preventDefault(); finish(true); }
+    else if (ev.key === 'Escape'){ ev.preventDefault(); finish(false); }
+  });
+  inp.addEventListener('blur', function(){ finish(true); });
 }
 function bumpCube(ing, d, id){
   appState.weanCubes = appState.weanCubes || [];

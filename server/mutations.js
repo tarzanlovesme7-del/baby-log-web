@@ -348,6 +348,47 @@ function takeCubes(state, ing, n) {
   }
   state.weanCubes = state.weanCubes.filter((c) => Math.round(num(c.n, 0)) > 0);
 }
+/* g 만큼 뺀다 — 그 g 에 맞는 칸부터.
+   먹일 g 이하인 칸 중 **가장 큰 것**을 하나씩 빼고(50g 이면 50g 한 칸,
+   50g 칸이 없으면 25g 두 칸), 같은 크기면 오래된 덩어리부터. 남은 g 이
+   어떤 칸보다도 작으면: 아직 아무것도 안 뺐으면 가장 작은 칸 하나(10g 먹일
+   때 25g 칸밖에 없다), 이미 뺐으면 남은 것이 가장 작은 칸의 반 이상일 때만
+   하나 더. g 이 비어 있으면(옛 식단) 한 칸. 뺀 것은 took 에 적는다. */
+function takeCubesG(state, ing, g, took) {
+  const live = () => cubesOf(state, ing).filter((c) => Math.round(num(c.n, 0)) > 0);
+  const per = (c) => Math.max(1, Math.round(num(c.perG, 10)));
+  const take1 = (c) => {
+    c.n = Math.max(0, Math.round(num(c.n, 0)) - 1);
+    const t = took.find((x) => x.id === c.id && x.ing === ing);
+    if (t) t.n += 1;
+    else took.push({ id: c.id, ing, n: 1, perG: per(c), madeOn: c.madeOn || '' });
+  };
+  let left = Math.max(0, Math.round(num(g, 0)));
+  let any = false;
+  if (!left) {
+    const c0 = live()[0];
+    if (c0) take1(c0);
+  } else {
+    for (let guard = 0; left > 0 && guard < 200; guard++) {
+      const cs = live();
+      if (!cs.length) break;
+      const fit = cs.filter((c) => per(c) <= left);
+      let c;
+      if (fit.length) {
+        const big = Math.max(...fit.map(per));
+        c = fit.find((x) => per(x) === big);
+      } else {
+        const small = Math.min(...cs.map(per));
+        if (any && left * 2 < small) break;
+        c = cs.find((x) => per(x) === small);
+      }
+      take1(c);
+      any = true;
+      left -= per(c);
+    }
+  }
+  state.weanCubes = state.weanCubes.filter((c) => Math.round(num(c.n, 0)) > 0);
+}
 /* n칸 더한다. 같은 날 같은 용량이면 그 덩어리에 합치고, 아니면 새 덩어리. */
 function addCubes(state, ing, n, perG, madeOn, extra) {
   const add = Math.max(0, Math.round(n));
@@ -388,6 +429,34 @@ function bumpCubesForEntry(state, entry, sign) {
     return;
   }
   const list = cleanIngList(entry.ings);
+  /* 2026-11-25부터는 **g 으로** 뺀다. 같은 재료라도 25g 칸과 50g 칸이 같이
+     있을 수 있는데("베이스죽 25g도 있고 50g도 있는데"), 한 칸씩 빼면 50g 먹인
+     날 25g 칸이 하나만 빠졌다. 무엇을 뺐는지는 기록에 적어 두고, 지우면 그
+     덩어리로 그대로 돌려준다. 적어 둔 것이 없는 옛 기록은 예전처럼 한 칸. */
+  if (sign < 0) {
+    const took = [];
+    for (const it of list) takeCubesG(state, it.ing, it.g, took);
+    entry.cubeTook = took;
+    return;
+  }
+  if (Array.isArray(entry.cubeTook)) {
+    for (const t of entry.cubeTook) {
+      if (!t || !t.ing) continue;
+      const k = Math.max(0, Math.round(num(t.n, 0)));
+      if (!k) continue;
+      state.weanCubes = Array.isArray(state.weanCubes) ? state.weanCubes : [];
+      const row = state.weanCubes.find((c) => c.id === t.id && c.ing === t.ing);
+      if (row) row.n = Math.max(0, Math.round(num(row.n, 0))) + k;
+      else {
+        /* 덩어리가 그 사이 비어서 치워졌다 — 같은 날·같은 g 으로 다시 세운다.
+           만든 칸(made)은 돌아온 칸만큼만 선다. */
+        const r = addCubes(state, t.ing, k, t.perG, t.madeOn || (entry.start || '').slice(0, 10));
+        if (r && t.id && !state.weanCubes.some((c) => c !== r && c.id === t.id)) r.id = t.id;
+      }
+    }
+    delete entry.cubeTook;
+    return;
+  }
   for (const it of list) {
     if (sign < 0) takeCubes(state, it.ing, 1);
     else {

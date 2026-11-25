@@ -829,7 +829,9 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   /* '+ 큐브 만들었어요' 텍스트 버튼도 뗐다 — 재고 화면의 FAB 이 그 일을 한다 */
   await p.click('#wn-add'); await p.waitForTimeout(700);
   await p.fill('#wn-cube-n', '10');
-  await p.click('#wn-cube-ings button:text-is("청경채")');
+  /* 2026-11-25부터 알약 대신 이름을 쳐서 고른다(전체 화면) */
+  await p.fill('#wn-cube-q', '청경채');
+  await p.click('#wn-cube-ings button:has(.wp-nm:text-is("청경채"))');
   await p.click('#wn-cube-save'); await p.waitForTimeout(1800);
   s = await st();
   const bok = s.weanCubes.filter(c=>c.ing==='bokchoy');

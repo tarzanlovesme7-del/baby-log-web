@@ -171,7 +171,7 @@ const mixKeyOf = (...ids) => 'mix_' + hash(ids.slice().sort().join(','));
   check('...누르면 재료 상세가 아니라 덩어리 고치기가 열린다', await p.evaluate(async ()=>{
     document.querySelector('[data-wn-mixname]').click();
     await new Promise(r=>setTimeout(r,500));
-    const sh = document.getElementById('wn-cube-sheet');
+    const sh = document.getElementById('fp-wncube');
     return [sh.classList.contains('show'),
       document.getElementById('wn-cube-namefield').hidden,
       document.getElementById('wn-cube-ingfield').hidden,
