@@ -68,13 +68,13 @@ const read = p => p.evaluate(()=>{
   check('시작 전 D-N 자리는 비어 있다', v.dn, '');
   check('그림(🍽️)은 빠진다', await p.evaluate(()=>!!document.getElementById('wn-emoji').hidden), true);
   check('메뉴는 그대로 아래에 깔린다',
-    await p.evaluate(()=>document.querySelectorAll('#wn-meals .wn-it').length > 0), true);
+    await p.evaluate(()=>document.querySelectorAll('#wn-meals .wn-first, #wn-meals .wn-ingredient').length > 0), true);
 
   /* 제목 줄과 메뉴 사이가 재료 줄 간격보다 좁으면 '초기 이유식'이 재료
      목록의 첫 줄처럼 붙어 읽힌다 — 그래서 더 넓어야 한다(2026-11-10). */
   const gaps = await p.evaluate(()=>{
     const R = e => e.getBoundingClientRect();
-    const its = [...document.querySelectorAll('#wn-meals .wn-it')].map(R);
+    const its = [...document.querySelectorAll('#wn-meals .wn-first, #wn-meals .wn-ingredient')].map(R);
     const top = its[0].top;
     const r1 = its.filter(x => Math.abs(x.top - top) < 2);
     const r2 = its.filter(x => x.top > top + 2);

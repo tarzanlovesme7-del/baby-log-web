@@ -192,24 +192,22 @@ const mixKeyOf = (...ids) => 'mix_' + hash(ids.slice().sort().join(','));
     localStorage.setItem('bbl_lang','ko'); });
   await pb.goto(BASE + '/'); await pb.waitForTimeout(2400);
   check('띠 머리줄 \'며칠차\' 바로 옆에 붙는다', await pb.evaluate(()=>{
-    const line = document.getElementById('wn-dn-line');
-    const kids = [...line.children].map(e=>e.id);
-    return kids.indexOf('wn-form-tag') === kids.indexOf('wn-stage') + 1; }), true);
+    /* 2026-11-27 배너 개편 — 단계·토핑/죽·D-N 은 .wn-meta 한 줄에 '·'로 잇는다 */
+    const tag = document.getElementById('wn-form-tag');
+    return !!tag.previousElementSibling && tag.previousElementSibling.id === 'wn-stage'; }), true);
   check('...토핑인 날에도 뜬다', await pb.evaluate(()=>{
-    const e = document.querySelector('#wn-form-tag .wn-form');
-    return e ? [e.textContent.trim(), e.classList.contains('is-mix')] : null; }),
-    ['토핑', false]);
+    return document.getElementById('wn-form-tag').textContent.trim(); }), '토핑');
   check('...하루가 한 가지면 끼니 줄에는 안 적는다', await pb.evaluate(()=>
-    document.querySelectorAll('#wn-meals .wn-form').length), 0);
+    document.querySelectorAll('#wn-meals .wn-meal-form').length), 0);
   /* 오늘(1일)을 아침 토핑 + 점심 죽으로 바꾸면 머리줄이 거짓말이 된다 */
   await mut('setWeanDay',{ date:d(1), actor:'엄마', meals:[
     { name:'아침', base:B, tops:T('zucchini','beef') },
     { name:'점심', base:B, tops:T('radish','napa'), form:'mix' }] });
   await pb.reload(); await pb.waitForTimeout(2400);
   check('끼니마다 방법이 다르면 머리줄은 비우고 줄마다 적는다', await pb.evaluate(()=>[
-    document.querySelectorAll('#wn-form-tag .wn-form').length,
-    [...document.querySelectorAll('#wn-meals .wn-form')].map(e=>e.textContent.trim())]),
-    [0, ['토핑','죽']]);
+    document.getElementById('wn-form-tag').textContent.trim(),
+    [...document.querySelectorAll('#wn-meals .wn-meal-form')].map(e=>e.textContent.trim())]),
+    ['', ['토핑','죽']]);
   await pb.close();
   await mut('setWeanDay',{ date:d(1), actor:'엄마',
     meals:[{ name:'아침', base:B, tops:T('zucchini','beef') }] });

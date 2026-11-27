@@ -470,12 +470,6 @@
   .wd-t b{ display:block; font-size:var(--fs-caption); font-weight:var(--fw-strong);
     letter-spacing:-.02em; line-height:1.45; word-break:keep-all; }
   .wd-t b .wn-form{ margin-left:5px; vertical-align:1px; letter-spacing:0; }
-  .wn-mrow .wn-form{ margin-right:2px; }
-  /* 띠 머리줄('초기 이유식 · 9일차' 옆). 띠는 끼니색으로 칠해져 있지 않으므로
-     여기서는 띠 제 색(--wn-fg)을 쓴다. */
-  .wn-form.on-band{ color:var(--wn-fg); opacity:.6; }
-  .wn-form.on-band.is-mix{ opacity:1; background:var(--wn-fg); color:var(--wn-bg); }
-  #wn-form-tag:empty{ display:none; }
   /* 부제만 — **바로 밑의** span 이다. 이름 옆 토핑/죽 알약도 span 이라
      후손 선택자로 잡으면 알약이 통째로 블록이 되어 줄을 하나 더 먹는다. */
   .wd-t > span{ display:block; font-size:var(--fs-micro); color:var(--muted); margin-top:3px; }
@@ -562,65 +556,35 @@
   .wc-molist .wc-mon{ margin-left:auto; font-size:var(--fs-caption);
     font-weight:var(--fw-body); color:var(--muted); }
 
-  /* 오늘 이유식 배너 — 수유 배너가 쓰던 자리. */
-  /* 세로 가운데 정렬은 쓰지 않는다 — 본문이 두 줄(제목 + 재료)이 되면서
-     이모지가 배너 한가운데로 내려갔다. 다른 띠와 같이 윗줄에 붙인다. */
-  .announce-row.wean-row{ background:var(--wn-band-bg); }
-  .announce-row.wean-row .a-label{ color:var(--wn-fg); }
-  .announce-row.wean-row .a-chev{ color:var(--wn-fg); }
-  /* 하루 식단을 통째로 — 끼니마다 한 줄. 한 끼뿐인 날엔 끼니 이름을 적지
-     않는다(적을 이유가 없다). 두 끼부터 앞에 '아침'·'점심'이 선다. */
-  .wn-meals{ display:flex; flex-direction:column; gap:6px; }
+  /* 오늘 이유식 배너 */
+  .announce-row.wean-row{ background:var(--wn-band-bg); padding-block:11px; }
+  .announce-row.wean-row .a-body{ gap:0; }
+  .announce-row.wean-row .a-top{ align-items:baseline; }
+  .wean-row .wn-heading{ display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 9px; min-width:0; }
+  .announce-row.wean-row .a-label{ color:var(--wn-ink); font-size:15px; font-weight:600; }
+  .announce-row.wean-row .a-chev{ color:var(--wn-fg); align-self:flex-start; line-height:21px; }
+  .wn-meta, .wn-meal, .wn-new{ font-size:13px; line-height:1.45; }
+  .wn-meta{ color:var(--wn-fg); font-weight:400; }
+  .wn-meta > :empty{ display:none; }
+  #wn-stage:not(:empty) + #wn-form-tag:not(:empty)::before{ content:"·"; margin-inline:4px; }
+  .wn-over-menu{ margin-bottom:5px; }
+  .wn-meals{ display:grid; grid-template-columns:fit-content(26%) minmax(0,1fr);
+    align-items:start; gap:6px 12px; }
   .wn-meals:empty{ display:none; }
-  .wn-mrow{ display:flex; align-items:center; gap:8px; min-width:0; }
-  .wn-meal:empty{ display:none; }
-  .wn-meal{ font-size:var(--fs-micro); font-weight:var(--fw-strong); color:var(--wn-fg);
-    background:color-mix(in srgb, var(--wn-fg) 14%, transparent);
-    border-radius:var(--radius-pill); padding:1px 8px; flex:0 0 auto; }
-  /* 띠 가운데 정렬 — 제목 줄이 빠지면서 화살표가 맞출 윗줄이 없어졌다 */
-  .announce-row.wean-row{ align-items:center; }
-  .announce-row.wean-row .a-chev{ margin-left:0; align-self:center; }
-  /* 시작 전 한 줄짜리일 때만 제목과 이모지가 선다 */
-  #wn-dn-line[hidden]{ display:none; }
-  /* 메뉴가 선 날에도 제목 줄은 남는다 — '초기 이유식' + '12일차'. 식단표에
-     며칠차가 적혀 있어도 첫 화면에서는 보이지 않아서, 지금이 어느 단계의
-     몇 일차인지 달력을 열어야 알 수 있었다(2026-11-10). 단계는 지오 개월수가
-     정하니 손으로 고칠 칸은 없다. 그림은 여전히 빠지고 — 아래 재료 그림이
-     이미 이유식이라고 말한다 — 두 줄 사이는 1px만 둬서 띠가 두 층으로
-     읽히지 않게 한다. */
-  /* 제목 줄과 메뉴 사이는 재료가 두 줄로 떨어질 때의 줄 간격(.wn-icons 의
-     row-gap 6px)보다 넓어야 한다 — 좁으면 '초기 이유식'이 재료 목록의 첫
-     줄처럼 붙어 읽힌다(2026-11-10). 글자 상자가 2px를 더 주므로 7px 이
-     화면에서 9px — 줄 간격의 한 칸 반이다. */
-  .wn-over-menu{ min-height:0; margin-bottom:7px; }
-  /* 끼니 이름 알약(.wn-meal)과 같은 모양. 같은 띠 안에서 같은 성격의 꼬리말이
-     둘 다 알약이면 눈이 한 번만 배운다. */
-  .wn-stage{ font-size:var(--fs-micro); font-weight:var(--fw-strong); color:var(--wn-fg);
-    background:color-mix(in srgb, var(--wn-fg) 14%, transparent);
-    border-radius:var(--radius-pill); padding:1px 8px; flex:0 0 auto; }
-  .wn-stage:empty{ display:none; }
-  /* 그림 + 이름이 한 덩어리. 이름이 붙으니 그림은 작아도 된다 —
-     그림은 눈이 먼저 걸리게 하는 표식이고, 읽는 것은 이름이다. */
-  /* 재료를 흰 알약 하나에 담았던 자리. 알약이 하던 일은 '연두 바탕에서
-     그림의 흰 부분이 묻히는 것 막기'였는데, 재료마다 **이름**이 붙으면서
-     그 일이 없어졌다. 끼니가 둘이면 통통한 덩어리가 둘이 되어 띠가
-     층층이 쌓여 보였다(2026-10-21 "알약으로 감싸는거 별로인거 같기도").
-     바탕은 흰색 쪽으로 당겼다 — 연두는 '이유식'이라는 표시만 하면 된다. */
-  .wn-icons{ display:inline-flex; flex-wrap:wrap; align-items:center; gap:6px 12px;
-    flex:1; min-width:0; max-width:100%; }
-  .wn-icons:empty{ display:none; }
-  .wn-it{ display:inline-flex; align-items:center; gap:4px; min-width:0; }
-  .wn-it .wi{ width:18px; height:18px; }
-  .wn-it b{ font-size:14px; font-weight:var(--fw-medium); color:var(--wn-ink); white-space:nowrap; }
-  /* 처음 먹는 재료. 그림 위의 작은 점이 아니라 말로 적는다 — 이름을 적게
-     되면서 자리가 생겼고, 점 하나보다 "새 재료" 네 글자가 분명하다. */
-  .wn-new{ font-style:normal; font-size:var(--fs-micro); font-weight:var(--fw-strong);
-    color:#fff; background:var(--wn-newtag); border-radius:var(--radius-pill);
-    padding:1px 7px; margin-left:1px; white-space:nowrap; }
-  .wn-soon{ font-size:var(--fs-label); font-weight:var(--fw-strong); color:var(--wn-ink); }
-  /* 시작 전의 D-18 은 '아직 아무 일도 없다'는 말이라 띠 안에서 제일 약해야
-     한다. 재료 이름과 같은 굵기로 서 있으면 오늘 뭘 먹인다는 뜻으로 읽힌다. */
-  .wn-soon.wn-dn{ font-weight:var(--fw-medium); color:var(--muted); }
+  .wn-meal{ color:var(--wn-fg); font-weight:500; overflow-wrap:anywhere; }
+  .wn-meal-form{ display:block; font-weight:400; }
+  .wn-meal-content{ display:grid; min-width:0; gap:2px; color:var(--wn-ink);
+    font-size:14px; line-height:1.45; font-weight:400; }
+  .wn-meal-content:only-child{ grid-column:1 / -1; }
+  .wn-featured, .wn-ingredients{ display:flex; flex-wrap:wrap; align-items:baseline; }
+  .wn-featured{ gap:3px 10px; }
+  .wn-first{ display:inline-flex; align-items:baseline; gap:4px; max-width:100%;
+    font-weight:500; overflow-wrap:anywhere; }
+  .wn-first .wi{ width:16px; height:16px; align-self:flex-start; margin-top:2px; }
+  .wn-new{ color:var(--wn-band-first); font-weight:500; white-space:nowrap; }
+  .wn-ingredients{ column-gap:4px; }
+  .wn-ingredient{ max-width:100%; overflow-wrap:anywhere; }
+  .wn-sep{ color:var(--wn-fg); margin-left:4px; }
 
   /* 한 줄에 셋.
      넷일 때는 칸이 79px이라 라벨과 꼬리말이 10.5px까지 내려갔다 — 화면에서
@@ -3175,21 +3139,9 @@
        이쪽은 노랑 쪽으로 밀어 둘이 한 덩어리로 붙지 않게 했다. */
     --c-wean:#5d8a2b;
     --wn-bg:#eaf2d6; --wn-fg:#456b1c; --wn-ink:#35520f;
-    /* 첫 화면 띠 전용 바탕 = **빠른기록 이유식 타일과 같은 값**.
-       타일은 타입 색을 16%로 흰 바탕에 섞어 쓰는데(quickBtnHtml), 띠는
-       따로 고른 값(#f9fcf4)을 들고 있어서 같은 화면에 연두가 두 가지로
-       떴다 (2026-11-02 "이유식 배너 컬러 퀵버튼 아이콘 배경 컬러랑
-       맞춰줘"). 손으로 적은 색을 하나 더 두는 대신 **같은 식을 쓴다** —
-       --c-wean 을 바꾸면 띠와 타일이 같이 움직인다.
-       --wn-bg 는 이유식 화면의 섬네일·배지가 쓰므로 건드리지 않는다. */
-    --wn-band-bg:color-mix(in srgb, var(--c-wean) 16%, var(--surface));
-    /* '새 재료' 알약. 주황(#e8832a)이던 자리다 — 시안 다섯을 실제 띠 위에
-       올려놓고 고른 토마토색(2026-11-02 "새 재료 라벨 색 좀 더 레드가
-       나을듯"). 알레르기를 지켜보라는 말이라 빨강 쪽이 맞고, --danger
-       (#d81f2f)까지 가면 '잘못됐다'로 읽힌다. 흰 글씨 대비도 주황보다
-       이쪽이 낫다. 라이트·다크 같은 값 — 연두 띠가 양쪽 다 중간 밝기라
-       한 색으로 선다. */
-    --wn-newtag:#e04b2d;
+    /* 배너 바탕과 첫 재료 글자색. 작은 점에는 더 선명한 토마토색을 쓴다. */
+    --wn-band-bg:color-mix(in srgb, var(--c-wean) 8%, var(--surface));
+    --wn-band-first:#a33e24; --wn-newtag:#e04b2d;
     /* 이유식 화면 전용 — 목업(spoon)의 값 그대로. 탭 밑줄 초록과
        식단 알약의 기본 바탕·글자색. */
     --wn-accent:#2ec45b; --wn-pill:#dceccd; --wn-pill-fg:#2f5a28;
@@ -3200,7 +3152,7 @@
   @media (prefers-color-scheme: dark){
     :root:not([data-theme="light"]){
       --c-wean:#a3d16a; --wn-bg:#26310f; --wn-fg:#bde08c; --wn-ink:#d8f0b8;
-      --wn-band-bg:color-mix(in srgb, var(--c-wean) 16%, var(--surface));
+      --wn-band-first:#ffa88d;
       --wn-accent:#52d97a; --wn-pill:#2b3a18; --wn-pill-fg:#cfe9b6;
       --wn-bad:#44181c; --wn-bad-fg:#f0b0b6; --wn-fab:#3f5a2a;
       --cb-soon-bg:#45330f; --cb-soon-fg:#f3c478;
@@ -3208,7 +3160,7 @@
   }
   :root[data-theme="dark"]{
     --c-wean:#a3d16a; --wn-bg:#26310f; --wn-fg:#bde08c; --wn-ink:#d8f0b8;
-    --wn-band-bg:color-mix(in srgb, var(--c-wean) 16%, var(--surface));
+    --wn-band-first:#ffa88d;
     --wn-accent:#52d97a; --wn-pill:#2b3a18; --wn-pill-fg:#cfe9b6;
     --wn-bad:#44181c; --wn-bad-fg:#f0b0b6; --wn-fab:#3f5a2a;
     --cb-soon-bg:#45330f; --cb-soon-fg:#f3c478;
@@ -3587,6 +3539,9 @@
   .wn-pick-row[aria-pressed="true"]{ background:color-mix(in srgb, var(--primary) 10%, var(--surface));
     font-weight:var(--fw-strong); }
   .wn-pick .wp-cap{ padding:10px 14px 4px; }
+  .wn-pick-row + .wp-cap{ border-top:1px solid var(--border); }
+  .wn-pick-row .wp-new{ font-size:var(--fs-micro); font-weight:var(--fw-strong); padding:3px 7px;
+    border-radius:8px; background:var(--cb-soon-bg); color:var(--cb-soon-fg); }
   .wn-pick .wp-empty{ padding:12px 14px; }
   .wn-pick .wp-cap + .wn-pick-row{ border-top:0; }
   .wn-pick-row + .wp-empty{ border-top:1px solid var(--border); }
@@ -3732,24 +3687,19 @@
         <button type="button" class="sb-btn" id="stamp-row-btn" data-i18n="payStampShort">출근 도장</button>
       </div>
 
-      <!-- 오늘 이유식. 하루 종일 떠 있던 수유 배너를 걷어내고 그 자리를
-           여기가 쓴다 — 수유는 아래 세 칸이 맡는다. 글자 대신 그날 쓰는
-           재료 그림이 서고, 처음 먹는 재료에는 느낌표가 붙는다. -->
-      <!-- 시작 전에는 '🍽️ 이유식 D-17' 한 줄, 시작한 뒤에는 제목도 이모지도
-           없이 그날 식단만. 띠에 '이유식'이라고 적어 두지 않아도 재료 그림이
-           서 있으면 무엇인지 안다 — 제목은 자리만 먹었다. -->
+      <!-- 오늘의 식단. 배너 전체를 누르면 이유식 화면이 열린다. -->
       <button type="button" class="announce-row wean-row" id="wean-row" hidden>
-        <span class="a-emoji" id="wn-emoji">🍽️</span>
-        <div class="a-body">
-          <div class="a-top" id="wn-dn-line">
-            <span class="a-label" id="wn-label">이유식</span>
-            <span class="wn-stage" id="wn-stage"></span>
-            <span id="wn-form-tag"></span>
-            <span class="wn-soon wn-dn" id="wn-dn"></span>
-          </div>
-          <div class="wn-meals" id="wn-meals"></div>
-        </div>
-        <span class="a-chev">›</span>
+        <span class="a-emoji" id="wn-emoji" aria-hidden="true">🍽️</span>
+        <span class="a-body">
+          <span class="a-top" id="wn-dn-line">
+            <span class="wn-heading">
+              <span class="a-label" id="wn-label">이유식</span>
+              <span class="wn-meta"><span id="wn-stage"></span><span id="wn-form-tag"></span><span id="wn-dn"></span></span>
+            </span>
+            <span class="a-chev" aria-hidden="true">›</span>
+          </span>
+          <span class="wn-meals" id="wn-meals"></span>
+        </span>
       </button>
 
       <button type="button" class="announce-row" id="memo-open-btn">
@@ -4798,10 +4748,7 @@
       <span style="width:30px"></span>
     </div>
     <div class="sheet-body">
-      <div class="field" id="wn-ing-pick-field" hidden>
-        <label data-i18n="wnIngredient">재료</label>
-        <div class="chip-row" id="wn-ing-pick" style="padding:0"></div>
-      </div>
+      <div class="field" id="wn-ing-pick-field" hidden></div>
       <div class="field">
         <label data-i18n="wnAmount">양</label>
         <div class="wn-num"><input type="number" id="wn-ing-g" min="0" step="1" inputmode="numeric" /><span>g</span></div>
@@ -4812,6 +4759,32 @@
       <button type="button" class="btn ghost" id="wn-ing-cancel" data-i18n="cancel">취소</button>
       <button type="button" class="btn primary" id="wn-ing-save" data-i18n="save">저장</button>
     </div>
+  </div>
+
+  <!-- ============ FULL PAGE: 식단에 재료 넣기 ============ -->
+  <!-- 시트 안에 재료 알약이 전부 깔려 있었다. 큐브 만들기와 똑같이 이름을
+       쳐서 찾는 전체 화면으로 바꾼다("새 식단 입력할 때도 큐브 재고 입력하는
+       것처럼 텍스트 검색으로", 2026-11-27). 이미 넣은 재료의 g 고치기·빼기는
+       짧은 일이라 시트(wn-ing-sheet)에 그대로 둔다. -->
+  <div class="fullpage" id="fp-wnadd">
+    <div class="fp-head">
+      <button type="button" class="fp-back" id="wn-add-close">‹</button>
+      <h1 id="wn-add-title">-</h1>
+      <span style="width:30px"></span>
+    </div>
+    <div class="fp-body">
+      <div class="field">
+        <label data-i18n="wnIngredient">재료</label>
+        <input type="search" id="wn-add-q" class="wn-q" autocomplete="off" enterkeyhint="search"
+          data-i18n-ph="wnCubeQPh" placeholder="재료 이름 (초성도 돼요)" />
+        <div class="wn-pick" id="wn-add-ings"></div>
+      </div>
+      <div class="field">
+        <label data-i18n="wnAmount">양</label>
+        <div class="wn-num"><input type="number" id="wn-add-g" min="0" step="1" inputmode="numeric" /><span>g</span></div>
+      </div>
+    </div>
+    <div class="fp-foot"><button type="button" class="btn primary" id="wn-add-save" data-i18n="save">저장</button></div>
   </div>
 
   <!-- ============ FULL PAGE: FOR ZIO ============ -->
@@ -5066,7 +5039,7 @@ ko: {
   wnWeekScopeHint:"이번 주 목록에서만 바뀌어요. 다음 주는 다시 계산값으로 나와요.",
   wnAlwaysScopeHint:"다음 주 목록에도 이 값으로 나와요. 식단표가 바뀌어도 그대로예요.",
   wnSkipWeek:"이번 주 이 재료 건너뛰기", wnUnskipWeek:"이번 주에 다시 넣기",
-  wnCubeMade:"큐브 만들었어요", wnCubeQPh:"재료 이름 (초성도 돼요)", wnCubeQHint:"이번 주에 만들 것", wnCubeQNone:"찾는 재료가 없어요", wnCubeQTip:"위에 이름을 쳐서 다른 재료도 찾을 수 있어요", wnCubeSel:"선택됨", wnCubeNeedIng:"재료를 골라 주세요", wnIngredient:"재료", wnHowMany:"몇 칸", wnCubeUnit:"칸",
+  wnCubeMade:"큐브 만들었어요", wnCubeQPh:"재료 이름 (초성도 돼요)", wnAddRecent:"요즘 식단에 자주 쓴 재료", wnAddFirst:"처음", wnCubeQHint:"이번 주에 만들 것", wnCubeQNone:"찾는 재료가 없어요", wnCubeQTip:"위에 이름을 쳐서 다른 재료도 찾을 수 있어요", wnCubeSel:"선택됨", wnCubeNeedIng:"재료를 골라 주세요", wnIngredient:"재료", wnHowMany:"몇 칸", wnCubeUnit:"칸",
   wnPerCube:"한 칸 용량", wnPerCubeHint:"재료에 저장된 기본값이에요. 여기서 바꾸면 재료에도 같이 저장돼요.",
   wnMadeOn:"만든 날",
   wnCubeNTpl:"큐브 {n}칸",
@@ -5130,7 +5103,7 @@ ko: {
   addNew:"항목 추가",
   dashFeedNext:"다음 수유", dashSleepLast:"마지막 잠", dashPoopLast:"마지막 똥",
   dashSleptTpl:"{n} 잤음", dashDiaperTpl:"기저귀 {n} 전", dashAgo:"전", dashNth:"째",
-  dashAsleep:"자는 중", dashAfter:"후", wnBandLabel:"이유식", wnNewTag:"새 재료",
+  dashAsleep:"자는 중", dashAfter:"후", wnBandLabel:"이유식", wnNewTag:"첫 재료",
   wnStageEarly:"초기 이유식", wnStageMid:"중기 이유식", wnStageLate:"후기 이유식", wnStageDone:"완료기 이유식",
   wnUntilTpl:"{d}일까지 같은 식단",
   wnTableEmpty:"이 달은 식단이 없어요",
@@ -5388,7 +5361,7 @@ vi: {
   wnWeekScopeHint:"Chỉ đổi trong danh sách tuần này. Tuần sau lại tính từ thực đơn.",
   wnAlwaysScopeHint:"Tuần sau cũng ra lượng này. Thực đơn đổi cũng không đổi theo.",
   wnSkipWeek:"Bỏ qua nguyên liệu này tuần này", wnUnskipWeek:"Cho lại vào tuần này",
-  wnCubeMade:"Đã làm viên trữ đông", wnCubeQPh:"Tên nguyên liệu", wnCubeQHint:"Cần làm tuần này", wnCubeQNone:"Không tìm thấy", wnCubeQTip:"Gõ tên ở trên để tìm nguyên liệu khác", wnCubeSel:"Đã chọn", wnCubeNeedIng:"Hãy chọn nguyên liệu", wnIngredient:"Nguyên liệu", wnHowMany:"Bao nhiêu viên", wnCubeUnit:"viên",
+  wnCubeMade:"Đã làm viên trữ đông", wnCubeQPh:"Tên nguyên liệu", wnAddRecent:"Hay dùng gần đây", wnAddFirst:"Lần đầu", wnCubeQHint:"Cần làm tuần này", wnCubeQNone:"Không tìm thấy", wnCubeQTip:"Gõ tên ở trên để tìm nguyên liệu khác", wnCubeSel:"Đã chọn", wnCubeNeedIng:"Hãy chọn nguyên liệu", wnIngredient:"Nguyên liệu", wnHowMany:"Bao nhiêu viên", wnCubeUnit:"viên",
   wnPerCube:"Mỗi viên", wnPerCubeHint:"Đây là giá trị mặc định lưu ở nguyên liệu. Đổi ở đây thì nguyên liệu cũng đổi theo.",
   wnMadeOn:"Ngày làm",
   wnCubeNTpl:"{n} viên",
@@ -7973,11 +7946,7 @@ function fitDash4(row, bigs, subs){
   if (ps) row.style.setProperty('--d4-sub', ps + 'px');
 }
 
-/* ── 오늘 이유식 배너 ──────────────────────────────────────────────
-   글자 대신 그날 쓰는 재료 그림. 처음 먹는 재료는 맨 앞으로 끌어와
-   느낌표를 붙인다 — 원래 순서대로 두면 재료가 많은 날 하필 그게
-   "+n" 뒤로 밀려서, 알레르기를 봐야 하는 날에 경고가 안 보인다. */
-var WEAN_BAND_SLOTS = 8;
+/* ── 오늘 이유식 배너 ────────────────────────────────────────────── */
 /* 그 날 그 끼니의 기록들. 기록은 끼니 이름(아침·점심…)으로 붙는다 —
    중기부터 하루 두 끼라, 아침을 다 먹고 점심을 반 먹은 날을 한 줄로 적으면
    둘 다 틀린 말이 된다. 끼니 이름이 없는 옛 기록은 어느 끼니 것인지 알 수
@@ -8015,7 +7984,7 @@ function renderWeanBand(){
       dnLine.classList.remove('wn-over-menu');
       document.getElementById('wn-label').textContent = t('wnBandLabel');
       document.getElementById('wn-stage').textContent = '';
-      document.getElementById('wn-form-tag').innerHTML = '';
+      document.getElementById('wn-form-tag').textContent = '';
       document.getElementById('wn-dn').textContent = t('dashDminusTpl').replace('{n}', String(n));
       meals.innerHTML = '';
       syncAnnounceStack();
@@ -8037,41 +8006,32 @@ function renderWeanBand(){
   /* 하루를 통째로 — 끼니마다 한 줄. '다음 안 먹인 끼니' 하나만 보여주던
      때는 아침을 먹이고 나면 점심이 나타나서, 아침에 뭘 줬는지 띠에서
      사라졌다. 하루 식단은 하루 종일 같은 자리에 있어야 한다. */
-  var news = {};
-  weanNewOn(ds).forEach(function(id){ news[id] = 1; });
+  var firstToday = new Set(weanNewOn(ds));
   var many = day.meals.length > 1;
-  /* 하루 안에서 주는 방법이 갈리면(아침은 토핑, 점심은 죽) 머리줄 하나로는
-     거짓말이 된다 — 그럴 때만 줄마다 적는다. */
-  var forms = {};
-  day.meals.forEach(function(m){ forms[weanMealForm(m)] = 1; });
-  var mixedForms = Object.keys(forms).length > 1;
-  var tag = document.getElementById('wn-form-tag');
-  if (tag) tag.innerHTML = mixedForms ? ''
-    : weanFormPillHtml(day.meals[0], 'on-band');
+  var firstMeal = day.meals[0];
+  var mixedForms = day.meals.some(function(m){ return weanMealForm(m) !== weanMealForm(firstMeal); });
+  document.getElementById('wn-form-tag').textContent = mixedForms ? '' : weanFormLabel(firstMeal);
+
   meals.innerHTML = day.meals.map(function(m){
-    var seen = {}, items = [];
-    ((m.base || []).concat(m.tops || [])).forEach(function(x){
-      if (!seen[x.ing]){ seen[x.ing] = 1; items.push(x.ing); }
+    var featured = [], familiar = [];
+    weanDayIngs({ meals:[m] }).forEach(function(x){
+      var name = esc(weanIngName(x.ing));
+      if (firstToday.has(x.ing)){
+        featured.push('<span class="wn-first">' + weanIngIcon(x.ing) + '<span>' + name + '</span>' +
+          '<span class="wn-new">' + esc(t('wnNewTag')) + '</span></span>');
+      } else {
+        familiar.push(name);
+      }
     });
-    /* 처음 먹는 재료를 앞으로 — 뒤에 밀려 '+2'에 먹히면 안 되는 하나다 */
-    items = items.filter(function(x){ return news[x]; })
-      .concat(items.filter(function(x){ return !news[x]; }));
-    var rest = 0;
-    if (items.length > WEAN_BAND_SLOTS){
-      rest = items.length - (WEAN_BAND_SLOTS - 1);
-      items = items.slice(0, WEAN_BAND_SLOTS - 1);
-    }
-    return '<span class="wn-mrow">' +
-      (many ? '<span class="wn-meal">' + esc(weanMealName(m.name)) + '</span>' : '') +
-      /* 끼니마다 주는 방법이 다른 날에만 줄마다 적는다. 하루가 한 가지면
-         머리줄('9일차' 옆)에 한 번만 선다 — 같은 말을 두 줄에 쓰지 않는다. */
-      (mixedForms ? weanFormPillHtml(m, weanKindOf(m.name)) : '') +
-      '<span class="wn-icons">' + items.map(function(id){
-        return '<span class="wn-it">' + weanIngIcon(id) +
-          '<b>' + esc(weanIngName(id)) + '</b>' +
-          (news[id] ? '<em class="wn-new">' + esc(t('wnNewTag')) + '</em>' : '') + '</span>';
-      }).join('') + (rest ? '<span class="wn-soon">+' + rest + '</span>' : '') + '</span>' +
-    '</span>';
+    var label = many ? '<span class="wn-meal">' + esc(weanMealName(m.name)) +
+      (mixedForms ? '<span class="wn-meal-form">' + esc(weanFormLabel(m)) + '</span>' : '') + '</span>' : '';
+    var list = familiar.map(function(name, i){
+      var separator = i < familiar.length - 1 ? '<span class="wn-sep">·</span>' : '';
+      return '<span class="wn-ingredient">' + name + separator + '</span>';
+    });
+    return label + '<span class="wn-meal-content">' +
+      (featured.length ? '<span class="wn-featured">' + featured.join(' ') + '</span>' : '') +
+      (list.length ? '<span class="wn-ingredients">' + list.join(' ') + '</span>' : '') + '</span>';
   }).join('');
   syncAnnounceStack();
 }
@@ -13044,7 +13004,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261125a';
+var BUILD = '20261127b';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
@@ -16237,12 +16197,13 @@ function weanDayIngs(day){
    저장은 **죽일 때만** `form:'mix'` 를 적는다. 없으면 토핑이다 — 쌓인 90일치를
    건드리지 않고도 옛 식단이 전부 제 뜻으로 읽힌다. */
 function weanMealForm(m){ return (m && m.form === 'mix') ? 'mix' : 'top'; }
+function weanFormLabel(m){ return t(weanIsMix(m) ? 'wnFormMix' : 'wnFormTop'); }
 /* 알약은 한 곳에서 찍는다 — 네 화면에 같은 모양으로 선다. kind 를 주면 그
    끼니색을 입는다(식단표 칸 안에서는 칸이 이미 그 색을 쥐고 있다). */
 function weanFormPillHtml(m, kind){
   var mix = weanIsMix(m);
   return '<span class="wn-form' + (kind ? ' ' + kind : '') + (mix ? ' is-mix' : '') + '">' +
-    esc(t(mix ? 'wnFormMix' : 'wnFormTop')) + '</span>';
+    esc(weanFormLabel(m)) + '</span>';
 }
 function weanIsMix(m){ return weanMealForm(m) === 'mix'; }
 /* 죽 한 덩어리의 이름표. 끼니 이름은 넣지 않는다 — 같은 죽을 아침에 주든
@@ -18413,52 +18374,70 @@ function weanIngMatch(g, q){
 function weanCubePickable(){
   return weanIngs().filter(function(g){ return !weanIsKit(g.id); });
 }
-function renderCubePick(){
-  var box = document.getElementById('wn-cube-ings');
-  if (!box) return;
-  var q = (document.getElementById('wn-cube-q').value || '').trim();
-  var all = weanCubePickable(), sel = state.wnCubeSel;
+/* 재료 찾기 목록 — 큐브 만들기와 식단 재료 넣기가 같이 쓴다.
+   o.q        친 글자
+   o.all      고를 수 있는 재료 전부
+   o.sel      고른 것(맨 위, 체크)
+   o.idle     안 쳤을 때 보여 줄 묶음 [{cap, ids}]
+   o.tip      안 쳤을 때 맨 아래 한 줄
+   o.attr     줄 단추의 data- 이름
+   o.right    줄 오른쪽 작은 글씨 function(g) */
+function weanPickListHtml(o){
   var name = function(g){ return state.lang === 'vi' ? (g.vi || g.ko) : g.ko; };
   var row = function(g){
-    var on = g.id === sel;
-    return '<button type="button" class="wn-pick-row" data-cube-ing="' + esc(g.id) +
+    var on = g.id === o.sel;
+    return '<button type="button" class="wn-pick-row" data-' + o.attr + '="' + esc(g.id) +
       '" aria-pressed="' + on + '">' + weanIngIcon(g.id, 'wi-sm wi-lead') +
       '<span class="wp-nm">' + esc(name(g)) + '</span>' +
-      '<span class="wp-g">' + (g.cubeG || 10) + 'g</span>' +
+      (o.right ? o.right(g) : '') +
       (on ? '<svg class="ui-ico wp-ck" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : '') +
       '</button>';
   };
-  var html = '', list;
+  var q = o.q, html = '', list;
   if (q){
-    list = all.filter(function(g){ return weanIngMatch(g, q); });
+    list = o.all.filter(function(g){ return weanIngMatch(g, q); });
     list.sort(function(a, b){
       /* 앞에서부터 맞는 것이 먼저 — '배'를 치면 배추보다 배가 위 */
+      /* 초성으로 쳤으면 초성끼리 비교한다 — 'ㅂ'에 두부(ㄷㅂ)가 배추보다 위로 오지 않게 */
+      var cho = /^[ㄱ-ㅎ]+$/.test(q);
       var ak = String(a.ko || ''), bk = String(b.ko || '');
-      var ap = ak.indexOf(q) === 0 ? 0 : 1, bp = bk.indexOf(q) === 0 ? 0 : 1;
+      var ak2 = cho ? weanCho(ak) : ak, bk2 = cho ? weanCho(bk) : bk;
+      var ap = ak2.indexOf(q) === 0 ? 0 : 1, bp = bk2.indexOf(q) === 0 ? 0 : 1;
       if (ap !== bp) return ap - bp;
       if (ak.length !== bk.length) return ak.length - bk.length;
       return ak.localeCompare(bk, 'ko');
     });
-    html = list.length ? list.map(row).join('')
+    return list.length ? list.map(row).join('')
       : '<div class="t-caption wp-empty">' + esc(t('wnCubeQNone')) + '</div>';
-  } else {
-    /* 안 쳤을 때 — 고른 것 + 이번 주에 만들 것만. 나머지는 쳐서 찾는다. */
-    var need = [];
-    try {
-      need = weanWeekCubes(state.weanWeek).rows
-        .filter(function(r){ return !r.mix && r.make > 0; }).map(function(r){ return r.ing; });
-    } catch (e) { need = []; }
-    var seen = {};
-    list = [];
-    if (sel && weanIng(sel)){ list.push(weanIng(sel)); seen[sel] = 1; }
-    need.forEach(function(id){
-      var g = weanIng(id);
-      if (g && !seen[id] && !weanIsKit(id)){ list.push(g); seen[id] = 1; }
-    });
-    if (list.length) html = '<div class="t-caption wp-cap">' + esc(t('wnCubeQHint')) + '</div>' + list.map(row).join('');
-    html += '<div class="t-caption wp-empty">' + esc(t('wnCubeQTip')) + '</div>';
   }
-  box.innerHTML = html;
+  var ok = {}, seen = {};
+  o.all.forEach(function(g){ ok[g.id] = g; });
+  if (o.sel && ok[o.sel]){ html += row(ok[o.sel]); seen[o.sel] = 1; }
+  (o.idle || []).forEach(function(grp){
+    var gs = [];
+    (grp.ids || []).forEach(function(id){
+      if (ok[id] && !seen[id]){ gs.push(ok[id]); seen[id] = 1; }
+    });
+    if (gs.length) html += '<div class="t-caption wp-cap">' + esc(grp.cap) + '</div>' + gs.map(row).join('');
+  });
+  if (o.tip) html += '<div class="t-caption wp-empty">' + esc(o.tip) + '</div>';
+  return html;
+}
+function renderCubePick(){
+  var box = document.getElementById('wn-cube-ings');
+  if (!box) return;
+  /* 안 쳤을 때 — 고른 것 + 이번 주에 만들 것만. 나머지는 쳐서 찾는다. */
+  var need = [];
+  try {
+    need = weanWeekCubes(state.weanWeek).rows
+      .filter(function(r){ return !r.mix && r.make > 0; }).map(function(r){ return r.ing; });
+  } catch (e) { need = []; }
+  box.innerHTML = weanPickListHtml({
+    q: (document.getElementById('wn-cube-q').value || '').trim(),
+    all: weanCubePickable(), sel: state.wnCubeSel, attr: 'cube-ing',
+    idle: [{ cap: t('wnCubeQHint'), ids: need }], tip: t('wnCubeQTip'),
+    right: function(g){ return '<span class="wp-g">' + (g.cubeG || 10) + 'g</span>'; },
+  });
 }
 function pickCubeIng(id){
   state.wnCubeSel = id;
@@ -18505,28 +18484,82 @@ function openWeanIngPick(kind, idx){
   var m = state.weanSpan && state.weanSpan.meal;
   if (!m) return;
   var cur = idx >= 0 ? (m[kind] || [])[idx] : null;
-  var pickField = document.getElementById('wn-ing-pick-field');
-  var pick = document.getElementById('wn-ing-pick');
-  document.getElementById('wn-ing-title').textContent =
-    cur ? weanIngName(cur.ing) : t(kind === 'base' ? 'wnBase' : 'wnTopping');
-  pickField.hidden = !!cur;
-  if (!cur){
-    /* 베이스 칸에는 베이스죽만, 토핑 칸에는 토핑만 뜬다 */
-    var wantBase = kind === 'base';
-    pick.innerHTML = weanIngs().filter(function(g){ return !!g.isBase === wantBase; })
-      .map(function(g, i){
-        return '<button type="button" class="chip" data-pick-ing="' + esc(g.id) + '" aria-pressed="' +
-          (i === 0) + '">' + esc(state.lang === 'vi' ? (g.vi || g.ko) : g.ko) + '</button>';
-      }).join('');
-    $$('#wn-ing-pick button').forEach(function(b){
-      b.addEventListener('click', function(){
-        $$('#wn-ing-pick button').forEach(function(x){ x.setAttribute('aria-pressed', String(x === b)); });
-      });
-    });
-  }
-  document.getElementById('wn-ing-g').value = cur ? cur.g : (kind === 'base' ? 40 : 10);
-  document.getElementById('wn-ing-remove').hidden = !cur;
+  /* 새로 넣을 때는 찾아서 고르는 전체 화면 */
+  if (!cur){ openWeanAddPage(kind); return; }
+  document.getElementById('wn-ing-pick-field').hidden = true;
+  document.getElementById('wn-ing-title').textContent = weanIngName(cur.ing);
+  document.getElementById('wn-ing-g').value = cur.g;
+  document.getElementById('wn-ing-remove').hidden = false;
   openSheet('wn-ing-sheet');
+}
+/* 식단에 재료 넣기 — 베이스 칸에는 베이스죽만, 토핑 칸에는 토핑만 */
+function weanAddPickable(kind){
+  var m = (state.weanSpan && state.weanSpan.meal) || {};
+  var wantBase = kind === 'base';
+  var inMeal = {};
+  (m.base || []).concat(m.tops || []).forEach(function(x){ inMeal[x.ing] = 1; });
+  /* 이미 이 끼니에 든 것은 안 띄운다 — 고르면 '이미 들어 있어요'만 듣는다 */
+  return weanIngs().filter(function(g){ return !!g.isBase === wantBase && !inMeal[g.id]; });
+}
+/* 안 쳤을 때 띄울 것 — 이 기간 앞뒤 2주 식단에 자주 나온 재료 순 */
+function weanAddRecent(kind){
+  var sp = state.weanSpan || {};
+  var from = sp.from || toDateValue();
+  var d0 = new Date(from + 'T00:00:00'); d0.setDate(d0.getDate() - 14);
+  var d1 = new Date(from + 'T00:00:00'); d1.setDate(d1.getDate() + 14);
+  var lo = toDateValue(d0), hi = toDateValue(d1);
+  var plan = weanPlan(), n = {};
+  Object.keys(plan).forEach(function(ds){
+    if (ds < lo || ds > hi) return;
+    weanDayIngs(plan[ds]).forEach(function(x){ n[x.ing] = (n[x.ing] || 0) + 1; });
+  });
+  return Object.keys(n).sort(function(a, b){ return n[b] - n[a]; }).slice(0, 14);
+}
+function renderWeanAddPick(){
+  var box = document.getElementById('wn-add-ings');
+  if (!box) return;
+  var kind = state.wnAddKind, sp = state.weanSpan || {};
+  var all = weanAddPickable(kind);
+  var firsts = weanIngFirsts();
+  var from = sp.from || toDateValue();
+  box.innerHTML = weanPickListHtml({
+    q: (document.getElementById('wn-add-q').value || '').trim(),
+    all: all, sel: state.wnAddSel, attr: 'add-ing',
+    /* 베이스죽은 몇 개 안 되니 다 띄운다 */
+    idle: kind === 'base' ? [{ cap: t('wnBase'), ids: all.map(function(g){ return g.id; }) }]
+                          : [{ cap: t('wnAddRecent'), ids: weanAddRecent(kind) }],
+    tip: kind === 'base' ? '' : t('wnCubeQTip'),
+    /* 이 날 전에 식단에 한 번도 안 나온 재료면 '처음' — 하루 하나 규칙을 보면서 고르게 */
+    right: function(g){
+      var f = firsts[g.id];
+      return (!f || f >= from) ? '<span class="wp-new">' + esc(t('wnAddFirst')) + '</span>' : '';
+    },
+  });
+}
+function openWeanAddPage(kind){
+  state.wnAddKind = kind;
+  state.wnAddSel = '';
+  document.getElementById('wn-add-title').textContent = t(kind === 'base' ? 'wnBase' : 'wnTopping');
+  document.getElementById('wn-add-q').value = '';
+  document.getElementById('wn-add-g').value = kind === 'base' ? 50 : 10;
+  renderWeanAddPick();
+  openFullpage('fp-wnadd');
+}
+function pickWeanAddIng(id){
+  state.wnAddSel = id;
+  renderWeanAddPick();
+}
+function saveWeanAddPage(){
+  var e = state.weanEdit, m = state.weanSpan && state.weanSpan.meal;
+  if (!e || !m){ closeFullpage('fp-wnadd'); return; }
+  var id = state.wnAddSel;
+  if (!id || !weanIng(id)){ toast(t('wnCubeNeedIng')); return; }
+  var g = Math.max(0, Math.round(Number(document.getElementById('wn-add-g').value) || 0));
+  if (!m[e.kind]) m[e.kind] = [];
+  if (m[e.kind].some(function(x){ return x.ing === id; })){ toast(t('wnAlreadyIn')); return; }
+  m[e.kind].push({ ing: id, g: g });
+  closeFullpage('fp-wnadd');
+  renderWeanDayPage();
 }
 function saveWeanIngPick(){
   var e = state.weanEdit, m = state.weanSpan && state.weanSpan.meal;
@@ -18534,15 +18567,7 @@ function saveWeanIngPick(){
   var g = Math.max(0, Math.round(Number(document.getElementById('wn-ing-g').value) || 0));
   if (!m[e.kind]) m[e.kind] = [];
   var list = m[e.kind];
-  if (e.idx >= 0) list[e.idx].g = g;
-  else {
-    var b = $('#wn-ing-pick button[aria-pressed="true"]');
-    if (!b){ closeSheet('wn-ing-sheet'); return; }
-    if (list.some(function(x){ return x.ing === b.dataset.pickIng; })){
-      toast(t('wnAlreadyIn')); return;
-    }
-    list.push({ ing: b.dataset.pickIng, g: g });
-  }
+  if (e.idx >= 0 && list[e.idx]) list[e.idx].g = g;
   closeSheet('wn-ing-sheet');
   renderWeanDayPage();
 }
@@ -18950,6 +18975,28 @@ function wireWean(){
   if (ingSave) ingSave.addEventListener('click', saveWeanIngPick);
   var ingRm = document.getElementById('wn-ing-remove');
   if (ingRm) ingRm.addEventListener('click', removeWeanIngPick);
+
+  /* 식단에 재료 넣기 — 전체 화면 */
+  var addBack = document.getElementById('wn-add-close');
+  if (addBack) addBack.addEventListener('click', function(){ closeFullpage('fp-wnadd'); });
+  var addQ = document.getElementById('wn-add-q');
+  if (addQ){
+    addQ.addEventListener('input', renderWeanAddPick);
+    addQ.addEventListener('keydown', function(ev){
+      if (ev.key !== 'Enter') return;
+      ev.preventDefault();
+      var first = document.querySelector('#wn-add-ings [data-add-ing]');
+      if (first) pickWeanAddIng(first.dataset.addIng);
+      addQ.blur();
+    });
+  }
+  var addList = document.getElementById('wn-add-ings');
+  if (addList) addList.addEventListener('click', function(ev){
+    var b = ev.target.closest('[data-add-ing]');
+    if (b) pickWeanAddIng(b.dataset.addIng);
+  });
+  var addSave = document.getElementById('wn-add-save');
+  if (addSave) addSave.addEventListener('click', saveWeanAddPage);
 }
 
 function toggleShopCheck(ing){

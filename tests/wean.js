@@ -119,8 +119,8 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
   const todayInSeed = seeded.indexOf(TODAY) >= 0;
   /* 띠는 식단이 없는 날에도 떠 있다 — 시작 전이면 D-N을 센다.
      그림이 서는 건 그날 식단이 있을 때뿐이다. */
-  check('오늘 식단이 없으면 띠에 그림이 없다',
-    await p.evaluate(()=>document.querySelectorAll('#wean-row .wn-it').length > 0),
+  check('오늘 식단이 없으면 띠에 재료가 없다',
+    await p.evaluate(()=>document.querySelectorAll('#wean-row .wn-first, #wean-row .wn-ingredient').length > 0),
     todayInSeed);
   /* 그 동안의 입구: 설정 목차의 이유식 줄 */
   await p.click('#btn-settings'); await p.waitForTimeout(700);
@@ -170,8 +170,8 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
      재료 그림이 선다. 메뉴 글자는 이유식 화면 안에서 본다. */
   await mut('setWeanDay', { date: TODAY, meals: MEALS, actor: '엄마' });
   p = await open('엄마');
-  check('오늘 식단이 있으면 띠에 그림이 선다',
-    await p.evaluate(()=>document.querySelectorAll('#wean-row .wn-it').length), 4);
+  check('오늘 식단이 있으면 띠에 재료가 선다',
+    await p.evaluate(()=>document.querySelectorAll('#wean-row .wn-first, #wean-row .wn-ingredient').length), 4);
   check('...쓰는 재료만큼 (죽 + 토핑 셋)',
     (await p.evaluate(()=>[...document.querySelectorAll('#wean-row img.wi')]
       .map(i=>i.getAttribute('src').replace('icons/','').replace('.svg','')))).sort(),
@@ -203,8 +203,8 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
       .find(x=>/이유식/.test(x.textContent)); return /안 적음/.test(r.textContent); }), false);
   /* 먹였는지 여부는 띠가 사라지면서 첫 화면에서 빠졌다 — 이유식 화면의
      '오늘' 탭이 그 말을 맡는다. 칸의 그림은 먹이기 전후로 바뀌지 않는다. */
-  check('먹인 뒤에도 띠의 그림은 그대로다',
-    await p.evaluate(()=>document.querySelectorAll('#wean-row .wn-it').length), 4);
+  check('먹인 뒤에도 띠의 재료는 그대로다',
+    await p.evaluate(()=>document.querySelectorAll('#wean-row .wn-first, #wean-row .wn-ingredient').length), 4);
 
   // ═══ 기록 상세에서 먹은 양을 채운다 ═══
   /* .entry-row는 포인터 이벤트로 열린다(스와이프 삭제와 한 몸이다) —
@@ -935,8 +935,8 @@ const MEALS = [{ name:'아침', base:[{ing:'pgyo',g:40}],
 
   // ═══ 내니 폰 ═══
   p = await open('내니', 'vi');
-  check('내니 폰에도 띠에 그림이 선다',
-    await p.evaluate(()=>document.querySelectorAll('#wean-row .wn-it').length), 4);
+  check('내니 폰에도 띠에 재료가 선다',
+    await p.evaluate(()=>document.querySelectorAll('#wean-row .wn-first, #wean-row .wn-ingredient').length), 4);
   /* 식단이 서 있는 날에도 제목 줄은 선다 — 단계와 며칠차(2026-11-10).
      그림(🍽️)만 빠진다: 아래 재료 그림이 이미 이유식이라고 말한다.
      자세한 것은 tests/wnstage.js. */

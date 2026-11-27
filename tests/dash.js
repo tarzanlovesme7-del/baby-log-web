@@ -63,15 +63,19 @@ const D = (n) => { const d = new Date(); d.setDate(d.getDate() + n);
     return {
       hidden: el.hidden,
       meals: [...el.querySelectorAll('.wn-meal')].map(x => x.textContent.trim()),
-      rows: el.querySelectorAll('.wn-mrow').length,
-      icons: el.querySelectorAll('.wn-it').length,
-      rowIcons: [...el.querySelectorAll('.wn-mrow')].map(r => r.querySelectorAll('.wn-it').length),
+      /* 2026-11-27 배너 개편: 끼니마다 .wn-meal-content 하나, 재료는 이름으로 —
+         처음 먹는 재료(.wn-first)만 그림과 '첫 재료'를 달고 맨 앞, 나머지는
+         '·'로 잇는 글자(.wn-ingredient). */
+      rows: el.querySelectorAll('.wn-meal-content').length,
+      icons: el.querySelectorAll('.wn-first, .wn-ingredient').length,
+      rowIcons: [...el.querySelectorAll('.wn-meal-content')].map(r => r.querySelectorAll('.wn-first, .wn-ingredient').length),
       emoji: !document.getElementById('wn-emoji').hidden,
       title: !document.getElementById('wn-dn-line').hidden,
       stage: (document.getElementById('wn-stage').textContent || '').trim(),
       dn: (document.getElementById('wn-dn').textContent || '').trim(),
       news: el.querySelectorAll('.wn-new').length,
-      firstIsNew: !!(el.querySelector('.wn-it') && el.querySelector('.wn-it .wn-new')),
+      firstIsNew: !!(el.querySelector('.wn-meal-content') &&
+        (el.querySelector('.wn-meal-content').querySelector('.wn-first, .wn-ingredient') || {}).className === 'wn-first'),
       more: ((el.querySelector('.wn-soon') || {}).textContent || '').trim(),
       files: [...el.querySelectorAll('img.wi')].map(i =>
         i.getAttribute('src').replace('icons/', '').replace('.svg', '')).sort(),
@@ -201,8 +205,8 @@ const D = (n) => { const d = new Date(); d.setDate(d.getDate() + n);
     { name: '아침', base: [{ ing: 'pgyo', g: 40 }], tops: [{ ing: 'beef', g: 10 }] }] });
   p = await open();
   let w = await band(p);
-  check('식단 시작 전에는 띠가 D-N을 센다', /^D-\d+$/.test(w.more), true);
-  check('...그림은 없다', w.icons, 0);
+  check('식단 시작 전에는 띠가 D-N을 센다', /^D-\d+$/.test(w.dn), true);
+  check('...재료는 없다', w.icons, 0);
   await p.close();
 
   await mut('setWeanDay', { actor: '엄마', date: D(-1), meals: [
@@ -213,9 +217,9 @@ const D = (n) => { const d = new Date(); d.setDate(d.getDate() + n);
   p = await open();
   w = await band(p);
   check('오늘 식단이 있으면 띠가 뜬다', w.hidden, false);
-  check('...재료 그림이 선다', w.icons, 3);
-  check('...그림은 파일에서 온다', w.files, ['beef', 'oatmeal', 'zucchini']);
-  check('...오늘 처음 먹는 재료에만 느낌표', w.news, 1);
+  check('...재료가 이름으로 선다', w.icons, 3);
+  check('...그림은 오늘 처음 먹는 재료에만, 파일에서 온다', w.files, ['zucchini']);
+  check('...오늘 처음 먹는 재료에만 \'첫 재료\'', w.news, 1);
   check('...그 재료가 맨 앞에 선다', w.firstIsNew, true);
   check('한 끼뿐인 날엔 끼니 이름을 적지 않는다', w.meals, []);
   /* 🍽️ 는 세우지 않는다 — 재료 그림이 이미 무엇인지 말하고 있어서 자리만
