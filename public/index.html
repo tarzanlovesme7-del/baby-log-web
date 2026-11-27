@@ -3140,7 +3140,7 @@
     --c-wean:#5d8a2b;
     --wn-bg:#eaf2d6; --wn-fg:#456b1c; --wn-ink:#35520f;
     /* 배너 바탕과 첫 재료 글자색. 작은 점에는 더 선명한 토마토색을 쓴다. */
-    --wn-band-bg:color-mix(in srgb, var(--c-wean) 8%, var(--surface));
+    --wn-band-bg:color-mix(in srgb, var(--c-wean) 22%, var(--surface));
     --wn-band-first:#a33e24; --wn-newtag:#e04b2d;
     /* 이유식 화면 전용 — 목업(spoon)의 값 그대로. 탭 밑줄 초록과
        식단 알약의 기본 바탕·글자색. */
@@ -13004,7 +13004,7 @@ function setPageSummary(key){
 /* 어느 날 올린 것을 보고 있는지. 고친 것이 폰에 닿았는지를 두고 말이
    엇갈린 적이 있어서(2026-10-21 이유식 스크롤) 설정 맨 아래에 적어 둔다.
    올릴 때마다 이 줄 하나만 고치면 된다. */
-var BUILD = '20261127b';
+var BUILD = '20261127c';
 function renderSetIndex(){
   var box = document.getElementById('set-index');
   if (!box) return;
